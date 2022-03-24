@@ -1,0 +1,43 @@
+run:
+  timeout: 5m
+  tests: false
+
+linters:
+  enable-all: true
+  disable:
+    - deadcode # The repository has no Application Life Cycle Management. Run manually prior to a release.
+    - unused # The repository has no Application Life Cycle Management. Run manually prior to a release.
+    - cyclop
+    - errorlint
+    - exhaustivestruct
+    - forbidigo
+    - funlen
+    - goerr113
+    - gomnd
+    - gocognit
+    - lll
+    - maligned
+    - nlreturn
+    - tagliatelle
+    - wrapcheck
+    - golint # Deprecated
+    - interfacer # Deprecated
+    - scopelint # Deprecated
+
+  fast: false
+linters-settings:
+  gocritic:
+    enabled-tags:
+      - style
+      - experimental
+      - performance
+      - diagnostic
+      - opinionated
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow
+
+  funlen:
+    lines: 80

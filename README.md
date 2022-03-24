@@ -1,5 +1,7 @@
 # Disgo
 
+**This repository is currently a PROOF OF CONCEPT. For more information, read the [roadmap](/contribution/CONTRIBUTING.md#roadmap).** 
+
 Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching and shard management.
 
 | Topic                           | Categories                                                                                                                                          |
@@ -139,7 +141,7 @@ Go is a statically typed language with a garbage collector. As a result, it perf
 
 ### Comparison
 
-Disgo supports every feature in the Discord API in the Discord API and provides optional caching and shard management. [DiscordGo](https://github.com/bwmarrin/discordgo#documentation) is not feature-complete and [Disgord](https://github.com/andersfylling/disgord#qa) is limiting. `disgo` contains of 5 letters — while the others have 7+ — saving you precious keyboard strokes. Most important is Disgo's performance, which saves you money by reducing server costs. _Don't believe me?_ Check this out!
+Disgo supports every feature in the Discord API in the Discord API and provides optional caching and shard management. [DiscordGo](https://github.com/bwmarrin/discordgo#documentation) is not feature-complete and [Disgord](https://github.com/andersfylling/disgord#qa) is limiting. The word `disgo` contains 5 letters — while the others have 7+ — saving you precious keyboard strokes. Most important is Disgo's performance, which saves you money by reducing server costs. _Don't believe me?_ Check this out!
 
 #### CPU
 Disgo places a priority on performance. For more information, view [`library decisions`](/contribution/libraries/). Sharding is optional.
@@ -154,18 +156,20 @@ Disgo adds ~<> MB to a compiled binary.
 
 Disgo is the easiest Discord Go API for developers to use and contribute to. You can contribute to this repository by viewing the [Project Structure, Code Specifications, and Roadmap](contribution/CONTRIBUTING.md).
 
-| Library   | Contribution                                                                                                                                                                                                                              | Lines of Code |
-| :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------ |
-| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 10K           |
-| DiscordGo | Limited Guidelines, No Architecture, No Linter, Tests                                                                                                                                                                                     | 10K           |
-| Disgord   | Contribution Guidelines, Project Architecture, No Linter, Tests                                                                                                                                                                           | 30K           |
+| Library   | Contribution                                                                                                                                                                                                                                                                                               | Lines of Code to Maintain |
+| :-------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
+| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Code Generation](contribution/CONTRIBUTING.md#code-generation), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | ?/?K                      |
+| DiscordGo | Limited Guidelines, No Architecture, No Linter, Tests                                                                                                                                                                                                                                                      | ?/10K                     |
+| Disgord   | Contribution Guidelines, Project Architecture, No Linter, Tests                                                                                                                                                                                                                                            | ?/30K                     |
 
 ## License
 
-The [Apache License 2.0](#license) is permissive for commercial use: Preserve copyright and license notices along with a disclosure of the library's use _(where the source is distributed)_.
+The [Apache License 2.0](#license) is permissive for commercial use. For more information, read [Apache Licensing FAQ](https://www.apache.org/foundation/license-faq.html).
 
 ### Credits
 
-| Name                                 | Contributions                                   |
-| :----------------------------------- | :---------------------------------------------- |
-| [SwitchUpCB](https://switchupcb.com) | Project Architecture, Resources, Events, Errors |
+| Name                                 | Contributions                                                                                            |
+| :----------------------------------- | :------------------------------------------------------------------------------------------------------- |
+| [SwitchUpCB](https://switchupcb.com) | Project Architecture, [Discord API Spec (Disgo Structs)](https://github.com/switchupcb/discord-api-spec) |
+
+_Earn a credit! [Contribute Now](contribution/CONTRIBUTING.md)._

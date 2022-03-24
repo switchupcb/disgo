@@ -1,6 +1,6 @@
 # Logging
 
-Logging is used to provide information throughout the application.
+Logging is used to provide information throughout the application. Disgo uses [**Zerolog**](https://github.com/rs/zerolog) for JSON serialization.
 
 ## Other Benchmarks
 

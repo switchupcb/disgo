@@ -7,6 +7,7 @@ JSON is a human-readable serialization format used to exchange data. Disgo seria
 | Library                                                                               | Description                                                                        | Last Commit (as of March 20, 2022) |
 | :------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------- | :--------------------------------- |
 | [go-json](https://github.com/goccy/go-json)                                           | Fast JSON Serializing & Deserializing (Drop in replacement for `encoding/json`)    | 1 day                              |
+| [simdjson-go](https://github.com/minio/simdjson-go)                                   | SIMD JSON Serializer                                                               | 10 days                            |
 | [sonic](https://github.com/bytedance/sonic)                                           | Fast JSON Serializing & Deserializing (HTML escaping NOT in conformity to RFC8259) | 20 days                            |
 | [gjson](https://github.com/tidwall/gjson) + [sjson](https://github.com/tidwall/sjson) | Get and Set JSON                                                                   | 1 month                            |
 | [easyjson](https://github.com/mailru/easyjson)                                        | Fast JSON Serializing & Deserializing                                              | 2021                               |
