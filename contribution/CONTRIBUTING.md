@@ -18,7 +18,7 @@ The repository consists of a detailed [README](/README.md), [examples](/examples
 
 ### Disgo
 
-The API Wrapper consists of multiple packages. A [bundler (TBA)]() is used to package the API into a single-usable package.
+The API Wrapper consists of multiple packages. A [bundler](https://pkg.go.dev/golang.org/x/tools/cmd/bundle) is used to package the API into a single-usable package.
 
 | Package   | Description                                   |
 | :-------- | :-------------------------------------------- |
