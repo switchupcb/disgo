@@ -45,19 +45,3 @@ type IntegrationApplication struct {
 	Description string `json:"description"`
 	Bot         User   `json:"bot"`
 }
-
-// Welcome Screen Object
-// https://discord.com/developers/docs/resources/guild#welcome-screen-object-welcome-screen-structure
-type WelcomeScreen struct {
-	Description           string                 `json:"description"`
-	WelcomeScreenChannels []WelcomeScreenChannel `json:"welcome_channels"`
-}
-
-// Welcome Screen Channel Structure
-// https://discord.com/developers/docs/resources/guild#welcome-screen-object-welcome-screen-channel-structure
-type WelcomeScreenChannel struct {
-	ChannelID   int64  `json:"channel_id"`
-	Description string `json:"description"`
-	EmojiID     int64  `json:"emoji_id"`
-	EmojiName   string `json:"emoji_name"`
-}

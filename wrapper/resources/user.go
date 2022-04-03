@@ -2,7 +2,6 @@ package resource
 
 // User Object
 // https://discord.com/developers/docs/resources/user#user-object
-// User the Discord user object which is reused in most other data structures.
 type User struct {
 	ID            int64  `json:"id,omitempty"`
 	Username      string `json:"username,omitempty"`

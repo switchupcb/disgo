@@ -18,7 +18,7 @@ type AuditLogEntry struct {
 	Changes    []*AuditLogChange `json:"changes"`
 	UserID     string            `json:"user_id"`
 	ID         string            `json:"id"`
-	ActionType *AuditLogAction   `json:"action_type"`
+	ActionType uint8             `json:"action_type"`
 	Options    *AuditLogOptions  `json:"options"`
 	Reason     string            `json:"reason"`
 }
@@ -87,10 +87,6 @@ type AuditLogOptions struct {
 	RoleName         string `json:"role_name"`
 }
 
-// AuditLogAction is the Action of the AuditLog (see AuditLogAction* consts)
-// https://discord.com/developers/docs/resources/audit-log#audit-log-entry-object-audit-log-events
-type AuditLogAction int
-
 // Audit Log Change Object
 // https://discord.com/developers/docs/resources/audit-log#audit-log-change-object
 type AuditLogChange struct {
@@ -99,6 +95,78 @@ type AuditLogChange struct {
 	Key      string      `json:"key"`
 }
 
-// TODO: Audit Log Change Key
+// Audit Log Change Key
 // https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key
-type AuditLogChangeKey string
+const (
+	KeyAuditLogafk_channel_id                = "afk_channel_id"
+	KeyAuditLogafk_timeout                   = "afk_timeout"
+	KeyAuditLogallow                         = "allow"
+	KeyAuditLogapplication_id                = "application_id"
+	KeyAuditLogarchived                      = "archived"
+	KeyAuditLogasset                         = "asset"
+	KeyAuditLogauto_archive_duration         = "auto_archive_duration"
+	KeyAuditLogavailable                     = "available"
+	KeyAuditLogavatar_hash                   = "avatar_hash"
+	KeyAuditLogbanner_hash                   = "banner_hash"
+	KeyAuditLogbitrate                       = "bitrate"
+	KeyAuditLogchannel_id                    = "channel_id"
+	KeyAuditLogcode                          = "code"
+	KeyAuditLogcolor                         = "color"
+	KeyAuditLogcommunication_disabled_until  = "communication_disabled_until"
+	KeyAuditLogdeaf                          = "deaf"
+	KeyAuditLogdefault_auto_archive_duration = "default_auto_archive_duration"
+	KeyAuditLogdefault_message_notifications = "default_message_notifications"
+	KeyAuditLogdeny                          = "deny"
+	KeyAuditLogdescription                   = "description"
+	KeyAuditLogdiscovery_splash_hash         = "discovery_splash_hash"
+	KeyAuditLogenable_emoticons              = "enable_emoticons"
+	KeyAuditLogentity_type                   = "entity_type"
+	KeyAuditLogexpire_behavior               = "expire_behavior"
+	KeyAuditLogexpire_grace_period           = "expire_grace_period"
+	KeyAuditLogexplicit_content_filter       = "explicit_content_filter"
+	KeyAuditLogformat_type                   = "format_type"
+	KeyAuditLogguild_id                      = "guild_id"
+	KeyAuditLoghoist                         = "hoist"
+	KeyAuditLogicon_hash                     = "icon_hash"
+	KeyAuditLogimage_hash                    = "image_hash"
+	KeyAuditLogid                            = "id"
+	KeyAuditLoginvitable                     = "invitable"
+	KeyAuditLoginviter_id                    = "inviter_id"
+	KeyAuditLoglocation                      = "location"
+	KeyAuditLoglocked                        = "locked"
+	KeyAuditLogmax_age                       = "max_age"
+	KeyAuditLogmax_uses                      = "max_uses"
+	KeyAuditLogmentionable                   = "mentionable"
+	KeyAuditLogmfa_level                     = "mfa_level"
+	KeyAuditLogmute                          = "mute"
+	KeyAuditLogname                          = "name"
+	KeyAuditLognick                          = "nick"
+	KeyAuditLognsfw                          = "nsfw"
+	KeyAuditLogowner_id                      = "owner_id"
+	KeyAuditLogpermission_overwrites         = "permission_overwrites"
+	KeyAuditLogpermissions                   = "permissions"
+	KeyAuditLogposition                      = "position"
+	KeyAuditLogpreferred_locale              = "preferred_locale"
+	KeyAuditLogprivacy_level                 = "privacy_level"
+	KeyAuditLogprune_delete_days             = "prune_delete_days"
+	KeyAuditLogpublic_updates_channel_id     = "public_updates_channel_id"
+	KeyAuditLograte_limit_per_user           = "rate_limit_per_user"
+	KeyAuditLogregion                        = "region"
+	KeyAuditLogrules_channel_id              = "rules_channel_id"
+	KeyAuditLogsplash_hash                   = "splash_hash"
+	KeyAuditLogstatus                        = "status"
+	KeyAuditLogsystem_channel_id             = "system_channel_id"
+	KeyAuditLogtags                          = "tags"
+	KeyAuditLogtemporary                     = "temporary"
+	KeyAuditLogtopic                         = "topic"
+	KeyAuditLogtype                          = "type"
+	KeyAuditLogunicode_emoji                 = "unicode_emoji"
+	KeyAuditLoguser_limit                    = "user_limit"
+	KeyAuditLoguses                          = "uses"
+	KeyAuditLogvanity_url_code               = "vanity_url_code"
+	KeyAuditLogverification_level            = "verification_level"
+	KeyAuditLogwidget_channel_id             = "widget_channel_id"
+	KeyAuditLogwidget_enabled                = "widget_enabled"
+	KeyAuditLogadd                           = "add"
+	KeyAuditLogremove                        = "remove"
+)

@@ -145,6 +145,23 @@ type GuildWidget struct {
 	ChannelID int64 `json:"channel_id"`
 }
 
+// Guild Member Object
+// https://discord.com/developers/docs/resources/guild#guild-member-object
+type GuildMember struct {
+	User                       *User      `json:"user"`
+	Nick                       string     `json:"nick,omitempty"`
+	Avatar                     string     `json:"avatar"`
+	Roles                      []int64    `json:"roles"`
+	GuildID                    int64      `json:"guild_id,omitempty"`
+	JoinedAt                   time.Time  `json:"joined_at,omitempty"`
+	PremiumSince               time.Time  `json:"premium_since,omitempty"`
+	Deaf                       bool       `json:"deaf"`
+	Mute                       bool       `json:"mute"`
+	Pending                    bool       `json:"pending"`
+	CommunicationDisabledUntil *time.Time `json:"communication_disabled_until"`
+	Permissions                int64      `json:"permissions,string"`
+}
+
 // Guild Ban Object
 // https://discord.com/developers/docs/resources/guild#ban-object
 type Ban struct {
@@ -228,55 +245,18 @@ type GuildTemplate struct {
 	IsDirty               bool      `json:"is_dirty"`
 }
 
-// Invite Object
-// https://discord.com/developers/docs/resources/invite#invite-object
-type Invite struct {
-	Code                     string              `json:"code"`
-	Guild                    *Guild              `json:"guild"`
-	Channel                  *Channel            `json:"channel"`
-	Inviter                  *User               `json:"inviter"`
-	TargetUser               *User               `json:"target_user"`
-	TargetType               uint8               `json:"target_type"`
-	TargetApplication        *Application        `json:"target_application"`
-	ApproximatePresenceCount int                 `json:"approximate_presence_count"`
-	ApproximateMemberCount   int                 `json:"approximate_member_count"`
-	ExpiresAt                time.Time           `json:"expires_at"`
-	StageInstance            StageInstance       `json:"stage_instance"`
-	GuildScheduledEvent      GuildScheduledEvent `json:"guild_scheduled_event"`
+// Welcome Screen Object
+// https://discord.com/developers/docs/resources/guild#welcome-screen-object-welcome-screen-structure
+type WelcomeScreen struct {
+	Description           string                 `json:"description"`
+	WelcomeScreenChannels []WelcomeScreenChannel `json:"welcome_channels"`
 }
 
-// Invite Target Types
-// https://discord.com/developers/docs/resources/invite#invite-object-invite-target-types
-const (
-	InviteTargetTypesSTREAM = 1
-	EMBEDDED_APPLICATION    = 2
-)
-
-// Invite Metadata Object
-// https://discord.com/developers/docs/resources/invite#invite-metadata-object-invite-metadata-structure
-type InviteMetadata struct {
-	Uses      int       `json:"uses"`
-	MaxUses   int       `json:"max_uses"`
-	MaxAge    int       `json:"max_age"`
-	Temporary bool      `json:"temporary"`
-	CreatedAt time.Time `json:"created_at"`
+// Welcome Screen Channel Structure
+// https://discord.com/developers/docs/resources/guild#welcome-screen-object-welcome-screen-channel-structure
+type WelcomeScreenChannel struct {
+	ChannelID   int64  `json:"channel_id"`
+	Description string `json:"description"`
+	EmojiID     int64  `json:"emoji_id"`
+	EmojiName   string `json:"emoji_name"`
 }
-
-// Invite Stage Instance Object
-// https://discord.com/developers/docs/resources/stage-instance#stage-instance-object
-type StageInstance struct {
-	ID                    int64  `json:"id"`
-	GuildID               string `json:"guild_id"`
-	ChannelID             string `json:"channel_id"`
-	Topic                 string `json:"topic"`
-	PrivacyLevel          uint8  `json:"privacy_level"`
-	DiscoverableDisabled  bool   `json:"discoverable_disabled"`
-	GuildScheduledEventID int64  `json:"guild_scheduled_event_id"`
-}
-
-// Privacy Level
-// https://discord.com/developers/docs/resources/stage-instance#stage-instance-object-privacy-level
-const (
-	PUBLIC     = 1
-	GUILD_ONLY = 2
-)

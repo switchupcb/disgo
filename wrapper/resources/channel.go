@@ -66,3 +66,12 @@ type ThreadMetadata struct {
 	Invitable           bool      `json:"invitable,omitempty"`
 	CreateTimestamp     time.Time `json:"create_timestamp,omitempty"`
 }
+
+// Thread Member Object
+// https://discord.com/developers/docs/resources/channel#thread-member-object
+type ThreadMember struct {
+	ThreadID      int64     `json:"id,omitempty"`
+	UserID        int64     `json:"user_id,omitempty"`
+	JoinTimestamp time.Time `json:"join_timestamp"`
+	Flags         int       `json:"flags"`
+}
