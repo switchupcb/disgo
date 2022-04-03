@@ -85,6 +85,7 @@ const (
 
 // Interaction Callback Data Structure
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-data-structure
+type InteractionCallbackData interface{}
 
 // Messages
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
