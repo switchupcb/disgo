@@ -85,12 +85,15 @@ Create an **event handler** and add it to a **session**.
 // Add a session.
 bot.Sessions = append(bot.Sessions, disgo.Session{})
 
-// Define a handler (or use an anonymous function).
-func handler (e disgo.EventInteractionCreate) {
-    log.Println("/main called.")
+// Define an event handler.
+handler := disgo.EventHandler{
+    Event: disgo.EventInteractionCreate,
+    Call: func (i disgo.ResourceInteraction) {
+        log.Printf("main called by %s", i.User.Username)
+    },
 }
 
-// Add the handler for an event to the session.
+// Add the event handler to the session.
 bot.Sessions[0].Handlers.Add(handler)
 ```
 
@@ -105,9 +108,11 @@ if err != nil {
 }
 ```
 
-A user creates an interaction by using `/main` in a direct message.
+A user creates an [`InteractionCreate`](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events) event by using `/main` in a direct message with the bot.
 
-[img]
+```
+main called by SCB
+```
 
 ### Summary
 
@@ -119,13 +124,14 @@ disgo.Resource<API Resources>
 disgo.Event<API Events>
 
 // Use the client to manage the bot's settings.
-disgo.Client.Config<Settings>
+disgo.Client.Config.<Settings>
 
 // Use requests to exchange data with Discord's REST API.
 disgo.Request<Endpoints>
 
 // Use sessions to handle events from Discord's WebSocket Sessions (Gateways).
-disgo.Client.Session.<Handler func(disgo.Event){}>
+disgo.Client.Session.Handlers.Add(<handler>)
+disgo.Client.Session.Handlers.Remove(<handler>)
 
 // Use the client to manage the optional cache.
 disgo.Client.Cache.<Settings>

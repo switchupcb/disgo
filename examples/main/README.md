@@ -42,12 +42,15 @@ Create an **event handler** and add it to a **session**.
 // Add a session.
 bot.Sessions = append(bot.Sessions, disgo.Session{})
 
-// Define a handler (or use an anonymous function).
-func handler (e disgo.EventInteractionCreate) {
-    log.Println("/main called.")
+// Define an event handler.
+handler := disgo.EventHandler{
+    Event: disgo.EventInteractionCreate,
+    Call: func (i disgo.ResourceInteraction) {
+        log.Printf("main called by %s", i.User.Username)
+    },
 }
 
-// Add the handler for an event to the session.
+// Add the event handler to the session.
 bot.Sessions[0].Handlers.Add(handler)
 ```
 
@@ -62,7 +65,8 @@ if err != nil {
 }
 ```
 
-A user creates an interaction by using `/main` in a direct message.
+A user creates an [`InteractionCreate`](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events) event by using `/main` in a direct message with the bot.
 
-[img]
-
+```
+main called by SCB
+```
