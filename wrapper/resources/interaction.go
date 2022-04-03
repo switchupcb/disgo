@@ -85,9 +85,10 @@ const (
 
 // Interaction Callback Data Structure
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-data-structure
-//
+
 // Messages
-type InteractionCallbackData struct {
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
+type Messages struct {
 	TTS             bool             `json:"tts"`
 	Content         string           `json:"content"`
 	Embeds          []*Embed         `json:"embeds"`
