@@ -25,6 +25,10 @@ This breakdown provides you with a **full understanding** on how to use the API.
 
 You create a **Client** that calls for **Resources** using **Requests** and that handles **Events** using **Sessions**.
 
+### Flags
+
+A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides. All flags are denoted by `Flag` in disgo: For example, `disgo.FlagUserSTAFF`, `disgo.FlagLevelVerificationHIGH`, `disgo.FlagTierPremiumNONE`, etc.
+
 ### Caching
 
 Read [What is a Cache](contribution/concepts/CACHE.md) for a simple yet full understanding of the Disgo Cache. The [Disgo Cache](contribution/concepts/CACHE.md#the-disgo-cache) is **optional**. The **cache interface** allows you to replace the built-in cache with another store _(such as Redis or Memcached)_ and/or provide your own method of caching data.
@@ -122,6 +126,9 @@ disgo.Request<Endpoints>
 
 // Use sessions to handle events from Discord's WebSocket Sessions (Gateways).
 disgo.Client.Session.<Handler func(disgo.Event){}>
+
+// Use flags to specify options.
+disgo.Flag<Option Type (in reverse order)><Option Name>
 
 // Use the client to manage the optional cache.
 disgo.Client.Cache.<Settings>
