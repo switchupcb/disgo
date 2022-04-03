@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Channel Mention Object
 // https://discord.com/developers/docs/resources/channel#channel-mention-object

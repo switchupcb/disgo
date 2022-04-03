@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Application Object
 // https://discord.com/developers/docs/resources/application

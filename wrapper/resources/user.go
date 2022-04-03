@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // User Object
 // https://discord.com/developers/docs/resources/user#user-object

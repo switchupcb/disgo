@@ -1,11 +1,11 @@
-package resource
+package resources
 
 import "time"
 
 // Guild Object
 // https://discord.com/developers/docs/resources/guild#guild-object
 type Guild struct {
-	ID                          int64                  `json:"id"`
+	ID                          Snowflake              `json:"id"`
 	Name                        string                 `json:"name"`
 	Icon                        string                 `json:"icon"`
 	Splash                      string                 `json:"splash"`

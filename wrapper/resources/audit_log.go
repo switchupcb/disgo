@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Audit Log Object
 // https://discord.com/developers/docs/resources/audit-log

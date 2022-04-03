@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Interaction Object
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-structure

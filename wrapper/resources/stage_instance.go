@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Stage Instance Object
 // https://discord.com/developers/docs/resources/stage-instance#stage-instance-object

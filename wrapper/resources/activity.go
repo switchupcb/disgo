@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Activity Object
 // https://discord.com/developers/docs/topics/gateway#activity-object-activity-structure

@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Bitwise Permission Flags
 // https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags

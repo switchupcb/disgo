@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Component Types
 // https://discord.com/developers/docs/interactions/message-components#component-object-component-types

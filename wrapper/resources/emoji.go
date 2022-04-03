@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Emoji Object
 // https://discord.com/developers/docs/resources/emoji#emoji-object-emoji-structure

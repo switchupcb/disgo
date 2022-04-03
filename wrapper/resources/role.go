@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Role Object
 // https://discord.com/developers/docs/topics/permissions#role-object

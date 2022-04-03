@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Locales
 // https://discord.com/developers/docs/reference#locales

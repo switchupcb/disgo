@@ -1,4 +1,4 @@
-package resource
+package resources
 
 // Team Object
 // https://discord.com/developers/docs/topics/teams#data-models-team-object

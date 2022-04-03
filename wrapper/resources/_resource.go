@@ -1,6 +1,9 @@
 // Package resources represents Discord API Objects.
 package resources
 
+// Snowflake represents a Discord API Snowflake.
+type Snowflake uint64
+
 // Flag represents an (unused) alias for a Discord API Flag ranging from 0 - 255.
 type Flag uint8
 
