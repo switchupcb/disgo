@@ -9,7 +9,7 @@ Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/d
 | [Using the API](#using-the-api) | [Breakdown](#using-the-api), [Caching](#caching), [Sharding](#sharding)                                                                             |
 | [Examples](#examples)           | [Configuration](#configuration), [Create a Command](#create-a-command), [Handle an Event](#handle-an-event), [Output](#output), [Summary](#Summary) |
 | [Features](#features)           | [Why Go?](#why-go), [Comparison](#comparison), [Contributing](#contributing)                                                                        |
-| [License](#license)             | [Credits](#credits)                                                                                                                                 |
+| [Ecosystem](#ecosystem)         | [License](#license), [Libraries](#libraries), [Credits](#credits)                                                                                   |
 
 ## Using the API
 
@@ -169,14 +169,23 @@ Disgo is the easiest Discord Go API for developers to use and contribute to. You
 | DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | ?/10K                     |
 | Disgord   | Contribution Guidelines, Project Architecture, No Linter, Tests                                                                                                                                                                           | ?/30K                     |
 
-## License
+## Ecosystem
+
+### License
 
 The [Apache License 2.0](#license) is permissive for commercial use. For more information, read [Apache Licensing FAQ](https://www.apache.org/foundation/license-faq.html).
 
+### Libraries
+
+| Library          | Description                                                                  |
+| :--------------- | :--------------------------------------------------------------------------- |
+| [Discord API Spec](https://github.com/switchupcb/discord-api-spec) | Up-to-date Machine Readable Specification for Discord (contains Go structs). |
+| Disgo Template   | Get started on a Discord Bot with this Disgo Framework.                      |
+
 ### Credits
 
-| Name                                 | Contributions                                                                                            |
-| :----------------------------------- | :------------------------------------------------------------------------------------------------------- |
-| [SwitchUpCB](https://switchupcb.com) | Project Architecture, [Discord API Spec (Disgo Structs)](https://github.com/switchupcb/discord-api-spec) |
+| Name                                 | Contributions                          |
+| :----------------------------------- | :------------------------------------- |
+| [SwitchUpCB](https://switchupcb.com) | Project Architecture, Discord API Spec |
 
 _Earn a credit! [Contribute Now](contribution/CONTRIBUTING.md)._
