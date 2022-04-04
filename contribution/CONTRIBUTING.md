@@ -90,10 +90,13 @@ Integration tests are used to ensure functionality between the API and Discord.
 Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to complete it:
 
 1. Generate structs upon a Discord API change using [Discord API Spec](https://github.com/switchupcb/discord-api-spec) or any other alternative.
-2. Make [decisions](/contribution/libraries/) for libraries.
-3. Generate [json](#json) unmarshal and marshal code (if required; likely not).
-4. Generate [http](#http) code.
-5. Generate any other code.
-6. Implement Client once.
-7. Implement Sharding once.
-8. Implement Cache (which is likely where most effort lies; caching is difficult).
+2. Generate [json](#json) unmarshal and marshal code (if required; likely not).
+3. Generate [http](#http) code.
+4. Generate any other code.
+5. Implement Client once.
+6. Implement Sharding once.
+7. Implement Cache (which is likely where most effort lies; caching is difficult).
+
+In addition, we must make [decisions](/contribution/libraries/) for the following:
+1. UDP connections (Voice)
+2. [Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice)
