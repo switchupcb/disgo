@@ -39,6 +39,34 @@ disgo.ResourceUser
 disgo.RequestGetUser
 ```
 
+##### Fields
+
+We must maintain correctness with the `omitempty` JSON tag in order to avoid issues with certain requests. An `omitempty` tag should **always** be applied. In contrast, a pointer should only be applied to a field when the _Field's Discord Representation_ can **NOT** be equal to the Go Type's zero-value. For example, [Application Command Types](https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types) are never equal to 0. In contrast, an unsigned integer — which represents the Go `FlagTypeCommandApplication` — has a zero-value equal to 0. This means an uninitialized unsigned integer _(which is equal to 0)_ can be considered as a `nil` value for the `FlagTypeCommandApplication`. As a result, fields that reference `FlagTypeCommandApplication` should **NOT** be a pointer.
+
+```go
+type Application struct {
+	Flags uint `json:"flags,omitempty"`
+}
+```
+
+If this is not the case _(i.e [Verification Level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level)),_ fields that reference the type **SHOULD** be a pointer.
+ 
+```go
+type Guild struct {
+	VerificationLevel *uint `json:"flags,omitempty"`
+}
+```
+
+An empty struct response should **NOT** create a struct with default values. As a result, **structs** with `omitempty` must always be pointers.
+
+```go
+type Embed struct {
+    Author      *EmbedAuthor    `json:"author,omitempty"`
+}
+```
+
+An exception is provided to interfaces, slices, channels, and maps, which should **NEVER** be pointers, but may contain pointers to types.
+
 #### JSON
 
 JSON unmarshal and marshal functions are generated from structs.
