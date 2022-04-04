@@ -53,7 +53,7 @@ If this is not the case _(i.e [Verification Level](https://discord.com/developer
  
 ```go
 type Guild struct {
-	VerificationLevel *uint `json:"flags,omitempty"`
+	VerificationLevel *uint `json:"verification_level,omitempty"`
 }
 ```
 
@@ -61,7 +61,7 @@ An empty struct response should **NOT** create a struct with default values. As 
 
 ```go
 type Embed struct {
-    Author      *EmbedAuthor    `json:"author,omitempty"`
+	Author *EmbedAuthor `json:"author,omitempty"`
 }
 ```
 
