@@ -3,15 +3,17 @@ package resources
 // Application Command Structure
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 type ApplicationCommand struct {
-	ID                int64                       `json:"id"`
-	Type              uint8                       `json:"type"`
-	ApplicationID     int64                       `json:"application_id"`
-	GuildID           int64                       `json:"guild_id"`
-	Name              string                      `json:"name"`
-	Description       string                      `json:"description,omitempty"`
-	Options           []*ApplicationCommandOption `json:"options"`
-	DefaultPermission bool                        `json:"default_permission,omitempty"`
-	Version           int64                       `json:"version"`
+	ID                       int64                       `json:"id"`
+	Type                     uint8                       `json:"type"`
+	ApplicationID            int64                       `json:"application_id"`
+	GuildID                  int64                       `json:"guild_id"`
+	Name                     string                      `json:"name"`
+	NameLocalizations        map[Flag]string             `json:"name_localizations,omitempty"`
+	Description              string                      `json:"description,omitempty"`
+	DescriptionLocalizations map[Flag]string             `json:"description_localizations,omitempty"`
+	Options                  []*ApplicationCommandOption `json:"options"`
+	DefaultPermission        bool                        `json:"default_permission,omitempty"`
+	Version                  int64                       `json:"version"`
 }
 
 // Application Command Types
