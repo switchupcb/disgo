@@ -3,12 +3,12 @@ package resources
 // Activity Object
 // https://discord.com/developers/docs/topics/gateway#activity-object-activity-structure
 type Activity struct {
-	Name          string              `json:"name"`
-	Type          uint8               `json:"type"`
+	Name          string              `json:"name,omitempty"`
+	Type          *Flag               `json:"type,omitempty"`
 	URL           string              `json:"url,omitempty"`
-	CreatedAt     int                 `json:"created_at"`
+	CreatedAt     int                 `json:"created_at,omitempty"`
 	Timestamps    *ActivityTimestamps `json:"timestamps,omitempty"`
-	ApplicationID int64               `json:"application_id,omitempty"`
+	ApplicationID Snowflake           `json:"application_id,omitempty"`
 	Details       string              `json:"details,omitempty"`
 	State         string              `json:"state,omitempty"`
 	Emoji         *Emoji              `json:"emoji,omitempty"`
@@ -16,7 +16,7 @@ type Activity struct {
 	Assets        *ActivityAssets     `json:"assets,omitempty"`
 	Secrets       *ActivitySecrets    `json:"secrets,omitempty"`
 	Instance      bool                `json:"instance,omitempty"`
-	Flags         uint8               `json:"flags,omitempty"`
+	Flags         BitFlag             `json:"flags,omitempty"`
 	Buttons       []Button            `json:"buttons,omitempty"`
 }
 
@@ -61,25 +61,25 @@ type ActivitySecrets struct {
 // ActivityType Enum
 // https://discord.com/developers/docs/game-sdk/activities#data-models-activitytype-enum
 const (
-	Playing   = 0
-	Streaming = 1
-	Listening = 2
-	Watching  = 3
-	Custom    = 4
-	Competing = 5
+	FlagEnumTypeActivityPlaying   = 0
+	FlagEnumTypeActivityStreaming = 1
+	FlagEnumTypeActivityListening = 2
+	FlagEnumTypeActivityWatching  = 3
+	FlagEnumTypeActivityCustom    = 4
+	FlagEnumTypeActivityCompeting = 5
 )
 
 // ActivityJoinRequestReply Enum
 // https://discord.com/developers/docs/game-sdk/activities#data-models-activityjoinrequestreply-enum
 const (
-	No     = 0
-	Yes    = 1
-	Ignore = 2
+	FlagEnumReplyRequestJoinActivityNo     = 0
+	FlagEnumReplyRequestJoinActivityYes    = 1
+	FlagEnumReplyRequestJoinActivityIgnore = 2
 )
 
 // ActivityActionType Enum
 // https://discord.com/developers/docs/game-sdk/activities#data-models-activityactiontype-enum
 const (
-	Join     = 1
-	Spectate = 2
+	FlagEnumTypeActionActivityJoin     = 1
+	FlagEnumTypeActionActivitySpectate = 2
 )

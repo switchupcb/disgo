@@ -5,8 +5,8 @@ import "encoding/json"
 // Gateway Payload Structure
 // https://discord.com/developers/docs/topics/gateway#payloads-gateway-payload-structure
 type GatewayPayload struct {
-	Op             uint8           `json:"op"`
-	Data           json.RawMessage `json:"d"`
+	Op             uint8           `json:"op,omitempty"`
+	Data           json.RawMessage `json:"d,omitempty"`
 	SequenceNumber uint32          `json:"s,omitempty"`
 	EventName      string          `json:"t,omitempty"`
 }
@@ -37,78 +37,78 @@ const (
 	// STAGE_INSTANCE_CREATE
 	// STAGE_INSTANCE_UPDATE
 	// STAGE_INSTANCE_DELETE
-	GUILDS = 1 << 0
+	FlagIntentsofListGUILDS = 1 << 0
 
 	// GUILD_MEMBER_ADD
 	// GUILD_MEMBER_UPDATE
 	// GUILD_MEMBER_REMOVE
 	// THREAD_MEMBERS_UPDATE *
-	GUILD_MEMBERS = 1 << 1
+	FlagIntentsofListGUILD_MEMBERS = 1 << 1
 
 	// GUILD_BAN_ADD
 	// GUILD_BAN_REMOVE
-	GUILD_BANS = 1 << 2
+	FlagIntentsofListGUILD_BANS = 1 << 2
 
 	// GUILD_EMOJIS_UPDATE
 	// GUILD_STICKERS_UPDATE
-	GUILD_EMOJIS_AND_STICKERS = 1 << 3
+	FlagIntentsofListGUILD_EMOJIS_AND_STICKERS = 1 << 3
 
 	// GUILD_INTEGRATIONS_UPDATE
 	// INTEGRATION_CREATE
 	// INTEGRATION_UPDATE
 	// INTEGRATION_DELETE
-	GUILD_INTEGRATIONS = 1 << 4
+	FlagIntentsofListGUILD_INTEGRATIONS = 1 << 4
 
 	// WEBHOOKS_UPDATE
-	GUILD_WEBHOOKS = 1 << 5
+	FlagIntentsofListGUILD_WEBHOOKS = 1 << 5
 
 	// INVITE_CREATE
 	// INVITE_DELETE
-	GUILD_INVITES = 1 << 6
+	FlagIntentsofListGUILD_INVITES = 1 << 6
 
 	// VOICE_STATE_UPDATE
-	GUILD_VOICE_STATES = 1 << 7
+	FlagIntentsofListGUILD_VOICE_STATES = 1 << 7
 
 	// PRESENCE_UPDATE
-	GUILD_PRESENCES = 1 << 8
+	FlagIntentsofListGUILD_PRESENCES = 1 << 8
 
 	// MESSAGE_CREATE
 	// MESSAGE_UPDATE
 	// MESSAGE_DELETE
 	// MESSAGE_DELETE_BULK
-	GUILD_MESSAGES = 1 << 9
+	FlagIntentsofListGUILD_MESSAGES = 1 << 9
 
 	// MESSAGE_REACTION_ADD
 	// MESSAGE_REACTION_REMOVE
 	// MESSAGE_REACTION_REMOVE_ALL
 	// MESSAGE_REACTION_REMOVE_EMOJI
-	GUILD_MESSAGE_REACTIONS = 1 << 10
+	FlagIntentsofListGUILD_MESSAGE_REACTIONS = 1 << 10
 
 	// TYPING_START
 
-	GUILD_MESSAGE_TYPING = 1 << 11
+	FlagIntentsofListGUILD_MESSAGE_TYPING = 1 << 11
 
 	// MESSAGE_CREATE
 	// MESSAGE_UPDATE
 	// MESSAGE_DELETE
 	// CHANNEL_PINS_UPDATE
-	DIRECT_MESSAGES = 1 << 12
+	FlagIntentsofListDIRECT_MESSAGES = 1 << 12
 
 	// MESSAGE_REACTION_ADD
 	// MESSAGE_REACTION_REMOVE
 	// MESSAGE_REACTION_REMOVE_ALL
 	// MESSAGE_REACTION_REMOVE_EMOJI
-	DIRECT_MESSAGE_REACTIONS = 1 << 13
+	FlagIntentsofListDIRECT_MESSAGE_REACTIONS = 1 << 13
 
 	// TYPING_START
-	DIRECT_MESSAGE_TYPING = 1 << 14
+	FlagIntentsofListDIRECT_MESSAGE_TYPING = 1 << 14
 
 	// GUILD_SCHEDULED_EVENT_CREATE
 	// GUILD_SCHEDULED_EVENT_UPDATE
 	// GUILD_SCHEDULED_EVENT_DELETE
 	// GUILD_SCHEDULED_EVENT_USER_ADD
 	// GUILD_SCHEDULED_EVENT_USER_REMOVE
-	GUILD_SCHEDULED_EVENTS = 1 << 16
+	FlagIntentsofListGUILD_SCHEDULED_EVENTS = 1 << 16
 )
 
 // Gateway Commands
@@ -146,27 +146,27 @@ const (
 // Status Types
 // https://discord.com/developers/docs/topics/gateway#update-presence-status-types
 const (
-	Online       = "online"
-	DoNotDisturb = "dnd"
-	AFK          = "idle"
-	Invisible    = "invisible"
-	Offline      = "offline"
+	FlagTypesStatusOnline       = "online"
+	FlagTypesStatusDoNotDisturb = "dnd"
+	FlagTypesStatusAFK          = "idle"
+	FlagTypesStatusInvisible    = "invisible"
+	FlagTypesStatusOffline      = "offline"
 )
 
 // Presence Update Event Fields
 // https://discord.com/developers/docs/topics/gateway#presence-update-presence-update-event-fields
 type PresenceUpdate struct {
-	User         *User        `json:"user"`
-	GuildID      int64        `json:"guild_id"`
-	Status       string       `json:"status"`
-	Activities   []*Activity  `json:"activities"`
-	ClientStatus ClientStatus `json:"client_status"`
+	User         *User        `json:"user,omitempty"`
+	GuildID      Snowflake    `json:"guild_id,omitempty"`
+	Status       string       `json:"status,omitempty"`
+	Activities   []*Activity  `json:"activities,omitempty"`
+	ClientStatus ClientStatus `json:"client_status,omitempty"`
 }
 
 // Client Status Object
 // https://discord.com/developers/docs/topics/gateway#client-status-object
 type ClientStatus struct {
-	Desktop string `json:"desktop"`
-	Mobile  string `json:"mobile"`
-	Web     string `json:"web"`
+	Desktop string `json:"desktop,omitempty"`
+	Mobile  string `json:"mobile,omitempty"`
+	Web     string `json:"web,omitempty"`
 }

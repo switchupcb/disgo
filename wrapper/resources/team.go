@@ -3,26 +3,26 @@ package resources
 // Team Object
 // https://discord.com/developers/docs/topics/teams#data-models-team-object
 type Team struct {
-	Icon        string        `json:"icon"`
-	ID          string        `json:"id"`
-	Members     []*TeamMember `json:"members"`
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	OwnerUserID int64         `json:"owner_user_id"`
+	Icon        string        `json:"icon,omitempty"`
+	ID          Snowflake     `json:"id,omitempty"`
+	Members     []*TeamMember `json:"members,omitempty"`
+	Name        string        `json:"name,omitempty"`
+	Description string        `json:"description,omitempty"`
+	OwnerUserID Snowflake     `json:"owner_user_id,omitempty"`
 }
 
 // Team Member Object
 // https://discord.com/developers/docs/topics/teams#data-models-team-member-object
 type TeamMember struct {
-	MembershipState uint8    `json:"membership_state"`
-	Permissions     []string `json:"permissions"`
-	TeamID          string   `json:"team_id"`
-	User            *User    `json:"user"`
+	MembershipState Flag      `json:"membership_state,omitempty"`
+	Permissions     []string  `json:"permissions,omitempty"`
+	TeamID          Snowflake `json:"team_id,omitempty"`
+	User            *User     `json:"user,omitempty"`
 }
 
 // Membership State Enum
 // https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum
 const (
-	INVITED  = 1
-	ACCEPTED = 2
+	FlagEnumStateMembershipINVITED  = 1
+	FlagEnumStateMembershipACCEPTED = 2
 )

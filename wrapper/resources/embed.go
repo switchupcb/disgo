@@ -10,7 +10,7 @@ type Embed struct {
 	Description string          `json:"description,omitempty"`
 	URL         string          `json:"url,omitempty"`
 	Timestamp   time.Time       `json:"timestamp,omitempty"`
-	Color       int             `json:"color,omitempty"`
+	Color       CodeFlag        `json:"color,omitempty"`
 	Footer      *EmbedFooter    `json:"footer,omitempty"`
 	Image       *EmbedImage     `json:"image,omitempty"`
 	Thumbnail   *EmbedThumbnail `json:"thumbnail,omitempty"`
@@ -70,7 +70,7 @@ type EmbedAuthor struct {
 // Embed Footer Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-footer-structure
 type EmbedFooter struct {
-	Text         string `json:"text"`
+	Text         string `json:"text,omitempty"`
 	IconURL      string `json:"icon_url,omitempty"`
 	ProxyIconURL string `json:"proxy_icon_url,omitempty"`
 }
@@ -78,19 +78,19 @@ type EmbedFooter struct {
 // Embed Field Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-field-structure
 type EmbedField struct {
-	Name   string `json:"name"`
-	Value  string `json:"value"`
+	Name   string `json:"name,omitempty"`
+	Value  string `json:"value,omitempty"`
 	Inline bool   `json:"inline,omitempty"`
 }
 
 // Embed Limits
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
 const (
-	EmbedLimitTitle            = 256
-	EmbedLimitDescription      = 4096
-	EmbedLimitEmbedLimitFields = 25
-	EmbedLimitFieldName        = 256
-	EmbedLimitFieldValue       = 1024
-	EmbedLimitFooterText       = 2048
-	EmbedLimitAuthorName       = 256
+	FlagLimitsEmbedTitle            = 256
+	FlagLimitsEmbedDescription      = 4096
+	FlagLimitsEmbedEmbedLimitFields = 25
+	FlagLimitsEmbedFieldName        = 256
+	FlagLimitsEmbedFieldValue       = 1024
+	FlagLimitsEmbedFooterText       = 2048
+	FlagLimitsEmbedAuthorName       = 256
 )
