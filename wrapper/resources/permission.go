@@ -50,7 +50,7 @@ const (
 // https://discord.com/developers/docs/resources/channel#overwrite-object
 type PermissionOverwrite struct {
 	ID    Snowflake `json:"id,omitempty"`
-	Type  Flag      `json:"type,omitempty"`
+	Type  *Flag     `json:"type,omitempty"`
 	Deny  string    `json:"deny,string,omitempty"`
 	Allow string    `json:"allow,string,omitempty"`
 }

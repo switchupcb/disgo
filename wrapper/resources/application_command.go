@@ -35,7 +35,7 @@ type ApplicationCommandOption struct {
 	Required                 bool                              `json:"required,omitempty"`
 	Choices                  []*ApplicationCommandOptionChoice `json:"choices,omitempty"`
 	Options                  []*ApplicationCommandOption       `json:"options,omitempty"`
-	ChannelTypes             []Flag                            `json:"channel_types,omitempty"`
+	ChannelTypes             []*Flag                           `json:"channel_types,omitempty"`
 	MinValue                 float64                           `json:"min_value,omitempty"`
 	MaxValue                 float64                           `json:"max_value,omitempty"`
 	Autocomplete             bool                              `json:"autocomplete,omitempty"`

@@ -12,10 +12,10 @@ type Guild struct {
 	DiscoverySplash             string                 `json:"discovery_splash,omitempty"`
 	Owner                       bool                   `json:"owner,omitempty"`
 	OwnerID                     Snowflake              `json:"owner_id,omitempty"`
-	Permissions                 string                 `json:"permissions,omitempty"`
+	Permissions                 *string                `json:"permissions,omitempty"`
 	Region                      string                 `json:"region,omitempty"`
 	AfkChannelID                Snowflake              `json:"afk_channel_id,omitempty"`
-	AfkTimeout                  uint                   `json:"afk_timeout,omitempty"`
+	AfkTimeout                  *uint                  `json:"afk_timeout,omitempty"`
 	WidgetEnabled               bool                   `json:"widget_enabled,omitempty"`
 	WidgetChannelID             Snowflake              `json:"widget_channel_id,omitempty"`
 	VerificationLevel           *Flag                  `json:"verification_level,omitempty"`
@@ -23,7 +23,7 @@ type Guild struct {
 	ExplicitContentFilter       *Flag                  `json:"explicit_content_filter,omitempty"`
 	Roles                       []*Role                `json:"roles,omitempty"`
 	Emojis                      []*Emoji               `json:"emojis,omitempty"`
-	Features                    []string               `json:"features,omitempty"`
+	Features                    []*string              `json:"features,omitempty"`
 	MFALevel                    *Flag                  `json:"mfa_level,omitempty"`
 	ApplicationID               Snowflake              `json:"application_id,omitempty"`
 	SystemChannelID             Snowflake              `json:"system_channel_id,omitempty"`
@@ -40,11 +40,11 @@ type Guild struct {
 	Presences                   []*PresenceUpdate      `json:"presences,omitempty"`
 	MaxPresences                CodeFlag               `json:"max_presences,omitempty"`
 	MaxMembers                  int                    `json:"max_members,omitempty"`
-	VanityUrl                   string                 `json:"vanity_url_code,omitempty"`
-	Description                 string                 `json:"description,omitempty"`
+	VanityUrl                   *string                `json:"vanity_url_code,omitempty"`
+	Description                 *string                `json:"description,omitempty"`
 	Banner                      string                 `json:"banner,omitempty"`
-	PremiumTier                 Flag                   `json:"premium_tier,omitempty"`
-	PremiumSubscriptionCount    uint                   `json:"premium_subscription_count,omitempty"`
+	PremiumTier                 *Flag                  `json:"premium_tier,omitempty"`
+	PremiumSubscriptionCount    *CodeFlag              `json:"premium_subscription_count,omitempty"`
 	PreferredLocale             string                 `json:"preferred_locale,omitempty"`
 	PublicUpdatesChannelID      Snowflake              `json:"public_updates_channel_id,omitempty"`
 	MaxVideoChannelUsers        int                    `json:"max_video_channel_users,omitempty"`
@@ -131,10 +131,10 @@ type GuildPreview struct {
 	Splash                   string     `json:"splash,omitempty"`
 	DiscoverySplash          string     `json:"discovery_splash,omitempty"`
 	Emojis                   []*Emoji   `json:"emojis,omitempty"`
-	Features                 []string   `json:"features,omitempty"`
+	Features                 []*string  `json:"features,omitempty"`
 	ApproximateMemberCount   int        `json:"approximate_member_count,omitempty"`
 	ApproximatePresenceCount int        `json:"approximate_presence_count,omitempty"`
-	Description              string     `json:"description,omitempty"`
+	Description              *string    `json:"description,omitempty"`
 	Stickers                 []*Sticker `json:"stickers,omitempty"`
 }
 
@@ -148,25 +148,25 @@ type GuildWidget struct {
 // Guild Member Object
 // https://discord.com/developers/docs/resources/guild#guild-member-object
 type GuildMember struct {
-	User                       *User       `json:"user,omitempty"`
-	Nick                       string      `json:"nick,omitempty"`
-	Avatar                     string      `json:"avatar,omitempty"`
-	Roles                      []Snowflake `json:"roles,omitempty"`
-	GuildID                    Snowflake   `json:"guild_id,omitempty"`
-	JoinedAt                   time.Time   `json:"joined_at,omitempty"`
-	PremiumSince               time.Time   `json:"premium_since,omitempty"`
-	Deaf                       bool        `json:"deaf,omitempty"`
-	Mute                       bool        `json:"mute,omitempty"`
-	Pending                    bool        `json:"pending,omitempty"`
-	CommunicationDisabledUntil *time.Time  `json:"communication_disabled_until,omitempty"`
-	Permissions                string      `json:"permissions,string,omitempty"`
+	User                       *User        `json:"user,omitempty"`
+	Nick                       *string      `json:"nick,omitempty"`
+	Avatar                     string       `json:"avatar,omitempty"`
+	Roles                      []*Snowflake `json:"roles,omitempty"`
+	GuildID                    Snowflake    `json:"guild_id,omitempty"`
+	JoinedAt                   time.Time    `json:"joined_at,omitempty"`
+	PremiumSince               time.Time    `json:"premium_since,omitempty"`
+	Deaf                       bool         `json:"deaf,omitempty"`
+	Mute                       bool         `json:"mute,omitempty"`
+	Pending                    bool         `json:"pending,omitempty"`
+	CommunicationDisabledUntil *time.Time   `json:"communication_disabled_until,omitempty"`
+	Permissions                *string      `json:"permissions,string,omitempty"`
 }
 
 // Guild Ban Object
 // https://discord.com/developers/docs/resources/guild#ban-object
 type Ban struct {
-	Reason string `json:"reason,omitempty"`
-	User   *User  `json:"user,omitempty"`
+	Reason *string `json:"reason,omitempty"`
+	User   *User   `json:"user,omitempty"`
 }
 
 // Guild Scheduled Event Object
@@ -234,8 +234,8 @@ type GuildScheduledEventUser struct {
 type GuildTemplate struct {
 	Code                  string    `json:"code,omitempty"`
 	Name                  string    `json:"name,omitempty"`
-	Description           string    `json:"description,omitempty"`
-	UsageCount            int       `json:"usage_count,omitempty"`
+	Description           *string   `json:"description,omitempty"`
+	UsageCount            *int      `json:"usage_count,omitempty"`
 	CreatorID             Snowflake `json:"creator_id,omitempty"`
 	Creator               *User     `json:"creator,omitempty"`
 	CreatedAt             time.Time `json:"created_at,omitempty"`
@@ -248,15 +248,15 @@ type GuildTemplate struct {
 // Welcome Screen Object
 // https://discord.com/developers/docs/resources/guild#welcome-screen-object-welcome-screen-structure
 type WelcomeScreen struct {
-	Description           string                 `json:"description,omitempty"`
-	WelcomeScreenChannels []WelcomeScreenChannel `json:"welcome_channels,omitempty"`
+	Description           *string                 `json:"description,omitempty"`
+	WelcomeScreenChannels []*WelcomeScreenChannel `json:"welcome_channels,omitempty"`
 }
 
 // Welcome Screen Channel Structure
 // https://discord.com/developers/docs/resources/guild#welcome-screen-object-welcome-screen-channel-structure
 type WelcomeScreenChannel struct {
-	ChannelID   Snowflake `json:"channel_id,omitempty"`
-	Description string    `json:"description,omitempty"`
-	EmojiID     Snowflake `json:"emoji_id,omitempty"`
-	EmojiName   string    `json:"emoji_name,omitempty"`
+	ChannelID   Snowflake  `json:"channel_id,omitempty"`
+	Description *string    `json:"description,omitempty"`
+	EmojiID     *Snowflake `json:"emoji_id,omitempty"`
+	EmojiName   *string    `json:"emoji_name,omitempty"`
 }

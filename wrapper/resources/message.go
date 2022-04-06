@@ -6,8 +6,8 @@ import "time"
 // https://discord.com/developers/docs/resources/channel#message-object
 type Message struct {
 	ID                Snowflake         `json:"id,omitempty"`
-	ChannelID         Snowflake         `json:"channel_id,omitempty"`
-	GuildID           Snowflake         `json:"guild_id,omitempty"`
+	ChannelID         *Snowflake        `json:"channel_id,omitempty"`
+	GuildID           *Snowflake        `json:"guild_id,omitempty"`
 	Author            *User             `json:"author,omitempty"`
 	Member            *GuildMember      `json:"member,omitempty"`
 	Content           string            `json:"content,omitempty"`
@@ -16,15 +16,15 @@ type Message struct {
 	TTS               bool              `json:"tts,omitempty"`
 	MentionEveryone   bool              `json:"mention_everyone,omitempty"`
 	Mentions          []*User           `json:"mentions,omitempty"`
-	MentionRoles      []Snowflake       `json:"mention_roles,omitempty"`
+	MentionRoles      []*Snowflake      `json:"mention_roles,omitempty"`
 	MentionChannels   []*ChannelMention `json:"mention_channels,omitempty"`
 	Attachments       []*Attachment     `json:"attachments,omitempty"`
 	Embeds            []*Embed          `json:"embeds,omitempty"`
 	Reactions         []*Reaction       `json:"reactions,omitempty"`
 	Nonce             interface{}       `json:"nonce,omitempty"`
 	Pinned            bool              `json:"pinned,omitempty"`
-	WebhookID         Snowflake         `json:"webhook_id,omitempty"`
-	Type              Flag              `json:"type,omitempty"`
+	WebhookID         *Snowflake        `json:"webhook_id,omitempty"`
+	Type              *Flag             `json:"type,omitempty"`
 	Activity          MessageActivity   `json:"activity,omitempty"`
 	Application       *Application      `json:"application,omitempty"`
 	MessageReference  *MessageReference `json:"message_reference,omitempty"`
@@ -67,8 +67,8 @@ const (
 // Message Activity Structure
 // https://discord.com/developers/docs/resources/channel#message-object-message-activity-structure
 type MessageActivity struct {
-	Type    int    `json:"type,omitempty"`
-	PartyID string `json:"party_id,omitempty"`
+	Type    int     `json:"type,omitempty"`
+	PartyID *string `json:"party_id,omitempty"`
 }
 
 // Message Activity Types
@@ -97,10 +97,10 @@ const (
 // Message Reference Object
 // https://discord.com/developers/docs/resources/channel#message-reference-object
 type MessageReference struct {
-	MessageID       Snowflake `json:"message_id,omitempty"`
-	ChannelID       Snowflake `json:"channel_id,omitempty"`
-	GuildID         Snowflake `json:"guild_id,omitempty"`
-	FailIfNotExists bool      `json:"fail_if_not_exists,omitempty"`
+	MessageID       Snowflake  `json:"message_id,omitempty"`
+	ChannelID       *Snowflake `json:"channel_id,omitempty"`
+	GuildID         *Snowflake `json:"guild_id,omitempty"`
+	FailIfNotExists bool       `json:"fail_if_not_exists,omitempty"`
 }
 
 // Message Attachment Object
@@ -110,7 +110,7 @@ type Attachment struct {
 	Filename string    `json:"filename,omitempty"`
 	Size     uint      `json:"size,omitempty"`
 	URL      string    `json:"url,omitempty"`
-	ProxyURL string    `json:"proxy_url,omitempty"`
+	ProxyURL *string   `json:"proxy_url,omitempty"`
 	Height   uint      `json:"height,omitempty"`
 	Width    uint      `json:"width,omitempty"`
 
@@ -120,18 +120,18 @@ type Attachment struct {
 // Sticker Structure
 // https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-structure
 type Sticker struct {
-	ID          Snowflake `json:"id,omitempty"`
-	PackID      Snowflake `json:"pack_id,omitempty"`
-	Name        string    `json:"name,omitempty"`
-	Description string    `json:"description,omitempty"`
-	Tags        string    `json:"tags,omitempty"`
-	Asset       string    `json:"asset,omitempty"`
-	Type        Flag      `json:"type,omitempty"`
-	FormatType  Flag      `json:"format_type,omitempty"`
-	Available   bool      `json:"available,omitempty"`
-	GuildID     Snowflake `json:"guild_id,omitempty"`
-	User        *User     `json:"user,omitempty"`
-	SortValue   int       `json:"sort_value,omitempty"`
+	ID          Snowflake  `json:"id,omitempty"`
+	PackID      Snowflake  `json:"pack_id,omitempty"`
+	Name        string     `json:"name,omitempty"`
+	Description *string    `json:"description,omitempty"`
+	Tags        *string    `json:"tags,omitempty"`
+	Asset       *string    `json:"asset,omitempty"`
+	Type        Flag       `json:"type,omitempty"`
+	FormatType  Flag       `json:"format_type,omitempty"`
+	Available   bool       `json:"available,omitempty"`
+	GuildID     *Snowflake `json:"guild_id,omitempty"`
+	User        *User      `json:"user,omitempty"`
+	SortValue   int        `json:"sort_value,omitempty"`
 }
 
 // Sticker Types
@@ -180,18 +180,18 @@ type StickerPack struct {
 // Webhook Used to represent a webhook
 // https://discord.com/developers/docs/resources/webhook#webhook-object
 type Webhook struct {
-	ID            Snowflake `json:"id,omitempty"`
-	Type          Flag      `json:"type,omitempty"`
-	GuildID       Snowflake `json:"guild_id,omitempty"`
-	ChannelID     Snowflake `json:"channel_id,omitempty"`
-	User          *User     `json:"user,omitempty"`
-	Name          string    `json:"name,omitempty"`
-	Avatar        string    `json:"avatar,omitempty"`
-	Token         string    `json:"token,omitempty"`
-	ApplicationID Snowflake `json:"application_id,omitempty"`
-	SourceGuild   *Guild    `json:"source_guild,omitempty"`
-	SourceChannel *Channel  `json:"source_channel,omitempty"`
-	URL           string    `json:"url,omitempty"`
+	ID            Snowflake  `json:"id,omitempty"`
+	Type          Flag       `json:"type,omitempty"`
+	GuildID       *Snowflake `json:"guild_id,omitempty"`
+	ChannelID     *Snowflake `json:"channel_id,omitempty"`
+	User          *User      `json:"user,omitempty"`
+	Name          string     `json:"name,omitempty"`
+	Avatar        string     `json:"avatar,omitempty"`
+	Token         string     `json:"token,omitempty"`
+	ApplicationID *Snowflake `json:"application_id,omitempty"`
+	SourceGuild   *Guild     `json:"source_guild,omitempty"`
+	SourceChannel *Channel   `json:"source_channel,omitempty"`
+	URL           string     `json:"url,omitempty"`
 }
 
 // Webhook Types

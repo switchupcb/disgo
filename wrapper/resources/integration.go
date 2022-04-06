@@ -12,14 +12,14 @@ type Integration struct {
 	Syncing           bool               `json:"syncing,omitempty"`
 	RoleID            Snowflake          `json:"role_id,omitempty"`
 	EnableEmoticons   bool               `json:"enable_emoticons,omitempty"`
-	ExpireBehavior    Flag               `json:"expire_behavior,omitempty"`
-	ExpireGracePeriod int                `json:"expire_grace_period,omitempty"`
+	ExpireBehavior    *Flag              `json:"expire_behavior,omitempty"`
+	ExpireGracePeriod *int               `json:"expire_grace_period,omitempty"`
 	User              *User              `json:"user,omitempty"`
 	Account           IntegrationAccount `json:"account,omitempty"`
 	SyncedAt          time.Time          `json:"synced_at,omitempty"`
-	SubscriberCount   int                `json:"subscriber_count,omitempty"`
+	SubscriberCount   *int               `json:"subscriber_count,omitempty"`
 	Revoked           bool               `json:"revoked,omitempty"`
-	Application       Application        `json:"application,omitempty"`
+	Application       *Application       `json:"application,omitempty"`
 }
 
 // Integration Expire Behaviors
@@ -42,6 +42,6 @@ type IntegrationApplication struct {
 	ID          Snowflake `json:"id,omitempty"`
 	Name        string    `json:"name,omitempty"`
 	Icon        string    `json:"icon,omitempty"`
-	Description string    `json:"description,omitempty"`
-	Bot         User      `json:"bot,omitempty"`
+	Description *string   `json:"description,omitempty"`
+	Bot         *User     `json:"bot,omitempty"`
 }

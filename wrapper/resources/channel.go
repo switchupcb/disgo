@@ -8,17 +8,17 @@ import (
 // https://discord.com/developers/docs/resources/channel
 type Channel struct {
 	ID                         Snowflake             `json:"id,omitempty"`
-	Type                       Flag                  `json:"type,omitempty"`
+	Type                       *Flag                 `json:"type,omitempty"`
 	GuildID                    Snowflake             `json:"guild_id,omitempty"`
 	Position                   int                   `json:"position,omitempty"`
 	PermissionOverwrites       []PermissionOverwrite `json:"permission_overwrites,omitempty"`
 	Name                       string                `json:"name,omitempty"`
-	Topic                      string                `json:"topic,omitempty"`
+	Topic                      *string               `json:"topic,omitempty"`
 	NSFW                       bool                  `json:"nsfw,omitempty"`
 	LastMessageID              Snowflake             `json:"last_message_id,omitempty"`
 	Bitrate                    Flag                  `json:"bitrate,omitempty"`
 	UserLimit                  Flag                  `json:"user_limit,omitempty"`
-	RateLimitPerUser           CodeFlag              `json:"rate_limit_per_user,omitempty"`
+	RateLimitPerUser           *CodeFlag             `json:"rate_limit_per_user,omitempty"`
 	Recipients                 []*User               `json:"recipients,omitempty"`
 	Icon                       string                `json:"icon,omitempty"`
 	OwnerID                    Snowflake             `json:"owner_id,omitempty"`
@@ -31,7 +31,7 @@ type Channel struct {
 	ThreadMetadata             *ThreadMetadata       `json:"thread_metadata,omitempty"`
 	Member                     *ThreadMember         `json:"member,omitempty"`
 	DefaultAutoArchiveDuration CodeFlag              `json:"default_auto_archive_duration,omitempty"`
-	Permissions                string                `json:"permissions,omitempty"`
+	Permissions                *string               `json:"permissions,omitempty"`
 }
 
 // Channel Types

@@ -14,9 +14,9 @@ type User struct {
 	AccentColor   int       `json:"accent_color,omitempty"`
 	Locale        string    `json:"locale,omitempty"`
 	Verified      bool      `json:"verified,omitempty"`
-	Email         string    `json:"email,omitempty"`
-	Flags         CodeFlag  `json:"flag,omitempty"`
-	PremiumType   Flag      `json:"premium_type,omitempty"`
+	Email         *string   `json:"email,omitempty"`
+	Flags         *BitFlag  `json:"flag,omitempty"`
+	PremiumType   *Flag     `json:"premium_type,omitempty"`
 	PublicFlags   BitFlag   `json:"public_flag,omitempty"`
 }
 

@@ -17,7 +17,7 @@ type Application struct {
 	Team                *Team          `json:"team,omitempty"`
 	GuildID             Snowflake      `json:"guild_id,omitempty"`
 	PrimarySKUID        Snowflake      `json:"primary_sku_id,omitempty"`
-	Slug                string         `json:"slug,omitempty"`
+	Slug                *string        `json:"slug,omitempty"`
 	CoverImage          string         `json:"cover_image,omitempty"`
 	Flags               Flag           `json:"flags,omitempty"`
 	Summary             string         `json:"summary,omitempty"`

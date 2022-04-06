@@ -20,7 +20,7 @@ type AuditLogEntry struct {
 	ID         Snowflake         `json:"id,omitempty"`
 	ActionType Flag              `json:"action_type,omitempty"`
 	Options    *AuditLogOptions  `json:"options,omitempty"`
-	Reason     string            `json:"reason,omitempty"`
+	Reason     *string           `json:"reason,omitempty"`
 }
 
 // Audit Log Events

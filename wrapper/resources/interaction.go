@@ -38,9 +38,9 @@ type InteractionData struct {
 	Options       []*ApplicationCommandInteractionDataOption `json:"options,omitempty"`
 	CustomID      string                                     `json:"custom_id,omitempty"`
 	ComponentType Flag                                       `json:"component_type,omitempty"`
-	Values        []string                                   `json:"values,omitempty"`
+	Values        []*string                                  `json:"values,omitempty"`
 	TargetID      Snowflake                                  `json:"target_id,omitempty"`
-	Components    []Component                                `json:"components,omitempty"`
+	Components    []*Component                               `json:"components,omitempty"`
 }
 
 // Resolved Data Structure
@@ -102,13 +102,13 @@ type Messages struct {
 // Autocomplete
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-autocomplete
 type Autocomplete struct {
-	Choices []ApplicationCommandOptionChoice `json:"choices,omitempty"`
+	Choices []*ApplicationCommandOptionChoice `json:"choices,omitempty"`
 }
 
 // Modal
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal
 type ModalSubmitInteractionData struct {
-	CustomID   string      `json:"custom_id,omitempty"`
+	CustomID   *string     `json:"custom_id,omitempty"`
 	Title      string      `json:"title,omitempty"`
 	Components []Component `json:"components,omitempty"`
 }

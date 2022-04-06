@@ -7,7 +7,7 @@ type Team struct {
 	ID          Snowflake     `json:"id,omitempty"`
 	Members     []*TeamMember `json:"members,omitempty"`
 	Name        string        `json:"name,omitempty"`
-	Description string        `json:"description,omitempty"`
+	Description *string       `json:"description,omitempty"`
 	OwnerUserID Snowflake     `json:"owner_user_id,omitempty"`
 }
 

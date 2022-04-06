@@ -7,7 +7,7 @@ import "time"
 type Embed struct {
 	Title       string          `json:"title,omitempty"`
 	Type        string          `json:"type,omitempty"`
-	Description string          `json:"description,omitempty"`
+	Description *string         `json:"description,omitempty"`
 	URL         string          `json:"url,omitempty"`
 	Timestamp   time.Time       `json:"timestamp,omitempty"`
 	Color       CodeFlag        `json:"color,omitempty"`
@@ -27,28 +27,28 @@ type Embed struct {
 // Embed Thumbnail Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-thumbnail-structure
 type EmbedThumbnail struct {
-	URL      string `json:"url,omitempty"`
-	ProxyURL string `json:"proxy_url,omitempty"`
-	Height   int    `json:"height,omitempty"`
-	Width    int    `json:"width,omitempty"`
+	URL      string  `json:"url,omitempty"`
+	ProxyURL *string `json:"proxy_url,omitempty"`
+	Height   int     `json:"height,omitempty"`
+	Width    int     `json:"width,omitempty"`
 }
 
 // Embed Video Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-video-structure
 type EmbedVideo struct {
-	URL      string `json:"url,omitempty"`
-	ProxyURL string `json:"proxy_url,omitempty"`
-	Height   int    `json:"height,omitempty"`
-	Width    int    `json:"width,omitempty"`
+	URL      string  `json:"url,omitempty"`
+	ProxyURL *string `json:"proxy_url,omitempty"`
+	Height   int     `json:"height,omitempty"`
+	Width    int     `json:"width,omitempty"`
 }
 
 // Embed Image Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-image-structure
 type EmbedImage struct {
-	URL      string `json:"url,omitempty"`
-	ProxyURL string `json:"proxy_url,omitempty"`
-	Height   int    `json:"height,omitempty"`
-	Width    int    `json:"width,omitempty"`
+	URL      string  `json:"url,omitempty"`
+	ProxyURL *string `json:"proxy_url,omitempty"`
+	Height   int     `json:"height,omitempty"`
+	Width    int     `json:"width,omitempty"`
 }
 
 // Embed Provider Structure
@@ -70,9 +70,9 @@ type EmbedAuthor struct {
 // Embed Footer Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-footer-structure
 type EmbedFooter struct {
-	Text         string `json:"text,omitempty"`
-	IconURL      string `json:"icon_url,omitempty"`
-	ProxyIconURL string `json:"proxy_icon_url,omitempty"`
+	Text         *string `json:"text,omitempty"`
+	IconURL      string  `json:"icon_url,omitempty"`
+	ProxyIconURL string  `json:"proxy_icon_url,omitempty"`
 }
 
 // Embed Field Structure

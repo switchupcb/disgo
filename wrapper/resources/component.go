@@ -20,12 +20,12 @@ type ActionsRow struct {
 // Button Object
 // https://discord.com/developers/docs/interactions/message-components#button-object
 type Button struct {
-	Style    Flag   `json:"style,omitempty"`
-	Label    string `json:"label,omitempty"`
-	Emoji    *Emoji `json:"emoji,omitempty"`
-	CustomID string `json:"custom_id,omitempty"`
-	URL      string `json:"url,omitempty"`
-	Disabled bool   `json:"disabled,omitempty"`
+	Style    Flag    `json:"style,omitempty"`
+	Label    *string `json:"label,omitempty"`
+	Emoji    *Emoji  `json:"emoji,omitempty"`
+	CustomID string  `json:"custom_id,omitempty"`
+	URL      string  `json:"url,omitempty"`
+	Disabled bool    `json:"disabled,omitempty"`
 }
 
 // Button Styles
@@ -56,24 +56,24 @@ type SelectMenu struct {
 // Select Menu Option Structure
 // https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-option-structure
 type SelectMenuOption struct {
-	Label       string `json:"label,omitempty"`
-	Value       string `json:"value,omitempty"`
-	Description string `json:"description,omitempty"`
-	Emoji       Emoji  `json:"emoji,omitempty"`
-	Default     bool   `json:"default,omitempty"`
+	Label       *string `json:"label,omitempty"`
+	Value       *string `json:"value,omitempty"`
+	Description *string `json:"description,omitempty"`
+	Emoji       Emoji   `json:"emoji,omitempty"`
+	Default     bool    `json:"default,omitempty"`
 }
 
 // Text Input Structure
 // https://discord.com/developers/docs/interactions/message-components#text-inputs-text-input-structure
 type TextInput struct {
-	CustomID    string   `json:"custom_id,omitempty"`
-	Style       Flag     `json:"style,omitempty"`
-	Label       string   `json:"label,omitempty"`
-	MinLength   CodeFlag `json:"min_length,omitempty"`
-	MaxLength   CodeFlag `json:"max_length,omitempty"`
-	Required    bool     `json:"required,omitempty"`
-	Value       string   `json:"value,omitempty"`
-	Placeholder string   `json:"placeholder,omitempty"`
+	CustomID    string    `json:"custom_id,omitempty"`
+	Style       Flag      `json:"style,omitempty"`
+	Label       *string   `json:"label,omitempty"`
+	MinLength   *CodeFlag `json:"min_length,omitempty"`
+	MaxLength   CodeFlag  `json:"max_length,omitempty"`
+	Required    bool      `json:"required,omitempty"`
+	Value       string    `json:"value,omitempty"`
+	Placeholder *string   `json:"placeholder,omitempty"`
 }
 
 // TextInputStyle

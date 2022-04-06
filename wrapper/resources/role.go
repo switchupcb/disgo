@@ -13,7 +13,7 @@ type Role struct {
 	Permissions  string    `json:"permissions,omitempty"`
 	Managed      bool      `json:"managed,omitempty"`
 	Mentionable  bool      `json:"mentionable,omitempty"`
-	Tags         RoleTags  `json:"tags,omitempty"`
+	Tags         *RoleTags `json:"tags,omitempty"`
 }
 
 // Role Tags Structure
