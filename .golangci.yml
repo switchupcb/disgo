@@ -3,41 +3,36 @@ run:
   tests: false
 
 linters:
+  fast: false
   enable-all: true
   disable:
     - deadcode # The repository has no Application Life Cycle Management. Run manually prior to a release.
     - unused # The repository has no Application Life Cycle Management. Run manually prior to a release.
-    - cyclop
-    - errorlint
-    - exhaustivestruct
-    - forbidigo
-    - funlen
-    - goerr113
-    - gomnd
-    - gocognit
-    - lll
-    - maligned
-    - nlreturn
-    - tagliatelle
-    - wrapcheck
+    - gochecknoglobals # Types defined by Dasgo. Don't change maps that are global.
+    - tagliatelle # Tags defined by Discord.
+    - lll # Types defined by Dasgo.
+    - godot # Not now.
+  
+    - godox # Library is unfinished.
+    - bodyclose # go1.18 version in development
+    - contextcheck # go1.18 version in development
+
     - golint # Deprecated
     - interfacer # Deprecated
     - scopelint # Deprecated
+    - maligned # Deprecated
 
-  fast: false
 linters-settings:
-  gocritic:
-    enabled-tags:
-      - style
-      - experimental
-      - performance
-      - diagnostic
-      - opinionated
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true # Flags defined by Discord.
+        arguments:
+          - [] # AllowList
+          - [] # DenyList
 
   govet:
     enable-all: true
     disable:
       - shadow
-
-  funlen:
-    lines: 80
+      - fieldalignment # Completed at bundle-time.

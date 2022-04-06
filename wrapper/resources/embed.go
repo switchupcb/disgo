@@ -7,10 +7,10 @@ import "time"
 type Embed struct {
 	Title       string          `json:"title,omitempty"`
 	Type        string          `json:"type,omitempty"`
-	Description string          `json:"description,omitempty"`
+	Description *string         `json:"description,omitempty"`
 	URL         string          `json:"url,omitempty"`
 	Timestamp   time.Time       `json:"timestamp,omitempty"`
-	Color       int             `json:"color,omitempty"`
+	Color       CodeFlag        `json:"color,omitempty"`
 	Footer      *EmbedFooter    `json:"footer,omitempty"`
 	Image       *EmbedImage     `json:"image,omitempty"`
 	Thumbnail   *EmbedThumbnail `json:"thumbnail,omitempty"`
@@ -22,33 +22,42 @@ type Embed struct {
 
 // Embed Types
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-types
-// TODO
+var (
+	EmbedTypes = map[string]string{
+		"rich":    "generic embed rendered from embed attributes",
+		"image":   "image embed",
+		"video":   "video embed",
+		"gifv":    "animated gif image embed rendered as a video embed",
+		"article": "article embed",
+		"link":    "link embed",
+	}
+)
 
 // Embed Thumbnail Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-thumbnail-structure
 type EmbedThumbnail struct {
-	URL      string `json:"url,omitempty"`
-	ProxyURL string `json:"proxy_url,omitempty"`
-	Height   int    `json:"height,omitempty"`
-	Width    int    `json:"width,omitempty"`
+	URL      string  `json:"url,omitempty"`
+	ProxyURL *string `json:"proxy_url,omitempty"`
+	Height   int     `json:"height,omitempty"`
+	Width    int     `json:"width,omitempty"`
 }
 
 // Embed Video Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-video-structure
 type EmbedVideo struct {
-	URL      string `json:"url,omitempty"`
-	ProxyURL string `json:"proxy_url,omitempty"`
-	Height   int    `json:"height,omitempty"`
-	Width    int    `json:"width,omitempty"`
+	URL      string  `json:"url,omitempty"`
+	ProxyURL *string `json:"proxy_url,omitempty"`
+	Height   int     `json:"height,omitempty"`
+	Width    int     `json:"width,omitempty"`
 }
 
 // Embed Image Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-image-structure
 type EmbedImage struct {
-	URL      string `json:"url,omitempty"`
-	ProxyURL string `json:"proxy_url,omitempty"`
-	Height   int    `json:"height,omitempty"`
-	Width    int    `json:"width,omitempty"`
+	URL      string  `json:"url,omitempty"`
+	ProxyURL *string `json:"proxy_url,omitempty"`
+	Height   int     `json:"height,omitempty"`
+	Width    int     `json:"width,omitempty"`
 }
 
 // Embed Provider Structure
@@ -70,27 +79,27 @@ type EmbedAuthor struct {
 // Embed Footer Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-footer-structure
 type EmbedFooter struct {
-	Text         string `json:"text"`
-	IconURL      string `json:"icon_url,omitempty"`
-	ProxyIconURL string `json:"proxy_icon_url,omitempty"`
+	Text         *string `json:"text,omitempty"`
+	IconURL      string  `json:"icon_url,omitempty"`
+	ProxyIconURL string  `json:"proxy_icon_url,omitempty"`
 }
 
 // Embed Field Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-field-structure
 type EmbedField struct {
-	Name   string `json:"name"`
-	Value  string `json:"value"`
+	Name   string `json:"name,omitempty"`
+	Value  string `json:"value,omitempty"`
 	Inline bool   `json:"inline,omitempty"`
 }
 
 // Embed Limits
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-limits
 const (
-	EmbedLimitTitle            = 256
-	EmbedLimitDescription      = 4096
-	EmbedLimitEmbedLimitFields = 25
-	EmbedLimitFieldName        = 256
-	EmbedLimitFieldValue       = 1024
-	EmbedLimitFooterText       = 2048
-	EmbedLimitAuthorName       = 256
+	FlagLimitsEmbedTitle            = 256
+	FlagLimitsEmbedDescription      = 4096
+	FlagLimitsEmbedEmbedLimitFields = 25
+	FlagLimitsEmbedFieldName        = 256
+	FlagLimitsEmbedFieldValue       = 1024
+	FlagLimitsEmbedFooterText       = 2048
+	FlagLimitsEmbedAuthorName       = 256
 )
