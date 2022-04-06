@@ -177,15 +177,17 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 
 ### Libraries
 
-| Library          | Description                                                                  |
-| :--------------- | :--------------------------------------------------------------------------- |
-| [Discord API Spec](https://github.com/switchupcb/discord-api-spec) | Up-to-date Machine Readable Specification for Discord (contains Go structs). |
-| Disgo Template   | Get started on a Discord Bot with this Disgo Framework.                      |
+| Library                                                            | Description                                             |
+| :----------------------------------------------------------------- | :------------------------------------------------------ |
+| [Discord API Spec](https://github.com/switchupcb/discord-api-spec) | Up-to-date Machine Readable Specification for Discord.  |
+| [Dasgo](https://github.com/switchupcb/dasgo)                       | Discord Go Struct Type Definitions.                     |
+| Disgo Template                                                     | Get started on a Discord Bot with this Disgo Framework. |
 
 ### Credits
 
-| Name                                 | Contributions                          |
-| :----------------------------------- | :------------------------------------- |
-| [SwitchUpCB](https://switchupcb.com) | Project Architecture, Discord API Spec |
+| Name                                      | Contributions                                 |
+| :---------------------------------------- | :-------------------------------------------- |
+| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Discord API Spec, Dasgo |
+| [Thomas Rogers](https://github.com/t-rog) | Dasgo Resources                               |
 
 _Earn a credit! [Contribute Now](contribution/CONTRIBUTING.md)._
