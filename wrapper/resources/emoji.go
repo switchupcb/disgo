@@ -16,7 +16,7 @@ type Emoji struct {
 // Reaction Object
 // https://discord.com/developers/docs/resources/channel#reaction-object
 type Reaction struct {
-	count CodeFlag `json:"count,omitempty"`
-	me    bool     `json:"me,omitempty"`
-	emoji *Emoji   `json:"emoji,omitempty"`
+	Count CodeFlag `json:"count,omitempty"`
+	Me    bool     `json:"me,omitempty"`
+	Emoji *Emoji   `json:"emoji,omitempty"`
 }

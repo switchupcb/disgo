@@ -176,9 +176,6 @@ type StickerPack struct {
 
 // Webhook Object
 // https://discord.com/developers/docs/resources/webhook#webhook-object
-
-// Webhook Used to represent a webhook
-// https://discord.com/developers/docs/resources/webhook#webhook-object
 type Webhook struct {
 	ID            Snowflake  `json:"id,omitempty"`
 	Type          Flag       `json:"type,omitempty"`

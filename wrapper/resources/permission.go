@@ -51,8 +51,8 @@ const (
 type PermissionOverwrite struct {
 	ID    Snowflake `json:"id,omitempty"`
 	Type  *Flag     `json:"type,omitempty"`
-	Deny  string    `json:"deny,string,omitempty"`
-	Allow string    `json:"allow,string,omitempty"`
+	Deny  string    `json:"deny,omitempty"`
+	Allow string    `json:"allow,omitempty"`
 }
 
 const (

@@ -7,8 +7,8 @@ type Role struct {
 	Name         string    `json:"name,omitempty"`
 	Color        uint      `json:"color,omitempty"`
 	Hoist        bool      `json:"hoist,omitempty"`
-	Icon         string    `json:"string,omitempty"`
-	UnicodeEmoji string    `json:"string,omitempty"`
+	Icon         string    `json:"icon,omitempty"`
+	UnicodeEmoji string    `json:"unicode_emoji,omitempty"`
 	Position     int       `json:"position,omitempty"`
 	Permissions  string    `json:"permissions,omitempty"`
 	Managed      bool      `json:"managed,omitempty"`

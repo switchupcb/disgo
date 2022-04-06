@@ -22,7 +22,16 @@ type Embed struct {
 
 // Embed Types
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-types
-// TODO
+var (
+	EmbedTypes = map[string]string{
+		"rich":    "generic embed rendered from embed attributes",
+		"image":   "image embed",
+		"video":   "video embed",
+		"gifv":    "animated gif image embed rendered as a video embed",
+		"article": "article embed",
+		"link":    "link embed",
+	}
+)
 
 // Embed Thumbnail Structure
 // https://discord.com/developers/docs/resources/channel#embed-object-embed-thumbnail-structure
