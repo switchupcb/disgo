@@ -35,7 +35,7 @@ Read [What is a Cache](contribution/concepts/CACHE.md) for a simple yet full und
 
 ### Sharding
 
-Read [What is a Discord Shard](contributing/concepts/SHARD.md) for a simple yet full understanding of sharding on Discord. Using the [Shard Manager](contribution/concepts/SHARD.md#the-shard-manager) is **optional**. You can manually implement a shard manager through the `disgo.Client.Sessions` array.
+Read [What is a Discord Shard](contribution/concepts/SHARD.md) for a simple yet full understanding of sharding on Discord. Using the [Shard Manager](contribution/concepts/SHARD.md#the-shard-manager) is **optional**. You can manually implement a shard manager through the `disgo.Client.Sessions` array.
 
 ## Examples
 
@@ -64,17 +64,18 @@ bot := disgo.Client{
 
 ## Create a Command
 
-Create an application command **resource** and a **request** to add an application command.
+Create an application command **request** to add an application command.
 
 ```go
-// Create a global command resource.
-newCommand := disgo.ResourceApplicationCommand{
+// Create a global command request.
+request := disgo.RequestCreateApplicationCommand{
     Name: "main",
     Description: "A basic command",
 } 
 
-// Create a global command registration request.
-registeredCommand, err := disgo.RequestApplicationCommandAdd(newCommand)
+// Register the global command by sending the request to Discord.
+// returns a disgo.ResourceApplicationCommand
+newCommand, err := request.Send()
 if err != nil {
     log.Println("error: failure sending command to Discord")
 }
@@ -88,10 +89,16 @@ Create an **event handler** and add it to a **session**.
 // Add a session.
 bot.Sessions = append(bot.Sessions, disgo.Session{})
 
-// Add a handler for an event to the session.
-bot.Sessions[0].AddHandler(func(e disgo.EventInteractionCreate) {
-    log.Println("/main called.")
-})
+// Define an event handler.
+handler := disgo.EventHandler{
+    Event: disgo.EventInteractionCreate,
+    Call: func (i disgo.ResourceInteraction) {
+        log.Printf("main called by %s", i.User.Username)
+    },
+}
+
+// Add the event handler to the session.
+bot.Sessions[0].Handlers.Add(handler)
 ```
 
 ### Output
@@ -105,9 +112,11 @@ if err != nil {
 }
 ```
 
-A user creates an interaction by using `/main` in a direct message..
+A user creates an [`InteractionCreate`](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events) event by using `/main` in a direct message with the bot.
 
-[img]
+```
+main called by SCB
+```
 
 ### Summary
 
@@ -119,13 +128,14 @@ disgo.Resource<API Resources>
 disgo.Event<API Events>
 
 // Use the client to manage the bot's settings.
-disgo.Client.Config<Settings>
+disgo.Client.Config.<Settings>
 
 // Use requests to exchange data with Discord's REST API.
 disgo.Request<Endpoints>
 
 // Use sessions to handle events from Discord's WebSocket Sessions (Gateways).
-disgo.Client.Session.<Handler func(disgo.Event){}>
+disgo.Client.Session.Handlers.Add(<handler>)
+disgo.Client.Session.Handlers.Remove(<handler>)
 
 // Use flags to specify options.
 disgo.Flag<Option Type (in reverse order)><Option Name>
@@ -180,7 +190,7 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 | Library                                                            | Description                                             |
 | :----------------------------------------------------------------- | :------------------------------------------------------ |
 | [Discord API Spec](https://github.com/switchupcb/discord-api-spec) | Up-to-date Machine Readable Specification for Discord.  |
-| [Dasgo](https://github.com/switchupcb/dasgo)                       | Discord Go Struct Type Definitions.                     |
+| [Dasgo](https://github.com/switchupcb/dasgo)                       | Go Struct Type Definitions for Discord.                 |
 | Disgo Template                                                     | Get started on a Discord Bot with this Disgo Framework. |
 
 ### Credits
