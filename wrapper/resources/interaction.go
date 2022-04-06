@@ -3,84 +3,84 @@ package resources
 // Interaction Object
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-structure
 type Interaction struct {
-	ID            string          `json:"id"`
-	ApplicationID int64           `json:"application_id"`
-	Type          uint8           `json:"type"`
-	Data          InteractionData `json:"data"`
-	GuildID       int64           `json:"guild_id"`
-	ChannelID     int64           `json:"channel_id"`
-	Member        *GuildMember    `json:"member"`
-	User          *User           `json:"user"`
-	Token         string          `json:"token"`
-	Version       int             `json:"version"`
-	Message       *Message        `json:"message"`
-	Locale        string          `json:"locale"`
-	GuildLocale   string          `json:"guild_locale"`
+	ID            Snowflake       `json:"id,omitempty"`
+	ApplicationID Snowflake       `json:"application_id,omitempty"`
+	Type          Flag            `json:"type,omitempty"`
+	Data          InteractionData `json:"data,omitempty"`
+	GuildID       Snowflake       `json:"guild_id,omitempty"`
+	ChannelID     Snowflake       `json:"channel_id,omitempty"`
+	Member        *GuildMember    `json:"member,omitempty"`
+	User          *User           `json:"user,omitempty"`
+	Token         string          `json:"token,omitempty"`
+	Version       Flag            `json:"version,omitempty"`
+	Message       *Message        `json:"message,omitempty"`
+	Locale        string          `json:"locale,omitempty"`
+	GuildLocale   string          `json:"guild_locale,omitempty"`
 }
 
 // Interaction Type
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
 const (
-	PING                             = 1
-	APPLICATION_COMMAND              = 2
-	MESSAGE_COMPONENT                = 3
-	APPLICATION_COMMAND_AUTOCOMPLETE = 4
-	MODAL_SUBMIT                     = 5
+	FlagTypeInteractionPING                             = 1
+	FlagTypeInteractionAPPLICATION_COMMAND              = 2
+	FlagTypeInteractionMESSAGE_COMPONENT                = 3
+	FlagTypeInteractionAPPLICATION_COMMAND_AUTOCOMPLETE = 4
+	FlagTypeInteractionMODAL_SUBMIT                     = 5
 )
 
 // Interaction Data Structure
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-data-structure
 type InteractionData struct {
-	ID            int64                                      `json:"id"`
-	Name          string                                     `json:"name"`
-	Type          uint8                                      `json:"type"`
-	Resolved      *ResolvedData                              `json:"resolved"`
-	Options       []*ApplicationCommandInteractionDataOption `json:"options"`
-	CustomID      string                                     `json:"custom_id"`
-	ComponentType uint8                                      `json:"component_type"`
-	Values        []string                                   `json:"values"`
-	TargetID      int64                                      `json:"target_id"`
-	Components    []Component                                `json:"components"`
+	ID            Snowflake                                  `json:"id,omitempty"`
+	Name          string                                     `json:"name,omitempty"`
+	Type          Flag                                       `json:"type,omitempty"`
+	Resolved      *ResolvedData                              `json:"resolved,omitempty"`
+	Options       []*ApplicationCommandInteractionDataOption `json:"options,omitempty"`
+	CustomID      string                                     `json:"custom_id,omitempty"`
+	ComponentType Flag                                       `json:"component_type,omitempty"`
+	Values        []*string                                  `json:"values,omitempty"`
+	TargetID      Snowflake                                  `json:"target_id,omitempty"`
+	Components    []*Component                               `json:"components,omitempty"`
 }
 
 // Resolved Data Structure
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-resolved-data-structure
 type ResolvedData struct {
-	Users       map[int64]*User        `json:"users"`
-	Members     map[int64]*GuildMember `json:"members"`
-	Roles       map[int64]*Role        `json:"roles"`
-	Channels    map[int64]*Channel     `json:"channels"`
-	Messages    map[int64]*Message     `json:"messages"`
-	Attachments map[int64]*Attachment  `json:"attachments"`
+	Users       map[Snowflake]*User        `json:"users,omitempty"`
+	Members     map[Snowflake]*GuildMember `json:"members,omitempty"`
+	Roles       map[Snowflake]*Role        `json:"roles,omitempty"`
+	Channels    map[Snowflake]*Channel     `json:"channels,omitempty"`
+	Messages    map[Snowflake]*Message     `json:"messages,omitempty"`
+	Attachments map[Snowflake]*Attachment  `json:"attachments,omitempty"`
 }
 
 // Message Interaction Structure
 // https://discord.com/developers/docs/interactions/receiving-and-responding#message-interaction-object-message-interaction-structure
 type MessageInteraction struct {
-	ID     int64        `json:"id"`
-	Type   uint8        `json:"type"`
-	Name   string       `json:"name"`
-	User   *User        `json:"user"`
-	Member *GuildMember `json:"member"`
+	ID     Snowflake    `json:"id,omitempty"`
+	Type   Flag         `json:"type,omitempty"`
+	Name   string       `json:"name,omitempty"`
+	User   *User        `json:"user,omitempty"`
+	Member *GuildMember `json:"member,omitempty"`
 }
 
 // Interaction Response Structure
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-response-structure
 type InteractionResponse struct {
-	Type uint8                    `json:"type,omitempty"`
+	Type Flag                     `json:"type,omitempty"`
 	Data *InteractionCallbackData `json:"data,omitempty"`
 }
 
 // Interaction Callback Type
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
 const (
-	PONG                                    = 1
-	CHANNEL_MESSAGE_WITH_SOURCE             = 4
-	DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE    = 5
-	DEFERRED_UPDATE_MESSAGE                 = 6
-	UPDATE_MESSAGE                          = 7
-	APPLICATION_COMMAND_AUTOCOMPLETE_RESULT = 8
-	MODAL                                   = 9
+	FlagTypeCallbackInteractionPONG                                    = 1
+	FlagTypeCallbackInteractionCHANNEL_MESSAGE_WITH_SOURCE             = 4
+	FlagTypeCallbackInteractionDEFERRED_CHANNEL_MESSAGE_WITH_SOURCE    = 5
+	FlagTypeCallbackInteractionDEFERRED_UPDATE_MESSAGE                 = 6
+	FlagTypeCallbackInteractionUPDATE_MESSAGE                          = 7
+	FlagTypeCallbackInteractionAPPLICATION_COMMAND_AUTOCOMPLETE_RESULT = 8
+	FlagTypeCallbackInteractionMODAL                                   = 9
 )
 
 // Interaction Callback Data Structure
@@ -90,25 +90,25 @@ type InteractionCallbackData interface{}
 // Messages
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-messages
 type Messages struct {
-	TTS             bool             `json:"tts"`
-	Content         string           `json:"content"`
-	Embeds          []*Embed         `json:"embeds"`
-	Components      []Component      `json:"components"`
+	TTS             bool             `json:"tts,omitempty"`
+	Content         string           `json:"content,omitempty"`
+	Embeds          []*Embed         `json:"embeds,omitempty"`
+	Components      []Component      `json:"components,omitempty"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
-	Flags           uint64           `json:"flags,omitempty"`
+	Flags           BitFlag          `json:"flags,omitempty"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
 }
 
 // Autocomplete
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-autocomplete
 type Autocomplete struct {
-	Choices []ApplicationCommandOptionChoice `json:"choices"`
+	Choices []*ApplicationCommandOptionChoice `json:"choices,omitempty"`
 }
 
 // Modal
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-modal
 type ModalSubmitInteractionData struct {
-	CustomID   string      `json:"custom_id"`
-	Title      string      `json:"title"`
-	Components []Component `json:"components"`
+	CustomID   *string     `json:"custom_id,omitempty"`
+	Title      string      `json:"title,omitempty"`
+	Components []Component `json:"components,omitempty"`
 }

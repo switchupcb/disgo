@@ -3,18 +3,18 @@ package resources
 // Stage Instance Object
 // https://discord.com/developers/docs/resources/stage-instance#stage-instance-object
 type StageInstance struct {
-	ID                    int64  `json:"id"`
-	GuildID               string `json:"guild_id"`
-	ChannelID             string `json:"channel_id"`
-	Topic                 string `json:"topic"`
-	PrivacyLevel          uint8  `json:"privacy_level"`
-	DiscoverableDisabled  bool   `json:"discoverable_disabled"`
-	GuildScheduledEventID int64  `json:"guild_scheduled_event_id"`
+	ID                    Snowflake  `json:"id,omitempty"`
+	GuildID               *Snowflake `json:"guild_id,omitempty"`
+	ChannelID             *Snowflake `json:"channel_id,omitempty"`
+	Topic                 string     `json:"topic,omitempty"`
+	PrivacyLevel          Flag       `json:"privacy_level,omitempty"`
+	DiscoverableDisabled  bool       `json:"discoverable_disabled,omitempty"`
+	GuildScheduledEventID Snowflake  `json:"guild_scheduled_event_id,omitempty"`
 }
 
 // Privacy Level
 // https://discord.com/developers/docs/resources/stage-instance#stage-instance-object-privacy-level
 const (
-	PUBLIC     = 1
-	GUILD_ONLY = 2
+	FlagLevelPrivacyPUBLIC     = 1
+	FlagLevelPrivacyGUILD_ONLY = 2
 )
