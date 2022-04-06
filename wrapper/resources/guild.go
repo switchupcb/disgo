@@ -29,7 +29,7 @@ type Guild struct {
 	SystemChannelID             Snowflake              `json:"system_channel_id,omitempty"`
 	SystemChannelFlags          BitFlag                `json:"system_channel_flags,omitempty"`
 	RulesChannelID              Snowflake              `json:"rules_channel_id,omitempty"`
-	JoinedAt                    *time.Time             `json:"joined_at,omitempty"`
+	JoinedAt                    time.Time              `json:"joined_at,omitempty"`
 	Large                       bool                   `json:"large,omitempty"`
 	Unavailable                 bool                   `json:"unavailable,omitempty"`
 	MemberCount                 uint                   `json:"member_count,omitempty"`
@@ -158,7 +158,7 @@ type GuildMember struct {
 	Deaf                       bool         `json:"deaf,omitempty"`
 	Mute                       bool         `json:"mute,omitempty"`
 	Pending                    bool         `json:"pending,omitempty"`
-	CommunicationDisabledUntil *time.Time   `json:"communication_disabled_until,omitempty"`
+	CommunicationDisabledUntil time.Time    `json:"communication_disabled_until,omitempty"`
 	Permissions                *string      `json:"permissions,string,omitempty"`
 }
 
