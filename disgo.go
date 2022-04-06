@@ -3,4 +3,3 @@
 
 // Package disgo provides an API for Discord.
 package disgo
-
