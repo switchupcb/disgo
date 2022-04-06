@@ -140,9 +140,6 @@ disgo.Client.Session.Handlers.Remove(<handler>)
 // Use flags to specify options.
 disgo.Flag<Option Type (in reverse order)><Option Name>
 
-// Use flags to specify options.
-disgo.Flag<Option Type (in reverse order)><Option Name>
-
 // Use the client to manage the optional cache.
 disgo.Client.Cache.<Settings>
 disgo.Client.Cache.<Requests>
@@ -181,6 +178,7 @@ Disgo is the easiest Discord Go API for developers to use and contribute to. You
 | Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | ?/?K                      |
 | DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | ?/10K                     |
 | Disgord   | Contribution Guidelines, Project Architecture, No Linter, Tests                                                                                                                                                                           | ?/30K                     |
+
 ## Ecosystem
 
 ### License
