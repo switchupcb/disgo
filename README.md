@@ -2,7 +2,7 @@
 
 **This repository is currently a PROOF OF CONCEPT. For more information, read the [roadmap](/contribution/CONTRIBUTING.md#roadmap).** 
 
-Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching and shard management.
+Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching and shard management. Use the only Go module to provide a 100% one-to-one implementation of the Discord API.
 
 | Topic                           | Categories                                                                                                                                          |
 | :------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -83,7 +83,7 @@ if err != nil {
 
 ## Handle an Event
 
-Create an **event handler** and add it to a **session**.
+Create an **event handler** and add it to a **session** _(without using the Shard Manager)_.
 
 ```go
 // Add a session.
