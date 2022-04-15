@@ -12,4 +12,9 @@ type Copygen interface {
 	SendCreateGlobalApplicationCommand(*requests.CreateGlobalApplicationCommand) (*resources.ApplicationCommand, error)
 	SendGetGlobalApplicationCommand(*requests.GetGlobalApplicationCommand) (*resources.ApplicationCommand, error)
 	SendEditGlobalApplicationCommand(*requests.EditGlobalApplicationCommand) (*resources.ApplicationCommand, error)
+	SendDeleteGlobalApplicationCommand(*requests.DeleteGlobalApplicationCommand) error
+	SendBulkOverwriteGlobalApplicationCommands(*requests.BulkOverwriteGlobalApplicationCommands) ([]*resources.ApplicationCommand, error)
+	SendGetGuildApplicationCommands(*requests.GetGuildApplicationCommands) ([]*resources.ApplicationCommand, error)
+	SendCreateGuildApplicationCommand(*requests.CreateGuildApplicationCommand) (*resources.ApplicationCommand, error)
+	SendGetGuildApplicationCommand(*requests.GetGuildApplicationCommand) (*resources.ApplicationCommand, error)
 }
