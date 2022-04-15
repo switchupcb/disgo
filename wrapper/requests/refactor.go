@@ -481,7 +481,6 @@ type DeleteGuildEmoji struct {
 	// TODO
 }
 
-/// .go fileresources\Guild_Scheduled_Event.md
 // List Scheduled Events for Guild
 // GET /guilds/{guild.id}/scheduled-events
 // TODO
@@ -524,7 +523,6 @@ type GetGuildScheduledEventUsers struct {
 	// TODO
 }
 
-/// .go fileresources\Guild_Template.md
 // Get Guild Template
 // GET /guilds/templates/{template.code}
 // TODO
