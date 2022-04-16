@@ -19,5 +19,9 @@ type Client struct {
 
 // HandleStatus handles a Discord API HTTP Status Code and returns the relevant error.
 func HandleStatus(status int) error {
-	return fmt.Errorf("Status Code %d: %v", status, resources.JSONErrorCodes[status])
+	if msg, ok := resources.JSONErrorCodes[status]; ok {
+		return fmt.Errorf("Status Code %d: %v", status, msg)
+	}
+
+	return fmt.Errorf("Status Code %d: Unknown JSON error from Discord", status)
 }
