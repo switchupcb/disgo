@@ -75,7 +75,7 @@ request := disgo.RequestCreateApplicationCommand{
 
 // Register the global command by sending the request to Discord.
 // returns a disgo.ResourceApplicationCommand
-newCommand, err := request.Send()
+newCommand, err := request.Send(bot)
 if err != nil {
     log.Println("error: failure sending command to Discord")
 }

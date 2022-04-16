@@ -2,27 +2,63 @@
 // DO NOT EDIT.
 package requests
 
-import "github.com/switchupcb/disgo/wrapper/resources"
+import (
+	"fmt"
+	"strconv"
 
+	json "github.com/goccy/go-json"
+	"github.com/switchupcb/disgo/wrapper/pkg/http"
+	"github.com/switchupcb/disgo/wrapper/resources"
+	"github.com/valyala/fasthttp"
+)
 
 // Send sends a EditGlobalApplicationCommand to Discord and returns a ApplicationCommand.
 func (r *EditGlobalApplicationCommand) Send(bot Client) (*resources.ApplicationCommand, error) {
-	// We can use pre-defined edge cases for certain fields 
-	// if else etc
-	// provide feedback to the client (dev) before a request is sent.
+	// Use pre-defined edge cases for certain fields (if necessary),
+	// to provide feedback to the client prior to a request being sent.
+	// if else return
 
-	// Otherwise, send the request.
-	// NOTE: All package specific functions are defined in the `wrapper/pkg` directory.
+	// NOTE: All package specific functions will be defined in the `wrapper/pkg` directory.
 	var result *resources.ApplicationCommand
 
-	// Make fasthttp request to Discord using endpoints.
-	// we detect endpoints on structs when they have no tags.
-	// urls are built from pre-defined endpoints and field values using net/url to build the query.
-	// use go-json to marshal the struct (when required).
-	// send the request and receive it.
+	// send the request.
+	bot.ctx.Request = *fasthttp.AcquireRequest()
+	bot.ctx.SetStatusCode(fasthttp.StatusOK)
+	bot.ctx.Request.SetRequestURI(
+		// GENERATOR: Detect endpoints on structs (fields with no tags).
+		EndpointEditGlobalApplicationCommand(strconv.FormatUint(uint64(bot.ApplicationID), 10), strconv.FormatUint(uint64(r.CommandID), 10)),
+	)
+	bot.ctx.Request.Header.SetMethod(fasthttp.MethodPost)
+	bot.ctx.Request.Header.SetContentTypeBytes(http.ContentTypeJSON)
+	body, err := json.Marshal(r)
+	if err != nil {
+		fasthttp.ReleaseRequest(&bot.ctx.Request)
+		return nil, err
+	}
+	bot.ctx.Request.SetBodyRaw(body)
 
-	// Use go-json to unmarshal the struct into result.
-	// if an error occurs, we can use error codes to provide detailed feedback to the client (dev).
+	// receive the response from the request.
+	bot.ctx.Response = *fasthttp.AcquireResponse()
+	err = bot.client.DoTimeout(&bot.ctx.Request, &bot.ctx.Response, bot.timeout)
+	fasthttp.ReleaseRequest(&bot.ctx.Request)
+	if err != nil {
+		fasthttp.ReleaseResponse(&bot.ctx.Response)
+		return nil, err
+	}
+
+	// parse the response into result.
+	if bot.ctx.Response.StatusCode() == fasthttp.StatusOK {
+		err = json.Unmarshal(bot.ctx.Response.Body(), result)
+		if err != nil {
+			return nil, fmt.Errorf("error parsing json into struct\n%w", err)
+		}
+	} else {
+		err = HandleStatus(bot.ctx.Response.StatusCode())
+		fasthttp.ReleaseResponse(&bot.ctx.Response)
+		return nil, err
+	}
+	fasthttp.ReleaseResponse(&bot.ctx.Response)
+
 	return result, nil
 }
 
