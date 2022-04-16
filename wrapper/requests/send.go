@@ -3,14 +3,13 @@
 package requests
 
 import (
+	"fmt"
 	"strconv"
 
 	json "github.com/goccy/go-json"
 	"github.com/switchupcb/disgo/wrapper/pkg/http"
 	"github.com/switchupcb/disgo/wrapper/resources"
 )
-
-const StatusOK = 200
 
 // Send sends a EditGlobalApplicationCommand to Discord and returns a ApplicationCommand.
 func (r *EditGlobalApplicationCommand) Send(bot Client) (*resources.ApplicationCommand, error) {
@@ -22,28 +21,18 @@ func (r *EditGlobalApplicationCommand) Send(bot Client) (*resources.ApplicationC
 	var result *resources.ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("an error occurred while sending an EditGlobalApplicationCommand request\n%w", err)
 	}
 
-	err = http.SendRequestJSON(
-		bot.client, bot.ctx, http.POST,
-	    EndpointEditGlobalApplicationCommand(strconv.FormatUint(uint64(bot.ApplicationID), 10), strconv.FormatUint(uint64(r.CommandID), 10)),
-        body,
-    )
-
-	// parse the response.
-	if bot.ctx.Response.StatusCode() == StatusOK {
-		err := json.Unmarshal(bot.ctx.Response.Body(), result)
-		if err != nil {
-			http.ReleaseResponse(bot.ctx)
-			return nil, err
-		}
-	} else {
-		err := HandleStatus(bot.ctx.Response.StatusCode())
-		http.ReleaseResponse(bot.ctx)
-		return nil, err
+	err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, EndpointEditGlobalApplicationCommand(strconv.FormatUint(uint64(bot.ApplicationID), 10), strconv.FormatUint(uint64(r.CommandID), 10)), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending an EditGlobalApplicationCommand request\n%w", err)
 	}
-	http.ReleaseResponse(bot.ctx)
+
+	err = ParseResponseJSON(bot.ctx, result)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending an EditGlobalApplicationCommand request\n%w", err)
+	}
 
 	return result, nil
 }

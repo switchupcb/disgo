@@ -23,11 +23,6 @@ var ContentTypeJSON = []byte("application/json")
 // TODO: refactor with timeout usage.
 var timeout time.Duration
 
-// ReleaseResponse is a wrapper for the fasthttp.ReleaseResponse func.
-func ReleaseResponse(ctx *fasthttp.RequestCtx) {
-	fasthttp.ReleaseResponse(&ctx.Response)
-}
-
 // SendRequestJSON sends a fasthttp.Request with a JSON body using the given URI, method, and body.
 // The resulting fasthttp.Response is NOT released unless an error occurs.
 func SendRequestJSON(client *fasthttp.Client, ctx *fasthttp.RequestCtx, method, uri string, body []byte) error {
