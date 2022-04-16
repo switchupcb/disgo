@@ -2,156 +2,666 @@ package requests
 
 // Discord API Endpoints
 const (
-	EndpointBaseURL                                = "https://discord.com/api/v9/"
-	EndpointGetGlobalApplicationCommands           = "applications/{application.id}/commands"
-	EndpointCreateGlobalApplicationCommand         = "applications/{application.id}/commands"
-	EndpointGetGlobalApplicationCommand            = "applications/{application.id}/commands/{command.id}"
-	EndpointEditGlobalApplicationCommand           = "applications/{application.id}/commands/{command.id}"
-	EndpointDeleteGlobalApplicationCommand         = "applications/{application.id}/commands/{command.id}"
-	EndpointBulkOverwriteGlobalApplicationCommands = "applications/{application.id}/commands"
-	EndpointGetGuildApplicationCommands            = "applications/{application.id}/guilds/{guild.id}/commands"
-	EndpointCreateGuildApplicationCommand          = "applications/{application.id}/guilds/{guild.id}/commands"
-	EndpointGetGuildApplicationCommand             = "applications/{application.id}/guilds/{guild.id}/commands/{command.id}"
-	EndpointEditGuildApplicationCommand            = "applications/{application.id}/guilds/{guild.id}/commands/{command.id}"
-	EndpointDeleteGuildApplicationCommand          = "applications/{application.id}/guilds/{guild.id}/commands/{command.id}"
-	EndpointBulkOverwriteGuildApplicationCommands  = "applications/{application.id}/guilds/{guild.id}/commands"
-	EndpointGetGuildApplicationCommandPermissions  = "applications/{application.id}/guilds/{guild.id}/commands/permissions"
-	EndpointGetApplicationCommandPermissions       = "applications/{application.id}/guilds/{guild.id}/commands/{command.id}/permissions"
-	EndpointEditApplicationCommandPermissions      = "applications/{application.id}/guilds/{guild.id}/commands/{command.id}/permissions"
-	EndpointBatchEditApplicationCommandPermissions = "applications/{application.id}/guilds/{guild.id}/commands/permissions"
-	EndpointCreateInteractionResponse              = "interactions/{interaction.id}/{interaction.token}/callback"
-	EndpointGetOriginalInteractionResponse         = "webhooks/{application.id}/{interaction.token}/messages/@original"
-	EndpointEditOriginalInteractionResponse        = "webhooks/{application.id}/{interaction.token}/messages/@original"
-	EndpointDeleteOriginalInteractionResponse      = "webhooks/{application.id}/{interaction.token}/messages/@original"
-	EndpointCreateFollowupMessage                  = "webhooks/{application.id}/{interaction.token}"
-	EndpointGetFollowupMessage                     = "webhooks/{application.id}/{interaction.token}/messages/{message.id}"
-	EndpointEditFollowupMessage                    = "webhooks/{application.id}/{interaction.token}/messages/{message.id}"
-	EndpointDeleteFollowupMessage                  = "webhooks/{application.id}/{interaction.token}/messages/{message.id}"
-	EndpointGetGuildAuditLog                       = "guilds/{guild.id}/audit-logs"
-	EndpointGetChannel                             = "channels/{channel.id}"
-	EndpointModifyChannel                          = "channels/{channel.id}"
-	EndpointDeleteCloseChannel                     = "channels/{channel.id}"
-	EndpointGetChannelMessages                     = "channels/{channel.id}/messages"
-	EndpointGetChannelMessage                      = "channels/{channel.id}/messages/{message.id}"
-	EndpointCreateMessage                          = "channels/{channel.id}/messages"
-	EndpointCrosspostMessage                       = "channels/{channel.id}/messages/{message.id}/crosspost"
-	EndpointCreateReaction                         = "channels/{channel.id}/messages/{message.id}/reactions/{emoji}/@me"
-	EndpointDeleteOwnReaction                      = "channels/{channel.id}/messages/{message.id}/reactions/{emoji}/@me"
-	EndpointDeleteUserReaction                     = "channels/{channel.id}/messages/{message.id}/reactions/{emoji}/{user.id}"
-	EndpointGetReactions                           = "channels/{channel.id}/messages/{message.id}/reactions/{emoji}"
-	EndpointDeleteAllReactions                     = "channels/{channel.id}/messages/{message.id}/reactions"
-	EndpointDeleteAllReactionsforEmoji             = "channels/{channel.id}/messages/{message.id}/reactions/{emoji}"
-	EndpointEditMessage                            = "channels/{channel.id}/messages/{message.id}"
-	EndpointDeleteMessage                          = "channels/{channel.id}/messages/{message.id}"
-	EndpointBulkDeleteMessages                     = "channels/{channel.id}/messages/bulk-delete"
-	EndpointEditChannelPermissions                 = "channels/{channel.id}/permissions/{overwrite.id}"
-	EndpointGetChannelInvites                      = "channels/{channel.id}/invites"
-	EndpointCreateChannelInvite                    = "channels/{channel.id}/invites"
-	EndpointDeleteChannelPermission                = "channels/{channel.id}/permissions/{overwrite.id}"
-	EndpointFollowNewsChannel                      = "channels/{channel.id}/followers"
-	EndpointTriggerTypingIndicator                 = "channels/{channel.id}/typing"
-	EndpointGetPinnedMessages                      = "channels/{channel.id}/pins"
-	EndpointPinMessage                             = "channels/{channel.id}/pins/{message.id}"
-	EndpointUnpinMessage                           = "channels/{channel.id}/pins/{message.id}"
-	EndpointGroupDMAddRecipient                    = "channels/{channel.id}/recipients/{user.id}"
-	EndpointGroupDMRemoveRecipient                 = "channels/{channel.id}/recipients/{user.id}"
-	EndpointStartThreadfromMessage                 = "channels/{channel.id}/messages/{message.id}/threads"
-	EndpointStartThreadwithoutMessage              = "channels/{channel.id}/threads"
-	EndpointStartThreadinForumChannel              = "channels/{channel.id}/threads"
-	EndpointJoinThread                             = "channels/{channel.id}/thread-members/@me"
-	EndpointAddThreadMember                        = "channels/{channel.id}/thread-members/{user.id}"
-	EndpointLeaveThread                            = "channels/{channel.id}/thread-members/@me"
-	EndpointRemoveThreadMember                     = "channels/{channel.id}/thread-members/{user.id}"
-	EndpointGetThreadMember                        = "channels/{channel.id}/thread-members/{user.id}"
-	EndpointListThreadMembers                      = "channels/{channel.id}/thread-members"
-	EndpointListActiveChannelThreads               = "channels/{channel.id}/threads/active"
-	EndpointListPublicArchivedThreads              = "channels/{channel.id}/threads/archived/public"
-	EndpointListPrivateArchivedThreads             = "channels/{channel.id}/threads/archived/private"
-	EndpointListJoinedPrivateArchivedThreads       = "channels/{channel.id}/users/@me/threads/archived/private"
-	EndpointListGuildEmojis                        = "guilds/{guild.id}/emojis"
-	EndpointGetGuildEmoji                          = "guilds/{guild.id}/emojis/{emoji.id}"
-	EndpointCreateGuildEmoji                       = "guilds/{guild.id}/emojis"
-	EndpointModifyGuildEmoji                       = "guilds/{guild.id}/emojis/{emoji.id}"
-	EndpointDeleteGuildEmoji                       = "guilds/{guild.id}/emojis/{emoji.id}"
-	EndpointListScheduledEventsforGuild            = "guilds/{guild.id}/scheduled-events"
-	EndpointCreateGuildScheduledEvent              = "guilds/{guild.id}/scheduled-events"
-	EndpointGetGuildScheduledEvent                 = "guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}"
-	EndpointModifyGuildScheduledEvent              = "guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}"
-	EndpointDeleteGuildScheduledEvent              = "guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}"
-	EndpointGetGuildScheduledEventUsers            = "guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}/users"
-	EndpointGetGuildTemplate                       = "guilds/templates/{template.code}"
-	EndpointCreateGuildfromGuildTemplate           = "guilds/templates/{template.code}"
-	EndpointGetGuildTemplates                      = "guilds/{guild.id}/templates"
-	EndpointCreateGuildTemplate                    = "guilds/{guild.id}/templates"
-	EndpointSyncGuildTemplate                      = "guilds/{guild.id}/templates/{template.code}"
-	EndpointModifyGuildTemplate                    = "guilds/{guild.id}/templates/{template.code}"
-	EndpointDeleteGuildTemplate                    = "guilds/{guild.id}/templates/{template.code}"
-	EndpointGetGuild                               = "guilds/{guild.id}"
-	EndpointGetGuildPreview                        = "guilds/{guild.id}/preview"
-	EndpointModifyGuild                            = "guilds/{guild.id}"
-	EndpointDeleteGuild                            = "guilds/{guild.id}"
-	EndpointGetGuildChannels                       = "guilds/{guild.id}/channels"
-	EndpointCreateGuildChannel                     = "guilds/{guild.id}/channels"
-	EndpointModifyGuildChannelPositions            = "guilds/{guild.id}/channels"
-	EndpointListActiveGuildThreads                 = "guilds/{guild.id}/threads/active"
-	EndpointGetGuildMember                         = "guilds/{guild.id}/members/{user.id}"
-	EndpointListGuildMembers                       = "guilds/{guild.id}/members"
-	EndpointSearchGuildMembers                     = "guilds/{guild.id}/members/search"
-	EndpointAddGuildMember                         = "guilds/{guild.id}/members/{user.id}"
-	EndpointModifyGuildMember                      = "guilds/{guild.id}/members/{user.id}"
-	EndpointModifyCurrentMember                    = "guilds/{guild.id}/members/@me"
-	EndpointModifyCurrentUserNick                  = "guilds/{guild.id}/members/@me/nick"
-	EndpointAddGuildMemberRole                     = "guilds/{guild.id}/members/{user.id}/roles/{role.id}"
-	EndpointRemoveGuildMemberRole                  = "guilds/{guild.id}/members/{user.id}/roles/{role.id}"
-	EndpointRemoveGuildMember                      = "guilds/{guild.id}/members/{user.id}"
-	EndpointGetGuildBans                           = "guilds/{guild.id}/bans"
-	EndpointGetGuildBan                            = "guilds/{guild.id}/bans/{user.id}"
-	EndpointCreateGuildBan                         = "guilds/{guild.id}/bans/{user.id}"
-	EndpointRemoveGuildBan                         = "guilds/{guild.id}/bans/{user.id}"
-	EndpointGetGuildRoles                          = "guilds/{guild.id}/roles"
-	EndpointCreateGuildRole                        = "guilds/{guild.id}/roles"
-	EndpointModifyGuildRolePositions               = "guilds/{guild.id}/roles"
-	EndpointModifyGuildRole                        = "guilds/{guild.id}/roles/{role.id}"
-	EndpointDeleteGuildRole                        = "guilds/{guild.id}/roles/{role.id}"
-	EndpointGetGuildPruneCount                     = "guilds/{guild.id}/prune"
-	EndpointBeginGuildPrune                        = "guilds/{guild.id}/prune"
-	EndpointGetGuildVoiceRegions                   = "guilds/{guild.id}/regions"
-	EndpointGetGuildInvites                        = "guilds/{guild.id}/invites"
-	EndpointGetGuildIntegrations                   = "guilds/{guild.id}/integrations"
-	EndpointDeleteGuildIntegration                 = "guilds/{guild.id}/integrations/{integration.id}"
-	EndpointGetGuildWidgetSettings                 = "guilds/{guild.id}/widget"
-	EndpointModifyGuildWidget                      = "guilds/{guild.id}/widget"
-	EndpointGetGuildWidget                         = "guilds/{guild.id}/widget.json"
-	EndpointGetGuildVanityURL                      = "guilds/{guild.id}/vanity-url"
-	EndpointGetGuildWidgetImage                    = "guilds/{guild.id}/widget.png"
-	EndpointGetGuildWelcomeScreen                  = "guilds/{guild.id}/welcome-screen"
-	EndpointModifyGuildWelcomeScreen               = "guilds/{guild.id}/welcome-screen"
-	EndpointModifyCurrentUserVoiceState            = "guilds/{guild.id}/voice-states/@me"
-	EndpointModifyUserVoiceState                   = "guilds/{guild.id}/voice-states/{user.id}"
-	EndpointGetInvite                              = "invites/{invite.code}"
-	EndpointDeleteInvite                           = "invites/{invite.code}"
-	EndpointGetSticker                             = "stickers/{sticker.id}"
-	EndpointListGuildStickers                      = "guilds/{guild.id}/stickers"
-	EndpointGetGuildSticker                        = "guilds/{guild.id}/stickers/{sticker.id}"
-	EndpointCreateGuildSticker                     = "guilds/{guild.id}/stickers"
-	EndpointModifyGuildSticker                     = "guilds/{guild.id}/stickers/{sticker.id}"
-	EndpointDeleteGuildSticker                     = "guilds/{guild.id}/stickers/{sticker.id}"
-	EndpointGetUser                                = "users/{user.id}"
-	EndpointGetCurrentUserGuildMember              = "users/@me/guilds/{guild.id}/member"
-	EndpointLeaveGuild                             = "users/@me/guilds/{guild.id}"
-	EndpointCreateWebhook                          = "channels/{channel.id}/webhooks"
-	EndpointGetChannelWebhooks                     = "channels/{channel.id}/webhooks"
-	EndpointGetGuildWebhooks                       = "guilds/{guild.id}/webhooks"
-	EndpointGetWebhook                             = "webhooks/{webhook.id}"
-	EndpointGetWebhookwithToken                    = "webhooks/{webhook.id}/{webhook.token}"
-	EndpointModifyWebhook                          = "webhooks/{webhook.id}"
-	EndpointModifyWebhookwithToken                 = "webhooks/{webhook.id}/{webhook.token}"
-	EndpointDeleteWebhook                          = "webhooks/{webhook.id}"
-	EndpointDeleteWebhookwithToken                 = "webhooks/{webhook.id}/{webhook.token}"
-	EndpointExecuteWebhook                         = "webhooks/{webhook.id}/{webhook.token}"
-	EndpointExecuteSlackCompatibleWebhook          = "webhooks/{webhook.id}/{webhook.token}/slack"
-	EndpointExecuteGitHubCompatibleWebhook         = "webhooks/{webhook.id}/{webhook.token}/github"
-	EndpointGetWebhookMessage                      = "webhooks/{webhook.id}/{webhook.token}/messages/{message.id}"
-	EndpointEditWebhookMessage                     = "webhooks/{webhook.id}/{webhook.token}/messages/{message.id}"
-	EndpointDeleteWebhookMessage                   = "webhooks/{webhook.id}/{webhook.token}/messages/{message.id}"
+	EndpointBaseURL = "https://discord.com/api/v9/"
+	slash           = "/"
+
+	// slugs
+	applications = "applications"
+	interactions = "interactions"
+	webhooks     = "webhooks"
+	guilds       = "guilds"
+	channels     = "channels"
+	invites      = "invites"
+	stickers     = "stickers"
+	users        = "users"
+
+	// resources
+	commands        = "commands"
+	permissions     = "permissions"
+	callback        = "callback"
+	messages        = "messages"
+	auditlogs       = "audit-logs"
+	crosspost       = "crosspost"
+	bulkdelete      = "bulk-delete"
+	reactions       = "reactions"
+	emoji           = "emoji"
+	emojis          = "emojis"
+	followers       = "followers"
+	typing          = "typing"
+	pins            = "pins"
+	recipients      = "recipients"
+	threads         = "threads"
+	members         = "members"
+	threadmembers   = "thread-members"
+	active          = "active"
+	archived        = "archived"
+	public          = "public"
+	private         = "private"
+	scheduledevents = "scheduled-events"
+	templates       = "templates"
+	preview         = "preview"
+	search          = "search"
+	nick            = "nick"
+	roles           = "roles"
+	bans            = "bans"
+	prune           = "prune"
+	regions         = "regions"
+	integrations    = "integrations"
+	widget          = "widget"
+	widgetjson      = "widget.json"
+	widgetpng       = "widget.png"
+	vanityurl       = "vanity-url"
+	welcomescreen   = "welcome-screen"
+	voicestates     = "voice-states"
+	member          = "member"
+	slack           = "slack"
+	github          = "github"
+
+	// parameters
+	original = "@original"
+	me       = "@me"
 )
+
+func EndpointGetGlobalApplicationCommands(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands
+}
+
+func EndpointCreateGlobalApplicationCommand(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands
+}
+
+func EndpointGetGlobalApplicationCommand(applicationid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands + slash + commandid
+}
+
+func EndpointEditGlobalApplicationCommand(applicationid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands + slash + commandid
+}
+
+func EndpointDeleteGlobalApplicationCommand(applicationid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands + slash + commandid
+}
+
+func EndpointBulkOverwriteGlobalApplicationCommands(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands
+}
+
+func EndpointGetGuildApplicationCommands(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands
+}
+
+func EndpointCreateGuildApplicationCommand(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands
+}
+
+func EndpointGetGuildApplicationCommand(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid
+}
+
+func EndpointEditGuildApplicationCommand(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid
+}
+
+func EndpointDeleteGuildApplicationCommand(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid
+}
+
+func EndpointBulkOverwriteGuildApplicationCommands(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands
+}
+
+func EndpointGetGuildApplicationCommandPermissions(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + permissions
+}
+
+func EndpointGetApplicationCommandPermissions(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid + slash + permissions
+}
+
+func EndpointEditApplicationCommandPermissions(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid + slash + permissions
+}
+
+func EndpointBatchEditApplicationCommandPermissions(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + permissions
+}
+
+func EndpointCreateInteractionResponse(interactionid, interactiontoken string) string {
+	return EndpointBaseURL + interactions + slash + interactionid + slash + interactiontoken + slash + callback
+}
+
+func EndpointGetOriginalInteractionResponse(applicationid, interactiontoken string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + original
+}
+
+func EndpointEditOriginalInteractionResponse(applicationid, interactiontoken string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + original
+}
+
+func EndpointDeleteOriginalInteractionResponse(applicationid, interactiontoken string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + original
+}
+
+func EndpointCreateFollowupMessage(applicationid, interactiontoken string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken
+}
+
+func EndpointGetFollowupMessage(applicationid, interactiontoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + messageid
+}
+
+func EndpointEditFollowupMessage(applicationid, interactiontoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + messageid
+}
+
+func EndpointDeleteFollowupMessage(applicationid, interactiontoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + messageid
+}
+
+func EndpointGetGuildAuditLog(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + auditlogs
+}
+
+func EndpointGetChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid
+}
+
+func EndpointModifyChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid
+}
+
+func EndpointDeleteCloseChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid
+}
+
+func EndpointGetChannelMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages
+}
+
+func EndpointGetChannelMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
+}
+
+func EndpointCreateMessage(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages
+}
+
+func EndpointCrosspostMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + crosspost
+}
+
+func EndpointCreateReaction(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
+}
+
+func EndpointDeleteOwnReaction(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
+}
+
+func EndpointDeleteUserReaction(channelid, messageid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + userid
+}
+
+func EndpointGetReactions(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
+}
+
+func EndpointDeleteAllReactions(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions
+}
+
+func EndpointDeleteAllReactionsforEmoji(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
+}
+
+func EndpointEditMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
+}
+
+func EndpointDeleteMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
+}
+
+func EndpointBulkDeleteMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + bulkdelete
+}
+
+func EndpointEditChannelPermissions(channelid, overwriteid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + permissions + slash + overwriteid
+}
+
+func EndpointGetChannelInvites(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + invites
+}
+
+func EndpointCreateChannelInvite(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + invites
+}
+
+func EndpointDeleteChannelPermission(channelid, overwriteid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + permissions + slash + overwriteid
+}
+
+func EndpointFollowNewsChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + followers
+}
+
+func EndpointTriggerTypingIndicator(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + typing
+}
+
+func EndpointGetPinnedMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + pins
+}
+
+func EndpointPinMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + pins + slash + messageid
+}
+
+func EndpointUnpinMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + pins + slash + messageid
+}
+
+func EndpointGroupDMAddRecipient(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + recipients + slash + userid
+}
+
+func EndpointGroupDMRemoveRecipient(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + recipients + slash + userid
+}
+
+func EndpointStartThreadfromMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + threads
+}
+
+func EndpointStartThreadwithoutMessage(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads
+}
+
+func EndpointStartThreadinForumChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads
+}
+
+func EndpointJoinThread(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + me
+}
+
+func EndpointAddThreadMember(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + userid
+}
+
+func EndpointLeaveThread(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + me
+}
+
+func EndpointRemoveThreadMember(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + userid
+}
+
+func EndpointGetThreadMember(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + userid
+}
+
+func EndpointListThreadMembers(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers
+}
+
+func EndpointListActiveChannelThreads(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads + slash + active
+}
+
+func EndpointListPublicArchivedThreads(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads + slash + archived + slash + public
+}
+
+func EndpointListPrivateArchivedThreads(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads + slash + archived + slash + private
+}
+
+func EndpointListJoinedPrivateArchivedThreads(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + users + slash + me + slash + threads + slash + archived + slash + private
+}
+
+func EndpointListGuildEmojis(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis
+}
+
+func EndpointGetGuildEmoji(guildid, emojiid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis + slash + emojiid
+}
+
+func EndpointCreateGuildEmoji(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis
+}
+
+func EndpointModifyGuildEmoji(guildid, emojiid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis + slash + emojiid
+}
+
+func EndpointDeleteGuildEmoji(guildid, emojiid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis + slash + emojiid
+}
+
+func EndpointListScheduledEventsforGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
+}
+
+func EndpointCreateGuildScheduledEvent(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
+}
+
+func EndpointGetGuildScheduledEvent(guildid, guild_scheduled_eventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guild_scheduled_eventid
+}
+
+func EndpointModifyGuildScheduledEvent(guildid, guild_scheduled_eventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guild_scheduled_eventid
+}
+
+func EndpointDeleteGuildScheduledEvent(guildid, guild_scheduled_eventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guild_scheduled_eventid
+}
+
+func EndpointGetGuildScheduledEventUsers(guildid, guild_scheduled_eventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guild_scheduled_eventid + slash + users
+}
+
+func EndpointGetGuildTemplate(templatecode string) string {
+	return EndpointBaseURL + guilds + slash + templates + slash + templatecode
+}
+
+func EndpointCreateGuildfromGuildTemplate(templatecode string) string {
+	return EndpointBaseURL + guilds + slash + templates + slash + templatecode
+}
+
+func EndpointGetGuildTemplates(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates
+}
+
+func EndpointCreateGuildTemplate(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates
+}
+
+func EndpointSyncGuildTemplate(guildid, templatecode string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
+}
+
+func EndpointModifyGuildTemplate(guildid, templatecode string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
+}
+
+func EndpointDeleteGuildTemplate(guildid, templatecode string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
+}
+
+func EndpointGetGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid
+}
+
+func EndpointGetGuildPreview(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + preview
+}
+
+func EndpointModifyGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid
+}
+
+func EndpointDeleteGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid
+}
+
+func EndpointGetGuildChannels(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + channels
+}
+
+func EndpointCreateGuildChannel(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + channels
+}
+
+func EndpointModifyGuildChannelPositions(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + channels
+}
+
+func EndpointListActiveGuildThreads(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + threads + slash + active
+}
+
+func EndpointGetGuildMember(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid
+}
+
+func EndpointListGuildMembers(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members
+}
+
+func EndpointSearchGuildMembers(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + search
+}
+
+func EndpointAddGuildMember(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid
+}
+
+func EndpointModifyGuildMember(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid
+}
+
+func EndpointModifyCurrentMember(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + me
+}
+
+func EndpointModifyCurrentUserNick(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + me + slash + nick
+}
+
+func EndpointAddGuildMemberRole(guildid, userid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid + slash + roles + slash + roleid
+}
+
+func EndpointRemoveGuildMemberRole(guildid, userid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid + slash + roles + slash + roleid
+}
+
+func EndpointRemoveGuildMember(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid
+}
+
+func EndpointGetGuildBans(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + bans
+}
+
+func EndpointGetGuildBan(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + bans + slash + userid
+}
+
+func EndpointCreateGuildBan(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + bans + slash + userid
+}
+
+func EndpointRemoveGuildBan(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + bans + slash + userid
+}
+
+func EndpointGetGuildRoles(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles
+}
+
+func EndpointCreateGuildRole(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles
+}
+
+func EndpointModifyGuildRolePositions(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles
+}
+
+func EndpointModifyGuildRole(guildid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles + slash + roleid
+}
+
+func EndpointDeleteGuildRole(guildid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles + slash + roleid
+}
+
+func EndpointGetGuildPruneCount(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + prune
+}
+
+func EndpointBeginGuildPrune(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + prune
+}
+
+func EndpointGetGuildVoiceRegions(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + regions
+}
+
+func EndpointGetGuildInvites(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + invites
+}
+
+func EndpointGetGuildIntegrations(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + integrations
+}
+
+func EndpointDeleteGuildIntegration(guildid, integrationid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + integrations + slash + integrationid
+}
+
+func EndpointGetGuildWidgetSettings(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + widget
+}
+
+func EndpointModifyGuildWidget(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + widget
+}
+
+func EndpointGetGuildWidget(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + widgetjson
+}
+
+func EndpointGetGuildVanityURL(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + vanityurl
+}
+
+func EndpointGetGuildWidgetImage(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + widgetpng
+}
+
+func EndpointGetGuildWelcomeScreen(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + welcomescreen
+}
+
+func EndpointModifyGuildWelcomeScreen(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + welcomescreen
+}
+
+func EndpointModifyCurrentUserVoiceState(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + me
+}
+
+func EndpointModifyUserVoiceState(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + userid
+}
+
+func EndpointGetInvite(invitecode string) string {
+	return EndpointBaseURL + invites + slash + invitecode
+}
+
+func EndpointDeleteInvite(invitecode string) string {
+	return EndpointBaseURL + invites + slash + invitecode
+}
+
+func EndpointGetSticker(stickerid string) string {
+	return EndpointBaseURL + stickers + slash + stickerid
+}
+
+func EndpointListGuildStickers(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers
+}
+
+func EndpointGetGuildSticker(guildid, stickerid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers + slash + stickerid
+}
+
+func EndpointCreateGuildSticker(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers
+}
+
+func EndpointModifyGuildSticker(guildid, stickerid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers + slash + stickerid
+}
+
+func EndpointDeleteGuildSticker(guildid, stickerid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers + slash + stickerid
+}
+
+func EndpointGetUser(userid string) string {
+	return EndpointBaseURL + users + slash + userid
+}
+
+func EndpointGetCurrentUserGuildMember(guildid string) string {
+	return EndpointBaseURL + users + slash + me + slash + guilds + slash + guildid + slash + member
+}
+
+func EndpointLeaveGuild(guildid string) string {
+	return EndpointBaseURL + users + slash + me + slash + guilds + slash + guildid
+}
+
+func EndpointCreateWebhook(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + webhooks
+}
+
+func EndpointGetChannelWebhooks(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + webhooks
+}
+
+func EndpointGetGuildWebhooks(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + webhooks
+}
+
+func EndpointGetWebhook(webhookid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid
+}
+
+func EndpointGetWebhookwithToken(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken
+}
+
+func EndpointModifyWebhook(webhookid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid
+}
+
+func EndpointModifyWebhookwithToken(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken
+}
+
+func EndpointDeleteWebhook(webhookid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid
+}
+
+func EndpointDeleteWebhookwithToken(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken
+}
+
+func EndpointExecuteWebhook(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken
+}
+
+func EndpointExecuteSlackCompatibleWebhook(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + slack
+}
+
+func EndpointExecuteGitHubCompatibleWebhook(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + github
+}
+
+func EndpointGetWebhookMessage(webhookid, webhooktoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + messages + slash + messageid
+}
+
+func EndpointEditWebhookMessage(webhookid, webhooktoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + messages + slash + messageid
+}
+
+func EndpointDeleteWebhookMessage(webhookid, webhooktoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + messages + slash + messageid
+}
