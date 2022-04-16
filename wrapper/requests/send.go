@@ -50,6 +50,7 @@ func (r *EditGlobalApplicationCommand) Send(bot Client) (*resources.ApplicationC
 	if bot.ctx.Response.StatusCode() == fasthttp.StatusOK {
 		err = json.Unmarshal(bot.ctx.Response.Body(), result)
 		if err != nil {
+			fasthttp.ReleaseResponse(&bot.ctx.Response)
 			return nil, fmt.Errorf("error parsing json into struct\n%w", err)
 		}
 	} else {
