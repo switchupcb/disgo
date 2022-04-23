@@ -172,10 +172,10 @@ type DeleteFollowupMessage struct {
 // GET /guilds/{guild.id}/audit-logs
 // https://discord.com/developers/docs/resources/audit-log#get-guild-audit-log
 type GetGuildAuditLog struct {
-	UserID     resources.Snowflake `urlparam:"user_id"`
-	ActionType resources.Flag      `urlparam:"action_type"`
-	Before     resources.Snowflake `urlparam:"before,omitempty"`
-	Limit      resources.Flag      `urlparam:"limit,omitempty"`
+	UserID     resources.Snowflake `json:"user_id"`
+	ActionType resources.Flag      `json:"action_type"`
+	Before     resources.Snowflake `json:"before,omitempty"`
+	Limit      resources.Flag      `json:"limit,omitempty"`
 }
 
 /// .go fileresources\Channel.md
@@ -244,10 +244,10 @@ type DeleteCloseChannel struct {
 // GET /channels/{channel.id}/messages
 // https://discord.com/developers/docs/resources/channel#get-channel-messages
 type GetChannelMessages struct {
-	Around *resources.Snowflake `urlparam:"around,omitempty"`
-	Before *resources.Snowflake `urlparam:"before,omitempty"`
-	After  *resources.Snowflake `urlparam:"after,omitempty"`
-	Limit  resources.Flag       `urlparam:"limit,omitempty"`
+	Around *resources.Snowflake `json:"around,omitempty"`
+	Before *resources.Snowflake `json:"before,omitempty"`
+	After  *resources.Snowflake `json:"after,omitempty"`
+	Limit  resources.Flag       `json:"limit,omitempty"`
 }
 
 // Get Channel Message
@@ -265,7 +265,7 @@ type CreateMessage struct {
 	Content         string                      `json:"content,omitempty"`
 	TTS             bool                        `json:"tts,omitempty"`
 	Embeds          []*resources.Embed          `json:"embeds,omitempty"`
-	Embed           *resources.Embed            `json:"-"`
+	Embed           *resources.Embed            `json:"embed,omitempty"`
 	AllowedMentions *resources.AllowedMentions  `json:"allowed_mentions,omitempty"`
 	Reference       *resources.MessageReference `json:"message_reference,omitempty"`
 	StickerID       []*resources.Snowflake      `json:"sticker_ids,omitempty"`
@@ -332,7 +332,7 @@ type DeleteAllReactionsforEmoji struct {
 type EditMessage struct {
 	Content         *string                    `json:"content,omitempty"`
 	Embeds          []*resources.Embed         `json:"embeds,omitempty"`
-	Embed           *resources.Embed           `json:"-"`
+	Embed           *resources.Embed           `json:"embed,omitempty"`
 	Flags           *resources.BitFlag         `json:"flags,omitempty"`
 	AllowedMentions *resources.AllowedMentions `json:"allowed_mentions,omitempty"`
 	Components      []*resources.Component     `json:"components,omitempty"`
@@ -375,7 +375,7 @@ type GetChannelInvites struct {
 // POST /channels/{channel.id}/invites
 // https://discord.com/developers/docs/resources/channel#create-channel-invite
 type CreateChannelInvite struct {
-	MaxAge              *int                `json:"max_age"`
+	MaxAge              *int                `json:"max_age,omitempty"`
 	MaxUses             *resources.Flag     `json:"max_uses,omitempty"`
 	Temporary           bool                `json:"temporary,omitempty"`
 	Unique              bool                `json:"unique,omitempty"`
@@ -430,7 +430,7 @@ type UnpinMessage struct {
 // PUT /channels/{channel.id}/recipients/{user.id}
 // https://discord.com/developers/docs/resources/channel#group-dm-add-recipient
 type GroupDMAddRecipient struct {
-	AccessToken string  `json:"access_token"`
+	AccessToken string  `json:"access_token,omitempty"`
 	Nickname    *string `json:"nick,omitempty"`
 }
 
@@ -481,7 +481,7 @@ type StartThreadinForumChannelThread struct {
 // POST /channels/{channel.id}/threads
 // https://discord.com/developers/docs/resources/channel#start-thread-in-forum-channel-json-params-for-the-message
 type StartThreadinForumChannelMessage struct {
-	Content         *string                    `json:"content"`
+	Content         *string                    `json:"content,omitempty"`
 	Embeds          []*resources.Embed         `json:"embeds,omitempty"`
 	AllowedMentions *resources.AllowedMentions `json:"allowed_mentions,omitempty"`
 	Components      []*resources.Component     `json:"components,omitempty"`
@@ -538,32 +538,32 @@ type ListThreadMembers struct {
 // GET /channels/{channel.id}/threads/active
 // https://discord.com/developers/docs/resources/channel#list-active-threads
 type ListActiveChannelThreads struct {
-	Before resources.Snowflake `urlparam:"before,omitempty"`
-	Limit  int                 `urlparam:"limit,omitempty"`
+	Before resources.Snowflake `json:"before,omitempty"`
+	Limit  int                 `json:"limit,omitempty"`
 }
 
 // List Public Archived Threads
 // GET /channels/{channel.id}/threads/archived/public
 // https://discord.com/developers/docs/resources/channel#list-public-archived-threads
 type ListPublicArchivedThreads struct {
-	Before resources.Snowflake `urlparam:"before,omitempty"`
-	Limit  int                 `urlparam:"limit,omitempty"`
+	Before resources.Snowflake `json:"before,omitempty"`
+	Limit  int                 `json:"limit,omitempty"`
 }
 
 // List Private Archived Threads
 // GET /channels/{channel.id}/threads/archived/private
 // https://discord.com/developers/docs/resources/channel#list-private-archived-threads
 type ListPrivateArchivedThreads struct {
-	Before resources.Snowflake `urlparam:"before,omitempty"`
-	Limit  int                 `urlparam:"limit,omitempty"`
+	Before resources.Snowflake `json:"before,omitempty"`
+	Limit  int                 `json:"limit,omitempty"`
 }
 
 // List Joined Private Archived Threads
 // GET /channels/{channel.id}/users/@me/threads/archived/private
 // https://discord.com/developers/docs/resources/channel#list-joined-private-archived-threads
 type ListJoinedPrivateArchivedThreads struct {
-	Before resources.Snowflake `urlparam:"before,omitempty"`
-	Limit  int                 `urlparam:"limit,omitempty"`
+	Before resources.Snowflake `json:"before,omitempty"`
+	Limit  int                 `json:"limit,omitempty"`
 }
 
 /// .go fileresources\Emoji.md
@@ -586,9 +586,9 @@ type GetGuildEmoji struct {
 // https://discord.com/developers/docs/resources/emoji#create-guild-emoji
 type CreateGuildEmoji struct {
 	GuildID resources.Snowflake
-	Name    string                 `name:"name"`
-	Image   string                 `image:"name"`
-	Roles   []*resources.Snowflake `roles:"name"`
+	Name    string                 `json:"name,omitempty"`
+	Image   string                 `json:"image,omitempty"`
+	Roles   []*resources.Snowflake `json:"roles,omitempty"`
 }
 
 // Modify Guild Emoji
@@ -596,8 +596,8 @@ type CreateGuildEmoji struct {
 // https://discord.com/developers/docs/resources/emoji#modify-guild-emoji
 type ModifyGuildEmoji struct {
 	EmojiID resources.Snowflake
-	Name    string                 `json:"name"`
-	Roles   []*resources.Snowflake `json:"roles"`
+	Name    string                 `json:"name,omitempty"`
+	Roles   []*resources.Snowflake `json:"roles,omitempty"`
 }
 
 // Delete Guild Emoji
@@ -611,14 +611,14 @@ type DeleteGuildEmoji struct {
 // GET /guilds/{guild.id}/scheduled-events
 // https://discord.com/developers/docs/resources/guild-scheduled-event#list-scheduled-events-for-guild
 type ListScheduledEventsforGuild struct {
-	WithUserCount bool `json:"with_user_count"`
+	WithUserCount bool `json:"with_user_count,omitempty"`
 }
 
 // Create Guild Scheduled Event
 // POST /guilds/{guild.id}/scheduled-events
 // https://discord.com/developers/docs/resources/guild-scheduled-event#create-guild-scheduled-event
 type CreateGuildScheduledEvent struct {
-	ChannelID          *resources.Snowflake                         `json:"channel_id"`
+	ChannelID          *resources.Snowflake                         `json:"channel_id,omitempty"`
 	EntityMetadata     *resources.GuildScheduledEventEntityMetadata `json:"entity_metadata,omitempty"`
 	Name               *string                                      `json:"name,omitempty"`
 	PrivacyLevel       resources.Flag                               `json:"privacy_level,omitempty"`
@@ -626,21 +626,21 @@ type CreateGuildScheduledEvent struct {
 	ScheduledEndTime   resources.Snowflake                          `json:"scheduled_end_time,omitempty"`
 	Description        *string                                      `json:"description,omitempty"`
 	EntityType         *resources.Flag                              `json:"entity_type,omitempty"`
-	Image              *string                                      `json:"image"`
+	Image              *string                                      `json:"image,omitempty"`
 }
 
 // Get Guild Scheduled Event
 // GET /guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}
 // https://discord.com/developers/docs/resources/guild-scheduled-event#get-guild-scheduled-event
 type GetGuildScheduledEvent struct {
-	WithUserCount bool `json:"with_user_count"`
+	WithUserCount bool `json:"with_user_count,omitempty"`
 }
 
 // Modify Guild Scheduled Event
 // PATCH /guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}
 // https://discord.com/developers/docs/resources/guild-scheduled-event#modify-guild-scheduled-event
 type ModifyGuildScheduledEvent struct {
-	ChannelID          *resources.Snowflake                         `json:"channel_id"`
+	ChannelID          *resources.Snowflake                         `json:"channel_id,omitempty"`
 	EntityMetadata     *resources.GuildScheduledEventEntityMetadata `json:"entity_metadata,omitempty"`
 	Name               *string                                      `json:"name,omitempty"`
 	PrivacyLevel       resources.Flag                               `json:"privacy_level,omitempty"`
@@ -648,7 +648,7 @@ type ModifyGuildScheduledEvent struct {
 	ScheduledEndTime   resources.Snowflake                          `json:"scheduled_end_time,omitempty"`
 	Description        *string                                      `json:"description,omitempty"`
 	EntityType         *resources.Flag                              `json:"entity_type,omitempty"`
-	Image              *string                                      `json:"image"`
+	Image              *string                                      `json:"image,omitempty"`
 	Status             resources.Flag                               `json:"status,omitempty"`
 }
 
@@ -663,10 +663,10 @@ type DeleteGuildScheduledEvent struct {
 // GET /guilds/{guild.id}/scheduled-events/{guild_scheduled_event.id}/users
 // https://discord.com/developers/docs/resources/guild-scheduled-event#get-guild-scheduled-event-users
 type GetGuildScheduledEventUsers struct {
-	Limit      resources.Flag       `urlparam:"limit,omitempty"`
-	WithMember bool                 `urlparam:"with_member,omitempty"`
-	Before     *resources.Snowflake `urlparam:"before,omitempty"`
-	After      *resources.Snowflake `urlparam:"after,omitempty"`
+	Limit      resources.Flag       `json:"limit,omitempty"`
+	WithMember bool                 `json:"with_member,omitempty"`
+	Before     *resources.Snowflake `json:"before,omitempty"`
+	After      *resources.Snowflake `json:"after,omitempty"`
 }
 
 // Get Guild Template
@@ -730,7 +730,7 @@ type CreateGuild struct {
 	Region                      string               `json:"region,omitempty"`
 	Icon                        string               `json:"icon,omitempty"`
 	VerificationLevel           *resources.Flag      `json:"verification_level,omitempty"`
-	DefaultMessageNotifications *resources.Flag      `json:"default_message_notifications,omitempty"` // TODO: Separate type?
+	DefaultMessageNotifications *resources.Flag      `json:"default_message_notifications,omitempty"`
 	AfkChannelID                string               `json:"afk_channel_id,omitempty"`
 	AfkTimeout                  int                  `json:"afk_timeout,omitempty"`
 	OwnerID                     string               `json:"owner_id,omitempty"`
@@ -806,7 +806,7 @@ type CreateGuildChannel struct {
 	Type                       *resources.Flag                  `json:"type,omitempty"`
 	Topic                      *string                          `json:"topic,omitempty"`
 	NSFW                       bool                             `json:"nsfw,omitempty"`
-	Position                   int                              `json:"position"`
+	Position                   int                              `json:"position,omitempty"`
 	Bitrate                    int                              `json:"bitrate,omitempty"`
 	UserLimit                  int                              `json:"user_limit,omitempty"`
 	PermissionOverwrites       []*resources.PermissionOverwrite `json:"permission_overwrites,omitempty"`
@@ -845,8 +845,8 @@ type GetGuildMember struct {
 // GET /guilds/{guild.id}/members
 // https://discord.com/developers/docs/resources/guild#list-guild-members
 type ListGuildMembers struct {
-	After *resources.Snowflake `urlparam:"after,omitempty"`
-	Limit *resources.CodeFlag  `urlparam:"limit,omitempty"`
+	After *resources.Snowflake `json:"after,omitempty"`
+	Limit *resources.CodeFlag  `json:"limit,omitempty"`
 }
 
 // Search Guild Members
@@ -854,8 +854,8 @@ type ListGuildMembers struct {
 // https://discord.com/developers/docs/resources/guild#search-guild-members
 type SearchGuildMembers struct {
 	GuildID *resources.Snowflake
-	Query   string              `json:"query"`
-	Limit   *resources.CodeFlag `urlparam:"limit,omitempty"`
+	Query   string              `json:"query,omitempty"`
+	Limit   *resources.CodeFlag `json:"limit,omitempty"`
 }
 
 // Add Guild Member
@@ -863,7 +863,7 @@ type SearchGuildMembers struct {
 // https://discord.com/developers/docs/resources/guild#add-guild-member
 type AddGuildMember struct {
 	UserID      *resources.Snowflake
-	AccessToken string                 `json:"access_token"`
+	AccessToken string                 `json:"access_token,omitempty"`
 	Nick        string                 `json:"nick,omitempty"`
 	Roles       []*resources.Snowflake `json:"roles,omitempty"`
 	Mute        bool                   `json:"mute,omitempty"`
@@ -879,8 +879,8 @@ type ModifyGuildMember struct {
 	Roles                      []*resources.Snowflake `json:"roles,omitempty"`
 	Mute                       bool                   `json:"mute,omitempty"`
 	Deaf                       bool                   `json:"deaf,omitempty"`
-	ChannelID                  resources.Snowflake    `json:"channel_id"`
-	CommunicationDisabledUntil *time.Time             `json:"communication_disabled_until"`
+	ChannelID                  resources.Snowflake    `json:"channel_id,omitempty"`
+	CommunicationDisabledUntil *time.Time             `json:"communication_disabled_until,omitempty"`
 }
 
 // Modify Current Member
@@ -925,9 +925,9 @@ type RemoveGuildMember struct {
 // https://discord.com/developers/docs/resources/guild#get-guild-bans
 type GetGuildBans struct {
 	GuildID resources.Snowflake
-	Before  *resources.Snowflake `urlparam:"before,omitempty"`
-	After   *resources.Snowflake `urlparam:"after,omitempty"`
-	Limit   *resources.CodeFlag  `urlparam:"limit,omitempty"`
+	Before  *resources.Snowflake `json:"before,omitempty"`
+	After   *resources.Snowflake `json:"after,omitempty"`
+	Limit   *resources.CodeFlag  `json:"limit,omitempty"`
 }
 
 // Get Guild Ban
@@ -942,8 +942,8 @@ type GetGuildBan struct {
 // https://discord.com/developers/docs/resources/guild#create-guild-ban
 type CreateGuildBan struct {
 	UserID            *resources.Snowflake
-	DeleteMessageDays *resources.Flag `urlparam:"delete_message_days,omitempty"`
-	Reason            *string         `urlparam:"reason,omitempty"`
+	DeleteMessageDays *resources.Flag `json:"delete_message_days,omitempty"`
+	Reason            *string         `json:"reason,omitempty"`
 }
 
 // Remove Guild Ban
@@ -965,21 +965,21 @@ type GetGuildRoles struct {
 // https://discord.com/developers/docs/resources/guild#create-guild-role
 type CreateGuildRole struct {
 	GuildID      resources.Snowflake
-	Name         string  `json:"name"`
+	Name         string  `json:"name,omitempty"`
 	Permissions  string  `json:"permissions,omitempty"`
-	Color        *int    `json:"color"`
-	Hoist        bool    `json:"hoist"`
-	Icon         *int    `json:"icon"`
-	UnicodeEmoji *string `json:"unicode_emoji"`
-	Mentionable  bool    `json:"mentionable"`
+	Color        *int    `json:"color,omitempty"`
+	Hoist        bool    `json:"hoist,omitempty"`
+	Icon         *int    `json:"icon,omitempty"`
+	UnicodeEmoji *string `json:"unicode_emoji,omitempty"`
+	Mentionable  bool    `json:"mentionable,omitempty"`
 }
 
 // Modify Guild Role Positions
 // PATCH /guilds/{guild.id}/roles
 // https://discord.com/developers/docs/resources/guild#modify-guild-role-positions
 type ModifyGuildRolePositions struct {
-	ID       resources.Snowflake `json:"id"`
-	Position int                 `json:"position"`
+	ID       resources.Snowflake `json:"id,omitempty"`
+	Position int                 `json:"position,omitempty"`
 }
 
 // Modify Guild Role
@@ -987,13 +987,13 @@ type ModifyGuildRolePositions struct {
 // https://discord.com/developers/docs/resources/guild#modify-guild-role
 type ModifyGuildRole struct {
 	RoleID       resources.Snowflake
-	Name         string  `json:"name"`
-	Permissions  int64   `json:"permissions,string"`
-	Color        *int    `json:"color"`
-	Hoist        bool    `json:"hoist"`
-	Icon         *int    `json:"icon"`
-	UnicodeEmoji *string `json:"unicode_emoji"`
-	Mentionable  bool    `json:"mentionable"`
+	Name         string  `json:"name,omitempty"`
+	Permissions  int64   `json:"permissions,string,omitempty"`
+	Color        *int    `json:"color,omitempty"`
+	Hoist        bool    `json:"hoist,omitempty"`
+	Icon         *int    `json:"icon,omitempty"`
+	UnicodeEmoji *string `json:"unicode_emoji,omitempty"`
+	Mentionable  bool    `json:"mentionable,omitempty"`
 }
 
 // Delete Guild Role
@@ -1020,7 +1020,7 @@ type BeginGuildPrune struct {
 	Days              resources.Flag         `json:"days,omitempty"`
 	ComputePruneCount bool                   `json:"compute_prune_count,omitempty"`
 	IncludeRoles      []*resources.Snowflake `json:"include_roles,omitempty"`
-	Reason            *string                `json:"reason"`
+	Reason            *string                `json:"reason,omitempty"`
 }
 
 // Get Guild Voice Regions
@@ -1109,8 +1109,8 @@ type ModifyGuildWelcomeScreen struct {
 // https://discord.com/developers/docs/resources/guild#modify-current-user-voice-state
 type ModifyCurrentUserVoiceState struct {
 	ChannelID               resources.Snowflake
-	Suppress                bool       `json:"suppress"`
-	RequestToSpeakTimestamp *time.Time `json:"request_to_speak_timestamp"`
+	Suppress                bool       `json:"suppress,omitempty"`
+	RequestToSpeakTimestamp *time.Time `json:"request_to_speak_timestamp,omitempty"`
 }
 
 // Modify User Voice State
@@ -1118,7 +1118,7 @@ type ModifyCurrentUserVoiceState struct {
 // https://discord.com/developers/docs/resources/guild#modify-user-voice-state
 type ModifyUserVoiceState struct {
 	ChannelID resources.Snowflake
-	Suppress  bool `json:"suppress"`
+	Suppress  bool `json:"suppress,omitempty"`
 }
 
 /// .go fileresources\Invite.md
@@ -1126,7 +1126,7 @@ type ModifyUserVoiceState struct {
 // GET /invites/{invite.code}
 // https://discord.com/developers/docs/resources/invite#get-invite
 type GetInvite struct {
-	GuildScheduledEventID resources.Snowflake `json:"guild_scheduled_event_id"`
+	GuildScheduledEventID resources.Snowflake `json:"guild_scheduled_event_id,omitempty"`
 	WithCounts            bool                `json:"with_counts,omitempty"`
 	WithExpiration        bool                `json:"with_expiration,omitempty"`
 }
@@ -1144,9 +1144,9 @@ type DeleteInvite struct {
 // https://discord.com/developers/docs/resources/stage-instance#create-stage-instance
 type CreateStageInstance struct {
 	ChannelID             resources.Snowflake
-	Topic                 string         `json:"topic"`
-	PrivacyLevel          resources.Flag `json:"privacy_level"`
-	SendStartNotification bool           `json:"send_start_notification"`
+	Topic                 string         `json:"topic,omitempty"`
+	PrivacyLevel          resources.Flag `json:"privacy_level,omitempty"`
+	SendStartNotification bool           `json:"send_start_notification,omitempty"`
 }
 
 // Get Stage Instance
@@ -1161,8 +1161,8 @@ type GetStageInstance struct {
 // https://discord.com/developers/docs/resources/stage-instance#modify-stage-instance
 type ModifyStageInstance struct {
 	ChannelID    resources.Snowflake
-	Topic        string         `json:"topic"`
-	PrivacyLevel resources.Flag `json:"privacy_level"`
+	Topic        string         `json:"topic,omitempty"`
+	PrivacyLevel resources.Flag `json:"privacy_level,omitempty"`
 }
 
 // Delete Stage Instance
@@ -1184,7 +1184,7 @@ type GetSticker struct {
 // GET /sticker-packs
 // https://discord.com/developers/docs/resources/sticker#list-nitro-sticker-packs
 type ListNitroStickerPacks struct {
-	StickerPacks []*resources.StickerPack `json:"sticker_packs"`
+	StickerPacks []*resources.StickerPack `json:"sticker_packs,omitempty"`
 }
 
 // List Guild Stickers
@@ -1206,9 +1206,9 @@ type GetGuildSticker struct {
 // https://discord.com/developers/docs/resources/sticker#create-guild-sticker
 type CreateGuildSticker struct {
 	GuildID     resources.Snowflake
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Tags        *string `json:"tags"`
+	Name        string  `json:"name,omitempty"`
+	Description string  `json:"description,omitempty"`
+	Tags        *string `json:"tags,omitempty"`
 	Files       []byte  `disgo:"TODO"`
 }
 
@@ -1217,9 +1217,9 @@ type CreateGuildSticker struct {
 // https://discord.com/developers/docs/resources/sticker#modify-guild-sticker
 type ModifyGuildSticker struct {
 	StickerID   resources.Snowflake
-	Name        string  `json:"name"`
-	Description string  `json:"description"`
-	Tags        *string `json:"tags"`
+	Name        string  `json:"name,omitempty"`
+	Description string  `json:"description,omitempty"`
+	Tags        *string `json:"tags,omitempty"`
 }
 
 // Delete Guild Sticker
@@ -1233,17 +1233,17 @@ type DeleteGuildSticker struct {
 // PATCH /users/@me
 // https://discord.com/developers/docs/resources/user#modify-current-user
 type ModifyCurrentUser struct {
-	Username string  `json:"username"`
-	Avatar   *string `json:"avatar"`
+	Username string  `json:"username,omitempty"`
+	Avatar   *string `json:"avatar,omitempty"`
 }
 
 // Get Current User Guilds
 // GET /users/@me/guilds
 // https://discord.com/developers/docs/resources/user#get-current-user-guilds
 type GetCurrentUserGuilds struct {
-	Before *resources.Snowflake `urlparam:"before,omitempty"`
-	After  *resources.Snowflake `urlparam:"after,omitempty"`
-	Limit  resources.Flag       `urlparam:"limit,omitempty"`
+	Before *resources.Snowflake `json:"before,omitempty"`
+	After  *resources.Snowflake `json:"after,omitempty"`
+	Limit  resources.Flag       `json:"limit,omitempty"`
 }
 
 // Get Current User Guild Member
@@ -1264,15 +1264,15 @@ type LeaveGuild struct {
 // POST /users/@me/channels
 // https://discord.com/developers/docs/resources/user#create-dm
 type CreateDM struct {
-	RecipientID resources.Snowflake `json:"recipient_id"`
+	RecipientID resources.Snowflake `json:"recipient_id,omitempty"`
 }
 
 // Create Group DM
 // POST /users/@me/channels
 // https://discord.com/developers/docs/resources/user#create-group-dm
 type CreateGroupDM struct {
-	AccessTokens []*string                      `json:"access_tokens"`
-	Nicks        map[resources.Snowflake]string `json:"nicks"`
+	AccessTokens []*string                      `json:"access_tokens,omitempty"`
+	Nicks        map[resources.Snowflake]string `json:"nicks,omitempty"`
 }
 
 // Get User Connections
@@ -1296,7 +1296,7 @@ type ListVoiceRegions struct {
 // https://discord.com/developers/docs/resources/webhook#create-webhook
 type CreateWebhook struct {
 	Name   string `json:"name,omitempty"`
-	Avatar string `json:"avatar"`
+	Avatar string `json:"avatar,omitempty"`
 }
 
 // Get Channel Webhooks
@@ -1333,8 +1333,8 @@ type GetWebhookwithToken struct {
 type ModifyWebhook struct {
 	WebhookID resources.Snowflake
 	Name      string              `json:"name,omitempty"`
-	Avatar    string              `json:"avatar"`
-	ChannelID resources.Snowflake `json:"channel_id"`
+	Avatar    string              `json:"avatar,omitempty"`
+	ChannelID resources.Snowflake `json:"channel_id,omitempty"`
 }
 
 // Modify Webhook with Token
@@ -1369,7 +1369,7 @@ type ExecuteWebhook struct {
 	AvatarURL       string                     `json:"avatar_url,omitempty"`
 	TTS             bool                       `json:"tts,omitempty"`
 	Files           []byte                     `disgo:"TODO"`
-	Components      []resources.Component      `json:"components"`
+	Components      []resources.Component      `json:"components,omitempty"`
 	Embeds          []*resources.Embed         `json:"embeds,omitempty"`
 	AllowedMentions *resources.AllowedMentions `json:"allowed_mentions,omitempty"`
 	PayloadJSON     string                     `json:"payload_json,omitempty"`
@@ -1406,9 +1406,9 @@ type EditWebhookMessage struct {
 	WebhookID       resources.Snowflake
 	ThreadID        resources.Snowflake        `json:"thread_id,omitempty"`
 	Content         *string                    `json:"content,omitempty"`
-	Components      []*resources.Component     `json:"components"`
+	Components      []*resources.Component     `json:"components,omitempty"`
 	Embeds          []*resources.Embed         `json:"embeds,omitempty"`
-	Files           []byte                     `json:"-"`
+	Files           []byte                     `disgo:"TODO"`
 	AllowedMentions *resources.AllowedMentions `json:"allowed_mentions,omitempty"`
 	PayloadJSON     string                     `json:"payload_json,omitempty"`
 	Attachments     []*resources.Attachment    `json:"attachments,omitempty"`
@@ -1433,9 +1433,9 @@ type GetGateway struct {
 // GET /gateway/bot
 // https://discord.com/developers/docs/topics/gateway#get-gateway-bot
 type GetGatewayBot struct {
-	URL               string `json:"utl"`
-	Shards            int    `json:"shards"`
-	SessionStartLimit int    `json:"session_start_limit"`
+	URL               string `json:"url,omitempty"`
+	Shards            int    `json:"shards,omitempty"`
+	SessionStartLimit int    `json:"session_start_limit,omitempty"`
 }
 
 /// .go filetopics\OAuth2.md
