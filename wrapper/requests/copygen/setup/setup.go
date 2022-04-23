@@ -74,10 +74,10 @@ type Copygen interface {
 	SendRemoveThreadMember(*requests.RemoveThreadMember) error
 	SendGetThreadMember(*requests.GetThreadMember) (*resources.ThreadMember, error)
 	SendListThreadMembers(*requests.ListThreadMembers) ([]*resources.ThreadMember, error)
-	SendListActiveChannelThreads(*requests.ListActiveChannelThreads) ([]*resources.Channel, error) //check
-	SendListPublicArchivedThreads(*requests.ListPublicArchivedThreads) error                       //CHECK
-	SendListPrivateArchivedThreads(*requests.ListPrivateArchivedThreads) error                     //CHECK
-	SendListJoinedPrivateArchivedThreads(*requests.ListJoinedPrivateArchivedThreads) error         //CHECK
+	SendListActiveChannelThreads(*requests.ListActiveChannelThreads) (*responses.ListActiveThreads, error)
+	SendListPublicArchivedThreads(*requests.ListPublicArchivedThreads) (*responses.ListPublicArchivedThreads, error)
+	SendListPrivateArchivedThreads(*requests.ListPrivateArchivedThreads) (*responses.ListPrivateArchivedThreads, error)
+	SendListJoinedPrivateArchivedThreads(*requests.ListJoinedPrivateArchivedThreads) (*responses.ListJoinedPrivateArchivedThreads, error)
 	SendListGuildEmojis(*requests.ListGuildEmojis) ([]*resources.Emoji, error)
 	SendGetGuildEmoji(*requests.GetGuildEmoji) (*resources.Emoji, error)
 	SendCreateGuildEmoji(*requests.CreateGuildEmoji) (*resources.Emoji, error)
@@ -104,14 +104,14 @@ type Copygen interface {
 	SendGetGuildChannels(*requests.GetGuildChannels) ([]*resources.Channel, error)
 	SendCreateGuildChannel(*requests.CreateGuildChannel) (*resources.Channel, error)
 	SendModifyGuildChannelPositions(*requests.ModifyGuildChannelPositions) error
-	SendListActiveGuildThreads(*requests.ListActiveGuildThreads) ([]*resources.Channel, error) //Check
+	SendListActiveGuildThreads(*requests.ListActiveGuildThreads) (*responses.ListActiveThreads, error)
 	SendGetGuildMember(*requests.GetGuildMember) (*resources.GuildMember, error)
 	SendListGuildMembers(*requests.ListGuildMembers) ([]*resources.GuildMember, error)
 	SendSearchGuildMembers(*requests.SearchGuildMembers) ([]*resources.GuildMember, error)
-	SendAddGuildMember(*requests.AddGuildMember) (*resources.GuildMember, error)           //check
-	SendModifyGuildMember(*requests.ModifyGuildMember) (*resources.GuildMember, error)     //check
-	SendModifyCurrentMember(*requests.ModifyCurrentMember) (*resources.GuildMember, error) //check
-	SendModifyCurrentUserNick(*requests.ModifyCurrentUserNick) error                       //check
+	SendAddGuildMember(*requests.AddGuildMember) (*resources.GuildMember, error)
+	SendModifyGuildMember(*requests.ModifyGuildMember) (*resources.GuildMember, error)
+	SendModifyCurrentMember(*requests.ModifyCurrentMember) (*resources.GuildMember, error)
+	SendModifyCurrentUserNick(*requests.ModifyCurrentUserNick) (*responses.ModifyCurrentUserNick, error)
 	SendAddGuildMemberRole(*requests.AddGuildMemberRole) error
 	SendRemoveGuildMemberRole(*requests.RemoveGuildMemberRole) error
 	SendRemoveGuildMember(*requests.RemoveGuildMember) error
@@ -124,17 +124,17 @@ type Copygen interface {
 	SendModifyGuildRolePositions(*requests.ModifyGuildRolePositions) ([]*resources.Role, error)
 	SendModifyGuildRole(*requests.ModifyGuildRole) (*resources.Role, error)
 	SendDeleteGuildRole(*requests.DeleteGuildRole) error
-	SendGetGuildPruneCount(*requests.GetGuildPruneCount) error //check
-	SendBeginGuildPrune(*requests.BeginGuildPrune) error       //check
+	//SendGetGuildPruneCount(*requests.GetGuildPruneCount) error  https://discord.com/developers/docs/resources/guild#get-guild-prune-count
+	//SendBeginGuildPrune(*requests.BeginGuildPrune) error        https://discord.com/developers/docs/resources/guild#get-guild-prune-count
 	SendGetGuildVoiceRegions(*requests.GetGuildVoiceRegions) (*resources.VoiceRegion, error)
 	SendGetGuildInvites(*requests.GetGuildInvites) ([]*resources.Invite, error)
 	SendGetGuildIntegrations(*requests.GetGuildIntegrations) ([]*resources.Integration, error)
 	SendDeleteGuildIntegration(*requests.DeleteGuildIntegration) error
-	SendGetGuildWidgetSettings(*requests.GetGuildWidgetSettings) (*resources.GuildWidget, error) //check - *resources.GuildWidgetSettings
+	SendGetGuildWidgetSettings(*requests.GetGuildWidgetSettings) (*resources.GuildWidget, error)
 	SendModifyGuildWidget(*requests.ModifyGuildWidget) (*resources.GuildWidget, error)
 	SendGetGuildWidget(*requests.GetGuildWidget) (*resources.GuildWidget, error)
 	SendGetGuildVanityURL(*requests.GetGuildVanityURL) (*resources.Invite, error)
-	SendGetGuildWidgetImage(*requests.GetGuildWidgetImage) (*resources.EmbedImage, error) //Check
+	SendGetGuildWidgetImage(*requests.GetGuildWidgetImage) (*resources.EmbedImage, error)
 	SendGetGuildWelcomeScreen(*requests.GetGuildWelcomeScreen) (*resources.WelcomeScreen, error)
 	SendModifyGuildWelcomeScreen(*requests.ModifyGuildWelcomeScreen) (*resources.WelcomeScreen, error)
 	SendModifyCurrentUserVoiceState(*requests.ModifyCurrentUserVoiceState) error
@@ -152,8 +152,6 @@ type Copygen interface {
 	SendCreateGuildSticker(*requests.CreateGuildSticker) (*resources.Sticker, error)
 	SendModifyGuildSticker(*requests.ModifyGuildSticker) (*resources.Sticker, error)
 	SendDeleteGuildSticker(*requests.DeleteGuildSticker) error
-	SendGetCurrentUser(*requests.GetCurrentUser) (*resources.User, error)
-	SendGetUser(*requests.GetUser) error //CHECK - return resources.Result
 	SendModifyCurrentUser(*requests.ModifyCurrentUser) (*resources.User, error)
 	SendGetCurrentUserGuilds(*requests.GetCurrentUserGuilds) ([]*resources.Guild, error)
 	SendGetCurrentUserGuildMember(*requests.GetCurrentUserGuildMember) (*resources.GuildMember, error)
@@ -176,8 +174,8 @@ type Copygen interface {
 	SendGetWebhookMessage(*requests.GetWebhookMessage) (*resources.Message, error)
 	SendEditWebhookMessage(*requests.EditWebhookMessage) (*resources.Message, error)
 	SendDeleteWebhookMessage(*requests.DeleteWebhookMessage) error
-	SendGetGateway(*requests.GetGateway) error       //CHECK
-	SendGetGatewayBot(*requests.GetGatewayBot) error //CHECK
+	SendGetGateway(*requests.GetGateway) (*responses.GetGateway, error)
+	SendGetGatewayBot(*requests.GetGatewayBot) (*responses.GetGatewayBot, error)
 	SendGetCurrentBotApplicationInformation(*requests.GetCurrentBotApplicationInformation) (*resources.Application, error)
-	SendGetCurrentAuthorizationInformation(*requests.GetCurrentAuthorizationInformation) (*responses.CurrentAuthorizationInformation, error) //CHECK
+	SendGetCurrentAuthorizationInformation(*requests.GetCurrentAuthorizationInformation) (*responses.CurrentAuthorizationInformation, error)
 }
