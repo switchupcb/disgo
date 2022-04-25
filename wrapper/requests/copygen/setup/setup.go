@@ -74,10 +74,10 @@ type Copygen interface {
 	SendRemoveThreadMember(*requests.RemoveThreadMember) error
 	SendGetThreadMember(*requests.GetThreadMember) (*resources.ThreadMember, error)
 	SendListThreadMembers(*requests.ListThreadMembers) ([]*resources.ThreadMember, error)
-	SendListActiveChannelThreads(*requests.ListActiveChannelThreads) (*responses.ListActiveThreads, error)
-	SendListPublicArchivedThreads(*requests.ListPublicArchivedThreads) (*responses.ListPublicArchivedThreads, error)
-	SendListPrivateArchivedThreads(*requests.ListPrivateArchivedThreads) (*responses.ListPrivateArchivedThreads, error)
-	SendListJoinedPrivateArchivedThreads(*requests.ListJoinedPrivateArchivedThreads) (*responses.ListJoinedPrivateArchivedThreads, error)
+	SendListActiveChannelThreads(*requests.ListActiveChannelThreads) (*responses.ListActiveThreadsResponse, error)
+	SendListPublicArchivedThreads(*requests.ListPublicArchivedThreads) (*responses.ListPublicArchivedThreadsResponse, error)
+	SendListPrivateArchivedThreads(*requests.ListPrivateArchivedThreads) (*responses.ListPrivateArchivedThreadsResponse, error)
+	SendListJoinedPrivateArchivedThreads(*requests.ListJoinedPrivateArchivedThreads) (*responses.ListJoinedPrivateArchivedThreadsResponse, error)
 	SendListGuildEmojis(*requests.ListGuildEmojis) ([]*resources.Emoji, error)
 	SendGetGuildEmoji(*requests.GetGuildEmoji) (*resources.Emoji, error)
 	SendCreateGuildEmoji(*requests.CreateGuildEmoji) (*resources.Emoji, error)
@@ -104,7 +104,7 @@ type Copygen interface {
 	SendGetGuildChannels(*requests.GetGuildChannels) ([]*resources.Channel, error)
 	SendCreateGuildChannel(*requests.CreateGuildChannel) (*resources.Channel, error)
 	SendModifyGuildChannelPositions(*requests.ModifyGuildChannelPositions) error
-	SendListActiveGuildThreads(*requests.ListActiveGuildThreads) (*responses.ListActiveThreads, error)
+	SendListActiveGuildThreads(*requests.ListActiveGuildThreads) (*responses.ListActiveThreadsResponse, error)
 	SendGetGuildMember(*requests.GetGuildMember) (*resources.GuildMember, error)
 	SendListGuildMembers(*requests.ListGuildMembers) ([]*resources.GuildMember, error)
 	SendSearchGuildMembers(*requests.SearchGuildMembers) ([]*resources.GuildMember, error)
