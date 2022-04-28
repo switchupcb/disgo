@@ -41,10 +41,10 @@ disgo.RequestGetUser
 
 #### Requests
 
-Code generation is used to generate request code based on types.
+Resource GET, DELETE, POST, PUT, BULK _(GET, ...)_ `Send()` functions are generated from the respective requests object. For more information, read [requests](../wrapper/requests/README.md).
 
-```
-// TODO
+```go
+// TODO: Example of REST request function.
 ```
 
 ### Code Specification

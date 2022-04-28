@@ -34,6 +34,13 @@ type Channel struct {
 	Permissions                *string               `json:"permissions,omitempty"`
 }
 
+// Followed Channel Object
+// https://discord.com/developers/docs/resources/channel#followed-channel-object
+type FollowedChannel struct {
+	ChannelID Snowflake `json:"channel_id,omitempty"`
+	WebhookID Snowflake `json:"webhook_id,omitempty"`
+}
+
 // Channel Types
 // https://discord.com/developers/docs/resources/channel#channel-object-channel-types
 const (

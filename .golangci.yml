@@ -12,10 +12,16 @@ linters:
     - tagliatelle # Tags defined by Discord.
     - lll # Types defined by Dasgo.
     - godot # Not now.
-  
+
+    - gofumpt
+    - varnamelen
+    - wsl
+    - goerr113
+
     - godox # Library is unfinished.
     - bodyclose # go1.18 version in development
     - contextcheck # go1.18 version in development
+    - stylecheck # Underscores in flags currently defined by Discord.
 
     - golint # Deprecated
     - interfacer # Deprecated
@@ -36,3 +42,10 @@ linters-settings:
     disable:
       - shadow
       - fieldalignment # Completed at bundle-time.
+
+  nlreturn:
+    block-size: 2
+
+  wrapcheck:
+    ignorePackageGlobs:
+      - github.com/valyala/fasthttp*
