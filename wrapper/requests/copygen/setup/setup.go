@@ -2,6 +2,11 @@
 package requests
 
 import (
+	"fmt"
+	"strconv"
+	"github.com/switchupcb/disgo/wrapper/pkg/http"
+
+	json "github.com/goccy/go-json"
 	"github.com/switchupcb/disgo/wrapper/requests"
 	"github.com/switchupcb/disgo/wrapper/requests/responses"
 	"github.com/switchupcb/disgo/wrapper/resources"
