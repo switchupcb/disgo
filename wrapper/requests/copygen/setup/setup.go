@@ -124,8 +124,8 @@ type Copygen interface {
 	SendModifyGuildRolePositions(*requests.ModifyGuildRolePositions) ([]*resources.Role, error)
 	SendModifyGuildRole(*requests.ModifyGuildRole) (*resources.Role, error)
 	SendDeleteGuildRole(*requests.DeleteGuildRole) error
-	//SendGetGuildPruneCount(*requests.GetGuildPruneCount) error  https://discord.com/developers/docs/resources/guild#get-guild-prune-count
-	//SendBeginGuildPrune(*requests.BeginGuildPrune) error        https://discord.com/developers/docs/resources/guild#get-guild-prune-count
+	// SendGetGuildPruneCount(*requests.GetGuildPruneCount) error  https://discord.com/developers/docs/resources/guild#get-guild-prune-count
+	// SendBeginGuildPrune(*requests.BeginGuildPrune) error        https://discord.com/developers/docs/resources/guild#get-guild-prune-count
 	SendGetGuildVoiceRegions(*requests.GetGuildVoiceRegions) (*resources.VoiceRegion, error)
 	SendGetGuildInvites(*requests.GetGuildInvites) ([]*resources.Invite, error)
 	SendGetGuildIntegrations(*requests.GetGuildIntegrations) ([]*resources.Integration, error)

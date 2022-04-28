@@ -36,12 +36,11 @@ func SendRequestJSON(client *fasthttp.Client, ctx *fasthttp.RequestCtx, method, 
 
 	// receive the response from the request.
 	ctx.Response = *fasthttp.AcquireResponse()
-	err := client.DoTimeout(&ctx.Request, &ctx.Response, timeout)
+	defer fasthttp.ReleaseResponse(&ctx.Response)
 
-	// release the request from the pool.
-	fasthttp.ReleaseRequest(&ctx.Request)
-	if err != nil {
-		fasthttp.ReleaseResponse(&ctx.Response)
+	// release the request from the pool if something goes wrong.
+	if err := client.DoTimeout(&ctx.Request, &ctx.Response, timeout); err != nil {
+		fasthttp.ReleaseRequest(&ctx.Request)
 		return err
 	}
 
