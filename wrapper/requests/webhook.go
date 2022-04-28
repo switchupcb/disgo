@@ -79,7 +79,7 @@ type ExecuteWebhook struct {
 	Username        string                     `json:"username,omitempty"`
 	AvatarURL       string                     `json:"avatar_url,omitempty"`
 	TTS             bool                       `json:"tts,omitempty"`
-	Files           []byte                     `disgo:"TODO"`
+	Files           []byte                     `disgo:"files"`
 	Components      []resources.Component      `json:"components,omitempty"`
 	Embeds          []*resources.Embed         `json:"embeds,omitempty"`
 	AllowedMentions *resources.AllowedMentions `json:"allowed_mentions,omitempty"`
@@ -119,7 +119,7 @@ type EditWebhookMessage struct {
 	Content         *string                    `json:"content,omitempty"`
 	Components      []*resources.Component     `json:"components,omitempty"`
 	Embeds          []*resources.Embed         `json:"embeds,omitempty"`
-	Files           []byte                     `disgo:"TODO"`
+	Files           []byte                     `disgo:"files"`
 	AllowedMentions *resources.AllowedMentions `json:"allowed_mentions,omitempty"`
 	PayloadJSON     string                     `json:"payload_json,omitempty"`
 	Attachments     []*resources.Attachment    `json:"attachments,omitempty"`

@@ -2,7 +2,6 @@ package requests
 
 import "github.com/switchupcb/disgo/wrapper/resources"
 
-/// .go fileresources\Channel.md
 // Get Channel
 // GET /channels/{channel.id}
 // https://discord.com/developers/docs/resources/channel#get-channel
@@ -92,7 +91,7 @@ type CreateMessage struct {
 	Reference       *resources.MessageReference `json:"message_reference,omitempty"`
 	StickerID       []*resources.Snowflake      `json:"sticker_ids,omitempty"`
 	Components      []*resources.Component      `json:"components,omitempty"`
-	Files           []byte                      `disgo:"TODO"`
+	Files           []byte                      `disgo:"files"`
 	PayloadJSON     *string                     `json:"payload_json,omitempty"`
 	Attachments     []*resources.Attachment     `json:"attachments,omitempty"`
 	Flags           resources.BitFlag           `json:"flags,omitempty"`
@@ -158,7 +157,7 @@ type EditMessage struct {
 	Flags           *resources.BitFlag         `json:"flags,omitempty"`
 	AllowedMentions *resources.AllowedMentions `json:"allowed_mentions,omitempty"`
 	Components      []*resources.Component     `json:"components,omitempty"`
-	Files           []byte                     `disgo:"TODO"`
+	Files           []byte                     `disgo:"files"`
 	PayloadJSON     *string                    `json:"payload_json,omitempty"`
 	Attachments     []*resources.Attachment    `json:"attachments,omitempty"`
 }
@@ -309,7 +308,7 @@ type StartThreadinForumChannelMessage struct {
 	Components      []*resources.Component     `json:"components,omitempty"`
 	StickerIDS      []*resources.Snowflake     `json:"sticker_ids,omitempty"`
 	Attachments     []*resources.Attachment    `json:"attachments,omitempty"`
-	Files           []byte                     `disgo:"TODO"`
+	Files           []byte                     `disgo:"files"`
 	PayloadJSON     string                     `json:"payload_json,omitempty"`
 	Flags           resources.BitFlag          `json:"flags,omitempty"`
 }

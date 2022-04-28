@@ -2,7 +2,6 @@ package requests
 
 import "github.com/switchupcb/disgo/wrapper/resources"
 
-/// .go fileresources\Emoji.md
 // List Guild Emojis
 // GET /guilds/{guild.id}/emojis
 // https://discord.com/developers/docs/resources/emoji#list-guild-emojis

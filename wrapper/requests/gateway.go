@@ -1,12 +1,9 @@
 package requests
 
-/// .go filetopics\Gateway.md
 // Get Gateway
 // GET /gateway
 // https://discord.com/developers/docs/topics/gateway#get-gateway
-type GetGateway struct {
-	// TODO
-}
+type GetGateway struct{}
 
 // Get Gateway Bot
 // GET /gateway/bot
