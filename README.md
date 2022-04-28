@@ -23,7 +23,7 @@ This breakdown provides you with a **full understanding** on how to use the API.
 | **Request**  | Uses the Discord HTTPS/REST API to make one-time requests for information _(i.e resources)_. Provides create, read, update, delete, patch endpoints.               | Create a command. Request Guild Info.                               |
 | **Session**  | Uses Discord WebSockets [(Gateways)](https://discord.com/developers/docs/topics/gateway) to receive ongoing **events** that contain information _(i.e resources)_. | Send a message when a command used or a user joins a voice channel. |
 
-You create a **Client** that calls for **Resources** using **Requests** and that handles **Events** using **Sessions**.
+You create a **Client** that calls for **Resources** using **Requests** and handles **Events** using **Sessions**.
 
 ### Flags
 
@@ -132,6 +132,7 @@ disgo.Client.Config.<Settings>
 
 // Use requests to exchange data with Discord's REST API.
 disgo.Request<Endpoints>
+disgo.Response<Endpoints>
 
 // Use sessions to handle events from Discord's WebSocket Sessions (Gateways).
 disgo.Client.Session.Handlers.Add(<handler>)
@@ -175,9 +176,9 @@ Disgo is the easiest Discord Go API for developers to use and contribute to. You
 
 | Library   | Contribution                                                                                                                                                                                                                              | Lines of Code to Maintain |
 | :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
-| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | ?/?K                      |
-| DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | ?/10K                     |
-| Disgord   | Contribution Guidelines, Project Architecture, No Linter, Tests                                                                                                                                                                           | ?/30K                     |
+| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 500/8K                     |
+| DiscordGo | Not Feature Complete, No Guidelines, No Architecture, No Linter                                                                                                                                                                           | 10K/10K                   |
+| Disgord   | ORM, Contribution Guidelines, Project Architecture, No Linter                                                                                                                                                                             | ?/30K                     |
 
 ## Ecosystem
 

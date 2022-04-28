@@ -43,10 +43,6 @@ disgo.RequestGetUser
 
 Resource GET, DELETE, POST, PUT, BULK _(GET, ...)_ `Send()` functions are generated from the respective requests object. For more information, read [requests](../wrapper/requests/README.md).
 
-```go
-// TODO: Example of REST request function.
-```
-
 ### Code Specification
 
 #### Comments
@@ -61,7 +57,7 @@ If you receive `File is not ... with -...`, use `golangci-lint run --disable-all
 
 #### Fieldalignment
 
-Disgo uses [fieldalignment]() to save memory. You can install fieldalignment with `go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest` and run it using `fieldalignment -fix <package>`.
+Disgo [fieldaligns](https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/fieldalignment) bundled code to save memory.
 
 ### Test
 
@@ -78,9 +74,9 @@ Integration tests are used to ensure functionality between the API and Discord.
 Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to complete it:
 
 1. Generate **Request** code using https://github.com/switchupcb/disgo/pull/3.
-2. Generate any other code.
-3. Implement Client once.
-4. Implement Gateway Events.
+2. Implement Client (OAuth).
+3. Implement Gateway (WebSocket, Events).
+4. Implement Rate Limits.
 5. Implement Sharding.
 6. Implement Cache (which is likely where most effort lies; caching is difficult).
 
