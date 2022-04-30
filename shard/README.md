@@ -1,6 +1,6 @@
 # Disgo Shard Manager
 
-The Disgo Shard Manager is a Go module that automatically handles sharding for your Discord Bot. The Disgo Shard Manager works by scaling your WebSocket Sessions through a `disgo.Client.Sessions` array. The `Client` calls `GET /gateway/bot` to retrieve the recommended number of shards to use upon joining a `dynamic number` of guilds. These shards are assigned to a **Session** until the [max concurrency](https://discord.com/developers/docs/topics/gateway#sharding-max-concurrency) limit is reached. For information on the concept of a shard, read [What is a Discord Shard?](contribution/concepts/SHARD.md)
+The Disgo Shard Manager is a Go module that automatically handles sharding for your Discord Bot. The Disgo Shard Manager works by scaling your WebSocket Sessions through a `disgo.Client.Sessions` array. The `Client` calls `GET /gateway/bot` to retrieve the recommended number of shards to use upon joining a `dynamic number` of guilds. These shards are assigned to a **Session** until the [max concurrency](https://discord.com/developers/docs/topics/gateway#sharding-max-concurrency) limit is reached. For information on the concept of a shard, read [What is a Discord Shard?](/_contribution/concepts/SHARD.md)
 
 ## Implementation
 

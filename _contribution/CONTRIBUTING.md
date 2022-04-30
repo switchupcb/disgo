@@ -14,7 +14,7 @@ The domain of Disgo in providing an API for HTTP/WebSocket requests. The program
 
 ## Project Structure
 
-The repository consists of a detailed [README](/README.md), [examples](/examples/), and [**API Wrapper**](/disgo/wrapper).
+The repository consists of a detailed [README](/README.md), [examples](/_examples/), and [**API Wrapper**](/disgo/wrapper).
 
 ### Disgo
 
@@ -81,9 +81,9 @@ Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to c
 2. Generate any other code.
 3. Implement Client once.
 4. Implement Gateway Events.
-5. Implement Sharding.
-6. Implement Cache (which is likely where most effort lies; caching is difficult).
+5. Implement [Sharding](../shard/).
+6. Implement [Caching](../cache/)
 
-In addition, we must make [decisions](/contribution/libraries/) for the following:
+In addition, we must make [decisions](/_contribution/libraries/) for the following:
 1. UDP connections (Voice)
 2. [Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice)
