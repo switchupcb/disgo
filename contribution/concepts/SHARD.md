@@ -1,8 +1,10 @@
 # What is Discord Sharding?
 
+Disgo provides an **optional** shard manager for your Discord Bot. For information about its implementation, read about [The Disgo Shard Manager](/shard/README.md).
+
 ## What is a Session?
 
-A bot connects to Discord using a WebSocket. This **WebSocket Session** provides an ongoing open connection for us to receive or send data to Discord. In contrast, an **HTTP Request** makes a single request for data to or from discord. A **new bot** uses one session and/or multiple requests _(which are less efficient)_ to handle data _(pertaining to guilds, users, etc)_ from Discord.
+A bot connects to Discord using a WebSocket. This **WebSocket Session** provides an ongoing open connection for us to receive or send data to Discord. In contrast, an **HTTP Request** makes a single request for data to or from discord. A **new bot** uses one session and/or multiple requests to handle data _(pertaining to guilds, users, etc)_ from Discord.
 
 ## What is Scale?
 
@@ -10,15 +12,15 @@ As the **new bot** is used by more guilds, it handles more and more data. This g
 
 ## What is a Shard?
 
-When the **new bot** handles more data _(without sharding)_, all that data is sent or received through one **Session**. This becomes inefficient, so Discord requires you to handle the data through multiple **Sessions**: Doing so lowers the amount of data each **Session** maintains. In this definition, a WebSocket Session is essentially a Shard: **One Session is one Gateway**. **One Gateway holds a number of Shards.** _At a basic level, these all refer to the same thing_.
+When the **new bot** handles more data _(without sharding)_, all that data is sent or received through one **Session**. This becomes inefficient, so Discord requires you to handle the data through multiple **Sessions**: This lowers the amount of data each **Session** maintains. A WebSocket **Session** (also known as a Gateway) holds a number of **shards**, and each **shard** contains multiple **guilds**.
 
 ### Advanced
 
-In actuality, a shard only refers to which **Session(s)** a guild's data will be sent to. In other words, a shard represents a _traffic route_ for guild data. This presents the following hierarchy: 
+A shard only refers to which **Session(s)** a guild's data will be sent to. In other words, a shard represents a _traffic route_ for guild data. This presents the following hierarchy: 
 - **One Session manages multiple shards**. 
 - **One Shard manages multiple guilds' data**.
 
-Multiple sessions can use the same shard _(routes for a guild's data)_; each session can contain a different number of shards. This allows you to create sessions that handle a different amount traffic _(which is done for multiple reasons)_.
+Multiple sessions can use the same shard _(routes for a guild's data)_; each session can contain a different number of shards. This allows you to create sessions that handle a different amount traffic _(which is done for a multitude of reasons)_.
 
 ## What is Sharding?
 
@@ -37,7 +39,3 @@ The `shard_id` is equal to: The `guild_id` (which is an integer-based timestamp)
 ### How Does It Impact Performance?
 
 Maintaining multiple WebSocket Sessions does **NOT** have any performance implications on its own. However, processing more data among many connections _(within a set period of time)_ warrants more processing power (resulting in higher CPU usage). [Goroutines](https://gobyexample.com/goroutines) allow you to manage asynchronous connections concurrently. This language-specific feature — in addition to other factors — is why Go is the best language for creating Discord Bots.
-
-# The Shard Manager
-
-Disgo provides an **optional** shard manager for your Discord Bot. The shard manager automatically scales your WebSocket Sessions through the `disgo.Client.Sessions` array. The `Client` calls `GET /gateway/bot` to retrieve the recommended number of shards to use upon joining a `dynamic number` of guilds. These shards are assigned to a **Session** until the [max concurrency](https://discord.com/developers/docs/topics/gateway#sharding-max-concurrency) limit is reached.
