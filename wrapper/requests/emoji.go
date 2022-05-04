@@ -13,6 +13,7 @@ type ListGuildEmojis struct {
 // GET /guilds/{guild.id}/emojis/{emoji.id}
 // https://discord.com/developers/docs/resources/emoji#get-guild-emoji
 type GetGuildEmoji struct {
+	GuildID resources.Snowflake
 	EmojiID resources.Snowflake
 }
 
@@ -30,6 +31,7 @@ type CreateGuildEmoji struct {
 // PATCH /guilds/{guild.id}/emojis/{emoji.id}
 // https://discord.com/developers/docs/resources/emoji#modify-guild-emoji
 type ModifyGuildEmoji struct {
+	GuildID resources.Snowflake
 	EmojiID resources.Snowflake
 	Name    string                 `json:"name,omitempty"`
 	Roles   []*resources.Snowflake `json:"roles,omitempty"`
@@ -39,5 +41,6 @@ type ModifyGuildEmoji struct {
 // DELETE /guilds/{guild.id}/emojis/{emoji.id}
 // https://discord.com/developers/docs/resources/emoji#delete-guild-emoji
 type DeleteGuildEmoji struct {
+	GuildID resources.Snowflake
 	EmojiID resources.Snowflake
 }

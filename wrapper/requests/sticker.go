@@ -27,6 +27,7 @@ type ListGuildStickers struct {
 // GET /guilds/{guild.id}/stickers/{sticker.id}
 // https://discord.com/developers/docs/resources/sticker#get-guild-sticker
 type GetGuildSticker struct {
+	GuildID   resources.Snowflake
 	StickerID resources.Snowflake
 }
 
@@ -45,6 +46,7 @@ type CreateGuildSticker struct {
 // PATCH /guilds/{guild.id}/stickers/{sticker.id}
 // https://discord.com/developers/docs/resources/sticker#modify-guild-sticker
 type ModifyGuildSticker struct {
+	GuildID     resources.Snowflake
 	StickerID   resources.Snowflake
 	Name        string  `json:"name,omitempty"`
 	Description string  `json:"description,omitempty"`
@@ -55,5 +57,6 @@ type ModifyGuildSticker struct {
 // DELETE /guilds/{guild.id}/stickers/{sticker.id}
 // https://discord.com/developers/docs/resources/sticker#delete-guild-sticker
 type DeleteGuildSticker struct {
+	GuildID   resources.Snowflake
 	StickerID resources.Snowflake
 }

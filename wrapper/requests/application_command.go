@@ -26,7 +26,8 @@ type CreateGlobalApplicationCommand struct {
 // GET/applications/{application.id}/commands/{command.id}
 // https://discord.com/developers/docs/interactions/application-commands#get-global-application-command
 type GetGlobalApplicationCommand struct {
-	CommandID resources.Snowflake
+	ApplicationID resources.Snowflake
+	CommandID     resources.Snowflake
 }
 
 // Edit Global Application Command
@@ -34,6 +35,7 @@ type GetGlobalApplicationCommand struct {
 // https://discord.com/developers/docs/interactions/application-commands#edit-global-application-command
 type EditGlobalApplicationCommand struct {
 	CommandID                resources.Snowflake
+	ApplicationID            resources.Snowflake
 	Name                     string                                `json:"name,omitempty"`
 	NameLocalizations        map[resources.Flag]string             `json:"name_localizations,omitempty"`
 	Description              string                                `json:"description,omitempty"`
@@ -46,7 +48,9 @@ type EditGlobalApplicationCommand struct {
 // DELETE /applications/{application.id}/commands/{command.id}
 // https://discord.com/developers/docs/interactions/application-commands#delete-global-application-command
 type DeleteGlobalApplicationCommand struct {
-	CommandID resources.Snowflake
+	CommandID     resources.Snowflake
+	ApplicationID resources.Snowflake
+	GuildID       resources.Snowflake
 }
 
 // Bulk Overwrite Global Application Commands
@@ -61,6 +65,7 @@ type BulkOverwriteGlobalApplicationCommands struct {
 // https://discord.com/developers/docs/interactions/application-commands#get-guild-application-commands
 type GetGuildApplicationCommands struct {
 	GuildID           resources.Snowflake
+	ApplicationID     resources.Snowflake
 	WithLocalizations bool `json:"with_localizations,omitempty"`
 }
 
@@ -82,13 +87,18 @@ type CreateGuildApplicationCommand struct {
 // GET /applications/{application.id}/guilds/{guild.id}/commands/{command.id}
 // https://discord.com/developers/docs/interactions/application-commands#get-guild-application-command
 type GetGuildApplicationCommand struct {
-	GuildID resources.Snowflake
+	ApplicationID resources.Snowflake
+	GuildID       resources.Snowflake
+	CommandID     resources.Snowflake
 }
 
 // Edit Guild Application Command
 // PATCH /applications/{application.id}/guilds/{guild.id}/commands/{command.id}
 // https://discord.com/developers/docs/interactions/application-commands#edit-guild-application-command
 type EditGuildApplicationCommand struct {
+	ApplicationID            resources.Snowflake
+	GuildID                  resources.Snowflake
+	CommandID                resources.Snowflake
 	Name                     string                                `json:"name,omitempty"`
 	NameLocalizations        map[resources.Flag]string             `json:"name_localizations,omitempty"`
 	Description              string                                `json:"description,omitempty"`
@@ -108,7 +118,8 @@ type DeleteGuildApplicationCommand struct {
 // PUT /applications/{application.id}/guilds/{guild.id}/commands
 // https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-guild-application-commands
 type BulkOverwriteGuildApplicationCommands struct {
-	CommandID                resources.Snowflake
+	ApplicationID            resources.Snowflake
+	GuildID                  resources.Snowflake
 	Name                     string                                `json:"name,omitempty"`
 	NameLocalizations        map[resources.Flag]string             `json:"name_localizations,omitempty"`
 	Description              string                                `json:"description,omitempty"`
@@ -129,14 +140,19 @@ type GetGuildApplicationCommandPermissions struct {
 // GET /applications/{application.id}/guilds/{guild.id}/commands/{command.id}/permissions
 // https://discord.com/developers/docs/interactions/application-commands#get-application-command-permissions
 type GetApplicationCommandPermissions struct {
-	GuildID resources.Snowflake
+	ApplicationID resources.Snowflake
+	GuildID       resources.Snowflake
+	CommandID     resources.Snowflake
 }
 
 // Edit Application Command Permissions
 // PUT /applications/{application.id}/guilds/{guild.id}/commands/{command.id}/permissions
 // https://discord.com/developers/docs/interactions/application-commands#edit-application-command-permissions
 type EditApplicationCommandPermissions struct {
-	Permissions []*resources.ApplicationCommandPermissions `json:"permissions,omitempty"`
+	ApplicationID resources.Snowflake
+	GuildID       resources.Snowflake
+	CommandID     resources.Snowflake
+	Permissions   []*resources.ApplicationCommandPermissions `json:"permissions,omitempty"`
 }
 
 // Batch Edit Application Command Permissions
