@@ -122,7 +122,8 @@ type ListActiveGuildThreads struct {
 // GET /guilds/{guild.id}/members/{user.id}
 // https://discord.com/developers/docs/resources/guild#get-guild-member
 type GetGuildMember struct {
-	UserID *resources.Snowflake
+	GuildID resources.Snowflake
+	UserID  resources.Snowflake
 }
 
 // List Guild Members
@@ -147,6 +148,7 @@ type SearchGuildMembers struct {
 // https://discord.com/developers/docs/resources/guild#add-guild-member
 type AddGuildMember struct {
 	UserID      *resources.Snowflake
+	GuildID     *resources.Snowflake
 	AccessToken string                 `json:"access_token,omitempty"`
 	Nick        string                 `json:"nick,omitempty"`
 	Roles       []*resources.Snowflake `json:"roles,omitempty"`
@@ -158,7 +160,8 @@ type AddGuildMember struct {
 // PATCH /guilds/{guild.id}/members/{user.id}
 // https://discord.com/developers/docs/resources/guild#modify-guild-member
 type ModifyGuildMember struct {
-	UserID                     *resources.Snowflake
+	UserID                     resources.Snowflake
+	GuildID                    resources.Snowflake
 	Nick                       string                 `json:"nick,omitempty"`
 	Roles                      []*resources.Snowflake `json:"roles,omitempty"`
 	Mute                       bool                   `json:"mute,omitempty"`
@@ -187,21 +190,26 @@ type ModifyCurrentUserNick struct {
 // PUT /guilds/{guild.id}/members/{user.id}/roles/{role.id}
 // https://discord.com/developers/docs/resources/guild#add-guild-member-role
 type AddGuildMemberRole struct {
-	RoleID resources.Snowflake
+	RoleID  resources.Snowflake
+	GuildID resources.Snowflake
+	UserID  resources.Snowflake
 }
 
 // Remove Guild Member Role
 // DELETE /guilds/{guild.id}/members/{user.id}/roles/{role.id}
 // https://discord.com/developers/docs/resources/guild#remove-guild-member-role
 type RemoveGuildMemberRole struct {
-	RoleID resources.Snowflake
+	RoleID  resources.Snowflake
+	GuildID resources.Snowflake
+	UserID  resources.Snowflake
 }
 
 // Remove Guild Member
 // DELETE /guilds/{guild.id}/members/{user.id}
 // https://discord.com/developers/docs/resources/guild#remove-guild-member
 type RemoveGuildMember struct {
-	UserID *resources.Snowflake
+	UserID  resources.Snowflake
+	GuildID resources.Snowflake
 }
 
 // Get Guild Bans
@@ -218,7 +226,8 @@ type GetGuildBans struct {
 // GET /guilds/{guild.id}/bans/{user.id}
 // https://discord.com/developers/docs/resources/guild#get-guild-ban
 type GetGuildBan struct {
-	UserID *resources.Snowflake
+	GuildID resources.Snowflake
+	UserID  resources.Snowflake
 }
 
 // Create Guild Ban
@@ -226,6 +235,7 @@ type GetGuildBan struct {
 // https://discord.com/developers/docs/resources/guild#create-guild-ban
 type CreateGuildBan struct {
 	UserID            *resources.Snowflake
+	GuildID           *resources.Snowflake
 	DeleteMessageDays *resources.Flag `json:"delete_message_days,omitempty"`
 	Reason            *string         `json:"reason,omitempty"`
 }
@@ -234,7 +244,8 @@ type CreateGuildBan struct {
 // DELETE /guilds/{guild.id}/bans/{user.id}
 // https://discord.com/developers/docs/resources/guild#remove-guild-ban
 type RemoveGuildBan struct {
-	UserID *resources.Snowflake
+	GuildID resources.Snowflake
+	UserID  resources.Snowflake
 }
 
 // Get Guild Roles
@@ -270,6 +281,7 @@ type ModifyGuildRolePositions struct {
 // PATCH /guilds/{guild.id}/roles/{role.id}
 // https://discord.com/developers/docs/resources/guild#modify-guild-role
 type ModifyGuildRole struct {
+	GuildID      resources.Snowflake
 	RoleID       resources.Snowflake
 	Name         string  `json:"name,omitempty"`
 	Permissions  int64   `json:"permissions,string,omitempty"`
@@ -284,7 +296,8 @@ type ModifyGuildRole struct {
 // DELETE /guilds/{guild.id}/roles/{role.id}
 // https://discord.com/developers/docs/resources/guild#delete-guild-role
 type DeleteGuildRole struct {
-	RoleID resources.Snowflake
+	GuildID resources.Snowflake
+	RoleID  resources.Snowflake
 }
 
 // Get Guild Prune Count
@@ -332,6 +345,7 @@ type GetGuildIntegrations struct {
 // DELETE /guilds/{guild.id}/integrations/{integration.id}
 // https://discord.com/developers/docs/resources/guild#delete-guild-integration
 type DeleteGuildIntegration struct {
+	GuildID       resources.Snowflake
 	IntegrationID resources.Snowflake
 }
 
@@ -401,6 +415,8 @@ type ModifyCurrentUserVoiceState struct {
 // PATCH /guilds/{guild.id}/voice-states/{user.id}
 // https://discord.com/developers/docs/resources/guild#modify-user-voice-state
 type ModifyUserVoiceState struct {
+	GuildID   resources.Snowflake
+	UserID    resources.Snowflake
 	ChannelID resources.Snowflake
 	Suppress  bool `json:"suppress,omitempty"`
 }

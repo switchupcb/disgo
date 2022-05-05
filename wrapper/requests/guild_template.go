@@ -36,6 +36,7 @@ type CreateGuildTemplate struct {
 // PUT /guilds/{guild.id}/templates/{template.code}
 // https://discord.com/developers/docs/resources/guild-template#sync-guild-template
 type SyncGuildTemplate struct {
+	GuildID      resources.Snowflake
 	TemplateCode string `json:"code,omitempty"`
 }
 
@@ -43,6 +44,7 @@ type SyncGuildTemplate struct {
 // PATCH /guilds/{guild.id}/templates/{template.code}
 // https://discord.com/developers/docs/resources/guild-template#modify-guild-template
 type ModifyGuildTemplate struct {
+	GuildID      resources.Snowflake
 	TemplateCode string  `json:"code,omitempty"`
 	Name         string  `json:"name,omitempty"`
 	Description  *string `json:"description,omitempty"`
@@ -52,5 +54,6 @@ type ModifyGuildTemplate struct {
 // DELETE /guilds/{guild.id}/templates/{template.code}
 // https://discord.com/developers/docs/resources/guild-template#delete-guild-template
 type DeleteGuildTemplate struct {
+	GuildID      resources.Snowflake
 	TemplateCode string `json:"code,omitempty"`
 }

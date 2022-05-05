@@ -35,7 +35,8 @@ type GetWebhook struct {
 // GET /webhooks/{webhook.id}/{webhook.token}
 // https://discord.com/developers/docs/resources/webhook#get-webhook-with-token
 type GetWebhookwithToken struct {
-	WebhookID resources.Snowflake
+	WebhookID    resources.Snowflake
+	WebhookToken string `json:"token,omitempty"`
 }
 
 // Modify Webhook
@@ -52,7 +53,8 @@ type ModifyWebhook struct {
 // PATCH /webhooks/{webhook.id}/{webhook.token}
 // https://discord.com/developers/docs/resources/webhook#modify-webhook-with-token
 type ModifyWebhookwithToken struct {
-	WebhookID resources.Snowflake
+	WebhookID    resources.Snowflake
+	WebhookToken string `json:"token,omitempty"`
 }
 
 // Delete Webhook
@@ -66,13 +68,16 @@ type DeleteWebhook struct {
 // DELETE /webhooks/{webhook.id}/{webhook.token}
 // https://discord.com/developers/docs/resources/webhook#delete-webhook-with-token
 type DeleteWebhookwithToken struct {
-	WebhookID resources.Snowflake
+	WebhookID    resources.Snowflake
+	WebhookToken string `json:"token,omitempty"`
 }
 
 // Execute Webhook
 // POST /webhooks/{webhook.id}/{webhook.token}
 // https://discord.com/developers/docs/resources/webhook#execute-webhook
 type ExecuteWebhook struct {
+	WebhookID       resources.Snowflake
+	WebhookToken    string                     `json:"token,omitempty"`
 	Wait            bool                       `json:"wait,omitempty"`
 	ThreadID        resources.Snowflake        `json:"thread_id,omitempty"`
 	Content         string                     `json:"content,omitempty"`
@@ -91,23 +96,30 @@ type ExecuteWebhook struct {
 // POST /webhooks/{webhook.id}/{webhook.token}/slack
 // https://discord.com/developers/docs/resources/webhook#execute-slackcompatible-webhook
 type ExecuteSlackCompatibleWebhook struct {
-	ThreadID resources.Snowflake
-	Wait     bool `json:"wait,omitempty"`
+	WebhookID    resources.Snowflake
+	WebhookToken string `json:"token,omitempty"`
+	ThreadID     resources.Snowflake
+	Wait         bool `json:"wait,omitempty"`
 }
 
 // Execute GitHub-Compatible Webhook
 // POST /webhooks/{webhook.id}/{webhook.token}/github
 // https://discord.com/developers/docs/resources/webhook#execute-githubcompatible-webhook
 type ExecuteGitHubCompatibleWebhook struct {
-	ThreadID resources.Snowflake
-	Wait     bool `json:"wait,omitempty"`
+	WebhookID    resources.Snowflake
+	ThreadID     resources.Snowflake
+	WebhookToken string `json:"token,omitempty"`
+	Wait         bool   `json:"wait,omitempty"`
 }
 
 // Get Webhook Message
 // GET /webhooks/{webhook.id}/{webhook.token}/messages/{message.id}
 // https://discord.com/developers/docs/resources/webhook#get-webhook-message
 type GetWebhookMessage struct {
-	ThreadID resources.Snowflake
+	WebhookID    resources.Snowflake
+	MessageID    resources.Snowflake
+	WebhookToken string `json:"token,omitempty"`
+	ThreadID     resources.Snowflake
 }
 
 // Edit Webhook Message
@@ -115,6 +127,8 @@ type GetWebhookMessage struct {
 // https://discord.com/developers/docs/resources/webhook#edit-webhook-message
 type EditWebhookMessage struct {
 	WebhookID       resources.Snowflake
+	MessageID       resources.Snowflake
+	WebhookToken    string                     `json:"token,omitempty"`
 	ThreadID        resources.Snowflake        `json:"thread_id,omitempty"`
 	Content         *string                    `json:"content,omitempty"`
 	Components      []*resources.Component     `json:"components,omitempty"`
@@ -129,5 +143,7 @@ type EditWebhookMessage struct {
 // DELETE /webhooks/{webhook.id}/{webhook.token}/messages/{message.id}
 // https://discord.com/developers/docs/resources/webhook#delete-webhook-message
 type DeleteWebhookMessage struct {
-	ThreadID resources.Snowflake
+	MessageID    resources.Snowflake
+	WebhookID    resources.Snowflake
+	WebhookToken string `json:"token,omitempty"`
 }

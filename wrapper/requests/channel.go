@@ -109,12 +109,14 @@ type CrosspostMessage struct {
 // https://discord.com/developers/docs/resources/channel#create-reaction
 type CreateReaction struct {
 	MessageID *resources.Snowflake
+	ChannelID *resources.Snowflake
 }
 
 // Delete Own Reaction
 // DELETE /channels/{channel.id}/messages/{message.id}/reactions/{emoji}/@me
 // https://discord.com/developers/docs/resources/channel#delete-own-reaction
 type DeleteOwnReaction struct {
+	ChannelID *resources.Snowflake
 	MessageID *resources.Snowflake
 }
 
@@ -122,15 +124,19 @@ type DeleteOwnReaction struct {
 // DELETE /channels/{channel.id}/messages/{message.id}/reactions/{emoji}/{user.id}
 // https://discord.com/developers/docs/resources/channel#delete-user-reaction
 type DeleteUserReaction struct {
-	MessageID *resources.Snowflake
+	MessageID resources.Snowflake
+	ChannelID resources.Snowflake
+	UserID    resources.Snowflake
 }
 
 // Get Reactions
 // GET /channels/{channel.id}/messages/{message.id}/reactions/{emoji}
 // https://discord.com/developers/docs/resources/channel#get-reactions
 type GetReactions struct {
-	After resources.Snowflake `json:"after,omitempty"`
-	Limit resources.Flag      `json:"limit,omitempty"` // 1 is default. even if 0 is supplied.
+	MessageID resources.Snowflake
+	ChannelID resources.Snowflake
+	After     resources.Snowflake `json:"after,omitempty"`
+	Limit     resources.Flag      `json:"limit,omitempty"` // 1 is default. even if 0 is supplied.
 }
 
 // Delete All Reactions
@@ -138,6 +144,7 @@ type GetReactions struct {
 // https://discord.com/developers/docs/resources/channel#delete-all-reactions
 type DeleteAllReactions struct {
 	MessageID *resources.Snowflake
+	ChannelID *resources.Snowflake
 }
 
 // Delete All Reactions for Emoji
@@ -145,12 +152,15 @@ type DeleteAllReactions struct {
 // https://discord.com/developers/docs/resources/channel#delete-all-reactions-for-emoji
 type DeleteAllReactionsforEmoji struct {
 	MessageID *resources.Snowflake
+	ChannelID *resources.Snowflake
 }
 
 // Edit Message
 // PATCH /channels/{channel.id}/messages/{message.id}
 // https://discord.com/developers/docs/resources/channel#edit-message
 type EditMessage struct {
+	MessageID       *resources.Snowflake
+	ChannelID       *resources.Snowflake
 	Content         *string                    `json:"content,omitempty"`
 	Embeds          []*resources.Embed         `json:"embeds,omitempty"`
 	Embed           *resources.Embed           `json:"embed,omitempty"`
@@ -166,6 +176,7 @@ type EditMessage struct {
 // DELETE /channels/{channel.id}/messages/{message.id}
 // https://discord.com/developers/docs/resources/channel#delete-message
 type DeleteMessage struct {
+	ChannelID resources.Snowflake
 	MessageID *resources.Snowflake
 }
 
@@ -180,9 +191,11 @@ type BulkDeleteMessages struct {
 // PUT /channels/{channel.id}/permissions/{overwrite.id}
 // https://discord.com/developers/docs/resources/channel#edit-channel-permissions
 type EditChannelPermissions struct {
-	Allow string          `json:"allow,omitempty"`
-	Deny  string          `json:"deny,omitempty"`
-	Type  *resources.Flag `json:"type,omitempty"`
+	ChannelID   resources.Snowflake
+	OverwriteID resources.Snowflake
+	Allow       string          `json:"allow,omitempty"`
+	Deny        string          `json:"deny,omitempty"`
+	Type        *resources.Flag `json:"type,omitempty"`
 }
 
 // Get Channel Invites
@@ -210,6 +223,7 @@ type CreateChannelInvite struct {
 // https://discord.com/developers/docs/resources/channel#delete-channel-permission
 type DeleteChannelPermission struct {
 	OverwriteID resources.Snowflake
+	ChannelID   resources.Snowflake
 }
 
 // Follow News Channel
@@ -237,6 +251,7 @@ type GetPinnedMessages struct {
 // PUT /channels/{channel.id}/pins/{message.id}
 // https://discord.com/developers/docs/resources/channel#pin-message
 type PinMessage struct {
+	ChannelID resources.Snowflake
 	MessageID resources.Snowflake
 }
 
@@ -244,6 +259,7 @@ type PinMessage struct {
 // DELETE /channels/{channel.id}/pins/{message.id}
 // https://discord.com/developers/docs/resources/channel#unpin-message
 type UnpinMessage struct {
+	ChannelID resources.Snowflake
 	MessageID resources.Snowflake
 }
 
@@ -251,6 +267,8 @@ type UnpinMessage struct {
 // PUT /channels/{channel.id}/recipients/{user.id}
 // https://discord.com/developers/docs/resources/channel#group-dm-add-recipient
 type GroupDMAddRecipient struct {
+	ChannelID   resources.Snowflake
+	UserID      resources.Snowflake
 	AccessToken string  `json:"access_token,omitempty"`
 	Nickname    *string `json:"nick,omitempty"`
 }
@@ -259,13 +277,16 @@ type GroupDMAddRecipient struct {
 // DELETE /channels/{channel.id}/recipients/{user.id}
 // https://discord.com/developers/docs/resources/channel#group-dm-remove-recipient
 type GroupDMRemoveRecipient struct {
-	UserID resources.Snowflake
+	ChannelID resources.Snowflake
+	UserID    resources.Snowflake
 }
 
 // Start Thread from Message
 // POST /channels/{channel.id}/messages/{message.id}/threads
 // https://discord.com/developers/docs/resources/channel#start-thread-from-message
 type StartThreadfromMessage struct {
+	ChannelID           resources.Snowflake
+	MessageID           resources.Snowflake
 	Name                string `json:"name,omitempty"`
 	RateLimitPerUser    uint   `json:"rate_limit_per_user,omitempty"`
 	AutoArchiveDuration *int   `json:"auto_archive_duration,omitempty"`
@@ -324,7 +345,8 @@ type JoinThread struct {
 // PUT /channels/{channel.id}/thread-members/{user.id}
 // https://discord.com/developers/docs/resources/channel#add-thread-member
 type AddThreadMember struct {
-	UserID resources.Snowflake
+	UserID    resources.Snowflake
+	ChannelID resources.Snowflake
 }
 
 // Leave Thread
@@ -338,7 +360,8 @@ type LeaveThread struct {
 // DELETE /channels/{channel.id}/thread-members/{user.id}
 // https://discord.com/developers/docs/resources/channel#remove-thread-member
 type RemoveThreadMember struct {
-	UserID resources.Snowflake
+	ChannelID resources.Snowflake
+	UserID    resources.Snowflake
 }
 
 // Get Thread Member
