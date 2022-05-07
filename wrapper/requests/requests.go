@@ -9,13 +9,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// Client is ONLY defined here for the purpose of the proof of concept.
-type Client struct {
-	ApplicationID resources.Snowflake
-	client        *fasthttp.Client
-	ctx           *fasthttp.RequestCtx
-}
-
 const (
 	ErrStatusCodeKnown   = "Status Code %d: %v"
 	ErrStatusCodeUnknown = "Status Code %d: Unknown JSON error from Discord"
