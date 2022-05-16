@@ -12,3 +12,8 @@
 *.out
 .vscode
 
+# Generation
+gen/dasgo*
+!gen/tools/*
+!gen/gen.exe
+
