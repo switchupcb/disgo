@@ -1,5 +1,4 @@
-// Package requests provides Discord API Requests.
-package requests
+package disgo
 
 import (
 	"fmt"
