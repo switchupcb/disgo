@@ -1,4 +1,4 @@
-package disgo
+package wrapper
 
 import (
 	"encoding/json"
@@ -4114,4 +4114,3 @@ type ListJoinedPrivateArchivedThreadsResponse struct {
 type ModifyCurrentUserNickResponse struct {
 	Nick *string `json:"nick,omitempty"`
 }
-

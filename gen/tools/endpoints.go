@@ -47,7 +47,7 @@ func parseEndpointDecl(content string) string {
 	}
 
 	var output strings.Builder
-	output.WriteString("package disgo\n\n")
+	output.WriteString("package wrapper\n\n")
 	output.WriteString(generateConst(constMap))
 	output.WriteString(funcput.String())
 	return output.String()
@@ -68,7 +68,7 @@ func generateConst(cm map[string]string) string {
 
 // generateComment generates a comment for an endpoint function.
 func generateComment(endpoint string) string {
-	return "// " + endpoint + "builds a query for an HTTP request."
+	return "// " + endpoint + " builds a query for an HTTP request."
 }
 
 // generateFunc generates an endpoint function.
