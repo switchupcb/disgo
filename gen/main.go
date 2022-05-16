@@ -18,6 +18,9 @@ const (
 	// redirect `>` is not guaranteed to work, so files must be written.
 	filemodewrite = 0644
 
+	downloadURL   = "https://github.com/switchupcb/dasgo/archive/main.zip"
+	inputDownload = "input/dasgo.zip"
+
 	outputEndpoints = "../wrapper/endpoints.go"
 	outputDasgo     = "../wrapper/dasgo.go"
 	outputSend      = "../wrapper/send.go"
@@ -33,14 +36,14 @@ func main() {
 
 	// download the latest copy of dasgo from Github.
 	if *downloadFlag {
-		if err := download("https://github.com/switchupcb/dasgo/archive/main.zip", "dasgo.zip"); err != nil {
+		if err := download(downloadURL, inputDownload); err != nil {
 			fmt.Printf("%v", err)
 			os.Exit(1)
 		}
 	}
 
 	// dasgo generation
-	absfilepath, err := filepath.Abs("dasgo-main/dasgo")
+	absfilepath, err := filepath.Abs("input/dasgo-main/dasgo")
 	if err != nil {
 		fmt.Printf("an error occurred determining the unzipped dasgo source code filepath.\n%v", err)
 		os.Exit(1)
@@ -71,13 +74,13 @@ func check() error {
 
 // download downloads and extracts (.zip) a file from a URL.
 func download(url, output string) error {
-	curl := exec.Command("curl", "-L", url, "-o", output)
+	curl := exec.Command("curl", "-L", url, "-o", output, "--create-dirs")
 	std, err := curl.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error downloading file from url.\n%v", string(std))
 	}
 
-	unzip := exec.Command("unzip", output)
+	unzip := exec.Command("unzip", output, "-d", "input")
 	std, err = unzip.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error unzipping file.\n%v", string(std))

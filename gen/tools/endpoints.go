@@ -20,6 +20,7 @@ func Endpoints(filepath string) ([]byte, error) {
 	}
 
 	constMap = make(map[string]string)
+	constMap["slash"] = "/"
 	content := parseEndpointDecl(string(data))
 	contentdata := []byte(content)
 
@@ -72,16 +73,22 @@ func generateComment(endpoint string) string {
 
 // generateFunc generates an endpoint function.
 func generateFunc(endpoint, url string) string {
-	params := parameters(url)
+	urlparams := parameters(url)
+	funcparams := make([]string, 0, len(urlparams))
+	for _, param := range urlparams {
+		if constMap[param] == "" {
+			funcparams = append(funcparams, param)
+		}
+	}
 
 	var p string
-	if len(params) > 0 {
-		p = strings.Join(params, ",") + " string"
+	if len(funcparams) > 0 {
+		p = strings.Join(funcparams, ",") + " string"
 	}
 
 	var f strings.Builder
 	f.WriteString("func " + endpoint + "(" + p + ")" + " string {\n")
-	f.WriteString("return " + strings.Join(params, "+") + "\n")
+	f.WriteString("return EndpointBaseURL +" + strings.Join(urlparams, "+ slash +") + "\n")
 	f.WriteString("}\n")
 	return f.String()
 }

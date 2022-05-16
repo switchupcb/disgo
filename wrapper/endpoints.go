@@ -3,900 +3,901 @@ package disgo
 // Discord API Endpoints
 const (
 	EndpointBaseURL = "https://discord.com/api/v9/"
-	guilds          = "guilds"
-	archived        = "archived"
+	callback        = "callback"
+	threads         = "threads"
+	public          = "public"
+	preview         = "preview"
+	widget          = "widget"
+	messages        = "messages"
+	auditlogs       = "audit-logs"
+	followers       = "followers"
+	private         = "private"
+	me              = "@me"
+	bulkdelete      = "bulk-delete"
+	threadmembers   = "thread-members"
+	roles           = "roles"
 	stageinstances  = "stage-instances"
 	voice           = "voice"
-	voicestates     = "voice-states"
-	applications    = "applications"
-	bulkdelete      = "bulk-delete"
-	pins            = "pins"
-	preview         = "preview"
+	archived        = "archived"
 	members         = "members"
-	interactions    = "interactions"
-	messages        = "messages"
-	templates       = "templates"
-	threads         = "threads"
-	users           = "users"
+	integrations    = "integrations"
+	voicestates     = "voice-states"
+	channels        = "channels"
+	crosspost       = "crosspost"
+	active          = "active"
 	welcomescreen   = "welcome-screen"
 	stickerpacks    = "sticker-packs"
-	recipients      = "recipients"
-	widget          = "widget"
+	guilds          = "guilds"
+	invites         = "invites"
+	templates       = "templates"
+	prune           = "prune"
 	bot             = "bot"
-	commands        = "commands"
-	callback        = "callback"
-	public          = "public"
-	private         = "private"
-	connections     = "connections"
+	recipients      = "recipients"
+	emojis          = "emojis"
+	gateway         = "gateway"
 	permissions     = "permissions"
-	original        = "@original"
-	scheduledevents = "scheduled-events"
 	vanityurl       = "vanity-url"
 	stickers        = "stickers"
-	auditlogs       = "audit-logs"
-	reactions       = "reactions"
-	prune           = "prune"
-	regions         = "regions"
-	crosspost       = "crosspost"
-	invites         = "invites"
-	nick            = "nick"
-	widgetpng       = "widget.png"
-	member          = "member"
-	channels        = "channels"
-	bans            = "bans"
 	slack           = "slack"
-	gateway         = "gateway"
-	webhooks        = "webhooks"
 	typing          = "typing"
-	emojis          = "emojis"
-	integrations    = "integrations"
-	threadmembers   = "thread-members"
-	active          = "active"
-	roles           = "roles"
-	me              = "@me"
+	oauth           = "oauth2"
+	applications    = "applications"
+	commands        = "commands"
+	users           = "users"
+	scheduledevents = "scheduled-events"
+	webhooks        = "webhooks"
+	bans            = "bans"
 	widgetjson      = "widget.json"
 	github          = "github"
-	oauth           = "oauth2"
-	followers       = "followers"
+	regions         = "regions"
+	widgetpng       = "widget.png"
+	interactions    = "interactions"
 	search          = "search"
+	member          = "member"
+	slash           = "/"
+	original        = "@original"
+	reactions       = "reactions"
+	pins            = "pins"
+	nick            = "nick"
+	connections     = "connections"
 )
 
 // EndpointGetGlobalApplicationCommandsbuilds a query for an HTTP request.
-func EndpointGetGlobalApplicationCommands(applications, applicationid, commands string) string {
-	return applications + applicationid + commands
+func EndpointGetGlobalApplicationCommands(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands
 }
 
 // EndpointCreateGlobalApplicationCommandbuilds a query for an HTTP request.
-func EndpointCreateGlobalApplicationCommand(applications, applicationid, commands string) string {
-	return applications + applicationid + commands
+func EndpointCreateGlobalApplicationCommand(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands
 }
 
 // EndpointGetGlobalApplicationCommandbuilds a query for an HTTP request.
-func EndpointGetGlobalApplicationCommand(applications, applicationid, commands, commandid string) string {
-	return applications + applicationid + commands + commandid
+func EndpointGetGlobalApplicationCommand(applicationid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands + slash + commandid
 }
 
 // EndpointEditGlobalApplicationCommandbuilds a query for an HTTP request.
-func EndpointEditGlobalApplicationCommand(applications, applicationid, commands, commandid string) string {
-	return applications + applicationid + commands + commandid
+func EndpointEditGlobalApplicationCommand(applicationid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands + slash + commandid
 }
 
 // EndpointDeleteGlobalApplicationCommandbuilds a query for an HTTP request.
-func EndpointDeleteGlobalApplicationCommand(applications, applicationid, commands, commandid string) string {
-	return applications + applicationid + commands + commandid
+func EndpointDeleteGlobalApplicationCommand(applicationid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands + slash + commandid
 }
 
 // EndpointBulkOverwriteGlobalApplicationCommandsbuilds a query for an HTTP request.
-func EndpointBulkOverwriteGlobalApplicationCommands(applications, applicationid, commands string) string {
-	return applications + applicationid + commands
+func EndpointBulkOverwriteGlobalApplicationCommands(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + commands
 }
 
 // EndpointGetGuildApplicationCommandsbuilds a query for an HTTP request.
-func EndpointGetGuildApplicationCommands(applications, applicationid, guilds, guildid, commands string) string {
-	return applications + applicationid + guilds + guildid + commands
+func EndpointGetGuildApplicationCommands(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands
 }
 
 // EndpointCreateGuildApplicationCommandbuilds a query for an HTTP request.
-func EndpointCreateGuildApplicationCommand(applications, applicationid, guilds, guildid, commands string) string {
-	return applications + applicationid + guilds + guildid + commands
+func EndpointCreateGuildApplicationCommand(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands
 }
 
 // EndpointGetGuildApplicationCommandbuilds a query for an HTTP request.
-func EndpointGetGuildApplicationCommand(applications, applicationid, guilds, guildid, commands, commandid string) string {
-	return applications + applicationid + guilds + guildid + commands + commandid
+func EndpointGetGuildApplicationCommand(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid
 }
 
 // EndpointEditGuildApplicationCommandbuilds a query for an HTTP request.
-func EndpointEditGuildApplicationCommand(applications, applicationid, guilds, guildid, commands, commandid string) string {
-	return applications + applicationid + guilds + guildid + commands + commandid
+func EndpointEditGuildApplicationCommand(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid
 }
 
 // EndpointDeleteGuildApplicationCommandbuilds a query for an HTTP request.
-func EndpointDeleteGuildApplicationCommand(applications, applicationid, guilds, guildid, commands, commandid string) string {
-	return applications + applicationid + guilds + guildid + commands + commandid
+func EndpointDeleteGuildApplicationCommand(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid
 }
 
 // EndpointBulkOverwriteGuildApplicationCommandsbuilds a query for an HTTP request.
-func EndpointBulkOverwriteGuildApplicationCommands(applications, applicationid, guilds, guildid, commands string) string {
-	return applications + applicationid + guilds + guildid + commands
+func EndpointBulkOverwriteGuildApplicationCommands(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands
 }
 
 // EndpointGetGuildApplicationCommandPermissionsbuilds a query for an HTTP request.
-func EndpointGetGuildApplicationCommandPermissions(applications, applicationid, guilds, guildid, commands, permissions string) string {
-	return applications + applicationid + guilds + guildid + commands + permissions
+func EndpointGetGuildApplicationCommandPermissions(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + permissions
 }
 
 // EndpointGetApplicationCommandPermissionsbuilds a query for an HTTP request.
-func EndpointGetApplicationCommandPermissions(applications, applicationid, guilds, guildid, commands, commandid, permissions string) string {
-	return applications + applicationid + guilds + guildid + commands + commandid + permissions
+func EndpointGetApplicationCommandPermissions(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid + slash + permissions
 }
 
 // EndpointEditApplicationCommandPermissionsbuilds a query for an HTTP request.
-func EndpointEditApplicationCommandPermissions(applications, applicationid, guilds, guildid, commands, commandid, permissions string) string {
-	return applications + applicationid + guilds + guildid + commands + commandid + permissions
+func EndpointEditApplicationCommandPermissions(applicationid, guildid, commandid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + commandid + slash + permissions
 }
 
 // EndpointBatchEditApplicationCommandPermissionsbuilds a query for an HTTP request.
-func EndpointBatchEditApplicationCommandPermissions(applications, applicationid, guilds, guildid, commands, permissions string) string {
-	return applications + applicationid + guilds + guildid + commands + permissions
+func EndpointBatchEditApplicationCommandPermissions(applicationid, guildid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + guilds + slash + guildid + slash + commands + slash + permissions
 }
 
 // EndpointCreateInteractionResponsebuilds a query for an HTTP request.
-func EndpointCreateInteractionResponse(interactions, interactionid, interactiontoken, callback string) string {
-	return interactions + interactionid + interactiontoken + callback
+func EndpointCreateInteractionResponse(interactionid, interactiontoken string) string {
+	return EndpointBaseURL + interactions + slash + interactionid + slash + interactiontoken + slash + callback
 }
 
 // EndpointGetOriginalInteractionResponsebuilds a query for an HTTP request.
-func EndpointGetOriginalInteractionResponse(webhooks, applicationid, interactiontoken, messages, original string) string {
-	return webhooks + applicationid + interactiontoken + messages + original
+func EndpointGetOriginalInteractionResponse(applicationid, interactiontoken string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + original
 }
 
 // EndpointEditOriginalInteractionResponsebuilds a query for an HTTP request.
-func EndpointEditOriginalInteractionResponse(webhooks, applicationid, interactiontoken, messages, original string) string {
-	return webhooks + applicationid + interactiontoken + messages + original
+func EndpointEditOriginalInteractionResponse(applicationid, interactiontoken string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + original
 }
 
 // EndpointDeleteOriginalInteractionResponsebuilds a query for an HTTP request.
-func EndpointDeleteOriginalInteractionResponse(webhooks, applicationid, interactiontoken, messages, original string) string {
-	return webhooks + applicationid + interactiontoken + messages + original
+func EndpointDeleteOriginalInteractionResponse(applicationid, interactiontoken string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + original
 }
 
 // EndpointCreateFollowupMessagebuilds a query for an HTTP request.
-func EndpointCreateFollowupMessage(webhooks, applicationid, interactiontoken string) string {
-	return webhooks + applicationid + interactiontoken
+func EndpointCreateFollowupMessage(applicationid, interactiontoken string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken
 }
 
 // EndpointGetFollowupMessagebuilds a query for an HTTP request.
-func EndpointGetFollowupMessage(webhooks, applicationid, interactiontoken, messages, messageid string) string {
-	return webhooks + applicationid + interactiontoken + messages + messageid
+func EndpointGetFollowupMessage(applicationid, interactiontoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + messageid
 }
 
 // EndpointEditFollowupMessagebuilds a query for an HTTP request.
-func EndpointEditFollowupMessage(webhooks, applicationid, interactiontoken, messages, messageid string) string {
-	return webhooks + applicationid + interactiontoken + messages + messageid
+func EndpointEditFollowupMessage(applicationid, interactiontoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + messageid
 }
 
 // EndpointDeleteFollowupMessagebuilds a query for an HTTP request.
-func EndpointDeleteFollowupMessage(webhooks, applicationid, interactiontoken, messages, messageid string) string {
-	return webhooks + applicationid + interactiontoken + messages + messageid
+func EndpointDeleteFollowupMessage(applicationid, interactiontoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + messageid
 }
 
 // EndpointGetGuildAuditLogbuilds a query for an HTTP request.
-func EndpointGetGuildAuditLog(guilds, guildid, auditlogs string) string {
-	return guilds + guildid + auditlogs
+func EndpointGetGuildAuditLog(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + auditlogs
 }
 
 // EndpointGetChannelbuilds a query for an HTTP request.
-func EndpointGetChannel(channels, channelid string) string {
-	return channels + channelid
+func EndpointGetChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid
 }
 
 // EndpointModifyChannelbuilds a query for an HTTP request.
-func EndpointModifyChannel(channels, channelid string) string {
-	return channels + channelid
+func EndpointModifyChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid
 }
 
 // EndpointDeleteCloseChannelbuilds a query for an HTTP request.
-func EndpointDeleteCloseChannel(channels, channelid string) string {
-	return channels + channelid
+func EndpointDeleteCloseChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid
 }
 
 // EndpointGetChannelMessagesbuilds a query for an HTTP request.
-func EndpointGetChannelMessages(channels, channelid, messages string) string {
-	return channels + channelid + messages
+func EndpointGetChannelMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages
 }
 
 // EndpointGetChannelMessagebuilds a query for an HTTP request.
-func EndpointGetChannelMessage(channels, channelid, messages, messageid string) string {
-	return channels + channelid + messages + messageid
+func EndpointGetChannelMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
 }
 
 // EndpointCreateMessagebuilds a query for an HTTP request.
-func EndpointCreateMessage(channels, channelid, messages string) string {
-	return channels + channelid + messages
+func EndpointCreateMessage(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages
 }
 
 // EndpointCrosspostMessagebuilds a query for an HTTP request.
-func EndpointCrosspostMessage(channels, channelid, messages, messageid, crosspost string) string {
-	return channels + channelid + messages + messageid + crosspost
+func EndpointCrosspostMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + crosspost
 }
 
 // EndpointCreateReactionbuilds a query for an HTTP request.
-func EndpointCreateReaction(channels, channelid, messages, messageid, reactions, emoji, me string) string {
-	return channels + channelid + messages + messageid + reactions + emoji + me
+func EndpointCreateReaction(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
 }
 
 // EndpointDeleteOwnReactionbuilds a query for an HTTP request.
-func EndpointDeleteOwnReaction(channels, channelid, messages, messageid, reactions, emoji, me string) string {
-	return channels + channelid + messages + messageid + reactions + emoji + me
+func EndpointDeleteOwnReaction(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
 }
 
 // EndpointDeleteUserReactionbuilds a query for an HTTP request.
-func EndpointDeleteUserReaction(channels, channelid, messages, messageid, reactions, emoji, userid string) string {
-	return channels + channelid + messages + messageid + reactions + emoji + userid
+func EndpointDeleteUserReaction(channelid, messageid, emoji, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + userid
 }
 
 // EndpointGetReactionsbuilds a query for an HTTP request.
-func EndpointGetReactions(channels, channelid, messages, messageid, reactions, emoji string) string {
-	return channels + channelid + messages + messageid + reactions + emoji
+func EndpointGetReactions(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
 }
 
 // EndpointDeleteAllReactionsbuilds a query for an HTTP request.
-func EndpointDeleteAllReactions(channels, channelid, messages, messageid, reactions string) string {
-	return channels + channelid + messages + messageid + reactions
+func EndpointDeleteAllReactions(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions
 }
 
 // EndpointDeleteAllReactionsforEmojibuilds a query for an HTTP request.
-func EndpointDeleteAllReactionsforEmoji(channels, channelid, messages, messageid, reactions, emoji string) string {
-	return channels + channelid + messages + messageid + reactions + emoji
+func EndpointDeleteAllReactionsforEmoji(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
 }
 
 // EndpointEditMessagebuilds a query for an HTTP request.
-func EndpointEditMessage(channels, channelid, messages, messageid string) string {
-	return channels + channelid + messages + messageid
+func EndpointEditMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
 }
 
 // EndpointDeleteMessagebuilds a query for an HTTP request.
-func EndpointDeleteMessage(channels, channelid, messages, messageid string) string {
-	return channels + channelid + messages + messageid
+func EndpointDeleteMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
 }
 
 // EndpointBulkDeleteMessagesbuilds a query for an HTTP request.
-func EndpointBulkDeleteMessages(channels, channelid, messages, bulkdelete string) string {
-	return channels + channelid + messages + bulkdelete
+func EndpointBulkDeleteMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + bulkdelete
 }
 
 // EndpointEditChannelPermissionsbuilds a query for an HTTP request.
-func EndpointEditChannelPermissions(channels, channelid, permissions, overwriteid string) string {
-	return channels + channelid + permissions + overwriteid
+func EndpointEditChannelPermissions(channelid, overwriteid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + permissions + slash + overwriteid
 }
 
 // EndpointGetChannelInvitesbuilds a query for an HTTP request.
-func EndpointGetChannelInvites(channels, channelid, invites string) string {
-	return channels + channelid + invites
+func EndpointGetChannelInvites(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + invites
 }
 
 // EndpointCreateChannelInvitebuilds a query for an HTTP request.
-func EndpointCreateChannelInvite(channels, channelid, invites string) string {
-	return channels + channelid + invites
+func EndpointCreateChannelInvite(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + invites
 }
 
 // EndpointDeleteChannelPermissionbuilds a query for an HTTP request.
-func EndpointDeleteChannelPermission(channels, channelid, permissions, overwriteid string) string {
-	return channels + channelid + permissions + overwriteid
+func EndpointDeleteChannelPermission(channelid, overwriteid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + permissions + slash + overwriteid
 }
 
 // EndpointFollowNewsChannelbuilds a query for an HTTP request.
-func EndpointFollowNewsChannel(channels, channelid, followers string) string {
-	return channels + channelid + followers
+func EndpointFollowNewsChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + followers
 }
 
 // EndpointTriggerTypingIndicatorbuilds a query for an HTTP request.
-func EndpointTriggerTypingIndicator(channels, channelid, typing string) string {
-	return channels + channelid + typing
+func EndpointTriggerTypingIndicator(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + typing
 }
 
 // EndpointGetPinnedMessagesbuilds a query for an HTTP request.
-func EndpointGetPinnedMessages(channels, channelid, pins string) string {
-	return channels + channelid + pins
+func EndpointGetPinnedMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + pins
 }
 
 // EndpointPinMessagebuilds a query for an HTTP request.
-func EndpointPinMessage(channels, channelid, pins, messageid string) string {
-	return channels + channelid + pins + messageid
+func EndpointPinMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + pins + slash + messageid
 }
 
 // EndpointUnpinMessagebuilds a query for an HTTP request.
-func EndpointUnpinMessage(channels, channelid, pins, messageid string) string {
-	return channels + channelid + pins + messageid
+func EndpointUnpinMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + pins + slash + messageid
 }
 
 // EndpointGroupDMAddRecipientbuilds a query for an HTTP request.
-func EndpointGroupDMAddRecipient(channels, channelid, recipients, userid string) string {
-	return channels + channelid + recipients + userid
+func EndpointGroupDMAddRecipient(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + recipients + slash + userid
 }
 
 // EndpointGroupDMRemoveRecipientbuilds a query for an HTTP request.
-func EndpointGroupDMRemoveRecipient(channels, channelid, recipients, userid string) string {
-	return channels + channelid + recipients + userid
+func EndpointGroupDMRemoveRecipient(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + recipients + slash + userid
 }
 
 // EndpointStartThreadfromMessagebuilds a query for an HTTP request.
-func EndpointStartThreadfromMessage(channels, channelid, messages, messageid, threads string) string {
-	return channels + channelid + messages + messageid + threads
+func EndpointStartThreadfromMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + threads
 }
 
 // EndpointStartThreadwithoutMessagebuilds a query for an HTTP request.
-func EndpointStartThreadwithoutMessage(channels, channelid, threads string) string {
-	return channels + channelid + threads
+func EndpointStartThreadwithoutMessage(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads
 }
 
 // EndpointStartThreadinForumChannelbuilds a query for an HTTP request.
-func EndpointStartThreadinForumChannel(channels, channelid, threads string) string {
-	return channels + channelid + threads
+func EndpointStartThreadinForumChannel(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads
 }
 
 // EndpointJoinThreadbuilds a query for an HTTP request.
-func EndpointJoinThread(channels, channelid, threadmembers, me string) string {
-	return channels + channelid + threadmembers + me
+func EndpointJoinThread(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + me
 }
 
 // EndpointAddThreadMemberbuilds a query for an HTTP request.
-func EndpointAddThreadMember(channels, channelid, threadmembers, userid string) string {
-	return channels + channelid + threadmembers + userid
+func EndpointAddThreadMember(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + userid
 }
 
 // EndpointLeaveThreadbuilds a query for an HTTP request.
-func EndpointLeaveThread(channels, channelid, threadmembers, me string) string {
-	return channels + channelid + threadmembers + me
+func EndpointLeaveThread(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + me
 }
 
 // EndpointRemoveThreadMemberbuilds a query for an HTTP request.
-func EndpointRemoveThreadMember(channels, channelid, threadmembers, userid string) string {
-	return channels + channelid + threadmembers + userid
+func EndpointRemoveThreadMember(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + userid
 }
 
 // EndpointGetThreadMemberbuilds a query for an HTTP request.
-func EndpointGetThreadMember(channels, channelid, threadmembers, userid string) string {
-	return channels + channelid + threadmembers + userid
+func EndpointGetThreadMember(channelid, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers + slash + userid
 }
 
 // EndpointListThreadMembersbuilds a query for an HTTP request.
-func EndpointListThreadMembers(channels, channelid, threadmembers string) string {
-	return channels + channelid + threadmembers
+func EndpointListThreadMembers(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers
 }
 
 // EndpointListActiveThreadsbuilds a query for an HTTP request.
-func EndpointListActiveThreads(channels, channelid, threads, active string) string {
-	return channels + channelid + threads + active
+func EndpointListActiveThreads(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads + slash + active
 }
 
 // EndpointListPublicArchivedThreadsbuilds a query for an HTTP request.
-func EndpointListPublicArchivedThreads(channels, channelid, threads, archived, public string) string {
-	return channels + channelid + threads + archived + public
+func EndpointListPublicArchivedThreads(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads + slash + archived + slash + public
 }
 
 // EndpointListPrivateArchivedThreadsbuilds a query for an HTTP request.
-func EndpointListPrivateArchivedThreads(channels, channelid, threads, archived, private string) string {
-	return channels + channelid + threads + archived + private
+func EndpointListPrivateArchivedThreads(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + threads + slash + archived + slash + private
 }
 
 // EndpointListJoinedPrivateArchivedThreadsbuilds a query for an HTTP request.
-func EndpointListJoinedPrivateArchivedThreads(channels, channelid, users, me, threads, archived, private string) string {
-	return channels + channelid + users + me + threads + archived + private
+func EndpointListJoinedPrivateArchivedThreads(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + users + slash + me + slash + threads + slash + archived + slash + private
 }
 
 // EndpointListGuildEmojisbuilds a query for an HTTP request.
-func EndpointListGuildEmojis(guilds, guildid, emojis string) string {
-	return guilds + guildid + emojis
+func EndpointListGuildEmojis(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis
 }
 
 // EndpointGetGuildEmojibuilds a query for an HTTP request.
-func EndpointGetGuildEmoji(guilds, guildid, emojis, emojiid string) string {
-	return guilds + guildid + emojis + emojiid
+func EndpointGetGuildEmoji(guildid, emojiid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis + slash + emojiid
 }
 
 // EndpointCreateGuildEmojibuilds a query for an HTTP request.
-func EndpointCreateGuildEmoji(guilds, guildid, emojis string) string {
-	return guilds + guildid + emojis
+func EndpointCreateGuildEmoji(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis
 }
 
 // EndpointModifyGuildEmojibuilds a query for an HTTP request.
-func EndpointModifyGuildEmoji(guilds, guildid, emojis, emojiid string) string {
-	return guilds + guildid + emojis + emojiid
+func EndpointModifyGuildEmoji(guildid, emojiid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis + slash + emojiid
 }
 
 // EndpointDeleteGuildEmojibuilds a query for an HTTP request.
-func EndpointDeleteGuildEmoji(guilds, guildid, emojis, emojiid string) string {
-	return guilds + guildid + emojis + emojiid
+func EndpointDeleteGuildEmoji(guildid, emojiid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + emojis + slash + emojiid
 }
 
 // EndpointListScheduledEventsforGuildbuilds a query for an HTTP request.
-func EndpointListScheduledEventsforGuild(guilds, guildid, scheduledevents string) string {
-	return guilds + guildid + scheduledevents
+func EndpointListScheduledEventsforGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
 }
 
 // EndpointCreateGuildScheduledEventbuilds a query for an HTTP request.
-func EndpointCreateGuildScheduledEvent(guilds, guildid, scheduledevents string) string {
-	return guilds + guildid + scheduledevents
+func EndpointCreateGuildScheduledEvent(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
 }
 
 // EndpointGetGuildScheduledEventbuilds a query for an HTTP request.
-func EndpointGetGuildScheduledEvent(guilds, guildid, scheduledevents, guildscheduledeventid string) string {
-	return guilds + guildid + scheduledevents + guildscheduledeventid
+func EndpointGetGuildScheduledEvent(guildid, guildscheduledeventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid
 }
 
 // EndpointModifyGuildScheduledEventbuilds a query for an HTTP request.
-func EndpointModifyGuildScheduledEvent(guilds, guildid, scheduledevents, guildscheduledeventid string) string {
-	return guilds + guildid + scheduledevents + guildscheduledeventid
+func EndpointModifyGuildScheduledEvent(guildid, guildscheduledeventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid
 }
 
 // EndpointDeleteGuildScheduledEventbuilds a query for an HTTP request.
-func EndpointDeleteGuildScheduledEvent(guilds, guildid, scheduledevents, guildscheduledeventid string) string {
-	return guilds + guildid + scheduledevents + guildscheduledeventid
+func EndpointDeleteGuildScheduledEvent(guildid, guildscheduledeventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid
 }
 
 // EndpointGetGuildScheduledEventUsersbuilds a query for an HTTP request.
-func EndpointGetGuildScheduledEventUsers(guilds, guildid, scheduledevents, guildscheduledeventid, users string) string {
-	return guilds + guildid + scheduledevents + guildscheduledeventid + users
+func EndpointGetGuildScheduledEventUsers(guildid, guildscheduledeventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid + slash + users
 }
 
 // EndpointGetGuildTemplatebuilds a query for an HTTP request.
-func EndpointGetGuildTemplate(guilds, templates, templatecode string) string {
-	return guilds + templates + templatecode
+func EndpointGetGuildTemplate(templatecode string) string {
+	return EndpointBaseURL + guilds + slash + templates + slash + templatecode
 }
 
 // EndpointCreateGuildfromGuildTemplatebuilds a query for an HTTP request.
-func EndpointCreateGuildfromGuildTemplate(guilds, templates, templatecode string) string {
-	return guilds + templates + templatecode
+func EndpointCreateGuildfromGuildTemplate(templatecode string) string {
+	return EndpointBaseURL + guilds + slash + templates + slash + templatecode
 }
 
 // EndpointGetGuildTemplatesbuilds a query for an HTTP request.
-func EndpointGetGuildTemplates(guilds, guildid, templates string) string {
-	return guilds + guildid + templates
+func EndpointGetGuildTemplates(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates
 }
 
 // EndpointCreateGuildTemplatebuilds a query for an HTTP request.
-func EndpointCreateGuildTemplate(guilds, guildid, templates string) string {
-	return guilds + guildid + templates
+func EndpointCreateGuildTemplate(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates
 }
 
 // EndpointSyncGuildTemplatebuilds a query for an HTTP request.
-func EndpointSyncGuildTemplate(guilds, guildid, templates, templatecode string) string {
-	return guilds + guildid + templates + templatecode
+func EndpointSyncGuildTemplate(guildid, templatecode string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
 }
 
 // EndpointModifyGuildTemplatebuilds a query for an HTTP request.
-func EndpointModifyGuildTemplate(guilds, guildid, templates, templatecode string) string {
-	return guilds + guildid + templates + templatecode
+func EndpointModifyGuildTemplate(guildid, templatecode string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
 }
 
 // EndpointDeleteGuildTemplatebuilds a query for an HTTP request.
-func EndpointDeleteGuildTemplate(guilds, guildid, templates, templatecode string) string {
-	return guilds + guildid + templates + templatecode
+func EndpointDeleteGuildTemplate(guildid, templatecode string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
 }
 
 // EndpointCreateGuildbuilds a query for an HTTP request.
-func EndpointCreateGuild(guilds string) string {
-	return guilds
+func EndpointCreateGuild() string {
+	return EndpointBaseURL + guilds
 }
 
 // EndpointGetGuildbuilds a query for an HTTP request.
-func EndpointGetGuild(guilds, guildid string) string {
-	return guilds + guildid
+func EndpointGetGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid
 }
 
 // EndpointGetGuildPreviewbuilds a query for an HTTP request.
-func EndpointGetGuildPreview(guilds, guildid, preview string) string {
-	return guilds + guildid + preview
+func EndpointGetGuildPreview(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + preview
 }
 
 // EndpointModifyGuildbuilds a query for an HTTP request.
-func EndpointModifyGuild(guilds, guildid string) string {
-	return guilds + guildid
+func EndpointModifyGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid
 }
 
 // EndpointDeleteGuildbuilds a query for an HTTP request.
-func EndpointDeleteGuild(guilds, guildid string) string {
-	return guilds + guildid
+func EndpointDeleteGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid
 }
 
 // EndpointGetGuildChannelsbuilds a query for an HTTP request.
-func EndpointGetGuildChannels(guilds, guildid, channels string) string {
-	return guilds + guildid + channels
+func EndpointGetGuildChannels(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + channels
 }
 
 // EndpointCreateGuildChannelbuilds a query for an HTTP request.
-func EndpointCreateGuildChannel(guilds, guildid, channels string) string {
-	return guilds + guildid + channels
+func EndpointCreateGuildChannel(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + channels
 }
 
 // EndpointModifyGuildChannelPositionsbuilds a query for an HTTP request.
-func EndpointModifyGuildChannelPositions(guilds, guildid, channels string) string {
-	return guilds + guildid + channels
+func EndpointModifyGuildChannelPositions(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + channels
 }
 
 // EndpointListActiveGuildThreadsbuilds a query for an HTTP request.
-func EndpointListActiveGuildThreads(guilds, guildid, threads, active string) string {
-	return guilds + guildid + threads + active
+func EndpointListActiveGuildThreads(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + threads + slash + active
 }
 
 // EndpointGetGuildMemberbuilds a query for an HTTP request.
-func EndpointGetGuildMember(guilds, guildid, members, userid string) string {
-	return guilds + guildid + members + userid
+func EndpointGetGuildMember(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid
 }
 
 // EndpointListGuildMembersbuilds a query for an HTTP request.
-func EndpointListGuildMembers(guilds, guildid, members string) string {
-	return guilds + guildid + members
+func EndpointListGuildMembers(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members
 }
 
 // EndpointSearchGuildMembersbuilds a query for an HTTP request.
-func EndpointSearchGuildMembers(guilds, guildid, members, search string) string {
-	return guilds + guildid + members + search
+func EndpointSearchGuildMembers(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + search
 }
 
 // EndpointAddGuildMemberbuilds a query for an HTTP request.
-func EndpointAddGuildMember(guilds, guildid, members, userid string) string {
-	return guilds + guildid + members + userid
+func EndpointAddGuildMember(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid
 }
 
 // EndpointModifyGuildMemberbuilds a query for an HTTP request.
-func EndpointModifyGuildMember(guilds, guildid, members, userid string) string {
-	return guilds + guildid + members + userid
+func EndpointModifyGuildMember(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid
 }
 
 // EndpointModifyCurrentMemberbuilds a query for an HTTP request.
-func EndpointModifyCurrentMember(guilds, guildid, members, me string) string {
-	return guilds + guildid + members + me
+func EndpointModifyCurrentMember(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + me
 }
 
 // EndpointModifyCurrentUserNickbuilds a query for an HTTP request.
-func EndpointModifyCurrentUserNick(guilds, guildid, members, me, nick string) string {
-	return guilds + guildid + members + me + nick
+func EndpointModifyCurrentUserNick(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + me + slash + nick
 }
 
 // EndpointAddGuildMemberRolebuilds a query for an HTTP request.
-func EndpointAddGuildMemberRole(guilds, guildid, members, userid, roles, roleid string) string {
-	return guilds + guildid + members + userid + roles + roleid
+func EndpointAddGuildMemberRole(guildid, userid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid + slash + roles + slash + roleid
 }
 
 // EndpointRemoveGuildMemberRolebuilds a query for an HTTP request.
-func EndpointRemoveGuildMemberRole(guilds, guildid, members, userid, roles, roleid string) string {
-	return guilds + guildid + members + userid + roles + roleid
+func EndpointRemoveGuildMemberRole(guildid, userid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid + slash + roles + slash + roleid
 }
 
 // EndpointRemoveGuildMemberbuilds a query for an HTTP request.
-func EndpointRemoveGuildMember(guilds, guildid, members, userid string) string {
-	return guilds + guildid + members + userid
+func EndpointRemoveGuildMember(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + members + slash + userid
 }
 
 // EndpointGetGuildBansbuilds a query for an HTTP request.
-func EndpointGetGuildBans(guilds, guildid, bans string) string {
-	return guilds + guildid + bans
+func EndpointGetGuildBans(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + bans
 }
 
 // EndpointGetGuildBanbuilds a query for an HTTP request.
-func EndpointGetGuildBan(guilds, guildid, bans, userid string) string {
-	return guilds + guildid + bans + userid
+func EndpointGetGuildBan(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + bans + slash + userid
 }
 
 // EndpointCreateGuildBanbuilds a query for an HTTP request.
-func EndpointCreateGuildBan(guilds, guildid, bans, userid string) string {
-	return guilds + guildid + bans + userid
+func EndpointCreateGuildBan(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + bans + slash + userid
 }
 
 // EndpointRemoveGuildBanbuilds a query for an HTTP request.
-func EndpointRemoveGuildBan(guilds, guildid, bans, userid string) string {
-	return guilds + guildid + bans + userid
+func EndpointRemoveGuildBan(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + bans + slash + userid
 }
 
 // EndpointGetGuildRolesbuilds a query for an HTTP request.
-func EndpointGetGuildRoles(guilds, guildid, roles string) string {
-	return guilds + guildid + roles
+func EndpointGetGuildRoles(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles
 }
 
 // EndpointCreateGuildRolebuilds a query for an HTTP request.
-func EndpointCreateGuildRole(guilds, guildid, roles string) string {
-	return guilds + guildid + roles
+func EndpointCreateGuildRole(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles
 }
 
 // EndpointModifyGuildRolePositionsbuilds a query for an HTTP request.
-func EndpointModifyGuildRolePositions(guilds, guildid, roles string) string {
-	return guilds + guildid + roles
+func EndpointModifyGuildRolePositions(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles
 }
 
 // EndpointModifyGuildRolebuilds a query for an HTTP request.
-func EndpointModifyGuildRole(guilds, guildid, roles, roleid string) string {
-	return guilds + guildid + roles + roleid
+func EndpointModifyGuildRole(guildid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles + slash + roleid
 }
 
 // EndpointDeleteGuildRolebuilds a query for an HTTP request.
-func EndpointDeleteGuildRole(guilds, guildid, roles, roleid string) string {
-	return guilds + guildid + roles + roleid
+func EndpointDeleteGuildRole(guildid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles + slash + roleid
 }
 
 // EndpointGetGuildPruneCountbuilds a query for an HTTP request.
-func EndpointGetGuildPruneCount(guilds, guildid, prune string) string {
-	return guilds + guildid + prune
+func EndpointGetGuildPruneCount(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + prune
 }
 
 // EndpointBeginGuildPrunebuilds a query for an HTTP request.
-func EndpointBeginGuildPrune(guilds, guildid, prune string) string {
-	return guilds + guildid + prune
+func EndpointBeginGuildPrune(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + prune
 }
 
 // EndpointGetGuildVoiceRegionsbuilds a query for an HTTP request.
-func EndpointGetGuildVoiceRegions(guilds, guildid, regions string) string {
-	return guilds + guildid + regions
+func EndpointGetGuildVoiceRegions(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + regions
 }
 
 // EndpointGetGuildInvitesbuilds a query for an HTTP request.
-func EndpointGetGuildInvites(guilds, guildid, invites string) string {
-	return guilds + guildid + invites
+func EndpointGetGuildInvites(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + invites
 }
 
 // EndpointGetGuildIntegrationsbuilds a query for an HTTP request.
-func EndpointGetGuildIntegrations(guilds, guildid, integrations string) string {
-	return guilds + guildid + integrations
+func EndpointGetGuildIntegrations(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + integrations
 }
 
 // EndpointDeleteGuildIntegrationbuilds a query for an HTTP request.
-func EndpointDeleteGuildIntegration(guilds, guildid, integrations, integrationid string) string {
-	return guilds + guildid + integrations + integrationid
+func EndpointDeleteGuildIntegration(guildid, integrationid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + integrations + slash + integrationid
 }
 
 // EndpointGetGuildWidgetSettingsbuilds a query for an HTTP request.
-func EndpointGetGuildWidgetSettings(guilds, guildid, widget string) string {
-	return guilds + guildid + widget
+func EndpointGetGuildWidgetSettings(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + widget
 }
 
 // EndpointModifyGuildWidgetbuilds a query for an HTTP request.
-func EndpointModifyGuildWidget(guilds, guildid, widget string) string {
-	return guilds + guildid + widget
+func EndpointModifyGuildWidget(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + widget
 }
 
 // EndpointGetGuildWidgetbuilds a query for an HTTP request.
-func EndpointGetGuildWidget(guilds, guildid, widgetjson string) string {
-	return guilds + guildid + widgetjson
+func EndpointGetGuildWidget(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + widgetjson
 }
 
 // EndpointGetGuildVanityURLbuilds a query for an HTTP request.
-func EndpointGetGuildVanityURL(guilds, guildid, vanityurl string) string {
-	return guilds + guildid + vanityurl
+func EndpointGetGuildVanityURL(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + vanityurl
 }
 
 // EndpointGetGuildWidgetImagebuilds a query for an HTTP request.
-func EndpointGetGuildWidgetImage(guilds, guildid, widgetpng string) string {
-	return guilds + guildid + widgetpng
+func EndpointGetGuildWidgetImage(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + widgetpng
 }
 
 // EndpointGetGuildWelcomeScreenbuilds a query for an HTTP request.
-func EndpointGetGuildWelcomeScreen(guilds, guildid, welcomescreen string) string {
-	return guilds + guildid + welcomescreen
+func EndpointGetGuildWelcomeScreen(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + welcomescreen
 }
 
 // EndpointModifyGuildWelcomeScreenbuilds a query for an HTTP request.
-func EndpointModifyGuildWelcomeScreen(guilds, guildid, welcomescreen string) string {
-	return guilds + guildid + welcomescreen
+func EndpointModifyGuildWelcomeScreen(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + welcomescreen
 }
 
 // EndpointModifyCurrentUserVoiceStatebuilds a query for an HTTP request.
-func EndpointModifyCurrentUserVoiceState(guilds, guildid, voicestates, me string) string {
-	return guilds + guildid + voicestates + me
+func EndpointModifyCurrentUserVoiceState(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + me
 }
 
 // EndpointModifyUserVoiceStatebuilds a query for an HTTP request.
-func EndpointModifyUserVoiceState(guilds, guildid, voicestates, userid string) string {
-	return guilds + guildid + voicestates + userid
+func EndpointModifyUserVoiceState(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + userid
 }
 
 // EndpointGetInvitebuilds a query for an HTTP request.
-func EndpointGetInvite(invites, invitecode string) string {
-	return invites + invitecode
+func EndpointGetInvite(invitecode string) string {
+	return EndpointBaseURL + invites + slash + invitecode
 }
 
 // EndpointDeleteInvitebuilds a query for an HTTP request.
-func EndpointDeleteInvite(invites, invitecode string) string {
-	return invites + invitecode
+func EndpointDeleteInvite(invitecode string) string {
+	return EndpointBaseURL + invites + slash + invitecode
 }
 
 // EndpointCreateStageInstancebuilds a query for an HTTP request.
-func EndpointCreateStageInstance(stageinstances string) string {
-	return stageinstances
+func EndpointCreateStageInstance() string {
+	return EndpointBaseURL + stageinstances
 }
 
 // EndpointGetStageInstancebuilds a query for an HTTP request.
-func EndpointGetStageInstance(stageinstances, channelid string) string {
-	return stageinstances + channelid
+func EndpointGetStageInstance(channelid string) string {
+	return EndpointBaseURL + stageinstances + slash + channelid
 }
 
 // EndpointModifyStageInstancebuilds a query for an HTTP request.
-func EndpointModifyStageInstance(stageinstances, channelid string) string {
-	return stageinstances + channelid
+func EndpointModifyStageInstance(channelid string) string {
+	return EndpointBaseURL + stageinstances + slash + channelid
 }
 
 // EndpointDeleteStageInstancebuilds a query for an HTTP request.
-func EndpointDeleteStageInstance(stageinstances, channelid string) string {
-	return stageinstances + channelid
+func EndpointDeleteStageInstance(channelid string) string {
+	return EndpointBaseURL + stageinstances + slash + channelid
 }
 
 // EndpointGetStickerbuilds a query for an HTTP request.
-func EndpointGetSticker(stickers, stickerid string) string {
-	return stickers + stickerid
+func EndpointGetSticker(stickerid string) string {
+	return EndpointBaseURL + stickers + slash + stickerid
 }
 
 // EndpointListNitroStickerPacksbuilds a query for an HTTP request.
-func EndpointListNitroStickerPacks(stickerpacks string) string {
-	return stickerpacks
+func EndpointListNitroStickerPacks() string {
+	return EndpointBaseURL + stickerpacks
 }
 
 // EndpointListGuildStickersbuilds a query for an HTTP request.
-func EndpointListGuildStickers(guilds, guildid, stickers string) string {
-	return guilds + guildid + stickers
+func EndpointListGuildStickers(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers
 }
 
 // EndpointGetGuildStickerbuilds a query for an HTTP request.
-func EndpointGetGuildSticker(guilds, guildid, stickers, stickerid string) string {
-	return guilds + guildid + stickers + stickerid
+func EndpointGetGuildSticker(guildid, stickerid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers + slash + stickerid
 }
 
 // EndpointCreateGuildStickerbuilds a query for an HTTP request.
-func EndpointCreateGuildSticker(guilds, guildid, stickers string) string {
-	return guilds + guildid + stickers
+func EndpointCreateGuildSticker(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers
 }
 
 // EndpointModifyGuildStickerbuilds a query for an HTTP request.
-func EndpointModifyGuildSticker(guilds, guildid, stickers, stickerid string) string {
-	return guilds + guildid + stickers + stickerid
+func EndpointModifyGuildSticker(guildid, stickerid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers + slash + stickerid
 }
 
 // EndpointDeleteGuildStickerbuilds a query for an HTTP request.
-func EndpointDeleteGuildSticker(guilds, guildid, stickers, stickerid string) string {
-	return guilds + guildid + stickers + stickerid
+func EndpointDeleteGuildSticker(guildid, stickerid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + stickers + slash + stickerid
 }
 
 // EndpointGetCurrentUserbuilds a query for an HTTP request.
-func EndpointGetCurrentUser(users, me string) string {
-	return users + me
+func EndpointGetCurrentUser() string {
+	return EndpointBaseURL + users + slash + me
 }
 
 // EndpointGetUserbuilds a query for an HTTP request.
-func EndpointGetUser(users, userid string) string {
-	return users + userid
+func EndpointGetUser(userid string) string {
+	return EndpointBaseURL + users + slash + userid
 }
 
 // EndpointModifyCurrentUserbuilds a query for an HTTP request.
-func EndpointModifyCurrentUser(users, me string) string {
-	return users + me
+func EndpointModifyCurrentUser() string {
+	return EndpointBaseURL + users + slash + me
 }
 
 // EndpointGetCurrentUserGuildsbuilds a query for an HTTP request.
-func EndpointGetCurrentUserGuilds(users, me, guilds string) string {
-	return users + me + guilds
+func EndpointGetCurrentUserGuilds() string {
+	return EndpointBaseURL + users + slash + me + slash + guilds
 }
 
 // EndpointGetCurrentUserGuildMemberbuilds a query for an HTTP request.
-func EndpointGetCurrentUserGuildMember(users, me, guilds, guildid, member string) string {
-	return users + me + guilds + guildid + member
+func EndpointGetCurrentUserGuildMember(guildid string) string {
+	return EndpointBaseURL + users + slash + me + slash + guilds + slash + guildid + slash + member
 }
 
 // EndpointLeaveGuildbuilds a query for an HTTP request.
-func EndpointLeaveGuild(users, me, guilds, guildid string) string {
-	return users + me + guilds + guildid
+func EndpointLeaveGuild(guildid string) string {
+	return EndpointBaseURL + users + slash + me + slash + guilds + slash + guildid
 }
 
 // EndpointCreateDMbuilds a query for an HTTP request.
-func EndpointCreateDM(users, me, channels string) string {
-	return users + me + channels
+func EndpointCreateDM() string {
+	return EndpointBaseURL + users + slash + me + slash + channels
 }
 
 // EndpointCreateGroupDMbuilds a query for an HTTP request.
-func EndpointCreateGroupDM(users, me, channels string) string {
-	return users + me + channels
+func EndpointCreateGroupDM() string {
+	return EndpointBaseURL + users + slash + me + slash + channels
 }
 
 // EndpointGetUserConnectionsbuilds a query for an HTTP request.
-func EndpointGetUserConnections(users, me, connections string) string {
-	return users + me + connections
+func EndpointGetUserConnections() string {
+	return EndpointBaseURL + users + slash + me + slash + connections
 }
 
 // EndpointListVoiceRegionsbuilds a query for an HTTP request.
-func EndpointListVoiceRegions(voice, regions string) string {
-	return voice + regions
+func EndpointListVoiceRegions() string {
+	return EndpointBaseURL + voice + slash + regions
 }
 
 // EndpointCreateWebhookbuilds a query for an HTTP request.
-func EndpointCreateWebhook(channels, channelid, webhooks string) string {
-	return channels + channelid + webhooks
+func EndpointCreateWebhook(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + webhooks
 }
 
 // EndpointGetChannelWebhooksbuilds a query for an HTTP request.
-func EndpointGetChannelWebhooks(channels, channelid, webhooks string) string {
-	return channels + channelid + webhooks
+func EndpointGetChannelWebhooks(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + webhooks
 }
 
 // EndpointGetGuildWebhooksbuilds a query for an HTTP request.
-func EndpointGetGuildWebhooks(guilds, guildid, webhooks string) string {
-	return guilds + guildid + webhooks
+func EndpointGetGuildWebhooks(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + webhooks
 }
 
 // EndpointGetWebhookbuilds a query for an HTTP request.
-func EndpointGetWebhook(webhooks, webhookid string) string {
-	return webhooks + webhookid
+func EndpointGetWebhook(webhookid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid
 }
 
 // EndpointGetWebhookwithTokenbuilds a query for an HTTP request.
-func EndpointGetWebhookwithToken(webhooks, webhookid, webhooktoken string) string {
-	return webhooks + webhookid + webhooktoken
+func EndpointGetWebhookwithToken(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken
 }
 
 // EndpointModifyWebhookbuilds a query for an HTTP request.
-func EndpointModifyWebhook(webhooks, webhookid string) string {
-	return webhooks + webhookid
+func EndpointModifyWebhook(webhookid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid
 }
 
 // EndpointModifyWebhookwithTokenbuilds a query for an HTTP request.
-func EndpointModifyWebhookwithToken(webhooks, webhookid, webhooktoken string) string {
-	return webhooks + webhookid + webhooktoken
+func EndpointModifyWebhookwithToken(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken
 }
 
 // EndpointDeleteWebhookbuilds a query for an HTTP request.
-func EndpointDeleteWebhook(webhooks, webhookid string) string {
-	return webhooks + webhookid
+func EndpointDeleteWebhook(webhookid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid
 }
 
 // EndpointDeleteWebhookwithTokenbuilds a query for an HTTP request.
-func EndpointDeleteWebhookwithToken(webhooks, webhookid, webhooktoken string) string {
-	return webhooks + webhookid + webhooktoken
+func EndpointDeleteWebhookwithToken(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken
 }
 
 // EndpointExecuteWebhookbuilds a query for an HTTP request.
-func EndpointExecuteWebhook(webhooks, webhookid, webhooktoken string) string {
-	return webhooks + webhookid + webhooktoken
+func EndpointExecuteWebhook(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken
 }
 
 // EndpointExecuteSlackCompatibleWebhookbuilds a query for an HTTP request.
-func EndpointExecuteSlackCompatibleWebhook(webhooks, webhookid, webhooktoken, slack string) string {
-	return webhooks + webhookid + webhooktoken + slack
+func EndpointExecuteSlackCompatibleWebhook(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + slack
 }
 
 // EndpointExecuteGitHubCompatibleWebhookbuilds a query for an HTTP request.
-func EndpointExecuteGitHubCompatibleWebhook(webhooks, webhookid, webhooktoken, github string) string {
-	return webhooks + webhookid + webhooktoken + github
+func EndpointExecuteGitHubCompatibleWebhook(webhookid, webhooktoken string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + github
 }
 
 // EndpointGetWebhookMessagebuilds a query for an HTTP request.
-func EndpointGetWebhookMessage(webhooks, webhookid, webhooktoken, messages, messageid string) string {
-	return webhooks + webhookid + webhooktoken + messages + messageid
+func EndpointGetWebhookMessage(webhookid, webhooktoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + messages + slash + messageid
 }
 
 // EndpointEditWebhookMessagebuilds a query for an HTTP request.
-func EndpointEditWebhookMessage(webhooks, webhookid, webhooktoken, messages, messageid string) string {
-	return webhooks + webhookid + webhooktoken + messages + messageid
+func EndpointEditWebhookMessage(webhookid, webhooktoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + messages + slash + messageid
 }
 
 // EndpointDeleteWebhookMessagebuilds a query for an HTTP request.
-func EndpointDeleteWebhookMessage(webhooks, webhookid, webhooktoken, messages, messageid string) string {
-	return webhooks + webhookid + webhooktoken + messages + messageid
+func EndpointDeleteWebhookMessage(webhookid, webhooktoken, messageid string) string {
+	return EndpointBaseURL + webhooks + slash + webhookid + slash + webhooktoken + slash + messages + slash + messageid
 }
 
 // EndpointGetGatewaybuilds a query for an HTTP request.
-func EndpointGetGateway(gateway string) string {
-	return gateway
+func EndpointGetGateway() string {
+	return EndpointBaseURL + gateway
 }
 
 // EndpointGetGatewayBotbuilds a query for an HTTP request.
-func EndpointGetGatewayBot(gateway, bot string) string {
-	return gateway + bot
+func EndpointGetGatewayBot() string {
+	return EndpointBaseURL + gateway + slash + bot
 }
 
 // EndpointGetCurrentBotApplicationInformationbuilds a query for an HTTP request.
-func EndpointGetCurrentBotApplicationInformation(oauth, applications, me string) string {
-	return oauth + applications + me
+func EndpointGetCurrentBotApplicationInformation() string {
+	return EndpointBaseURL + oauth + slash + applications + slash + me
 }
 
 // EndpointGetCurrentAuthorizationInformationbuilds a query for an HTTP request.
-func EndpointGetCurrentAuthorizationInformation(oauth, me string) string {
-	return oauth + me
+func EndpointGetCurrentAuthorizationInformation() string {
+	return EndpointBaseURL + oauth + slash + me
 }
