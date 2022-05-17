@@ -1,6 +1,6 @@
 # Disgo
 
-**This repository is currently a PROOF OF CONCEPT. For more information, read the [roadmap](/contribution/CONTRIBUTING.md#roadmap).** 
+**This repository is currently a PROOF OF CONCEPT. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).** 
 
 Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching and shard management. Use the only Go module to provide a 100% one-to-one implementation of the Discord API.
 
@@ -31,23 +31,23 @@ A flag is a [flag](https://discord.com/developers/docs/resources/application#app
 
 ### Caching
 
-Read [What is a Cache](contribution/concepts/CACHE.md) for a simple yet full understanding of the Disgo Cache. The [Disgo Cache](contribution/concepts/CACHE.md#the-disgo-cache) is **optional**. The **cache interface** allows you to replace the built-in cache with another store _(such as Redis or Memcached)_ and/or provide your own method of caching data.
+Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full understanding of the Disgo Cache. The [Disgo Cache](/_contribution/concepts/CACHE.md#the-disgo-cache) is **optional**. The **cache interface** allows you to replace the built-in cache with another store _(such as Redis or Memcached)_ and/or provide your own method of caching data.
 
 ### Sharding
 
-Read [What is a Discord Shard](contribution/concepts/SHARD.md) for a simple yet full understanding of sharding on Discord. Using the [Shard Manager](contribution/concepts/SHARD.md#the-shard-manager) is **optional**. You can manually implement a shard manager through the `disgo.Client.Sessions` array.
+Read [What is a Discord Shard](/_contribution/concepts/SHARD.md) for a simple yet full understanding of sharding on Discord. Using the [Shard Manager](/_contribution/concepts/SHARD.md#the-shard-manager) is **optional**. You can manually implement a shard manager through the `disgo.Client.Sessions` array.
 
 ## Examples
 
 Each example has a **README**.
 
-| Example                  | Description                      |
-| :----------------------- | :------------------------------- |
-| [main](examples/main/)   | The default example.             |
-| [shard](examples/shard/) | Uses the shard manager manually. |
-| [cache](examples/shard/) | Uses the cache manually.         |
+| Example                    | Description                      |
+| :------------------------- | :------------------------------- |
+| [main](/_examples/main/)   | The default example.             |
+| [shard](/_examples/shard/) | Uses the shard manager manually. |
+| [cache](/_examples/shard/) | Uses the cache manually.         |
 
-This [example](examples/main) creates a bot that creates an application command and handles it.
+This [example](/_examples/main) creates a bot that creates an application command and handles it.
 
 ## Configuration
 
@@ -159,10 +159,10 @@ Go is a statically typed language with a garbage collector. As a result, it perf
 
 ### Comparison
 
-Disgo supports every feature in the Discord API in the Discord API and provides optional caching and shard management. [DiscordGo](https://github.com/bwmarrin/discordgo#documentation) is not feature-complete and [Disgord](https://github.com/andersfylling/disgord#qa) is limiting. The word `disgo` contains 5 letters — while the others have 7+ — saving you precious keyboard strokes. Most important is Disgo's performance, which saves you money by reducing server costs. _Don't believe me?_ Check this out!
+Disgo supports every feature in the Discord API in the Discord API and provides optional caching and shard management. **DiscordGo** is not feature-complete and **Disgord** is limiting. The word `disgo` contains 5 letters — while the others have 7+ — saving you precious keyboard strokes. Most important is Disgo's performance, which saves you money by reducing server costs. _Don't believe me?_ Check this out!
 
 #### CPU
-Disgo places a priority on performance. For more information, view [`library decisions`](/contribution/libraries/). Sharding is optional.
+Disgo places a priority on performance. For more information, view [`library decisions`](/_contribution/libraries/). Sharding is optional.
 
 ### Memory
 Every struct uses [fieldalignment](https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/fieldalignment) to reduce the memory footprint of your application. Caching is optional.
@@ -172,13 +172,13 @@ Disgo adds ~<> MB to a compiled binary.
 
 ### Contributing
 
-Disgo is the easiest Discord Go API for developers to use and contribute to. You can contribute to this repository by viewing the [Project Structure, Code Specifications, and Roadmap](contribution/CONTRIBUTING.md).
+Disgo is the easiest Discord Go API for developers to use and contribute to. You can contribute to this repository by viewing the [Project Structure, Code Specifications, and Roadmap](/_contribution/CONTRIBUTING.md).
 
 | Library   | Contribution                                                                                                                                                                                                                              | Lines of Code to Maintain |
 | :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
 | Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 1K/10K                    |
-| DiscordGo | Not Feature Complete, No Guidelines, No Architecture, No Linter                                                                                                                                                                           | 10K/10K                   |
-| Disgord   | ORM, Contribution Guidelines, Project Architecture, No Linter                                                                                                                                                                             | ?/30K                     |
+| DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | 10K/10K                   |
+| Disgord   | Contribution Guidelines, Project Architecture, No Linter, ORM                                                                                                                                                                             | ?/30K                     |
 
 ## Ecosystem
 
@@ -193,13 +193,13 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 | [Discord API Spec](https://github.com/switchupcb/discord-api-spec) | Up-to-date Machine Readable Specification for Discord.  |
 | [Dasgo](https://github.com/switchupcb/dasgo)                       | Go Struct Type Definitions for Discord.                 |
 | Disgo Template                                                     | Get started on a Discord Bot with this Disgo Framework. |
-| [*Copygen](https://github.com/switchupcb/copygen)                  | Generate custom type-based code.                        |
+| [Copygen](https://github.com/switchupcb/copygen)                   | Generate custom type-based code.                        |
 
 ### Credits
 
-| Name                                      | Contributions                                 |
-| :---------------------------------------- | :-------------------------------------------- |
-| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Discord API Spec, Dasgo |
-| [Thomas Rogers](https://github.com/t-rog) | Dasgo                                         |
+| Name                                      | Contributions                         |
+| :---------------------------------------- | :------------------------------------ |
+| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Dasgo, Requests |
+| [Thomas Rogers](https://github.com/t-rog) | Dasgo                                 |
 
-_Earn a credit! [Contribute Now](contribution/CONTRIBUTING.md)._
+_Earn a credit! [Contribute Now](_contribution/CONTRIBUTING.md)._

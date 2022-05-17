@@ -1,6 +1,6 @@
 # Shard
 
-This example creates a bot that uses modified a shard manager to create an application command and handle it. For more information about sharding, read [What is a Discord Shard?](contributing/concepts/SHARD.md)
+This example creates a bot that uses modified a shard manager to create an application command and handle it. For more information about sharding, read [What is a Discord Shard?](/_contributing/concepts/SHARD.md)
 
 ## Configuration
 

@@ -1,6 +1,6 @@
 # Cache
 
-This example creates a bot that uses modified cache settings to create an application command and handle it. For more information about caching, read [What is a Cache?](contribution/concepts/CACHE.md)
+This example creates a bot that uses modified cache settings to create an application command and handle it. For more information about caching, read [What is a Cache?](/_contribution/concepts/CACHE.md)
 
 ## Configuration
 
