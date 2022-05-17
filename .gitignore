@@ -12,3 +12,8 @@
 *.out
 .vscode
 
+# Generation
+gen/input*
+!gen/tools/*
+!gen/gen.exe
+

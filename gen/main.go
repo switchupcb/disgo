@@ -1,0 +1,145 @@
+package main
+
+import (
+	"flag"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+
+	"github.com/switchupcb/disgo/gen/tools"
+)
+
+var (
+	downloadFlag  = flag.Bool("d", false, "Downloads the latest copy of dasgo from Github.")
+	skipEndpoints = flag.Bool("xe", false, "Skips the generation of endpoint functions.")
+)
+
+const (
+	// redirect `>` is not guaranteed to work, so files must be written.
+	filemodewrite = 0644
+
+	downloadURL   = "https://github.com/switchupcb/dasgo/archive/main.zip"
+	inputDownload = "input/dasgo.zip"
+
+	outputEndpoints = "../wrapper/endpoints.go"
+	outputDasgo     = "../wrapper/dasgo.go"
+	outputSend      = "../wrapper/send.go"
+)
+
+func main() {
+	if err := check(); err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(1)
+	}
+
+	flag.Parse()
+
+	// download the latest copy of dasgo from Github.
+	if *downloadFlag {
+		if err := download(downloadURL, inputDownload); err != nil {
+			fmt.Printf("%v", err)
+			os.Exit(1)
+		}
+	}
+
+	// dasgo generation
+	absfilepath, err := filepath.Abs("input/dasgo-main/dasgo")
+	if err != nil {
+		fmt.Printf("an error occurred determining the unzipped dasgo source code filepath.\n%v", err)
+		os.Exit(2)
+	}
+
+	if !*skipEndpoints {
+		inputEndpoints := filepath.Join(absfilepath, "endpoints.go")
+		std, err := tools.Endpoints(inputEndpoints)
+		if err != nil {
+			fmt.Printf("endpoint error: %v", err)
+			os.Exit(3)
+		}
+
+		err = os.WriteFile(outputEndpoints, std, filemodewrite)
+		if err != nil {
+			fmt.Printf("endpoint error: %v", err)
+			os.Exit(3)
+		}
+
+		e := os.Remove(inputEndpoints)
+		if e != nil {
+			fmt.Printf("endpoint error: %v", err)
+			os.Exit(3)
+		}
+	}
+
+	if err = convert(absfilepath); err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(4)
+	}
+
+	// disgo generation
+	// generate()
+	// copygen -yml tools/copygen/setup/setup.yml -xm
+}
+
+// check checks that the current
+func check() error {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("error getting the current working directory.\n%w", err)
+	}
+
+	if filepath.Base(cwd) != "gen" && filepath.Base(filepath.Dir(cwd)) != "disgo" {
+		return fmt.Errorf("This executable must be run from disgo/gen")
+	}
+
+	return nil
+}
+
+// download downloads and extracts (.zip) a file from a URL.
+func download(url, output string) error {
+	curl := exec.Command("curl", "-L", url, "-o", output, "--create-dirs")
+	std, err := curl.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error downloading file from url.\n%v", string(std))
+	}
+
+	unzip := exec.Command("unzip", output, "-d", "input")
+	std, err = unzip.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("error unzipping file.\n%v", string(std))
+	}
+
+	return nil
+}
+
+// convert converts Dasgo objects to the Disgo standard.
+func convert(abspath string) error {
+	// nstruct
+
+	// xstruct
+	xstruct := exec.Command("tools/xstruct", "-d", abspath+"/...", "-p", "wrapper", "-g")
+	std, err := xstruct.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("xstruct error: %v", string(std))
+	}
+
+	err = os.WriteFile(outputDasgo, std, filemodewrite)
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	// snowflake
+	std, err = tools.Snowflake(outputDasgo)
+	if err != nil {
+		return fmt.Errorf("snowflake error: %v", err)
+	}
+
+	err = os.WriteFile(outputDasgo, std, filemodewrite)
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	// flagstd
+
+	return nil
+}

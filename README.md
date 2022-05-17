@@ -23,7 +23,7 @@ This breakdown provides you with a **full understanding** on how to use the API.
 | **Request**  | Uses the Discord HTTPS/REST API to make one-time requests for information _(i.e resources)_. Provides create, read, update, delete, patch endpoints.               | Create a command. Request Guild Info.                               |
 | **Session**  | Uses Discord WebSockets [(Gateways)](https://discord.com/developers/docs/topics/gateway) to receive ongoing **events** that contain information _(i.e resources)_. | Send a message when a command used or a user joins a voice channel. |
 
-You create a **Client** that calls for **Resources** using **Requests** and that handles **Events** using **Sessions**.
+You create a **Client** that calls for **Resources** using **Requests** and handles **Events** using **Sessions**.
 
 ### Flags
 
@@ -43,7 +43,7 @@ Each example has a **README**.
 
 | Example                    | Description                      |
 | :------------------------- | :------------------------------- |
-| [main](/_examples/main/))  | The default example.             |
+| [main](/_examples/main/)   | The default example.             |
 | [shard](/_examples/shard/) | Uses the shard manager manually. |
 | [cache](/_examples/shard/) | Uses the cache manually.         |
 
@@ -132,6 +132,7 @@ disgo.Client.Config.<Settings>
 
 // Use requests to exchange data with Discord's REST API.
 disgo.Request<Endpoints>
+disgo.Response<Endpoints>
 
 // Use sessions to handle events from Discord's WebSocket Sessions (Gateways).
 disgo.Client.Session.Handlers.Add(<handler>)
@@ -173,11 +174,11 @@ Disgo adds ~<> MB to a compiled binary.
 
 Disgo is the easiest Discord Go API for developers to use and contribute to. You can contribute to this repository by viewing the [Project Structure, Code Specifications, and Roadmap](/_contribution/CONTRIBUTING.md).
 
-| Library   | Contribution                                                                                                                                                                                                                                  | Lines of Code to Maintain |
-| :-------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
-| Disgo     | [Contribution Guidelines](_contribution/CONTRIBUTING.md), [Project Architecture](_contribution/CONTRIBUTING.md#project-structure), [Linting](_contribution/CONTRIBUTING.md#static-code-analysis), [Tests](_contribution/CONTRIBUTING.md#test) | ?/?K                      |
-| DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                               | ?/10K                     |
-| Disgord   | Contribution Guidelines, Project Architecture, No Linter, Tests                                                                                                                                                                               | ?/30K                     |
+| Library   | Contribution                                                                                                                                                                                                                              | Lines of Code to Maintain |
+| :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
+| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 1K/10K                    |
+| DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | 10K/10K                   |
+| Disgord   | Contribution Guidelines, Project Architecture, No Linter, ORM                                                                                                                                                                             | ?/30K                     |
 
 ## Ecosystem
 
@@ -192,12 +193,13 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 | [Discord API Spec](https://github.com/switchupcb/discord-api-spec) | Up-to-date Machine Readable Specification for Discord.  |
 | [Dasgo](https://github.com/switchupcb/dasgo)                       | Go Struct Type Definitions for Discord.                 |
 | Disgo Template                                                     | Get started on a Discord Bot with this Disgo Framework. |
+| [Copygen](https://github.com/switchupcb/copygen)                   | Generate custom type-based code.                        |
 
 ### Credits
 
-| Name                                      | Contributions                                 |
-| :---------------------------------------- | :-------------------------------------------- |
-| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Discord API Spec, Dasgo |
-| [Thomas Rogers](https://github.com/t-rog) | Dasgo Resources                               |
+| Name                                      | Contributions                         |
+| :---------------------------------------- | :------------------------------------ |
+| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Dasgo, Requests |
+| [Thomas Rogers](https://github.com/t-rog) | Dasgo                                 |
 
 _Earn a credit! [Contribute Now](_contribution/CONTRIBUTING.md)._
