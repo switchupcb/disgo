@@ -78,7 +78,7 @@ func main() {
 
 	// disgo generation
 	// generate()
-	// copygen -yml ../wrapper\copygen\setup\setup.yml
+	// copygen -yml tools/copygen/setup/setup.yml -xm
 }
 
 // check checks that the current

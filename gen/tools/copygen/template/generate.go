@@ -9,11 +9,6 @@ import (
 	"github.com/switchupcb/copygen/cli/models"
 )
 
-// requestDefinition gets the definition for a request.
-func requestDefinition(field *models.Field) string {
-	return field.Pointer + field.Definition
-}
-
 // Generate generates code.
 // GENERATOR FUNCTION.
 // EDITABLE.
@@ -45,13 +40,12 @@ func Function(function *models.Function) string {
 
 // generateComment generates a function comment.
 func generateComment(function *models.Function) string {
-	return "// Send sends a " + requestDefinition(function.From[0].Field) + " to Discord and returns a " +
-		function.To[0].Field.FullNameWithoutPointer("") + "."
+	return "// Send sends a " + function.From[0].Field.Definition + " to Discord and returns a " + function.To[0].Field.Definition + "."
 }
 
 // generateSignature generates a function's signature.
 func generateSignature(function *models.Function) string {
-	return "func (r " + requestDefinition(function.From[0].Field) + ") Send(bot *Client) (" + generateResultParameters(function) + ") {"
+	return "func (r " + function.From[0].Field.FullDefinition() + ") Send(bot *Client) (" + generateResultParameters(function) + ") {"
 }
 
 // generateResultParameters generates the result parameters of a function.
@@ -74,8 +68,8 @@ func generateResultParameters(function *models.Function) string {
 
 // generateBody generates the body of a function.
 func generateBody(function *models.Function) string {
-	request := requestDefinition(function.From[0].Field)
-	response := function.To[0].Field.FullName()
+	request := function.From[0].Field.FullDefinition()
+	response := function.To[0].Field.FullDefinition()
 
 	var body strings.Builder
 	body.WriteString("var result " + response + "\n")
@@ -96,19 +90,30 @@ func generateBody(function *models.Function) string {
 	return body.String()
 }
 
-const defaultEndpointParameter = "strconv.FormatUint(uint64(bot.ApplicationID), 10)"
-
 // generateEndpointCall generates the endpoint function call (parameter) for a SendRequestJSON call.
 func generateEndpointCall(request *models.Field) string {
-	parameters := defaultEndpointParameter
+	var parameters strings.Builder
 
-	for _, field := range request.Fields {
-		if len(field.Tags) == 0 {
-			parameters += ", strconv.FormatUint(uint64(r." + field.Name + "), 10)"
+	tagCount := 0
+	for _, subfield := range request.Fields {
+
+		// subfields with no tags are endpoints.
+		if len(subfield.Tags) == 0 {
+			if tagCount != 0 {
+				parameters.WriteString(", ")
+			}
+
+			if subfield.Name == "ApplicationID" {
+				parameters.WriteString("bot.ApplicationID")
+			} else {
+				parameters.WriteString("r." + subfield.Name)
+			}
+
+			tagCount++
 		}
 	}
 
-	return "Endpoint" + request.Definition + "(" + parameters + ")"
+	return "Endpoint" + request.Definition[1:] + "(" + parameters.String() + ")"
 }
 
 ////////////////////////////////////////////////////////////////////////////////

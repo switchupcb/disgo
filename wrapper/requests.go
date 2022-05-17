@@ -1,16 +1,15 @@
-package disgo
+package wrapper
 
 import (
 	"fmt"
 
 	json "github.com/goccy/go-json"
-	"github.com/switchupcb/disgo/wrapper/resources"
 	"github.com/valyala/fasthttp"
 )
 
 // Client is ONLY defined here for the purpose of the proof of concept.
 type Client struct {
-	ApplicationID resources.Snowflake
+	ApplicationID string
 	client        *fasthttp.Client
 	ctx           *fasthttp.RequestCtx
 }
@@ -22,7 +21,7 @@ const (
 
 // StatusCodeError handles a Discord API HTTP Status Code and returns the relevant error.
 func StatusCodeError(status int) error {
-	if msg, ok := resources.JSONErrorCodes[status]; ok {
+	if msg, ok := JSONErrorCodes[status]; ok {
 		return fmt.Errorf(ErrStatusCodeKnown, status, msg)
 	}
 

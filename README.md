@@ -176,7 +176,7 @@ Disgo is the easiest Discord Go API for developers to use and contribute to. You
 
 | Library   | Contribution                                                                                                                                                                                                                              | Lines of Code to Maintain |
 | :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
-| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 500/8K                     |
+| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 1K/10K                    |
 | DiscordGo | Not Feature Complete, No Guidelines, No Architecture, No Linter                                                                                                                                                                           | 10K/10K                   |
 | Disgord   | ORM, Contribution Guidelines, Project Architecture, No Linter                                                                                                                                                                             | ?/30K                     |
 
@@ -193,12 +193,13 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 | [Discord API Spec](https://github.com/switchupcb/discord-api-spec) | Up-to-date Machine Readable Specification for Discord.  |
 | [Dasgo](https://github.com/switchupcb/dasgo)                       | Go Struct Type Definitions for Discord.                 |
 | Disgo Template                                                     | Get started on a Discord Bot with this Disgo Framework. |
+| [*Copygen](https://github.com/switchupcb/copygen)                  | Generate custom type-based code.                        |
 
 ### Credits
 
 | Name                                      | Contributions                                 |
 | :---------------------------------------- | :-------------------------------------------- |
 | [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Discord API Spec, Dasgo |
-| [Thomas Rogers](https://github.com/t-rog) | Dasgo Resources                               |
+| [Thomas Rogers](https://github.com/t-rog) | Dasgo                                         |
 
 _Earn a credit! [Contribute Now](contribution/CONTRIBUTING.md)._

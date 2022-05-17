@@ -367,8 +367,8 @@ func EndpointListThreadMembers(channelid string) string {
 	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers
 }
 
-// EndpointListActiveThreads builds a query for an HTTP request.
-func EndpointListActiveThreads(guildid string) string {
+// EndpointListActiveGuildThreads builds a query for an HTTP request.
+func EndpointListActiveGuildThreads(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + threads + slash + active
 }
 
