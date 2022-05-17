@@ -73,12 +73,11 @@ Integration tests are used to ensure functionality between the API and Discord.
 
 Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to complete it:
 
-1. Generate **Request** code using https://github.com/switchupcb/disgo/pull/3.
-2. Implement Client (OAuth).
-3. Implement Gateway (WebSocket, Events).
-4. Implement Rate Limits.
-5. Implement Sharding.
-6. Implement Cache (which is likely where most effort lies; caching is difficult).
+1. Implement Client (OAuth).
+2. Implement Gateway (WebSocket, Events).
+3. Implement Rate Limits.
+4. Implement Sharding.
+5. Implement Cache (which is likely where most effort lies; caching is difficult).
 
 In addition, we must make [decisions](/contribution/libraries/) for the following:
 1. UDP connections (Voice)
