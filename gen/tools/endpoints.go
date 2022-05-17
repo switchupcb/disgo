@@ -27,7 +27,7 @@ func Endpoints(filepath string) ([]byte, error) {
 	// gofmt
 	fmtdata, err := format.Source(contentdata)
 	if err != nil {
-		return []byte(contentdata), fmt.Errorf("an error occurred while formatting the generated code.\n%w\nUse -o to view output", err)
+		return contentdata, fmt.Errorf("an error occurred while formatting the generated code.\n%w\nUse -o to view output", err)
 	}
 
 	return fmtdata, nil

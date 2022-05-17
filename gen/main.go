@@ -11,7 +11,8 @@ import (
 )
 
 var (
-	downloadFlag = flag.Bool("d", false, "Downloads the latest copy of dasgo from Github.")
+	downloadFlag  = flag.Bool("d", false, "Downloads the latest copy of dasgo from Github.")
+	skipEndpoints = flag.Bool("xe", false, "Skips the generation of endpoint functions.")
 )
 
 const (
@@ -46,16 +47,38 @@ func main() {
 	absfilepath, err := filepath.Abs("input/dasgo-main/dasgo")
 	if err != nil {
 		fmt.Printf("an error occurred determining the unzipped dasgo source code filepath.\n%v", err)
-		os.Exit(1)
+		os.Exit(2)
+	}
+
+	if !*skipEndpoints {
+		inputEndpoints := filepath.Join(absfilepath, "endpoints.go")
+		std, err := tools.Endpoints(inputEndpoints)
+		if err != nil {
+			fmt.Printf("endpoint error: %v", err)
+			os.Exit(3)
+		}
+
+		err = os.WriteFile(outputEndpoints, std, filemodewrite)
+		if err != nil {
+			fmt.Printf("endpoint error: %v", err)
+			os.Exit(3)
+		}
+
+		e := os.Remove(inputEndpoints)
+		if e != nil {
+			fmt.Printf("endpoint error: %v", err)
+			os.Exit(3)
+		}
 	}
 
 	if err = convert(absfilepath); err != nil {
 		fmt.Printf("%v", err)
-		os.Exit(2)
+		os.Exit(4)
 	}
 
 	// disgo generation
 	// generate()
+	// copygen -yml ../wrapper\copygen\setup\setup.yml
 }
 
 // check checks that the current
@@ -91,30 +114,24 @@ func download(url, output string) error {
 
 // convert converts Dasgo objects to the Disgo standard.
 func convert(abspath string) error {
-	// endpoints
-	inputEndpoints := filepath.Join(abspath, "endpoints.go")
-	std, err := tools.Endpoints(inputEndpoints)
-	if err != nil {
-		return fmt.Errorf("endpoint error: %v", err)
-	}
-
-	err = os.WriteFile(outputEndpoints, std, filemodewrite)
-	if err != nil {
-		return fmt.Errorf("%w", err)
-	}
-
-	e := os.Remove(inputEndpoints)
-	if e != nil {
-		return fmt.Errorf("%w", err)
-	}
-
 	// nstruct
 
 	// xstruct
 	xstruct := exec.Command("tools/xstruct", "-d", abspath+"/...", "-p", "wrapper", "-g")
-	std, err = xstruct.CombinedOutput()
+	std, err := xstruct.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("xstruct error: %v", string(std))
+	}
+
+	err = os.WriteFile(outputDasgo, std, filemodewrite)
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	// snowflake
+	std, err = tools.Snowflake(outputDasgo)
+	if err != nil {
+		return fmt.Errorf("snowflake error: %v", err)
 	}
 
 	err = os.WriteFile(outputDasgo, std, filemodewrite)
