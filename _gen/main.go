@@ -26,6 +26,8 @@ const (
 
 	outputEndpoints = "../wrapper/endpoints.go"
 	outputDasgo     = "../wrapper/dasgo.go"
+
+	endpointErr = "endpoint error: %w\nUse -xe to skip the generation of endpoint functions."
 )
 
 func main() {
@@ -48,45 +50,25 @@ func main() {
 	absfilepath, err := filepath.Abs("input/dasgo-main/dasgo")
 	if err != nil {
 		fmt.Printf("an error occurred determining the unzipped dasgo source code filepath.\n%v", err)
-		os.Exit(2)
+		os.Exit(1)
 	}
 
 	if !*skipEndpoints {
-		inputEndpoints := filepath.Join(absfilepath, "endpoints.go")
-		data, err := os.ReadFile(inputEndpoints)
-		if err != nil {
-			fmt.Printf("endpoint error: %v", err)
-			os.Exit(3)
-		}
-
-		std, err := tools.Endpoints(data)
-		if err != nil {
-			fmt.Printf("endpoint error: %v", err)
-			os.Exit(3)
-		}
-
-		err = os.WriteFile(outputEndpoints, std, filemodewrite)
-		if err != nil {
-			fmt.Printf("endpoint error: %v", err)
-			os.Exit(3)
-		}
-
-		e := os.Remove(inputEndpoints)
-		if e != nil {
-			fmt.Printf("endpoint error: %v", err)
-			os.Exit(3)
+		if err = endpoints(absfilepath); err != nil {
+			fmt.Printf("%v", err)
+			os.Exit(1)
 		}
 	}
 
 	if err = convert(absfilepath); err != nil {
 		fmt.Printf("%v", err)
-		os.Exit(4)
+		os.Exit(1)
 	}
 
 	// disgo generation
 	if err = generate(); err != nil {
 		fmt.Printf("%v", err)
-		os.Exit(5)
+		os.Exit(1)
 	}
 }
 
@@ -121,6 +103,32 @@ func download(url, output string) error {
 	return nil
 }
 
+// endpoints generates endpoint functions from Dasgo endpoints.
+func endpoints(path string) error {
+	inputEndpoints := filepath.Join(path, "endpoints.go")
+	data, err := os.ReadFile(inputEndpoints)
+	if err != nil {
+		return fmt.Errorf(endpointErr, err)
+	}
+
+	std, err := tools.Endpoints(data)
+	if err != nil {
+		return fmt.Errorf(endpointErr, err)
+	}
+
+	err = os.WriteFile(outputEndpoints, std, filemodewrite)
+	if err != nil {
+		return fmt.Errorf(endpointErr, err)
+	}
+
+	err = os.Remove(inputEndpoints)
+	if err != nil {
+		return fmt.Errorf(endpointErr, err)
+	}
+
+	return nil
+}
+
 // convert converts Dasgo objects to the Disgo standard.
 func convert(abspath string) error {
 	dasgopath := abspath + "/..."
@@ -137,12 +145,12 @@ func convert(abspath string) error {
 	// snowflake
 	std, err = tools.Snowflake(std)
 	if err != nil {
-		return fmt.Errorf("snowflake error: %v", err)
+		return fmt.Errorf("snowflake error: %w", err)
 	}
 
 	err = os.WriteFile(outputDasgo, std, filemodewrite)
 	if err != nil {
-		return fmt.Errorf("snowflake error: %v", err)
+		return fmt.Errorf("snowflake error: %w", err)
 	}
 
 	return nil
@@ -152,7 +160,7 @@ func convert(abspath string) error {
 func generate() error {
 	// requests
 	if err := os.Chdir("../"); err != nil {
-		return fmt.Errorf("chdir error (send): %v", err)
+		return fmt.Errorf("chdir error (send): %w", err)
 	}
 
 	sendgen := exec.Command("copygen", "-yml", "wrapper/copygen/setup/setup.yml", "-xm")
@@ -162,7 +170,7 @@ func generate() error {
 	}
 
 	if err := os.Chdir(exeDir); err != nil {
-		return fmt.Errorf("chdir error (send): %v", err)
+		return fmt.Errorf("chdir error (send): %w", err)
 	}
 
 	// events
@@ -170,12 +178,12 @@ func generate() error {
 	// clean
 	data, err := os.ReadFile(outputDasgo)
 	if err != nil {
-		return fmt.Errorf("clean error: %v", err)
+		return fmt.Errorf("clean error: %w", err)
 	}
 
 	std, err = tools.Clean(data)
 	if err != nil {
-		return fmt.Errorf("clean error: %v", err)
+		return fmt.Errorf("clean error: %w", err)
 	}
 
 	err = os.WriteFile(outputDasgo, std, filemodewrite)
