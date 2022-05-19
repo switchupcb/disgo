@@ -2,21 +2,26 @@ package wrapper
 
 import (
 	"fmt"
+	"time"
 
 	json "github.com/goccy/go-json"
 	"github.com/valyala/fasthttp"
 )
 
-// Client is ONLY defined here for the purpose of the proof of concept.
-type Client struct {
-	ApplicationID string
-	client        *fasthttp.Client
-	ctx           *fasthttp.RequestCtx
-}
+// timeout is a temporary variable that represents the amount of time
+// a request will wait for a response.
+// TODO: refactor with timeout usage.
+var timeout time.Duration
 
+// TODO: Set HTTP METHOD (Get, Post, Put, Patch, Delete) [using Copygen Options]
+const (
+	TODO = fasthttp.MethodPost
+)
+
+// Status Code Error Messages.
 const (
 	ErrStatusCodeKnown   = "Status Code %d: %v"
-	ErrStatusCodeUnknown = "Status Code %d: Unknown JSON error from Discord"
+	ErrStatusCodeUnknown = "Status Code %d: Unknown status code error from Discord"
 )
 
 // StatusCodeError handles a Discord API HTTP Status Code and returns the relevant error.
@@ -28,12 +33,29 @@ func StatusCodeError(status int) error {
 	return fmt.Errorf(ErrStatusCodeUnknown, status)
 }
 
-// ParseResponse parses the response of a Discord API Request with a JSON Body into dst.
-func ParseResponseJSON(ctx *fasthttp.RequestCtx, dst any) error {
-	defer fasthttp.ReleaseResponse(&ctx.Response)
+// ContentTypeJSON represents an HTTP header that indicates a JSON body.
+var ContentTypeJSON = []byte("application/json")
 
-	if ctx.Response.StatusCode() == fasthttp.StatusOK {
-		err := json.Unmarshal(ctx.Response.Body(), dst)
+// SendRequest sends a fasthttp.Request with a JSON body using the given URI, method, and body,
+// then parses the response into dst.
+func SendRequest(dst any, client *fasthttp.Client, method, uri string, body []byte) error {
+	request := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(request)
+	request.SetRequestURI(uri)
+	request.Header.SetMethod(method)
+	request.Header.SetContentTypeBytes(ContentTypeJSON)
+	request.SetBodyRaw(body)
+
+	// receive the response from the request.
+	response := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(response)
+	if err := client.DoTimeout(request, response, timeout); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	// unmarshal the response into dst.
+	if response.StatusCode() == fasthttp.StatusOK {
+		err := json.Unmarshal(response.Body(), dst)
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}
@@ -41,5 +63,5 @@ func ParseResponseJSON(ctx *fasthttp.RequestCtx, dst any) error {
 		return nil
 	}
 
-	return StatusCodeError(ctx.Response.StatusCode())
+	return StatusCodeError(response.StatusCode())
 }

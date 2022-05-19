@@ -40,7 +40,7 @@ func Function(function *models.Function) string {
 
 // generateComment generates a function comment.
 func generateComment(function *models.Function) string {
-	return "// Send sends a " + function.From[0].Field.Definition + " to Discord and returns a " + function.To[0].Field.Definition + "."
+	return "// Send sends a " + function.From[0].Field.FullDefinitionWithoutPointer() + " to Discord and returns a " + function.To[0].Field.FullDefinitionWithoutPointer() + "."
 }
 
 // generateSignature generates a function's signature.
@@ -68,7 +68,7 @@ func generateResultParameters(function *models.Function) string {
 
 // generateBody generates the body of a function.
 func generateBody(function *models.Function) string {
-	request := function.From[0].Field.FullDefinition()
+	request := function.From[0].Field.FullDefinitionWithoutPointer()
 	response := function.To[0].Field.FullDefinition()
 
 	var body strings.Builder
@@ -78,15 +78,11 @@ func generateBody(function *models.Function) string {
 	body.WriteString(generateMarshalErrReturn(function, request))
 	body.WriteString("}\n")
 	body.WriteString("\n")
-	body.WriteString("err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, " + generateEndpointCall(function.From[0].Field) + ", body)\n")
+	body.WriteString("err = SendRequest(result, bot.client, TODO, " + generateEndpointCall(function.From[0].Field) + ", body)\n")
 	body.WriteString("if err != nil {\n")
 	body.WriteString(generateSendRequestErrReturn(function, request))
 	body.WriteString("}\n")
-	body.WriteString("\n")
-	body.WriteString("err = ParseResponseJSON(bot.ctx, result)\n")
-	body.WriteString("if err != nil {\n")
-	body.WriteString(generateParseResponseErrReturn(function, request))
-	body.WriteString("}\n")
+
 	return body.String()
 }
 
@@ -136,23 +132,11 @@ func generateMarshalErrReturn(function *models.Function, request string) string 
 func generateSendRequestErrReturn(function *models.Function, request string) string {
 	switch len(function.To) {
 	case 1:
-		return "return fmt.Errorf(\"an error occurred while sending a " + request + ": \\n%w\", err)\n"
+		return "return fmt.Errorf(\"an error occurred while sending " + request + ": \\n%w\", err)\n"
 	case 2:
-		return "return nil, fmt.Errorf(\"an error occurred while sending a " + request + ": \\n%w\", err)\n"
+		return "return nil, fmt.Errorf(\"an error occurred while sending " + request + ": \\n%w\", err)\n"
 	default:
-		return "return nil, fmt.Errorf(\"an error occurred while sending a " + request + ": \\n%w\", err)\n"
-	}
-}
-
-// generateSendRequestErrReturn generates a return statement for the function.
-func generateParseResponseErrReturn(function *models.Function, request string) string {
-	switch len(function.To) {
-	case 1:
-		return "return fmt.Errorf(\"an error occurred while parsing the response of a " + request + ": \\n%w\", err)\n"
-	case 2:
-		return "return nil, fmt.Errorf(\"an error occurred while parsing the response of a " + request + ": \\n%w\", err)\n"
-	default:
-		return "return nil, fmt.Errorf(\"an error occurred while parsing the response of a " + request + ": \\n%w\", err)\n"
+		return "return nil, fmt.Errorf(\"an error occurred while sending " + request + ": \\n%w\", err)\n"
 	}
 }
 

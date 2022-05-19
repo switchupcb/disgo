@@ -45,7 +45,3 @@ linters-settings:
 
   nlreturn:
     block-size: 2
-
-  wrapcheck:
-    ignorePackageGlobs:
-      - github.com/valyala/fasthttp*
