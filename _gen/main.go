@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/switchupcb/disgo/gen/tools"
+	"github.com/switchupcb/disgo/_gen/tools"
 )
 
 var (
@@ -16,6 +16,8 @@ var (
 )
 
 const (
+	exeDir = "_gen"
+
 	// redirect `>` is not guaranteed to work, so files must be written.
 	filemodewrite = 0644
 
@@ -95,8 +97,8 @@ func check() error {
 		return fmt.Errorf("error getting the current working directory.\n%w", err)
 	}
 
-	if filepath.Base(cwd) != "gen" && filepath.Base(filepath.Dir(cwd)) != "disgo" {
-		return fmt.Errorf("This executable must be run from disgo/gen")
+	if filepath.Base(cwd) != exeDir && filepath.Base(filepath.Dir(cwd)) != "disgo" {
+		return fmt.Errorf("This executable must be run from disgo/" + exeDir)
 	}
 
 	return nil
@@ -159,7 +161,7 @@ func generate() error {
 		return fmt.Errorf("copygen error (send): %v", string(std))
 	}
 
-	if err := os.Chdir("gen"); err != nil {
+	if err := os.Chdir(exeDir); err != nil {
 		return fmt.Errorf("chdir error (send): %v", err)
 	}
 

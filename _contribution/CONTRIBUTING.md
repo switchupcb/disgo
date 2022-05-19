@@ -14,7 +14,7 @@ The domain of Disgo in providing an API for HTTP/WebSocket requests. The program
 
 ## Project Structure
 
-The repository consists of a detailed [README](/README.md), [examples](/_examples/), and [**API Wrapper**](/disgo/wrapper).
+The repository consists of a detailed [README](/README.md), [examples](/_examples/), [**API Wrapper**](/wrapper), [**Cache**](/cache), and [**Shard Manager**](/shard/).
 
 ### Disgo
 
@@ -41,9 +41,13 @@ disgo.RequestGetUser
 
 #### Requests
 
-Resource GET, DELETE, POST, PUT, BULK _(GET, ...)_ `Send()` functions are generated from the respective requests object. For more information, read [requests](../wrapper/requests/README.md).
+Resource GET, DELETE, POST, PUT, BULK _(GET, ...)_ `Send()` functions are generated from the respective requests object. For more information, read the requests [README](/wrapper/requests/README.md).
 
 ### Code Specification
+
+#### Code Generation
+
+Disgo uses generators to easily update and maintain over 8000 lines of code. For more information, read [gen](/_gen/README.md).
 
 #### Comments
 
@@ -76,8 +80,10 @@ Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to c
 1. Implement Client (OAuth).
 2. Implement Gateway (WebSocket, Events).
 3. Implement Rate Limits.
-4. Implement Sharding.
-5. Implement Cache (which is likely where most effort lies; caching is difficult).
+4. Implement Retries.
+5. **Implement Testing** _[usable at this stage]_.
+6. Implement Sharding.
+7. Implement Cache (which is likely where most effort lies; caching is difficult).
 
 In addition, we must make [decisions](/_contribution/libraries/) for the following:
 1. UDP connections (Voice)

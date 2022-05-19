@@ -13,7 +13,7 @@
 .vscode
 
 # Generation
-gen/input*
-!gen/tools/*
-!gen/gen.exe
+_gen/input*
+!_gen/tools/*
+!_gen/gen.exe
 

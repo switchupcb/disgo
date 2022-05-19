@@ -26,6 +26,6 @@ type Copygen interface {
 }
 ```
 
-4. Generate `Endpoint` and `Send` functions using [`gen -d`](../../README.md).
+4. Generate `Endpoint` and `Send` functions using [`gen -d`](/_gen/README.md).
 
-View the output in [`send.go`](send.go).
+View the output in [`send.go`](/wrapper/send.go).
