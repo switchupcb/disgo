@@ -17,7 +17,7 @@ Disgo sources Discord API objects from [dasgo](https://github.com/switchupcb/das
 
 ## Disgo
 
-Disgo generates code for features using [copygen](https://github.com/switchupcb/copygen). **This requires corresponding `setup.go` files to be updated.** Use the `diff` from Github to update those files accordingly.
+Disgo generates code for features using [copygen](https://github.com/switchupcb/copygen). **This requires corresponding `setup.go` files to be updated.** Use the `diff` from Git to update those files accordingly.
 
 | Step      | Description                                          |
 | :-------- | :--------------------------------------------------- |

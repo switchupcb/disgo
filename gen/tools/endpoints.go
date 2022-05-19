@@ -3,7 +3,6 @@ package tools
 import (
 	"fmt"
 	"go/format"
-	"os"
 	"strings"
 )
 
@@ -12,13 +11,8 @@ var (
 	constMap map[string]string
 )
 
-// Endpoints reads the contents of a dasgo filepath and outputs disgo endpoints.
-func Endpoints(filepath string) ([]byte, error) {
-	data, err := os.ReadFile(filepath)
-	if err != nil {
-		return nil, err
-	}
-
+// Endpoints reads the contents of a dasgo file and outputs disgo endpoints.
+func Endpoints(data []byte) ([]byte, error) {
 	constMap = make(map[string]string)
 	constMap["slash"] = "/"
 	content := parseEndpointDecl(string(data))
@@ -27,7 +21,7 @@ func Endpoints(filepath string) ([]byte, error) {
 	// gofmt
 	fmtdata, err := format.Source(contentdata)
 	if err != nil {
-		return contentdata, fmt.Errorf("an error occurred while formatting the generated code.\n%w\nUse -o to view output", err)
+		return contentdata, fmt.Errorf("an error occurred while formatting the generated code.\n%w", err)
 	}
 
 	return fmtdata, nil
@@ -49,7 +43,9 @@ func parseEndpointDecl(content string) string {
 	var output strings.Builder
 	output.WriteString("package wrapper\n\n")
 	output.WriteString(generateConst(constMap))
-	output.WriteString(funcput.String())
+	output.WriteString(funcput.String() + "\n")
+	output.WriteString(manual())
+
 	return output.String()
 }
 
@@ -63,6 +59,7 @@ func generateConst(cm map[string]string) string {
 		decl.WriteString(variable + " = " + "\"" + value + "\"" + "\n")
 	}
 	decl.WriteString(")\n")
+
 	return decl.String()
 }
 
@@ -90,6 +87,7 @@ func generateFunc(endpoint, url string) string {
 	f.WriteString("func " + endpoint + "(" + p + ")" + " string {\n")
 	f.WriteString("return EndpointBaseURL +" + strings.Join(urlparams, "+ slash +") + "\n")
 	f.WriteString("}\n")
+
 	return f.String()
 }
 
@@ -97,7 +95,6 @@ func generateFunc(endpoint, url string) string {
 func parameters(url string) []string {
 	params := strings.Split(url, "/")
 	for i, param := range params {
-
 		// filter invalid characters (for a variable) from parameters
 		params[i] = alphastring(param)
 
@@ -112,12 +109,24 @@ func parameters(url string) []string {
 
 // alphastring returns a copy of s with only alphabetical characters.
 func alphastring(s string) string {
-	var alpha string
+	var alpha strings.Builder
 	for _, c := range s {
 		if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') {
-			alpha += string(c)
+			alpha.WriteString(string(c))
 		}
 	}
 
-	return alpha
+	return alpha.String()
+}
+
+// manual returns manual code added to the end of the file.
+func manual() string {
+	var m strings.Builder
+	m.WriteString("var (")
+	m.WriteString("EndpointModifyChannelGroupDM = EndpointModifyChannel\n")
+	m.WriteString("EndpointModifyChannelGuild = EndpointModifyChannel\n")
+	m.WriteString("EndpointModifyChannelThread = EndpointModifyChannel\n")
+	m.WriteString(")")
+
+	return m.String()
 }

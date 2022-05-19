@@ -3,7 +3,6 @@ package tools
 import (
 	"fmt"
 	"go/format"
-	"os"
 	"strings"
 )
 
@@ -16,12 +15,7 @@ const (
 )
 
 // Snowflake replaces dasgo references of Snowflake with string.
-func Snowflake(filepath string) ([]byte, error) {
-	data, err := os.ReadFile(filepath)
-	if err != nil {
-		return nil, err
-	}
-
+func Snowflake(data []byte) ([]byte, error) {
 	content := string(data)
 
 	// escape the definition of a Snowflake.
@@ -39,7 +33,7 @@ func Snowflake(filepath string) ([]byte, error) {
 	contentdata := []byte(content)
 	fmtdata, err := format.Source(contentdata)
 	if err != nil {
-		return contentdata, fmt.Errorf("an error occurred while formatting the generated code.\n%w\nUse -o to view output", err)
+		return contentdata, fmt.Errorf("an error occurred while formatting the generated code.\n%w", err)
 	}
 
 	return fmtdata, nil

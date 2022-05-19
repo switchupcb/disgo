@@ -3,63 +3,63 @@ package wrapper
 // Discord API Endpoints
 const (
 	EndpointBaseURL = "https://discord.com/api/v9/"
-	roles           = "roles"
-	voicestates     = "voice-states"
-	slack           = "slack"
-	bot             = "bot"
-	commands        = "commands"
-	active          = "active"
-	prune           = "prune"
-	applications    = "applications"
-	me              = "@me"
-	archived        = "archived"
-	emojis          = "emojis"
-	connections     = "connections"
-	slash           = "/"
-	original        = "@original"
-	invites         = "invites"
-	interactions    = "interactions"
-	crosspost       = "crosspost"
-	followers       = "followers"
-	threads         = "threads"
 	widgetjson      = "widget.json"
-	voice           = "voice"
-	github          = "github"
-	typing          = "typing"
-	public          = "public"
-	templates       = "templates"
-	integrations    = "integrations"
-	stickers        = "stickers"
-	stickerpacks    = "sticker-packs"
-	permissions     = "permissions"
-	messages        = "messages"
-	threadmembers   = "thread-members"
-	preview         = "preview"
-	guilds          = "guilds"
-	recipients      = "recipients"
-	reactions       = "reactions"
-	pins            = "pins"
 	scheduledevents = "scheduled-events"
-	bulkdelete      = "bulk-delete"
-	stageinstances  = "stage-instances"
-	members         = "members"
 	bans            = "bans"
-	widgetpng       = "widget.png"
-	vanityurl       = "vanity-url"
-	member          = "member"
-	auditlogs       = "audit-logs"
-	channels        = "channels"
-	search          = "search"
-	gateway         = "gateway"
-	webhooks        = "webhooks"
-	nick            = "nick"
-	welcomescreen   = "welcome-screen"
-	private         = "private"
-	users           = "users"
+	original        = "@original"
+	pins            = "pins"
+	followers       = "followers"
+	preview         = "preview"
 	regions         = "regions"
+	threads         = "threads"
+	auditlogs       = "audit-logs"
+	crosspost       = "crosspost"
+	members         = "members"
+	slack           = "slack"
+	gateway         = "gateway"
+	applications    = "applications"
+	connections     = "connections"
+	guilds          = "guilds"
+	public          = "public"
+	nick            = "nick"
+	vanityurl       = "vanity-url"
+	typing          = "typing"
+	prune           = "prune"
+	welcomescreen   = "welcome-screen"
+	active          = "active"
+	me              = "@me"
+	emojis          = "emojis"
+	integrations    = "integrations"
 	widget          = "widget"
+	stickerpacks    = "sticker-packs"
+	bot             = "bot"
+	interactions    = "interactions"
+	permissions     = "permissions"
+	roles           = "roles"
+	widgetpng       = "widget.png"
+	commands        = "commands"
+	invites         = "invites"
+	templates       = "templates"
+	stageinstances  = "stage-instances"
+	stickers        = "stickers"
+	github          = "github"
+	slash           = "/"
+	reactions       = "reactions"
+	bulkdelete      = "bulk-delete"
+	users           = "users"
 	oauth           = "oauth2"
+	channels        = "channels"
+	recipients      = "recipients"
+	threadmembers   = "thread-members"
+	archived        = "archived"
+	search          = "search"
+	messages        = "messages"
+	voicestates     = "voice-states"
+	voice           = "voice"
+	private         = "private"
 	callback        = "callback"
+	member          = "member"
+	webhooks        = "webhooks"
 )
 
 // EndpointGetGlobalApplicationCommands builds a query for an HTTP request.
@@ -367,11 +367,6 @@ func EndpointListThreadMembers(channelid string) string {
 	return EndpointBaseURL + channels + slash + channelid + slash + threadmembers
 }
 
-// EndpointListActiveGuildThreads builds a query for an HTTP request.
-func EndpointListActiveGuildThreads(guildid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + threads + slash + active
-}
-
 // EndpointListPublicArchivedThreads builds a query for an HTTP request.
 func EndpointListPublicArchivedThreads(channelid string) string {
 	return EndpointBaseURL + channels + slash + channelid + slash + threads + slash + archived + slash + public
@@ -515,6 +510,11 @@ func EndpointCreateGuildChannel(guildid string) string {
 // EndpointModifyGuildChannelPositions builds a query for an HTTP request.
 func EndpointModifyGuildChannelPositions(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + channels
+}
+
+// EndpointListActiveGuildThreads builds a query for an HTTP request.
+func EndpointListActiveGuildThreads(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + threads + slash + active
 }
 
 // EndpointGetGuildMember builds a query for an HTTP request.
@@ -896,3 +896,9 @@ func EndpointGetCurrentBotApplicationInformation() string {
 func EndpointGetCurrentAuthorizationInformation() string {
 	return EndpointBaseURL + oauth + slash + me
 }
+
+var (
+	EndpointModifyChannelGroupDM = EndpointModifyChannel
+	EndpointModifyChannelGuild   = EndpointModifyChannel
+	EndpointModifyChannelThread  = EndpointModifyChannel
+)

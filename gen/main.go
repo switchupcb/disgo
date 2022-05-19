@@ -24,7 +24,6 @@ const (
 
 	outputEndpoints = "../wrapper/endpoints.go"
 	outputDasgo     = "../wrapper/dasgo.go"
-	outputSend      = "../wrapper/send.go"
 )
 
 func main() {
@@ -52,7 +51,13 @@ func main() {
 
 	if !*skipEndpoints {
 		inputEndpoints := filepath.Join(absfilepath, "endpoints.go")
-		std, err := tools.Endpoints(inputEndpoints)
+		data, err := os.ReadFile(inputEndpoints)
+		if err != nil {
+			fmt.Printf("endpoint error: %v", err)
+			os.Exit(3)
+		}
+
+		std, err := tools.Endpoints(data)
 		if err != nil {
 			fmt.Printf("endpoint error: %v", err)
 			os.Exit(3)
@@ -77,8 +82,10 @@ func main() {
 	}
 
 	// disgo generation
-	// generate()
-	// copygen -yml tools/copygen/setup/setup.yml -xm
+	if err = generate(); err != nil {
+		fmt.Printf("%v", err)
+		os.Exit(5)
+	}
 }
 
 // check checks that the current
@@ -103,7 +110,7 @@ func download(url, output string) error {
 		return fmt.Errorf("error downloading file from url.\n%v", string(std))
 	}
 
-	unzip := exec.Command("unzip", output, "-d", "input")
+	unzip := exec.Command("unzip", "-o", output, "-d", "input")
 	std, err = unzip.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("error unzipping file.\n%v", string(std))
@@ -114,32 +121,65 @@ func download(url, output string) error {
 
 // convert converts Dasgo objects to the Disgo standard.
 func convert(abspath string) error {
+	dasgopath := abspath + "/..."
+
 	// nstruct
 
 	// xstruct
-	xstruct := exec.Command("tools/xstruct", "-d", abspath+"/...", "-p", "wrapper", "-g")
+	xstruct := exec.Command("tools/xstruct", "-d", dasgopath, "-p", "wrapper", "-g")
 	std, err := xstruct.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("xstruct error: %v", string(std))
 	}
 
-	err = os.WriteFile(outputDasgo, std, filemodewrite)
-	if err != nil {
-		return fmt.Errorf("%w", err)
-	}
-
 	// snowflake
-	std, err = tools.Snowflake(outputDasgo)
+	std, err = tools.Snowflake(std)
 	if err != nil {
 		return fmt.Errorf("snowflake error: %v", err)
 	}
 
 	err = os.WriteFile(outputDasgo, std, filemodewrite)
 	if err != nil {
-		return fmt.Errorf("%w", err)
+		return fmt.Errorf("snowflake error: %v", err)
 	}
 
-	// flagstd
+	return nil
+}
+
+// generate generates Disgo code.
+func generate() error {
+	// requests
+	if err := os.Chdir("../"); err != nil {
+		return fmt.Errorf("chdir error (send): %v", err)
+	}
+
+	sendgen := exec.Command("copygen", "-yml", "wrapper/copygen/setup/setup.yml", "-xm")
+	std, err := sendgen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copygen error (send): %v", string(std))
+	}
+
+	if err := os.Chdir("gen"); err != nil {
+		return fmt.Errorf("chdir error (send): %v", err)
+	}
+
+	// events
+
+	// clean
+	data, err := os.ReadFile(outputDasgo)
+	if err != nil {
+		return fmt.Errorf("clean error: %v", err)
+	}
+
+	std, err = tools.Clean(data)
+	if err != nil {
+		return fmt.Errorf("clean error: %v", err)
+	}
+
+	err = os.WriteFile(outputDasgo, std, filemodewrite)
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
 
 	return nil
 }

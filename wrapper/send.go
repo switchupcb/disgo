@@ -1312,6 +1312,27 @@ func (r *ExecuteWebhook) Send(bot *Client) error {
 	return nil
 }
 
+// Send sends a *FollowNewsChannel to Discord and returns a *FollowedChannel.
+func (r *FollowNewsChannel) Send(bot *Client) (*FollowedChannel, error) {
+	var result *FollowedChannel
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a *FollowNewsChannel: \n%w", err)
+	}
+
+	err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, EndpointFollowNewsChannel(r.ChannelID), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending a *FollowNewsChannel: \n%w", err)
+	}
+
+	err = ParseResponseJSON(bot.ctx, result)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while parsing the response of a *FollowNewsChannel: \n%w", err)
+	}
+
+	return result, nil
+}
+
 // Send sends a *GetApplicationCommandPermissions to Discord and returns a *GuildApplicationCommandPermissions.
 func (r *GetApplicationCommandPermissions) Send(bot *Client) (*GuildApplicationCommandPermissions, error) {
 	var result *GuildApplicationCommandPermissions
@@ -2530,9 +2551,9 @@ func (r *LeaveThread) Send(bot *Client) error {
 	return nil
 }
 
-// Send sends a *ListActiveGuildThreads to Discord and returns a *ListActiveThreadsResponse.
-func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveThreadsResponse, error) {
-	var result *ListActiveThreadsResponse
+// Send sends a *ListActiveGuildThreads to Discord and returns a *ListActiveGuildThreadsResponse.
+func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsResponse, error) {
+	var result *ListActiveGuildThreadsResponse
 	body, err := json.Marshal(r)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred while marshalling a *ListActiveGuildThreads: \n%w", err)
@@ -2790,7 +2811,7 @@ func (r *ModifyChannelGroupDM) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf("an error occurred while marshalling a *ModifyChannelGroupDM: \n%w", err)
 	}
 
-	err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, EndpointModifyChannel(r.ChannelID), body)
+	err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, EndpointModifyChannelGroupDM(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred while sending a *ModifyChannelGroupDM: \n%w", err)
 	}
@@ -2811,7 +2832,7 @@ func (r *ModifyChannelGuild) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf("an error occurred while marshalling a *ModifyChannelGuild: \n%w", err)
 	}
 
-	err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, EndpointModifyChannel(r.ChannelID), body)
+	err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, EndpointModifyChannelGuild(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred while sending a *ModifyChannelGuild: \n%w", err)
 	}
@@ -2832,7 +2853,7 @@ func (r *ModifyChannelThread) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf("an error occurred while marshalling a *ModifyChannelThread: \n%w", err)
 	}
 
-	err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, EndpointModifyChannel(r.ChannelID), body)
+	err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, EndpointModifyChannelThread(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred while sending a *ModifyChannelThread: \n%w", err)
 	}
@@ -2882,27 +2903,6 @@ func (r *ModifyCurrentUser) Send(bot *Client) (*User, error) {
 	err = ParseResponseJSON(bot.ctx, result)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred while parsing the response of a *ModifyCurrentUser: \n%w", err)
-	}
-
-	return result, nil
-}
-
-// Send sends a *ModifyCurrentUserNick to Discord and returns a *ModifyCurrentUserNick.
-func (r *ModifyCurrentUserNick) Send(bot *Client) (*ModifyCurrentUserNick, error) {
-	var result *ModifyCurrentUserNick
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a *ModifyCurrentUserNick: \n%w", err)
-	}
-
-	err = http.SendRequestJSON(bot.client, bot.ctx, http.POST, EndpointModifyCurrentUserNick(r.GuildID), body)
-	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending a *ModifyCurrentUserNick: \n%w", err)
-	}
-
-	err = ParseResponseJSON(bot.ctx, result)
-	if err != nil {
-		return nil, fmt.Errorf("an error occurred while parsing the response of a *ModifyCurrentUserNick: \n%w", err)
 	}
 
 	return result, nil
