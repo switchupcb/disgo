@@ -20,9 +20,8 @@ jobs:
         with:
           version: v1.46
           args: ./wrapper
-      - name: Change Directory
-        run: cd _gen
       - name: Generator
-        uses: golangci/golangci-lint-action@v2
-        with:
-          version: v1.46
+        run: |
+        cd _gen
+        golangci-lint run
+        cd ..

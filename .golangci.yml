@@ -17,6 +17,7 @@ linters:
     - varnamelen
     - wsl
     - goerr113
+    - forbidigo
 
     - godox # Library is unfinished.
     - bodyclose # go1.18 version in development
