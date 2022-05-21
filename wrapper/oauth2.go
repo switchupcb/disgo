@@ -1,50 +1,9 @@
 package wrapper
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
-	"time"
-)
-
-// OAuth2 Scopes
-// https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
-const (
-	FlagOAuth2ScopeActivitiesRead                        = "activities.read"
-	FlagOAuth2ScopeActivitiesWrite                       = "activities.write"
-	FlagOAuth2ScopeApplicationsBuildsRead                = "applications.builds.read"
-	FlagOAuth2ScopeApplicationsBuildsUpload              = "applications.builds.upload"
-	FlagOAuth2ScopeApplicationsCommands                  = "applications.commands"
-	FlagOAuth2ScopeApplicationsCommandsUpdate            = "applications.commands.update"
-	FlagOAuth2ScopeApplicationsCommandsPermissionsUpdate = "applications.commands.permissions.update"
-	FlagOAuth2ScopeApplicationsEntitlements              = "applications.entitlements"
-	FlagOAuth2ScopeApplicationsStoreUpdate               = "applications.store.update"
-	FlagOAuth2ScopeBot                                   = "bot"
-	FlagOAuth2ScopeConnections                           = "connections"
-	FlagOAuth2ScopeDM_channelsRead                       = "dm_channels.read"
-	FlagOAuth2ScopeEmail                                 = "email"
-	FlagOAuth2ScopeGDMJoin                               = "gdm.join"
-	FlagOAuth2ScopeGuilds                                = "guilds"
-	FlagOAuth2ScopeGuildsJoin                            = "guilds.join"
-	FlagOAuth2ScopeGuildsMembersRead                     = "guilds.members.read"
-	FlagOAuth2ScopeIdentify                              = "identify"
-	FlagOAuth2ScopeMessagesRead                          = "messages.read"
-	FlagOAuth2ScopeRelationshipsRead                     = "relationships.read"
-	FlagOAuth2ScopeRPC                                   = "rpc"
-	FlagOAuth2ScopeRPCActivitiesWrite                    = "rpc.activities.write"
-	FlagOAuth2ScopeRPCNotificationsRead                  = "rpc.notifications.read"
-	FlagOAuth2ScopeRPCVoiceRead                          = "rpc.voice.read"
-	FlagOAuth2ScopeRPCVoiceWrite                         = "rpc.voice.write"
-	FlagOAuth2ScopeVoice                                 = "voice"
-	FlagOAuth2ScopeWebhookIncoming                       = "webhook.incoming"
-)
-
-// OAuth2 URLs
-// https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-urls
-// TODO: swap to dasgo endpoint function.
-const (
-	EndpointBaseAuthorizationURL   = "https://discord.com/api/oauth2/authorize"
-	EndpointBaseTokenURL           = "https://discord.com/api/oauth2/token"
-	EndpointBaseTokenRevocationURL = "https://discord.com/api/oauth2/token/revoke"
 )
 
 // ContentTypeURL represents an HTTP header that indicates a encoded URL.
@@ -52,40 +11,10 @@ var ContentTypeURL = []byte("application/x-www-form-urlencoded")
 
 // AuthorizationCodeGrant performs an OAuth2 authorization code grant.
 //https://discord.com/developers/docs/topics/oauth2#authorization-code-grant
-func AuthorizationCodeGrant(bot *Client) string {
-	// retrieve an access code.
-	authorizationURL := AuthorizationURL(bot)
-	// get request to authorizationURL for code.
-
-	// exchange the access code for a user's access token.
-	/*
-		data := map[string]string{
-			"client_id":     bot.Authorization.ClientID,
-			"client_secret": bot.Authorization.ClientSecret,
-			"grant_type":    "authorization_code",
-			"code":          code,
-			"redirect_uri":  bot.Authorization.RedirectURI,
-		}
-		header := ContentTypeURL
-	*/
-
-	// post request to access token url
-	// marshal response to AccessTokenResponse
-	// set bot AccessToken information.
-
-	return authorizationURL
-}
-
-// AuthorizationURL generates an authorization URL from a given client
-func AuthorizationURL(bot *Client) string {
-	params := make([]string, 0, 5)
-
-	// client_id is the application client id.
-	params = append(params, "client_id="+bot.Authorization.ClientID)
-
+func AuthorizationCodeGrant(bot *Client) error {
 	// scope is a list of OAuth2 scopes separated by url encoded spaces (%20).
+	var scope strings.Builder
 	if len(bot.Authorization.Scopes) > 0 {
-		var scope strings.Builder
 		scope.WriteString("scope=")
 
 		for i, s := range bot.Authorization.Scopes {
@@ -95,7 +24,64 @@ func AuthorizationURL(bot *Client) string {
 
 			scope.WriteString(s)
 		}
-		params = append(params, scope.String())
+	}
+
+	// TODO
+	// set header := ContentTypeURL and data where necessary.
+	// fix endpoints for send()
+
+	// retrieve an access code.
+	authurl := AuthorizationURL{
+		ResponseType: "code",
+		ClientID:     bot.Authorization.ClientID,
+		Scope:        scope.String(),
+		State:        bot.Authorization.State,
+		RedirectURI:  bot.Authorization.RedirectURI,
+		Prompt:       bot.Authorization.Prompt,
+	}
+
+	redirecturl, err := authurl.SendAuthorizationCodeGrantURL(bot)
+	if err != nil {
+		return err
+	}
+
+	// exchange the access code for a user's access token.
+	accesstokenexchange := AccessTokenExchange{
+		ClientID:     bot.Authorization.ClientID,
+		ClientSecret: bot.Authorization.ClientSecret,
+		GrantType:    "authorization_code",
+		Code:         redirecturl.Code,
+		RedirectURI:  bot.Authorization.RedirectURI,
+	}
+
+	// set bot AccessToken information.
+	bot.AccessToken, err = accesstokenexchange.SendAccessTokenExchange(bot)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// AuthorizationURL generates an authorization URL from a given client
+func EndAuthorizationURL(bot *Client) string {
+	params := make([]string, 0, 5)
+
+	// client_id is the application client id.
+	params = append(params, "client_id="+bot.Authorization.ClientID)
+
+	// scope is a list of OAuth2 scopes separated by url encoded spaces (%20).
+	var scope strings.Builder
+	if len(bot.Authorization.Scopes) > 0 {
+		scope.WriteString("scope=")
+
+		for i, s := range bot.Authorization.Scopes {
+			if i > 0 {
+				scope.WriteString("%20")
+			}
+
+			scope.WriteString(s)
+		}
 	}
 
 	// redirect_uri is the URL registered while creating the application.
@@ -113,17 +99,7 @@ func AuthorizationURL(bot *Client) string {
 		params = append(params, "prompt="+bot.Authorization.Prompt)
 	}
 
-	return EndpointBaseAuthorizationURL + "?response_type=code&" + strings.Join(params, "&")
-}
-
-// Access Token Response
-// https://discord.com/developers/docs/topics/oauth2#authorization-code-grant-access-token-response
-type AccessTokenResponse struct {
-	AccessToken  string        `json:"access_token,omitempty"`
-	TokenType    string        `json:"token_type,omitempty"`
-	ExpiresIn    time.Duration `json:"expires_in,omitempty"`
-	RefreshToken string        `json:"refresh_token,omitempty"`
-	Scope        string        `json:"scope,omitempty"`
+	return EndpointAuthorizationURL() + "?response_type=code&" + strings.Join(params, "&")
 }
 
 // RefreshAccessTokenExchange refreshes the given client's access token.
@@ -146,4 +122,132 @@ func RefreshAccessTokenExchange(bot *Client) error {
 	*/
 
 	return nil
+}
+
+// SendAuthorizationCodeGrantURL sends a AuthorizationURL to Discord and returns a RedirectURL.
+func (r *AuthorizationURL) SendAuthorizationCodeGrantURL(bot *Client) (*RedirectURL, error) {
+	var result *RedirectURL
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+	}
+
+	return result, nil
+}
+
+// SendAccessTokenExchange sends a AccessTokenExchange to Discord and returns a AccessTokenResponse.
+func (r *AccessTokenExchange) SendAccessTokenExchange(bot *Client) (*AccessTokenResponse, error) {
+	var result *AccessTokenResponse
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AccessTokenExchange: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointTokenURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AccessTokenExchange: \n%w", err)
+	}
+
+	return result, nil
+}
+
+// SendRefreshTokenExchange sends a RefreshTokenExchange to Discord and returns a AccessTokenResponse.
+func (r *RefreshTokenExchange) SendRefreshTokenExchange(bot *Client) (*AccessTokenResponse, error) {
+	var result *AccessTokenResponse
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a RefreshTokenExchange: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointTokenURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending RefreshTokenExchange: \n%w", err)
+	}
+
+	return result, nil
+}
+
+// SendImplicitAuthorizationURL sends a AuthorizationURL to Discord and returns a RedirectURI.
+func (r *AuthorizationURL) SendImplicitAuthorizationURL(bot *Client) (*RedirectURI, error) {
+	var result *RedirectURI
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+	}
+
+	return result, nil
+}
+
+// SendBotAuth sends a BotAuth to Discord and returns a error.
+func (r *BotAuth) SendBotAuth(bot *Client) error {
+	var result error
+	body, err := json.Marshal(r)
+	if err != nil {
+		return fmt.Errorf("an error occurred while marshalling a BotAuth: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
+	if err != nil {
+		return fmt.Errorf("an error occurred while sending BotAuth: \n%w", err)
+	}
+
+	return nil
+}
+
+// SendClientCredentialsTokenRequest sends a ClientCredentialsTokenRequest to Discord and returns a ClientCredentialsTokenRequest.
+func (r *ClientCredentialsTokenRequest) SendClientCredentialsTokenRequest(bot *Client) (*ClientCredentialsTokenRequest, error) {
+	var result *ClientCredentialsTokenRequest
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a ClientCredentialsTokenRequest: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointTokenURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending ClientCredentialsTokenRequest: \n%w", err)
+	}
+
+	return result, nil
+}
+
+// SendAdvancedBotAuth sends a AuthorizationURL to Discord and returns a ExtendedBotAuthorizationAccessTokenResponse.
+func (r *AuthorizationURL) SendAdvancedBotAuth(bot *Client) (*ExtendedBotAuthorizationAccessTokenResponse, error) {
+	var result *ExtendedBotAuthorizationAccessTokenResponse
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+	}
+
+	return result, nil
+}
+
+// SendWebhookAuth sends a AuthorizationURL to Discord and returns a WebhookTokenResponse.
+func (r *AuthorizationURL) SendWebhookAuth(bot *Client) (*WebhookTokenResponse, error) {
+	var result *WebhookTokenResponse
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+	}
+
+	return result, nil
 }

@@ -84,7 +84,7 @@ Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to c
 
 1. Implement Client (OAuth).
 2. Implement Gateway (WebSocket, Events).
-3. Implement Rate Limits.
+3. Implement Rate Limits (HTTP, Gateway)
 4. Implement Retries.
 5. **Implement Testing** _[usable at this stage]_.
 6. Implement Sharding.

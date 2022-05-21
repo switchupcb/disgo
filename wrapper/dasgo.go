@@ -280,84 +280,6 @@ const (
 	FlagCodesEventCloseRPCInvalidEncoding = 4005
 )
 
-// Gateway Commands
-// https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-commands
-type Command interface{}
-
-// Identify Structure
-// https://discord.com/developers/docs/topics/gateway#identify-identify-structure
-type Identify struct {
-	Token          string                       `json:"token,omitempty"`
-	Properties     IdentifyConnectionProperties `json:"properties,omitempty"`
-	Compress       bool                         `json:"compress,omitempty"`
-	LargeThreshold int                          `json:"large_threshold,omitempty"`
-	Shard          *[2]int                      `json:"shard,omitempty"`
-	Presence       GatewayPresenceUpdate        `json:"presence,omitempty"`
-	Intents        BitFlag                      `json:"intents,omitempty"`
-}
-
-// Identify Connection Properties
-// https://discord.com/developers/docs/topics/gateway#identify-identify-connection-properties
-type IdentifyConnectionProperties struct {
-	OS      string `json:"$os,omitempty"`
-	Browser string `json:"$browser,omitempty"`
-	Device  string `json:"$device,omitempty"`
-}
-
-// Resume Structure
-// https://discord.com/developers/docs/topics/gateway#resume-resume-structure
-type Resume struct {
-	Token     string `json:"token,omitempty"`
-	SessionID string `json:"session_id,omitempty"`
-	Seq       uint32 `json:"seq,omitempty"`
-}
-
-// Heartbeat
-// https://discord.com/developers/docs/topics/gateway#heartbeat
-type Heartbeat struct {
-	Op   int   `json:"op,omitempty"`
-	Data int64 `json:"d,omitempty"`
-}
-
-// Guild Request Members Structure
-// https://discord.com/developers/docs/topics/gateway#request-guild-members-guild-request-members-structure
-type GuildRequestMembers struct {
-	GuildID   string   `json:"guild_id,omitempty"`
-	Query     string   `json:"query,omitempty"`
-	Limit     uint     `json:"limit,omitempty"`
-	Presences bool     `json:"presences,omitempty"`
-	UserIDs   []string `json:"user_ids,omitempty"`
-	Nonce     string   `json:"nonce,omitempty"`
-}
-
-// Gateway Voice State Update Structure
-// https://discord.com/developers/docs/topics/gateway#update-voice-state-gateway-voice-state-update-structure
-type GatewayVoiceStateUpdate struct {
-	GuildID   string `json:"guild_id,omitempty"`
-	ChannelID string `json:"channel_id,omitempty"`
-	SelfMute  bool   `json:"self_mute,omitempty"`
-	SelfDeaf  bool   `json:"self_deaf,omitempty"`
-}
-
-// Gateway Presence Update Structure
-// https://discord.com/developers/docs/topics/gateway#update-presence-gateway-presence-update-structure
-type GatewayPresenceUpdate struct {
-	Since  int         `json:"since,omitempty"`
-	Game   []*Activity `json:"game,omitempty"`
-	Status string      `json:"status,omitempty"`
-	AFK    bool        `json:"afk,omitempty"`
-}
-
-// Status Types
-// https://discord.com/developers/docs/topics/gateway#update-presence-status-types
-const (
-	FlagTypesStatusOnline       = "online"
-	FlagTypesStatusDoNotDisturb = "dnd"
-	FlagTypesStatusAFK          = "idle"
-	FlagTypesStatusInvisible    = "invisible"
-	FlagTypesStatusOffline      = "offline"
-)
-
 // Snowflake represents a Discord API Snowflake.
 type Snowflake uint64
 
@@ -934,6 +856,84 @@ const (
 	// GUILD_SCHEDULED_EVENT_USER_ADD
 	// GUILD_SCHEDULED_EVENT_USER_REMOVE
 	FlagIntentsofListGUILD_SCHEDULED_EVENTS = 1 << 16
+)
+
+// Gateway Commands
+// https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-commands
+type Command interface{}
+
+// Identify Structure
+// https://discord.com/developers/docs/topics/gateway#identify-identify-structure
+type Identify struct {
+	Token          string                       `json:"token,omitempty"`
+	Properties     IdentifyConnectionProperties `json:"properties,omitempty"`
+	Compress       bool                         `json:"compress,omitempty"`
+	LargeThreshold int                          `json:"large_threshold,omitempty"`
+	Shard          *[2]int                      `json:"shard,omitempty"`
+	Presence       GatewayPresenceUpdate        `json:"presence,omitempty"`
+	Intents        BitFlag                      `json:"intents,omitempty"`
+}
+
+// Identify Connection Properties
+// https://discord.com/developers/docs/topics/gateway#identify-identify-connection-properties
+type IdentifyConnectionProperties struct {
+	OS      string `json:"$os,omitempty"`
+	Browser string `json:"$browser,omitempty"`
+	Device  string `json:"$device,omitempty"`
+}
+
+// Resume Structure
+// https://discord.com/developers/docs/topics/gateway#resume-resume-structure
+type Resume struct {
+	Token     string `json:"token,omitempty"`
+	SessionID string `json:"session_id,omitempty"`
+	Seq       uint32 `json:"seq,omitempty"`
+}
+
+// Heartbeat
+// https://discord.com/developers/docs/topics/gateway#heartbeat
+type Heartbeat struct {
+	Op   int   `json:"op,omitempty"`
+	Data int64 `json:"d,omitempty"`
+}
+
+// Guild Request Members Structure
+// https://discord.com/developers/docs/topics/gateway#request-guild-members-guild-request-members-structure
+type GuildRequestMembers struct {
+	GuildID   string   `json:"guild_id,omitempty"`
+	Query     string   `json:"query,omitempty"`
+	Limit     uint     `json:"limit,omitempty"`
+	Presences bool     `json:"presences,omitempty"`
+	UserIDs   []string `json:"user_ids,omitempty"`
+	Nonce     string   `json:"nonce,omitempty"`
+}
+
+// Gateway Voice State Update Structure
+// https://discord.com/developers/docs/topics/gateway#update-voice-state-gateway-voice-state-update-structure
+type GatewayVoiceStateUpdate struct {
+	GuildID   string `json:"guild_id,omitempty"`
+	ChannelID string `json:"channel_id,omitempty"`
+	SelfMute  bool   `json:"self_mute,omitempty"`
+	SelfDeaf  bool   `json:"self_deaf,omitempty"`
+}
+
+// Gateway Presence Update Structure
+// https://discord.com/developers/docs/topics/gateway#update-presence-gateway-presence-update-structure
+type GatewayPresenceUpdate struct {
+	Since  int         `json:"since,omitempty"`
+	Game   []*Activity `json:"game,omitempty"`
+	Status string      `json:"status,omitempty"`
+	AFK    bool        `json:"afk,omitempty"`
+}
+
+// Status Types
+// https://discord.com/developers/docs/topics/gateway#update-presence-status-types
+const (
+	FlagTypesStatusOnline       = "online"
+	FlagTypesStatusDoNotDisturb = "dnd"
+	FlagTypesStatusAFK          = "idle"
+	FlagTypesStatusInvisible    = "invisible"
+	FlagTypesStatusOffline      = "offline"
 )
 
 // Locales
@@ -2554,6 +2554,58 @@ type GetGateway struct{}
 // https://discord.com/developers/docs/topics/gateway#get-gateway-bot
 type GetGatewayBot struct{}
 
+// Authorization URL
+// GET /oauth2/authorize
+// https://discord.com/developers/docs/topics/oauth2#authorization-code-grant-authorization-url-example
+type AuthorizationURL struct {
+	ResponseType string `url:"response_type,omitempty"`
+	ClientID     string `url:"client_id,omitempty"`
+	Scope        string `url:"scope,omitempty"`
+	State        string `url:"state,omitempty"`
+	RedirectURI  string `url:"redirect_uri,omitempty"`
+	Prompt       string `url:"prompt,omitempty"`
+}
+
+// Access Token Exchange
+// POST /oauth2/token
+// https://discord.com/developers/docs/topics/oauth2#authorization-code-grant-access-token-exchange-example
+type AccessTokenExchange struct {
+	ClientID     string `url:"client_id,omitempty"`
+	ClientSecret string `url:"client_secret,omitempty"`
+	GrantType    string `url:"grant_type,omitempty"`
+	Code         string `url:"code,omitempty"`
+	RedirectURI  string `url:"redirect_uri,omitempty"`
+}
+
+// Refresh Token Exchange
+// POST /oauth2/token
+// https://discord.com/developers/docs/topics/oauth2#authorization-code-grant-refresh-token-exchange-example
+type RefreshTokenExchange struct {
+	ClientID     string `url:"client_id,omitempty"`
+	ClientSecret string `url:"client_secret,omitempty"`
+	GrantType    string `url:"grant_type,omitempty"`
+	RedirectURI  string `url:"redirect_uri,omitempty"`
+}
+
+// Client Credentials Token Request
+// POST /oauth2/token
+// https://discord.com/developers/docs/topics/oauth2#client-credentials-grant-client-credentials-token-request-example
+type ClientCredentialsTokenRequest struct {
+	GrantType string `url:"grant_type,omitempty"`
+	Scope     string `url:"scope,omitempty"`
+}
+
+// Bot Auth Parameters
+// GET /oauth2/authorize
+// https://discord.com/developers/docs/topics/oauth2#bot-authorization-flow-bot-auth-parameters
+type BotAuth struct {
+	ClientID           string  `url:"client_id,omitempty"`
+	Scope              string  `url:"scope,omitempty"`
+	Permissions        BitFlag `url:"permissions,omitempty"`
+	GuildID            string  `url:"guild_id,omitempty"`
+	DisableGuildSelect bool    `url:"disable_guild_select,omitempty"`
+}
+
 // Application Command Structure
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 type ApplicationCommand struct {
@@ -4108,6 +4160,38 @@ const (
 	FlagActivityEMBEDDED                    = 1 << 8
 )
 
+// OAuth2 Scopes
+// https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
+const (
+	FlagOAuth2ScopeActivitiesRead                        = "activities.read"
+	FlagOAuth2ScopeActivitiesWrite                       = "activities.write"
+	FlagOAuth2ScopeApplicationsBuildsRead                = "applications.builds.read"
+	FlagOAuth2ScopeApplicationsBuildsUpload              = "applications.builds.upload"
+	FlagOAuth2ScopeApplicationsCommands                  = "applications.commands"
+	FlagOAuth2ScopeApplicationsCommandsUpdate            = "applications.commands.update"
+	FlagOAuth2ScopeApplicationsCommandsPermissionsUpdate = "applications.commands.permissions.update"
+	FlagOAuth2ScopeApplicationsEntitlements              = "applications.entitlements"
+	FlagOAuth2ScopeApplicationsStoreUpdate               = "applications.store.update"
+	FlagOAuth2ScopeBot                                   = "bot"
+	FlagOAuth2ScopeConnections                           = "connections"
+	FlagOAuth2ScopeDM_channelsRead                       = "dm_channels.read"
+	FlagOAuth2ScopeEmail                                 = "email"
+	FlagOAuth2ScopeGDMJoin                               = "gdm.join"
+	FlagOAuth2ScopeGuilds                                = "guilds"
+	FlagOAuth2ScopeGuildsJoin                            = "guilds.join"
+	FlagOAuth2ScopeGuildsMembersRead                     = "guilds.members.read"
+	FlagOAuth2ScopeIdentify                              = "identify"
+	FlagOAuth2ScopeMessagesRead                          = "messages.read"
+	FlagOAuth2ScopeRelationshipsRead                     = "relationships.read"
+	FlagOAuth2ScopeRPC                                   = "rpc"
+	FlagOAuth2ScopeRPCActivitiesWrite                    = "rpc.activities.write"
+	FlagOAuth2ScopeRPCNotificationsRead                  = "rpc.notifications.read"
+	FlagOAuth2ScopeRPCVoiceRead                          = "rpc.voice.read"
+	FlagOAuth2ScopeRPCVoiceWrite                         = "rpc.voice.write"
+	FlagOAuth2ScopeVoice                                 = "voice"
+	FlagOAuth2ScopeWebhookIncoming                       = "webhook.incoming"
+)
+
 // List Public Archived Threads Response Body
 // https://discord.com/developers/docs/resources/channel#list-active-threads-response-body
 type ListPublicArchivedThreadsResponse struct {
@@ -4160,4 +4244,66 @@ type GetGatewayBotResponse struct {
 	URL               string            `json:"url,omitempty"`
 	Shards            *int              `json:"shards,omitempty"`
 	SessionStartLimit SessionStartLimit `json:"session_start_limit"`
+}
+
+// Redirect URL
+// https://discord.com/developers/docs/topics/oauth2#authorization-code-grant-redirect-url-example
+type RedirectURL struct {
+	Code  string `url:"code,omitempty"`
+	State string `url:"state,omitempty"`
+
+	// https://discord.com/developers/docs/topics/oauth2#advanced-bot-authorization
+	GuildID     string  `url:"guild_id,omitempty"`
+	Permissions BitFlag `url:"permissions,omitempty"`
+}
+
+// Access Token Response
+// https://discord.com/developers/docs/topics/oauth2#authorization-code-grant-access-token-response
+type AccessTokenResponse struct {
+	AccessToken  string        `json:"access_token,omitempty"`
+	TokenType    string        `json:"token_type,omitempty"`
+	ExpiresIn    time.Duration `json:"expires_in,omitempty"`
+	RefreshToken string        `json:"refresh_token,omitempty"`
+	Scope        string        `json:"scope,omitempty"`
+}
+
+// Redirect URI
+// https://discord.com/developers/docs/topics/oauth2#implicit-grant-redirect-url-example
+type RedirectURI struct {
+	AccessToken string        `url:"access_token,omitempty"`
+	TokenType   string        `url:"token_type,omitempty"`
+	ExpiresIn   time.Duration `url:"expires_in,omitempty"`
+	Scope       string        `url:"scope,omitempty"`
+	State       string        `url:"state,omitempty"`
+}
+
+// Client Credentials Access Token Response
+// https://discord.com/developers/docs/topics/oauth2#client-credentials-grant-client-credentials-access-token-response
+type ClientCredentialsAccessTokenResponse struct {
+	AccessToken string        `json:"access_token,omitempty"`
+	TokenType   string        `json:"token_type,omitempty"`
+	ExpiresIn   time.Duration `json:"expires_in,omitempty"`
+	Scope       string        `json:"scope,omitempty"`
+}
+
+// Webhook Token Response
+// https://discord.com/developers/docs/topics/oauth2#webhooks-webhook-token-response-example
+type WebhookTokenResponse struct {
+	TokenType    string        `json:"token_type,omitempty"`
+	AccessToken  string        `json:"access_token,omitempty"`
+	Scope        string        `json:"scope,omitempty"`
+	ExpiresIn    time.Duration `json:"expires_in,omitempty"`
+	RefreshToken string        `json:"refresh_token,omitempty"`
+	Webhook      *Webhook      `json:"webhook,omitempty"`
+}
+
+// Extended Bot Authorization Access Token Response
+// https://discord.com/developers/docs/topics/oauth2#authorization-code-grant-access-token-response
+type ExtendedBotAuthorizationAccessTokenResponse struct {
+	TokenType    string        `json:"token_type,omitempty"`
+	Guild        *Guild        `json:"guild,omitempty"`
+	AccessToken  string        `json:"access_token,omitempty"`
+	Scope        string        `json:"scope,omitempty"`
+	ExpiresIn    time.Duration `json:"expires_in,omitempty"`
+	RefreshToken string        `json:"refresh_token,omitempty"`
 }

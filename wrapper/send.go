@@ -8,6 +8,22 @@ import (
 	"fmt"
 )
 
+// Send sends a AccessTokenExchange to Discord and returns a AccessTokenResponse.
+func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
+	var result *AccessTokenResponse
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AccessTokenExchange: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAccessTokenExchange(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AccessTokenExchange: \n%w", err)
+	}
+
+	return result, nil
+}
+
 // Send sends a AddGuildMember to Discord and returns a GuildMember.
 func (r *AddGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var result *GuildMember
@@ -56,6 +72,38 @@ func (r *AddThreadMember) Send(bot *Client) error {
 	return nil
 }
 
+// Send sends a AuthorizationURL to Discord and returns a ExtendedBotAuthorizationAccessTokenResponse.
+func (r *AuthorizationURL) Send(bot *Client) (*ExtendedBotAuthorizationAccessTokenResponse, error) {
+	var result *ExtendedBotAuthorizationAccessTokenResponse
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+	}
+
+	return result, nil
+}
+
+// Send sends a AuthorizationURL to Discord and returns a RedirectURL.
+func (r *AuthorizationURL) Send(bot *Client) (*RedirectURL, error) {
+	var result *RedirectURL
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+	}
+
+	return result, nil
+}
+
 // Send sends a BatchEditApplicationCommandPermissions to Discord and returns a GuildApplicationCommandPermissions.
 func (r *BatchEditApplicationCommandPermissions) Send(bot *Client) (*GuildApplicationCommandPermissions, error) {
 	var result *GuildApplicationCommandPermissions
@@ -83,6 +131,22 @@ func (r *BeginGuildPrune) Send(bot *Client) error {
 	err = SendRequest(result, bot.client, TODO, EndpointBeginGuildPrune(r.GuildID), body)
 	if err != nil {
 		return fmt.Errorf("an error occurred while sending BeginGuildPrune: \n%w", err)
+	}
+
+	return nil
+}
+
+// Send sends a BotAuth to Discord and returns a error.
+func (r *BotAuth) Send(bot *Client) error {
+	var result error
+	body, err := json.Marshal(r)
+	if err != nil {
+		return fmt.Errorf("an error occurred while marshalling a BotAuth: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointBotAuth(), body)
+	if err != nil {
+		return fmt.Errorf("an error occurred while sending BotAuth: \n%w", err)
 	}
 
 	return nil
@@ -131,6 +195,22 @@ func (r *BulkOverwriteGuildApplicationCommands) Send(bot *Client) ([]*Applicatio
 	err = SendRequest(result, bot.client, TODO, EndpointBulkOverwriteGuildApplicationCommands(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf("an error occurred while sending BulkOverwriteGuildApplicationCommands: \n%w", err)
+	}
+
+	return result, nil
+}
+
+// Send sends a ClientCredentialsTokenRequest to Discord and returns a ClientCredentialsTokenRequest.
+func (r *ClientCredentialsTokenRequest) Send(bot *Client) (*ClientCredentialsTokenRequest, error) {
+	var result *ClientCredentialsTokenRequest
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a ClientCredentialsTokenRequest: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointClientCredentialsTokenRequest(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending ClientCredentialsTokenRequest: \n%w", err)
 	}
 
 	return result, nil
@@ -1896,6 +1976,22 @@ func (r *GroupDMRemoveRecipient) Send(bot *Client) error {
 	return nil
 }
 
+// Send sends a AuthorizationURL to Discord and returns a RedirectURI.
+func (r *AuthorizationURL) Send(bot *Client) (*RedirectURI, error) {
+	var result *RedirectURI
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+	}
+
+	return result, nil
+}
+
 // Send sends a JoinThread to Discord and returns a error.
 func (r *JoinThread) Send(bot *Client) error {
 	var result error
@@ -2488,6 +2584,22 @@ func (r *PinMessage) Send(bot *Client) error {
 	return nil
 }
 
+// Send sends a RefreshTokenExchange to Discord and returns a AccessTokenResponse.
+func (r *RefreshTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
+	var result *AccessTokenResponse
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a RefreshTokenExchange: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointRefreshTokenExchange(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending RefreshTokenExchange: \n%w", err)
+	}
+
+	return result, nil
+}
+
 // Send sends a RemoveGuildBan to Discord and returns a error.
 func (r *RemoveGuildBan) Send(bot *Client) error {
 	var result error
@@ -2662,4 +2774,20 @@ func (r *UnpinMessage) Send(bot *Client) error {
 	}
 
 	return nil
+}
+
+// Send sends a AuthorizationURL to Discord and returns a WebhookTokenResponse.
+func (r *AuthorizationURL) Send(bot *Client) (*WebhookTokenResponse, error) {
+	var result *WebhookTokenResponse
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+	}
+
+	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
+	if err != nil {
+		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+	}
+
+	return result, nil
 }
