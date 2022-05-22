@@ -78,7 +78,7 @@ func generateBody(function *models.Function) string {
 	body.WriteString(generateMarshalErrReturn(function, request))
 	body.WriteString("}\n")
 	body.WriteString("\n")
-	body.WriteString("err = SendRequest(result, bot.client, TODO, " + generateEndpointCall(function.From[0].Field) + ", body)\n")
+	body.WriteString("err = SendRequest(result, bot.client, " + generateHTTPMethod(function) + ", " + generateEndpointCall(function.From[0].Field) + ", body)\n")
 	body.WriteString("if err != nil {\n")
 	body.WriteString(generateSendRequestErrReturn(function, request))
 	body.WriteString("}\n")
@@ -86,7 +86,28 @@ func generateBody(function *models.Function) string {
 	return body.String()
 }
 
-// generateEndpointCall generates the endpoint function call (parameter) for a SendRequestJSON call.
+// generateHTTPMethod generates the HTTP method type for a SendRequest call.
+func generateHTTPMethod(function *models.Function) string {
+	http := function.Options.Custom["http"][0]
+
+	var method string
+	switch http {
+	case "GET":
+		method = "Get"
+	case "POST":
+		method = "Post"
+	case "PUT":
+		method = "Put"
+	case "PATCH":
+		method = "Patch"
+	case "DELETE":
+		method = "Delete"
+	}
+
+	return "fasthttp.Method" + method
+}
+
+// generateEndpointCall generates the endpoint function call (parameter) for a SendRequest call.
 func generateEndpointCall(request *models.Field) string {
 	var parameters strings.Builder
 

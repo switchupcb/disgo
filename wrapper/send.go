@@ -6,6 +6,8 @@ package wrapper
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/valyala/fasthttp"
 )
 
 // Send sends a AddGuildMember to Discord and returns a GuildMember.
@@ -16,7 +18,7 @@ func (r *AddGuildMember) Send(bot *Client) (*GuildMember, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "AddGuildMember", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointAddGuildMember(r.GuildID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointAddGuildMember(r.GuildID, r.UserID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "AddGuildMember", err)
 	}
@@ -32,7 +34,7 @@ func (r *AddGuildMemberRole) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "AddGuildMemberRole", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointAddGuildMemberRole(r.GuildID, r.UserID, r.RoleID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointAddGuildMemberRole(r.GuildID, r.UserID, r.RoleID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "AddGuildMemberRole", err)
 	}
@@ -48,7 +50,7 @@ func (r *AddThreadMember) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "AddThreadMember", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointAddThreadMember(r.ChannelID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointAddThreadMember(r.ChannelID, r.UserID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "AddThreadMember", err)
 	}
@@ -64,7 +66,7 @@ func (r *BatchEditApplicationCommandPermissions) Send(bot *Client) (*GuildApplic
 		return nil, fmt.Errorf(ErrSendMarshal, "BatchEditApplicationCommandPermissions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointBatchEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointBatchEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "BatchEditApplicationCommandPermissions", err)
 	}
@@ -80,7 +82,7 @@ func (r *BeginGuildPrune) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "BeginGuildPrune", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointBeginGuildPrune(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointBeginGuildPrune(r.GuildID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "BeginGuildPrune", err)
 	}
@@ -96,7 +98,7 @@ func (r *BulkDeleteMessages) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "BulkDeleteMessages", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointBulkDeleteMessages(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointBulkDeleteMessages(r.ChannelID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "BulkDeleteMessages", err)
 	}
@@ -112,7 +114,7 @@ func (r *BulkOverwriteGlobalApplicationCommands) Send(bot *Client) ([]*Applicati
 		return nil, fmt.Errorf(ErrSendMarshal, "BulkOverwriteGlobalApplicationCommands", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointBulkOverwriteGlobalApplicationCommands(bot.ApplicationID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointBulkOverwriteGlobalApplicationCommands(bot.ApplicationID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "BulkOverwriteGlobalApplicationCommands", err)
 	}
@@ -128,7 +130,7 @@ func (r *BulkOverwriteGuildApplicationCommands) Send(bot *Client) ([]*Applicatio
 		return nil, fmt.Errorf(ErrSendMarshal, "BulkOverwriteGuildApplicationCommands", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointBulkOverwriteGuildApplicationCommands(bot.ApplicationID, r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointBulkOverwriteGuildApplicationCommands(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "BulkOverwriteGuildApplicationCommands", err)
 	}
@@ -144,7 +146,7 @@ func (r *CreateChannelInvite) Send(bot *Client) (*Invite, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateChannelInvite", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateChannelInvite(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointCreateChannelInvite(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateChannelInvite", err)
 	}
@@ -160,7 +162,7 @@ func (r *CreateFollowupMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateFollowupMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateFollowupMessage(bot.ApplicationID, r.InteractionToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointCreateFollowupMessage(bot.ApplicationID, r.InteractionToken), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateFollowupMessage", err)
 	}
@@ -176,7 +178,7 @@ func (r *CreateGlobalApplicationCommand) Send(bot *Client) (*ApplicationCommand,
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGlobalApplicationCommand", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGlobalApplicationCommand(bot.ApplicationID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointCreateGlobalApplicationCommand(bot.ApplicationID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGlobalApplicationCommand", err)
 	}
@@ -192,7 +194,7 @@ func (r *CreateGroupDM) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGroupDM", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGroupDM(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointCreateGroupDM(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGroupDM", err)
 	}
@@ -208,7 +210,7 @@ func (r *CreateGuild) Send(bot *Client) (*Guild, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuild", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuild(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointCreateGuild(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuild", err)
 	}
@@ -224,7 +226,7 @@ func (r *CreateGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, 
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildApplicationCommand", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildApplicationCommand(bot.ApplicationID, r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointCreateGuildApplicationCommand(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildApplicationCommand", err)
 	}
@@ -240,7 +242,7 @@ func (r *CreateGuildBan) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "CreateGuildBan", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildBan(r.GuildID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointCreateGuildBan(r.GuildID, r.UserID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "CreateGuildBan", err)
 	}
@@ -256,7 +258,7 @@ func (r *CreateGuildChannel) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildChannel", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildChannel(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointCreateGuildChannel(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildChannel", err)
 	}
@@ -272,7 +274,7 @@ func (r *CreateGuildEmoji) Send(bot *Client) (*Emoji, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildEmoji", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildEmoji(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointCreateGuildEmoji(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildEmoji", err)
 	}
@@ -288,7 +290,7 @@ func (r *CreateGuildRole) Send(bot *Client) (*Role, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildRole", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildRole(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointCreateGuildRole(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildRole", err)
 	}
@@ -304,7 +306,7 @@ func (r *CreateGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildScheduledEvent", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildScheduledEvent(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointCreateGuildScheduledEvent(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildScheduledEvent", err)
 	}
@@ -320,7 +322,7 @@ func (r *CreateGuildSticker) Send(bot *Client) (*Sticker, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildSticker", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildSticker(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointCreateGuildSticker(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildSticker", err)
 	}
@@ -336,7 +338,7 @@ func (r *CreateGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildTemplate", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildTemplate(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointCreateGuildTemplate(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildTemplate", err)
 	}
@@ -352,7 +354,7 @@ func (r *CreateGuildfromGuildTemplate) Send(bot *Client) ([]*GuildTemplate, erro
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildfromGuildTemplate", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildfromGuildTemplate(r.TemplateCode), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointCreateGuildfromGuildTemplate(r.TemplateCode), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildfromGuildTemplate", err)
 	}
@@ -368,7 +370,7 @@ func (r *CreateInteractionResponse) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "CreateInteractionResponse", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateInteractionResponse(r.InteractionID, r.InteractionToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointCreateInteractionResponse(r.InteractionID, r.InteractionToken), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "CreateInteractionResponse", err)
 	}
@@ -384,7 +386,7 @@ func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateMessage(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointCreateMessage(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateMessage", err)
 	}
@@ -400,7 +402,7 @@ func (r *CreateReaction) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "CreateReaction", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateReaction(r.ChannelID, r.MessageID, r.Emoji), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointCreateReaction(r.ChannelID, r.MessageID, r.Emoji), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "CreateReaction", err)
 	}
@@ -416,7 +418,7 @@ func (r *CreateStageInstance) Send(bot *Client) (*StageInstance, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateStageInstance", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateStageInstance(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointCreateStageInstance(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateStageInstance", err)
 	}
@@ -432,7 +434,7 @@ func (r *CreateWebhook) Send(bot *Client) (*Webhook, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateWebhook", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCreateWebhook(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointCreateWebhook(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateWebhook", err)
 	}
@@ -448,7 +450,7 @@ func (r *CrosspostMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CrosspostMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointCrosspostMessage(r.ChannelID, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointCrosspostMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CrosspostMessage", err)
 	}
@@ -464,7 +466,7 @@ func (r *DeleteAllReactions) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteAllReactions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteAllReactions(r.ChannelID, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointDeleteAllReactions(r.ChannelID, r.MessageID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteAllReactions", err)
 	}
@@ -480,7 +482,7 @@ func (r *DeleteAllReactionsforEmoji) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteAllReactionsforEmoji", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteAllReactionsforEmoji(r.ChannelID, r.MessageID, r.Emoji), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointDeleteAllReactionsforEmoji(r.ChannelID, r.MessageID, r.Emoji), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteAllReactionsforEmoji", err)
 	}
@@ -496,7 +498,7 @@ func (r *DeleteChannelPermission) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteChannelPermission", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteChannelPermission(r.ChannelID, r.OverwriteID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointDeleteChannelPermission(r.ChannelID, r.OverwriteID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteChannelPermission", err)
 	}
@@ -512,7 +514,7 @@ func (r *DeleteCloseChannel) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "DeleteCloseChannel", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteCloseChannel(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointDeleteCloseChannel(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "DeleteCloseChannel", err)
 	}
@@ -528,7 +530,7 @@ func (r *DeleteFollowupMessage) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteFollowupMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointDeleteFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteFollowupMessage", err)
 	}
@@ -544,7 +546,7 @@ func (r *DeleteGlobalApplicationCommand) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteGlobalApplicationCommand", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteGlobalApplicationCommand(bot.ApplicationID, r.CommandID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointDeleteGlobalApplicationCommand(bot.ApplicationID, r.CommandID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGlobalApplicationCommand", err)
 	}
@@ -560,7 +562,7 @@ func (r *DeleteGuild) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteGuild", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuild(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointDeleteGuild(r.GuildID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuild", err)
 	}
@@ -576,7 +578,7 @@ func (r *DeleteGuildApplicationCommand) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteGuildApplicationCommand", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointDeleteGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildApplicationCommand", err)
 	}
@@ -592,7 +594,7 @@ func (r *DeleteGuildEmoji) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteGuildEmoji", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildEmoji(r.GuildID, r.EmojiID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointDeleteGuildEmoji(r.GuildID, r.EmojiID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildEmoji", err)
 	}
@@ -608,7 +610,7 @@ func (r *DeleteGuildIntegration) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteGuildIntegration", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildIntegration(r.GuildID, r.IntegrationID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointDeleteGuildIntegration(r.GuildID, r.IntegrationID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildIntegration", err)
 	}
@@ -624,7 +626,7 @@ func (r *DeleteGuildRole) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteGuildRole", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildRole(r.GuildID, r.RoleID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointDeleteGuildRole(r.GuildID, r.RoleID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildRole", err)
 	}
@@ -640,7 +642,7 @@ func (r *DeleteGuildScheduledEvent) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteGuildScheduledEvent", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointDeleteGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildScheduledEvent", err)
 	}
@@ -656,7 +658,7 @@ func (r *DeleteGuildSticker) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteGuildSticker", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildSticker(r.GuildID, r.StickerID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointDeleteGuildSticker(r.GuildID, r.StickerID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildSticker", err)
 	}
@@ -672,7 +674,7 @@ func (r *DeleteGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "DeleteGuildTemplate", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildTemplate(r.GuildID, r.TemplateCode), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointDeleteGuildTemplate(r.GuildID, r.TemplateCode), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "DeleteGuildTemplate", err)
 	}
@@ -688,7 +690,7 @@ func (r *DeleteInvite) Send(bot *Client) (*Invite, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "DeleteInvite", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteInvite(r.InviteCode), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointDeleteInvite(r.InviteCode), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "DeleteInvite", err)
 	}
@@ -704,7 +706,7 @@ func (r *DeleteMessage) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteMessage(r.ChannelID, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointDeleteMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteMessage", err)
 	}
@@ -720,7 +722,7 @@ func (r *DeleteOriginalInteractionResponse) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteOriginalInteractionResponse", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointDeleteOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteOriginalInteractionResponse", err)
 	}
@@ -736,7 +738,7 @@ func (r *DeleteOwnReaction) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteOwnReaction", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteOwnReaction(r.ChannelID, r.MessageID, r.Emoji), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointDeleteOwnReaction(r.ChannelID, r.MessageID, r.Emoji), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteOwnReaction", err)
 	}
@@ -752,7 +754,7 @@ func (r *DeleteStageInstance) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteStageInstance", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteStageInstance(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointDeleteStageInstance(r.ChannelID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteStageInstance", err)
 	}
@@ -768,7 +770,7 @@ func (r *DeleteUserReaction) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteUserReaction", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteUserReaction(r.ChannelID, r.MessageID, r.Emoji, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointDeleteUserReaction(r.ChannelID, r.MessageID, r.Emoji, r.UserID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteUserReaction", err)
 	}
@@ -784,7 +786,7 @@ func (r *DeleteWebhook) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteWebhook", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteWebhook(r.WebhookID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointDeleteWebhook(r.WebhookID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteWebhook", err)
 	}
@@ -800,7 +802,7 @@ func (r *DeleteWebhookMessage) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteWebhookMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointDeleteWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteWebhookMessage", err)
 	}
@@ -816,7 +818,7 @@ func (r *DeleteWebhookwithToken) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "DeleteWebhookwithToken", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointDeleteWebhookwithToken(r.WebhookID, r.WebhookToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointDeleteWebhookwithToken(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteWebhookwithToken", err)
 	}
@@ -832,7 +834,7 @@ func (r *EditApplicationCommandPermissions) Send(bot *Client) (*GuildApplication
 		return nil, fmt.Errorf(ErrSendMarshal, "EditApplicationCommandPermissions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditApplicationCommandPermissions", err)
 	}
@@ -848,7 +850,7 @@ func (r *EditChannelPermissions) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "EditChannelPermissions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointEditChannelPermissions(r.ChannelID, r.OverwriteID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointEditChannelPermissions(r.ChannelID, r.OverwriteID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "EditChannelPermissions", err)
 	}
@@ -864,7 +866,7 @@ func (r *EditFollowupMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "EditFollowupMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointEditFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointEditFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditFollowupMessage", err)
 	}
@@ -880,7 +882,7 @@ func (r *EditGlobalApplicationCommand) Send(bot *Client) (*ApplicationCommand, e
 		return nil, fmt.Errorf(ErrSendMarshal, "EditGlobalApplicationCommand", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointEditGlobalApplicationCommand(bot.ApplicationID, r.CommandID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointEditGlobalApplicationCommand(bot.ApplicationID, r.CommandID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditGlobalApplicationCommand", err)
 	}
@@ -896,7 +898,7 @@ func (r *EditGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, er
 		return nil, fmt.Errorf(ErrSendMarshal, "EditGuildApplicationCommand", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointEditGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointEditGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditGuildApplicationCommand", err)
 	}
@@ -912,7 +914,7 @@ func (r *EditMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "EditMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointEditMessage(r.ChannelID, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointEditMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditMessage", err)
 	}
@@ -928,7 +930,7 @@ func (r *EditOriginalInteractionResponse) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "EditOriginalInteractionResponse", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointEditOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointEditOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditOriginalInteractionResponse", err)
 	}
@@ -944,7 +946,7 @@ func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "EditWebhookMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointEditWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointEditWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditWebhookMessage", err)
 	}
@@ -960,7 +962,7 @@ func (r *ExecuteGitHubCompatibleWebhook) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "ExecuteGitHubCompatibleWebhook", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointExecuteGitHubCompatibleWebhook(r.WebhookID, r.WebhookToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointExecuteGitHubCompatibleWebhook(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ExecuteGitHubCompatibleWebhook", err)
 	}
@@ -976,7 +978,7 @@ func (r *ExecuteSlackCompatibleWebhook) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "ExecuteSlackCompatibleWebhook", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointExecuteSlackCompatibleWebhook(r.WebhookID, r.WebhookToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointExecuteSlackCompatibleWebhook(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ExecuteSlackCompatibleWebhook", err)
 	}
@@ -992,7 +994,7 @@ func (r *ExecuteWebhook) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "ExecuteWebhook", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointExecuteWebhook(r.WebhookID, r.WebhookToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointExecuteWebhook(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ExecuteWebhook", err)
 	}
@@ -1008,7 +1010,7 @@ func (r *FollowNewsChannel) Send(bot *Client) (*FollowedChannel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "FollowNewsChannel", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointFollowNewsChannel(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointFollowNewsChannel(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "FollowNewsChannel", err)
 	}
@@ -1024,7 +1026,7 @@ func (r *GetApplicationCommandPermissions) Send(bot *Client) (*GuildApplicationC
 		return nil, fmt.Errorf(ErrSendMarshal, "GetApplicationCommandPermissions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetApplicationCommandPermissions", err)
 	}
@@ -1040,7 +1042,7 @@ func (r *GetChannel) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetChannel", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetChannel(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetChannel(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannel", err)
 	}
@@ -1056,7 +1058,7 @@ func (r *GetChannelInvites) Send(bot *Client) ([]*Invite, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetChannelInvites", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetChannelInvites(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetChannelInvites(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannelInvites", err)
 	}
@@ -1072,7 +1074,7 @@ func (r *GetChannelMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetChannelMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetChannelMessage(r.ChannelID, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetChannelMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannelMessage", err)
 	}
@@ -1088,7 +1090,7 @@ func (r *GetChannelMessages) Send(bot *Client) ([]*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetChannelMessages", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetChannelMessages(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetChannelMessages(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannelMessages", err)
 	}
@@ -1104,7 +1106,7 @@ func (r *GetChannelWebhooks) Send(bot *Client) ([]*Webhook, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetChannelWebhooks", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetChannelWebhooks(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetChannelWebhooks(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannelWebhooks", err)
 	}
@@ -1120,7 +1122,7 @@ func (r *GetCurrentAuthorizationInformation) Send(bot *Client) (*CurrentAuthoriz
 		return nil, fmt.Errorf(ErrSendMarshal, "GetCurrentAuthorizationInformation", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetCurrentAuthorizationInformation(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointGetCurrentAuthorizationInformation(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentAuthorizationInformation", err)
 	}
@@ -1136,9 +1138,25 @@ func (r *GetCurrentBotApplicationInformation) Send(bot *Client) (*Application, e
 		return nil, fmt.Errorf(ErrSendMarshal, "GetCurrentBotApplicationInformation", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetCurrentBotApplicationInformation(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetCurrentBotApplicationInformation(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentBotApplicationInformation", err)
+	}
+
+	return result, nil
+}
+
+// Send sends a GetCurrentUser to Discord and returns a User.
+func (r *GetCurrentUser) Send(bot *Client) (*User, error) {
+	var result *User
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf(ErrSendMarshal, "GetCurrentUser", err)
+	}
+
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointGetCurrentUser(), body)
+	if err != nil {
+		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentUser", err)
 	}
 
 	return result, nil
@@ -1152,7 +1170,7 @@ func (r *GetCurrentUserGuildMember) Send(bot *Client) (*GuildMember, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetCurrentUserGuildMember", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetCurrentUserGuildMember(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointGetCurrentUserGuildMember(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentUserGuildMember", err)
 	}
@@ -1168,7 +1186,7 @@ func (r *GetCurrentUserGuilds) Send(bot *Client) ([]*Guild, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetCurrentUserGuilds", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetCurrentUserGuilds(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetCurrentUserGuilds(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentUserGuilds", err)
 	}
@@ -1184,7 +1202,7 @@ func (r *GetFollowupMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetFollowupMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetFollowupMessage", err)
 	}
@@ -1200,7 +1218,7 @@ func (r *GetGateway) Send(bot *Client) (*GetGateway, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGateway", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGateway(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetGateway(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGateway", err)
 	}
@@ -1216,7 +1234,7 @@ func (r *GetGatewayBot) Send(bot *Client) (*GetGatewayBot, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGatewayBot", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGatewayBot(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointGetGatewayBot(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGatewayBot", err)
 	}
@@ -1232,7 +1250,7 @@ func (r *GetGlobalApplicationCommand) Send(bot *Client) (*ApplicationCommand, er
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGlobalApplicationCommand", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGlobalApplicationCommand(bot.ApplicationID, r.CommandID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGlobalApplicationCommand(bot.ApplicationID, r.CommandID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGlobalApplicationCommand", err)
 	}
@@ -1248,7 +1266,7 @@ func (r *GetGlobalApplicationCommands) Send(bot *Client) ([]*ApplicationCommand,
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGlobalApplicationCommands", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGlobalApplicationCommands(bot.ApplicationID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointGetGlobalApplicationCommands(bot.ApplicationID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGlobalApplicationCommands", err)
 	}
@@ -1264,7 +1282,7 @@ func (r *GetGuild) Send(bot *Client) (*Guild, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuild", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuild(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetGuild(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuild", err)
 	}
@@ -1280,7 +1298,7 @@ func (r *GetGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, err
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildApplicationCommand", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildApplicationCommand", err)
 	}
@@ -1296,7 +1314,7 @@ func (r *GetGuildApplicationCommandPermissions) Send(bot *Client) (*GuildApplica
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildApplicationCommandPermissions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildApplicationCommandPermissions(bot.ApplicationID, r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildApplicationCommandPermissions(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildApplicationCommandPermissions", err)
 	}
@@ -1312,7 +1330,7 @@ func (r *GetGuildApplicationCommands) Send(bot *Client) ([]*ApplicationCommand, 
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildApplicationCommands", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildApplicationCommands(bot.ApplicationID, r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildApplicationCommands(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildApplicationCommands", err)
 	}
@@ -1328,7 +1346,7 @@ func (r *GetGuildAuditLog) Send(bot *Client) (*AuditLog, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildAuditLog", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildAuditLog(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildAuditLog(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildAuditLog", err)
 	}
@@ -1344,7 +1362,7 @@ func (r *GetGuildBan) Send(bot *Client) (*Ban, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildBan", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildBan(r.GuildID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointGetGuildBan(r.GuildID, r.UserID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildBan", err)
 	}
@@ -1360,7 +1378,7 @@ func (r *GetGuildBans) Send(bot *Client) ([]*Ban, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildBans", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildBans(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetGuildBans(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildBans", err)
 	}
@@ -1376,7 +1394,7 @@ func (r *GetGuildChannels) Send(bot *Client) ([]*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildChannels", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildChannels(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetGuildChannels(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildChannels", err)
 	}
@@ -1392,7 +1410,7 @@ func (r *GetGuildEmoji) Send(bot *Client) (*Emoji, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildEmoji", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildEmoji(r.GuildID, r.EmojiID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointGetGuildEmoji(r.GuildID, r.EmojiID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildEmoji", err)
 	}
@@ -1408,7 +1426,7 @@ func (r *GetGuildIntegrations) Send(bot *Client) ([]*Integration, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildIntegrations", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildIntegrations(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointGetGuildIntegrations(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildIntegrations", err)
 	}
@@ -1424,7 +1442,7 @@ func (r *GetGuildInvites) Send(bot *Client) ([]*Invite, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildInvites", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildInvites(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointGetGuildInvites(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildInvites", err)
 	}
@@ -1440,7 +1458,7 @@ func (r *GetGuildMember) Send(bot *Client) (*GuildMember, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildMember", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildMember(r.GuildID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildMember(r.GuildID, r.UserID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildMember", err)
 	}
@@ -1456,7 +1474,7 @@ func (r *GetGuildPreview) Send(bot *Client) (*GuildPreview, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildPreview", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildPreview(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildPreview(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildPreview", err)
 	}
@@ -1472,7 +1490,7 @@ func (r *GetGuildPruneCount) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "GetGuildPruneCount", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildPruneCount(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointGetGuildPruneCount(r.GuildID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GetGuildPruneCount", err)
 	}
@@ -1488,7 +1506,7 @@ func (r *GetGuildRoles) Send(bot *Client) ([]*Role, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildRoles", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildRoles(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointGetGuildRoles(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildRoles", err)
 	}
@@ -1504,7 +1522,7 @@ func (r *GetGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error)
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildScheduledEvent", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildScheduledEvent", err)
 	}
@@ -1520,7 +1538,7 @@ func (r *GetGuildScheduledEventUsers) Send(bot *Client) ([]*GuildScheduledEventU
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildScheduledEventUsers", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildScheduledEventUsers(r.GuildID, r.GuildScheduledEventID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointGetGuildScheduledEventUsers(r.GuildID, r.GuildScheduledEventID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildScheduledEventUsers", err)
 	}
@@ -1536,7 +1554,7 @@ func (r *GetGuildSticker) Send(bot *Client) (*Sticker, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildSticker", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildSticker(r.GuildID, r.StickerID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetGuildSticker(r.GuildID, r.StickerID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildSticker", err)
 	}
@@ -1552,7 +1570,7 @@ func (r *GetGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildTemplate", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildTemplate(r.TemplateCode), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetGuildTemplate(r.TemplateCode), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildTemplate", err)
 	}
@@ -1568,7 +1586,7 @@ func (r *GetGuildTemplates) Send(bot *Client) ([]*GuildTemplate, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildTemplates", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildTemplates(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointGetGuildTemplates(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildTemplates", err)
 	}
@@ -1584,7 +1602,7 @@ func (r *GetGuildVanityURL) Send(bot *Client) (*Invite, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildVanityURL", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildVanityURL(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildVanityURL(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildVanityURL", err)
 	}
@@ -1600,7 +1618,7 @@ func (r *GetGuildVoiceRegions) Send(bot *Client) (*VoiceRegion, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildVoiceRegions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildVoiceRegions(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointGetGuildVoiceRegions(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildVoiceRegions", err)
 	}
@@ -1616,7 +1634,7 @@ func (r *GetGuildWebhooks) Send(bot *Client) ([]*Webhook, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWebhooks", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWebhooks(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildWebhooks(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWebhooks", err)
 	}
@@ -1632,7 +1650,7 @@ func (r *GetGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWelcomeScreen", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWelcomeScreen(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildWelcomeScreen(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWelcomeScreen", err)
 	}
@@ -1648,7 +1666,7 @@ func (r *GetGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWidget", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWidget(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildWidget(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWidget", err)
 	}
@@ -1664,7 +1682,7 @@ func (r *GetGuildWidgetImage) Send(bot *Client) (*EmbedImage, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWidgetImage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWidgetImage(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointGetGuildWidgetImage(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWidgetImage", err)
 	}
@@ -1680,7 +1698,7 @@ func (r *GetGuildWidgetSettings) Send(bot *Client) (*GuildWidget, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWidgetSettings", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWidgetSettings(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetGuildWidgetSettings(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWidgetSettings", err)
 	}
@@ -1696,7 +1714,7 @@ func (r *GetInvite) Send(bot *Client) (*Invite, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetInvite", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetInvite(r.InviteCode), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetInvite(r.InviteCode), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetInvite", err)
 	}
@@ -1712,7 +1730,7 @@ func (r *GetOriginalInteractionResponse) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "GetOriginalInteractionResponse", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GetOriginalInteractionResponse", err)
 	}
@@ -1728,7 +1746,7 @@ func (r *GetPinnedMessages) Send(bot *Client) ([]*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetPinnedMessages", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetPinnedMessages(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetPinnedMessages(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetPinnedMessages", err)
 	}
@@ -1744,7 +1762,7 @@ func (r *GetReactions) Send(bot *Client) ([]*User, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetReactions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetReactions(r.ChannelID, r.MessageID, r.Emoji), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetReactions(r.ChannelID, r.MessageID, r.Emoji), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetReactions", err)
 	}
@@ -1760,7 +1778,7 @@ func (r *GetStageInstance) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "GetStageInstance", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetStageInstance(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetStageInstance(r.ChannelID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GetStageInstance", err)
 	}
@@ -1776,7 +1794,7 @@ func (r *GetSticker) Send(bot *Client) (*Sticker, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetSticker", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetSticker(r.StickerID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetSticker(r.StickerID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetSticker", err)
 	}
@@ -1792,9 +1810,25 @@ func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetThreadMember", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetThreadMember(r.ChannelID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetThreadMember(r.ChannelID, r.UserID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetThreadMember", err)
+	}
+
+	return result, nil
+}
+
+// Send sends a GetUser to Discord and returns a User.
+func (r *GetUser) Send(bot *Client) (*User, error) {
+	var result *User
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf(ErrSendMarshal, "GetUser", err)
+	}
+
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetUser(r.UserID), body)
+	if err != nil {
+		return nil, fmt.Errorf(ErrSendRequest, "GetUser", err)
 	}
 
 	return result, nil
@@ -1808,7 +1842,7 @@ func (r *GetUserConnections) Send(bot *Client) ([]*Connection, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetUserConnections", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetUserConnections(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetUserConnections(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetUserConnections", err)
 	}
@@ -1824,7 +1858,7 @@ func (r *GetWebhook) Send(bot *Client) (*Webhook, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetWebhook", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetWebhook(r.WebhookID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointGetWebhook(r.WebhookID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetWebhook", err)
 	}
@@ -1840,7 +1874,7 @@ func (r *GetWebhookMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetWebhookMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGetWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetWebhookMessage", err)
 	}
@@ -1856,7 +1890,7 @@ func (r *GetWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "GetWebhookwithToken", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGetWebhookwithToken(r.WebhookID, r.WebhookToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointGetWebhookwithToken(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetWebhookwithToken", err)
 	}
@@ -1872,7 +1906,7 @@ func (r *GroupDMAddRecipient) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "GroupDMAddRecipient", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGroupDMAddRecipient(r.ChannelID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointGroupDMAddRecipient(r.ChannelID, r.UserID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GroupDMAddRecipient", err)
 	}
@@ -1888,7 +1922,7 @@ func (r *GroupDMRemoveRecipient) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "GroupDMRemoveRecipient", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointGroupDMRemoveRecipient(r.ChannelID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointGroupDMRemoveRecipient(r.ChannelID, r.UserID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GroupDMRemoveRecipient", err)
 	}
@@ -1904,7 +1938,7 @@ func (r *JoinThread) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "JoinThread", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointJoinThread(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointJoinThread(r.ChannelID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "JoinThread", err)
 	}
@@ -1920,7 +1954,7 @@ func (r *LeaveGuild) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "LeaveGuild", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointLeaveGuild(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointLeaveGuild(r.GuildID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "LeaveGuild", err)
 	}
@@ -1936,7 +1970,7 @@ func (r *LeaveThread) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "LeaveThread", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointLeaveThread(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointLeaveThread(r.ChannelID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "LeaveThread", err)
 	}
@@ -1952,7 +1986,7 @@ func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsRespo
 		return nil, fmt.Errorf(ErrSendMarshal, "ListActiveGuildThreads", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListActiveGuildThreads(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointListActiveGuildThreads(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListActiveGuildThreads", err)
 	}
@@ -1968,7 +2002,7 @@ func (r *ListGuildEmojis) Send(bot *Client) ([]*Emoji, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ListGuildEmojis", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListGuildEmojis(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPut, EndpointListGuildEmojis(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListGuildEmojis", err)
 	}
@@ -1984,7 +2018,7 @@ func (r *ListGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ListGuildMembers", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListGuildMembers(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointListGuildMembers(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListGuildMembers", err)
 	}
@@ -2000,7 +2034,7 @@ func (r *ListGuildStickers) Send(bot *Client) ([]*Sticker, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ListGuildStickers", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListGuildStickers(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointListGuildStickers(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListGuildStickers", err)
 	}
@@ -2016,7 +2050,7 @@ func (r *ListJoinedPrivateArchivedThreads) Send(bot *Client) (*ListJoinedPrivate
 		return nil, fmt.Errorf(ErrSendMarshal, "ListJoinedPrivateArchivedThreads", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListJoinedPrivateArchivedThreads(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointListJoinedPrivateArchivedThreads(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListJoinedPrivateArchivedThreads", err)
 	}
@@ -2032,7 +2066,7 @@ func (r *ListNitroStickerPacks) Send(bot *Client) ([]*StickerPack, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ListNitroStickerPacks", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListNitroStickerPacks(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointListNitroStickerPacks(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListNitroStickerPacks", err)
 	}
@@ -2048,7 +2082,7 @@ func (r *ListPrivateArchivedThreads) Send(bot *Client) (*ListPrivateArchivedThre
 		return nil, fmt.Errorf(ErrSendMarshal, "ListPrivateArchivedThreads", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListPrivateArchivedThreads(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointListPrivateArchivedThreads(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListPrivateArchivedThreads", err)
 	}
@@ -2064,7 +2098,7 @@ func (r *ListPublicArchivedThreads) Send(bot *Client) (*ListPublicArchivedThread
 		return nil, fmt.Errorf(ErrSendMarshal, "ListPublicArchivedThreads", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListPublicArchivedThreads(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointListPublicArchivedThreads(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListPublicArchivedThreads", err)
 	}
@@ -2080,7 +2114,7 @@ func (r *ListScheduledEventsforGuild) Send(bot *Client) ([]*GuildScheduledEvent,
 		return nil, fmt.Errorf(ErrSendMarshal, "ListScheduledEventsforGuild", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListScheduledEventsforGuild(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointListScheduledEventsforGuild(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListScheduledEventsforGuild", err)
 	}
@@ -2096,7 +2130,7 @@ func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ListThreadMembers", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListThreadMembers(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointListThreadMembers(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListThreadMembers", err)
 	}
@@ -2112,7 +2146,7 @@ func (r *ListVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ListVoiceRegions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointListVoiceRegions(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointListVoiceRegions(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListVoiceRegions", err)
 	}
@@ -2128,7 +2162,7 @@ func (r *ModifyChannel) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyChannel", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyChannel(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyChannel(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannel", err)
 	}
@@ -2144,7 +2178,7 @@ func (r *ModifyChannelGroupDM) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyChannelGroupDM", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyChannelGroupDM(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyChannelGroupDM(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannelGroupDM", err)
 	}
@@ -2160,7 +2194,7 @@ func (r *ModifyChannelGuild) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyChannelGuild", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyChannelGuild(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyChannelGuild(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannelGuild", err)
 	}
@@ -2176,7 +2210,7 @@ func (r *ModifyChannelThread) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyChannelThread", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyChannelThread(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointModifyChannelThread(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannelThread", err)
 	}
@@ -2192,7 +2226,7 @@ func (r *ModifyCurrentMember) Send(bot *Client) (*GuildMember, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyCurrentMember", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyCurrentMember(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointModifyCurrentMember(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyCurrentMember", err)
 	}
@@ -2208,7 +2242,7 @@ func (r *ModifyCurrentUser) Send(bot *Client) (*User, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyCurrentUser", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyCurrentUser(), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointModifyCurrentUser(), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyCurrentUser", err)
 	}
@@ -2224,7 +2258,7 @@ func (r *ModifyCurrentUserVoiceState) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "ModifyCurrentUserVoiceState", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyCurrentUserVoiceState(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyCurrentUserVoiceState(r.GuildID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ModifyCurrentUserVoiceState", err)
 	}
@@ -2240,7 +2274,7 @@ func (r *ModifyGuild) Send(bot *Client) (*Guild, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuild", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuild(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyGuild(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuild", err)
 	}
@@ -2256,7 +2290,7 @@ func (r *ModifyGuildChannelPositions) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "ModifyGuildChannelPositions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildChannelPositions(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointModifyGuildChannelPositions(r.GuildID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ModifyGuildChannelPositions", err)
 	}
@@ -2272,7 +2306,7 @@ func (r *ModifyGuildEmoji) Send(bot *Client) (*Emoji, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildEmoji", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildEmoji(r.GuildID, r.EmojiID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyGuildEmoji(r.GuildID, r.EmojiID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildEmoji", err)
 	}
@@ -2288,7 +2322,7 @@ func (r *ModifyGuildMember) Send(bot *Client) (*GuildMember, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildMember", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildMember(r.GuildID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyGuildMember(r.GuildID, r.UserID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildMember", err)
 	}
@@ -2304,7 +2338,7 @@ func (r *ModifyGuildRole) Send(bot *Client) (*Role, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildRole", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildRole(r.GuildID, r.RoleID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointModifyGuildRole(r.GuildID, r.RoleID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildRole", err)
 	}
@@ -2320,7 +2354,7 @@ func (r *ModifyGuildRolePositions) Send(bot *Client) ([]*Role, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildRolePositions", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildRolePositions(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointModifyGuildRolePositions(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildRolePositions", err)
 	}
@@ -2336,7 +2370,7 @@ func (r *ModifyGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildScheduledEvent", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildScheduledEvent", err)
 	}
@@ -2352,7 +2386,7 @@ func (r *ModifyGuildSticker) Send(bot *Client) (*Sticker, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildSticker", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildSticker(r.GuildID, r.StickerID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyGuildSticker(r.GuildID, r.StickerID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildSticker", err)
 	}
@@ -2368,7 +2402,7 @@ func (r *ModifyGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildTemplate", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildTemplate(r.GuildID, r.TemplateCode), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointModifyGuildTemplate(r.GuildID, r.TemplateCode), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildTemplate", err)
 	}
@@ -2384,7 +2418,7 @@ func (r *ModifyGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildWelcomeScreen", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildWelcomeScreen(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyGuildWelcomeScreen(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildWelcomeScreen", err)
 	}
@@ -2400,7 +2434,7 @@ func (r *ModifyGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildWidget", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildWidget(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyGuildWidget(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildWidget", err)
 	}
@@ -2416,7 +2450,7 @@ func (r *ModifyStageInstance) Send(bot *Client) (*StageInstance, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyStageInstance", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyStageInstance(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyStageInstance(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyStageInstance", err)
 	}
@@ -2432,7 +2466,7 @@ func (r *ModifyUserVoiceState) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "ModifyUserVoiceState", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyUserVoiceState(r.GuildID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointModifyUserVoiceState(r.GuildID, r.UserID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ModifyUserVoiceState", err)
 	}
@@ -2448,7 +2482,7 @@ func (r *ModifyWebhook) Send(bot *Client) (*Webhook, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyWebhook", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyWebhook(r.WebhookID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointModifyWebhook(r.WebhookID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyWebhook", err)
 	}
@@ -2464,7 +2498,7 @@ func (r *ModifyWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "ModifyWebhookwithToken", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointModifyWebhookwithToken(r.WebhookID, r.WebhookToken), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointModifyWebhookwithToken(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyWebhookwithToken", err)
 	}
@@ -2480,7 +2514,7 @@ func (r *PinMessage) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "PinMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointPinMessage(r.ChannelID, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointPinMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "PinMessage", err)
 	}
@@ -2496,7 +2530,7 @@ func (r *RemoveGuildBan) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "RemoveGuildBan", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointRemoveGuildBan(r.GuildID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointRemoveGuildBan(r.GuildID, r.UserID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "RemoveGuildBan", err)
 	}
@@ -2512,7 +2546,7 @@ func (r *RemoveGuildMember) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "RemoveGuildMember", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointRemoveGuildMember(r.GuildID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointRemoveGuildMember(r.GuildID, r.UserID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "RemoveGuildMember", err)
 	}
@@ -2528,7 +2562,7 @@ func (r *RemoveGuildMemberRole) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "RemoveGuildMemberRole", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointRemoveGuildMemberRole(r.GuildID, r.UserID, r.RoleID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointRemoveGuildMemberRole(r.GuildID, r.UserID, r.RoleID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "RemoveGuildMemberRole", err)
 	}
@@ -2544,7 +2578,7 @@ func (r *RemoveThreadMember) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "RemoveThreadMember", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointRemoveThreadMember(r.ChannelID, r.UserID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPost, EndpointRemoveThreadMember(r.ChannelID, r.UserID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "RemoveThreadMember", err)
 	}
@@ -2560,7 +2594,7 @@ func (r *SearchGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "SearchGuildMembers", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointSearchGuildMembers(r.GuildID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointSearchGuildMembers(r.GuildID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "SearchGuildMembers", err)
 	}
@@ -2576,7 +2610,7 @@ func (r *StartThreadfromMessage) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "StartThreadfromMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointStartThreadfromMessage(r.ChannelID, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodPatch, EndpointStartThreadfromMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "StartThreadfromMessage", err)
 	}
@@ -2592,7 +2626,7 @@ func (r *StartThreadinForumChannel) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "StartThreadinForumChannel", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointStartThreadinForumChannel(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodDelete, EndpointStartThreadinForumChannel(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "StartThreadinForumChannel", err)
 	}
@@ -2608,7 +2642,7 @@ func (r *StartThreadwithoutMessage) Send(bot *Client) (*Channel, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "StartThreadwithoutMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointStartThreadwithoutMessage(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointStartThreadwithoutMessage(r.ChannelID), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "StartThreadwithoutMessage", err)
 	}
@@ -2624,7 +2658,7 @@ func (r *SyncGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "SyncGuildTemplate", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointSyncGuildTemplate(r.GuildID, r.TemplateCode), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointSyncGuildTemplate(r.GuildID, r.TemplateCode), body)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "SyncGuildTemplate", err)
 	}
@@ -2640,7 +2674,7 @@ func (r *TriggerTypingIndicator) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "TriggerTypingIndicator", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointTriggerTypingIndicator(r.ChannelID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointTriggerTypingIndicator(r.ChannelID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "TriggerTypingIndicator", err)
 	}
@@ -2656,7 +2690,7 @@ func (r *UnpinMessage) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "UnpinMessage", err)
 	}
 
-	err = SendRequest(result, bot.client, TODO, EndpointUnpinMessage(r.ChannelID, r.MessageID), body)
+	err = SendRequest(result, bot.client, fasthttp.MethodGet, EndpointUnpinMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "UnpinMessage", err)
 	}
