@@ -13,12 +13,12 @@ func (r *AddGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var result *GuildMember
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a AddGuildMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "AddGuildMember", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointAddGuildMember(r.GuildID, r.UserID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending AddGuildMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "AddGuildMember", err)
 	}
 
 	return result, nil
@@ -29,12 +29,12 @@ func (r *AddGuildMemberRole) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a AddGuildMemberRole: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "AddGuildMemberRole", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointAddGuildMemberRole(r.GuildID, r.UserID, r.RoleID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending AddGuildMemberRole: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "AddGuildMemberRole", err)
 	}
 
 	return nil
@@ -45,12 +45,12 @@ func (r *AddThreadMember) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a AddThreadMember: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "AddThreadMember", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointAddThreadMember(r.ChannelID, r.UserID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending AddThreadMember: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "AddThreadMember", err)
 	}
 
 	return nil
@@ -61,12 +61,12 @@ func (r *BatchEditApplicationCommandPermissions) Send(bot *Client) (*GuildApplic
 	var result *GuildApplicationCommandPermissions
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a BatchEditApplicationCommandPermissions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "BatchEditApplicationCommandPermissions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointBatchEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending BatchEditApplicationCommandPermissions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "BatchEditApplicationCommandPermissions", err)
 	}
 
 	return result, nil
@@ -77,12 +77,12 @@ func (r *BeginGuildPrune) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a BeginGuildPrune: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "BeginGuildPrune", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointBeginGuildPrune(r.GuildID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending BeginGuildPrune: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "BeginGuildPrune", err)
 	}
 
 	return nil
@@ -93,12 +93,12 @@ func (r *BulkDeleteMessages) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a BulkDeleteMessages: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "BulkDeleteMessages", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointBulkDeleteMessages(r.ChannelID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending BulkDeleteMessages: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "BulkDeleteMessages", err)
 	}
 
 	return nil
@@ -109,12 +109,12 @@ func (r *BulkOverwriteGlobalApplicationCommands) Send(bot *Client) ([]*Applicati
 	var result []*ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a BulkOverwriteGlobalApplicationCommands: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "BulkOverwriteGlobalApplicationCommands", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointBulkOverwriteGlobalApplicationCommands(bot.ApplicationID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending BulkOverwriteGlobalApplicationCommands: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "BulkOverwriteGlobalApplicationCommands", err)
 	}
 
 	return result, nil
@@ -125,12 +125,12 @@ func (r *BulkOverwriteGuildApplicationCommands) Send(bot *Client) ([]*Applicatio
 	var result []*ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a BulkOverwriteGuildApplicationCommands: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "BulkOverwriteGuildApplicationCommands", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointBulkOverwriteGuildApplicationCommands(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending BulkOverwriteGuildApplicationCommands: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "BulkOverwriteGuildApplicationCommands", err)
 	}
 
 	return result, nil
@@ -141,12 +141,12 @@ func (r *CreateChannelInvite) Send(bot *Client) (*Invite, error) {
 	var result *Invite
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateChannelInvite: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateChannelInvite", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateChannelInvite(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateChannelInvite: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateChannelInvite", err)
 	}
 
 	return result, nil
@@ -157,12 +157,12 @@ func (r *CreateFollowupMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateFollowupMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateFollowupMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateFollowupMessage(bot.ApplicationID, r.InteractionToken), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateFollowupMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateFollowupMessage", err)
 	}
 
 	return result, nil
@@ -173,12 +173,12 @@ func (r *CreateGlobalApplicationCommand) Send(bot *Client) (*ApplicationCommand,
 	var result *ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGlobalApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGlobalApplicationCommand", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGlobalApplicationCommand(bot.ApplicationID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGlobalApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGlobalApplicationCommand", err)
 	}
 
 	return result, nil
@@ -189,12 +189,12 @@ func (r *CreateGroupDM) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGroupDM: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGroupDM", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGroupDM(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGroupDM: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGroupDM", err)
 	}
 
 	return result, nil
@@ -205,12 +205,12 @@ func (r *CreateGuild) Send(bot *Client) (*Guild, error) {
 	var result *Guild
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuild", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuild(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGuild", err)
 	}
 
 	return result, nil
@@ -221,12 +221,12 @@ func (r *CreateGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, 
 	var result *ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGuildApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildApplicationCommand", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildApplicationCommand(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGuildApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildApplicationCommand", err)
 	}
 
 	return result, nil
@@ -237,12 +237,12 @@ func (r *CreateGuildBan) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a CreateGuildBan: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "CreateGuildBan", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildBan(r.GuildID, r.UserID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending CreateGuildBan: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "CreateGuildBan", err)
 	}
 
 	return nil
@@ -253,12 +253,12 @@ func (r *CreateGuildChannel) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGuildChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildChannel", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildChannel(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGuildChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildChannel", err)
 	}
 
 	return result, nil
@@ -269,12 +269,12 @@ func (r *CreateGuildEmoji) Send(bot *Client) (*Emoji, error) {
 	var result *Emoji
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGuildEmoji: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildEmoji", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildEmoji(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGuildEmoji: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildEmoji", err)
 	}
 
 	return result, nil
@@ -285,12 +285,12 @@ func (r *CreateGuildRole) Send(bot *Client) (*Role, error) {
 	var result *Role
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGuildRole: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildRole", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildRole(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGuildRole: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildRole", err)
 	}
 
 	return result, nil
@@ -301,12 +301,12 @@ func (r *CreateGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 	var result *GuildScheduledEvent
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGuildScheduledEvent: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildScheduledEvent", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildScheduledEvent(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGuildScheduledEvent: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildScheduledEvent", err)
 	}
 
 	return result, nil
@@ -317,12 +317,12 @@ func (r *CreateGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var result *Sticker
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGuildSticker: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildSticker", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildSticker(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGuildSticker: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildSticker", err)
 	}
 
 	return result, nil
@@ -333,12 +333,12 @@ func (r *CreateGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var result *GuildTemplate
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildTemplate", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildTemplate(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildTemplate", err)
 	}
 
 	return result, nil
@@ -349,12 +349,12 @@ func (r *CreateGuildfromGuildTemplate) Send(bot *Client) ([]*GuildTemplate, erro
 	var result []*GuildTemplate
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateGuildfromGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildfromGuildTemplate", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateGuildfromGuildTemplate(r.TemplateCode), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateGuildfromGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildfromGuildTemplate", err)
 	}
 
 	return result, nil
@@ -365,12 +365,12 @@ func (r *CreateInteractionResponse) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a CreateInteractionResponse: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "CreateInteractionResponse", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateInteractionResponse(r.InteractionID, r.InteractionToken), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending CreateInteractionResponse: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "CreateInteractionResponse", err)
 	}
 
 	return nil
@@ -381,12 +381,12 @@ func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateMessage(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateMessage", err)
 	}
 
 	return result, nil
@@ -397,12 +397,12 @@ func (r *CreateReaction) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a CreateReaction: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "CreateReaction", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateReaction(r.ChannelID, r.MessageID, r.Emoji), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending CreateReaction: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "CreateReaction", err)
 	}
 
 	return nil
@@ -413,12 +413,12 @@ func (r *CreateStageInstance) Send(bot *Client) (*StageInstance, error) {
 	var result *StageInstance
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateStageInstance: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateStageInstance", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateStageInstance(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateStageInstance: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateStageInstance", err)
 	}
 
 	return result, nil
@@ -429,12 +429,12 @@ func (r *CreateWebhook) Send(bot *Client) (*Webhook, error) {
 	var result *Webhook
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CreateWebhook: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateWebhook", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCreateWebhook(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CreateWebhook: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CreateWebhook", err)
 	}
 
 	return result, nil
@@ -445,12 +445,12 @@ func (r *CrosspostMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a CrosspostMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "CrosspostMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointCrosspostMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending CrosspostMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "CrosspostMessage", err)
 	}
 
 	return result, nil
@@ -461,12 +461,12 @@ func (r *DeleteAllReactions) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteAllReactions: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteAllReactions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteAllReactions(r.ChannelID, r.MessageID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteAllReactions: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteAllReactions", err)
 	}
 
 	return nil
@@ -477,12 +477,12 @@ func (r *DeleteAllReactionsforEmoji) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteAllReactionsforEmoji: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteAllReactionsforEmoji", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteAllReactionsforEmoji(r.ChannelID, r.MessageID, r.Emoji), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteAllReactionsforEmoji: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteAllReactionsforEmoji", err)
 	}
 
 	return nil
@@ -493,12 +493,12 @@ func (r *DeleteChannelPermission) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteChannelPermission: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteChannelPermission", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteChannelPermission(r.ChannelID, r.OverwriteID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteChannelPermission: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteChannelPermission", err)
 	}
 
 	return nil
@@ -509,12 +509,12 @@ func (r *DeleteCloseChannel) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a DeleteCloseChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "DeleteCloseChannel", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteCloseChannel(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending DeleteCloseChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "DeleteCloseChannel", err)
 	}
 
 	return result, nil
@@ -525,12 +525,12 @@ func (r *DeleteFollowupMessage) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteFollowupMessage: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteFollowupMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteFollowupMessage: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteFollowupMessage", err)
 	}
 
 	return nil
@@ -541,12 +541,12 @@ func (r *DeleteGlobalApplicationCommand) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteGlobalApplicationCommand: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteGlobalApplicationCommand", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteGlobalApplicationCommand(bot.ApplicationID, r.CommandID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteGlobalApplicationCommand: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteGlobalApplicationCommand", err)
 	}
 
 	return nil
@@ -557,12 +557,12 @@ func (r *DeleteGuild) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteGuild: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteGuild", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuild(r.GuildID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteGuild: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteGuild", err)
 	}
 
 	return nil
@@ -573,12 +573,12 @@ func (r *DeleteGuildApplicationCommand) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteGuildApplicationCommand: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteGuildApplicationCommand", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteGuildApplicationCommand: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteGuildApplicationCommand", err)
 	}
 
 	return nil
@@ -589,12 +589,12 @@ func (r *DeleteGuildEmoji) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteGuildEmoji: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteGuildEmoji", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildEmoji(r.GuildID, r.EmojiID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteGuildEmoji: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteGuildEmoji", err)
 	}
 
 	return nil
@@ -605,12 +605,12 @@ func (r *DeleteGuildIntegration) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteGuildIntegration: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteGuildIntegration", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildIntegration(r.GuildID, r.IntegrationID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteGuildIntegration: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteGuildIntegration", err)
 	}
 
 	return nil
@@ -621,12 +621,12 @@ func (r *DeleteGuildRole) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteGuildRole: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteGuildRole", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildRole(r.GuildID, r.RoleID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteGuildRole: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteGuildRole", err)
 	}
 
 	return nil
@@ -637,12 +637,12 @@ func (r *DeleteGuildScheduledEvent) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteGuildScheduledEvent: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteGuildScheduledEvent", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteGuildScheduledEvent: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteGuildScheduledEvent", err)
 	}
 
 	return nil
@@ -653,12 +653,12 @@ func (r *DeleteGuildSticker) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteGuildSticker: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteGuildSticker", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildSticker(r.GuildID, r.StickerID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteGuildSticker: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteGuildSticker", err)
 	}
 
 	return nil
@@ -669,12 +669,12 @@ func (r *DeleteGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var result *GuildTemplate
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a DeleteGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "DeleteGuildTemplate", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteGuildTemplate(r.GuildID, r.TemplateCode), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending DeleteGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "DeleteGuildTemplate", err)
 	}
 
 	return result, nil
@@ -685,12 +685,12 @@ func (r *DeleteInvite) Send(bot *Client) (*Invite, error) {
 	var result *Invite
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a DeleteInvite: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "DeleteInvite", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteInvite(r.InviteCode), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending DeleteInvite: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "DeleteInvite", err)
 	}
 
 	return result, nil
@@ -701,12 +701,12 @@ func (r *DeleteMessage) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteMessage: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteMessage: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteMessage", err)
 	}
 
 	return nil
@@ -717,12 +717,12 @@ func (r *DeleteOriginalInteractionResponse) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteOriginalInteractionResponse: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteOriginalInteractionResponse", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteOriginalInteractionResponse: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteOriginalInteractionResponse", err)
 	}
 
 	return nil
@@ -733,12 +733,12 @@ func (r *DeleteOwnReaction) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteOwnReaction: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteOwnReaction", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteOwnReaction(r.ChannelID, r.MessageID, r.Emoji), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteOwnReaction: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteOwnReaction", err)
 	}
 
 	return nil
@@ -749,12 +749,12 @@ func (r *DeleteStageInstance) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteStageInstance: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteStageInstance", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteStageInstance(r.ChannelID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteStageInstance: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteStageInstance", err)
 	}
 
 	return nil
@@ -765,12 +765,12 @@ func (r *DeleteUserReaction) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteUserReaction: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteUserReaction", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteUserReaction(r.ChannelID, r.MessageID, r.Emoji, r.UserID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteUserReaction: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteUserReaction", err)
 	}
 
 	return nil
@@ -781,12 +781,12 @@ func (r *DeleteWebhook) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteWebhook: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteWebhook", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteWebhook(r.WebhookID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteWebhook: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteWebhook", err)
 	}
 
 	return nil
@@ -797,12 +797,12 @@ func (r *DeleteWebhookMessage) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteWebhookMessage: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteWebhookMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteWebhookMessage: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteWebhookMessage", err)
 	}
 
 	return nil
@@ -813,12 +813,12 @@ func (r *DeleteWebhookwithToken) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a DeleteWebhookwithToken: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "DeleteWebhookwithToken", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointDeleteWebhookwithToken(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending DeleteWebhookwithToken: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "DeleteWebhookwithToken", err)
 	}
 
 	return nil
@@ -829,12 +829,12 @@ func (r *EditApplicationCommandPermissions) Send(bot *Client) (*GuildApplication
 	var result *GuildApplicationCommandPermissions
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a EditApplicationCommandPermissions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "EditApplicationCommandPermissions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending EditApplicationCommandPermissions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "EditApplicationCommandPermissions", err)
 	}
 
 	return result, nil
@@ -845,12 +845,12 @@ func (r *EditChannelPermissions) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a EditChannelPermissions: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "EditChannelPermissions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointEditChannelPermissions(r.ChannelID, r.OverwriteID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending EditChannelPermissions: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "EditChannelPermissions", err)
 	}
 
 	return nil
@@ -861,12 +861,12 @@ func (r *EditFollowupMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a EditFollowupMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "EditFollowupMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointEditFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending EditFollowupMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "EditFollowupMessage", err)
 	}
 
 	return result, nil
@@ -877,12 +877,12 @@ func (r *EditGlobalApplicationCommand) Send(bot *Client) (*ApplicationCommand, e
 	var result *ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a EditGlobalApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "EditGlobalApplicationCommand", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointEditGlobalApplicationCommand(bot.ApplicationID, r.CommandID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending EditGlobalApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "EditGlobalApplicationCommand", err)
 	}
 
 	return result, nil
@@ -893,12 +893,12 @@ func (r *EditGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, er
 	var result *ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a EditGuildApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "EditGuildApplicationCommand", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointEditGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending EditGuildApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "EditGuildApplicationCommand", err)
 	}
 
 	return result, nil
@@ -909,12 +909,12 @@ func (r *EditMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a EditMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "EditMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointEditMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending EditMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "EditMessage", err)
 	}
 
 	return result, nil
@@ -925,12 +925,12 @@ func (r *EditOriginalInteractionResponse) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a EditOriginalInteractionResponse: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "EditOriginalInteractionResponse", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointEditOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending EditOriginalInteractionResponse: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "EditOriginalInteractionResponse", err)
 	}
 
 	return result, nil
@@ -941,12 +941,12 @@ func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a EditWebhookMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "EditWebhookMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointEditWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending EditWebhookMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "EditWebhookMessage", err)
 	}
 
 	return result, nil
@@ -957,12 +957,12 @@ func (r *ExecuteGitHubCompatibleWebhook) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a ExecuteGitHubCompatibleWebhook: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "ExecuteGitHubCompatibleWebhook", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointExecuteGitHubCompatibleWebhook(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending ExecuteGitHubCompatibleWebhook: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "ExecuteGitHubCompatibleWebhook", err)
 	}
 
 	return nil
@@ -973,12 +973,12 @@ func (r *ExecuteSlackCompatibleWebhook) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a ExecuteSlackCompatibleWebhook: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "ExecuteSlackCompatibleWebhook", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointExecuteSlackCompatibleWebhook(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending ExecuteSlackCompatibleWebhook: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "ExecuteSlackCompatibleWebhook", err)
 	}
 
 	return nil
@@ -989,12 +989,12 @@ func (r *ExecuteWebhook) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a ExecuteWebhook: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "ExecuteWebhook", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointExecuteWebhook(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending ExecuteWebhook: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "ExecuteWebhook", err)
 	}
 
 	return nil
@@ -1005,12 +1005,12 @@ func (r *FollowNewsChannel) Send(bot *Client) (*FollowedChannel, error) {
 	var result *FollowedChannel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a FollowNewsChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "FollowNewsChannel", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointFollowNewsChannel(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending FollowNewsChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "FollowNewsChannel", err)
 	}
 
 	return result, nil
@@ -1021,12 +1021,12 @@ func (r *GetApplicationCommandPermissions) Send(bot *Client) (*GuildApplicationC
 	var result *GuildApplicationCommandPermissions
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetApplicationCommandPermissions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetApplicationCommandPermissions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetApplicationCommandPermissions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetApplicationCommandPermissions", err)
 	}
 
 	return result, nil
@@ -1037,12 +1037,12 @@ func (r *GetChannel) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetChannel", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetChannel(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetChannel", err)
 	}
 
 	return result, nil
@@ -1053,12 +1053,12 @@ func (r *GetChannelInvites) Send(bot *Client) ([]*Invite, error) {
 	var result []*Invite
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetChannelInvites: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetChannelInvites", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetChannelInvites(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetChannelInvites: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetChannelInvites", err)
 	}
 
 	return result, nil
@@ -1069,12 +1069,12 @@ func (r *GetChannelMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetChannelMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetChannelMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetChannelMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetChannelMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetChannelMessage", err)
 	}
 
 	return result, nil
@@ -1085,12 +1085,12 @@ func (r *GetChannelMessages) Send(bot *Client) ([]*Message, error) {
 	var result []*Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetChannelMessages: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetChannelMessages", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetChannelMessages(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetChannelMessages: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetChannelMessages", err)
 	}
 
 	return result, nil
@@ -1101,12 +1101,12 @@ func (r *GetChannelWebhooks) Send(bot *Client) ([]*Webhook, error) {
 	var result []*Webhook
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetChannelWebhooks: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetChannelWebhooks", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetChannelWebhooks(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetChannelWebhooks: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetChannelWebhooks", err)
 	}
 
 	return result, nil
@@ -1117,12 +1117,12 @@ func (r *GetCurrentAuthorizationInformation) Send(bot *Client) (*CurrentAuthoriz
 	var result *CurrentAuthorizationInformationResponse
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetCurrentAuthorizationInformation: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetCurrentAuthorizationInformation", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetCurrentAuthorizationInformation(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetCurrentAuthorizationInformation: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentAuthorizationInformation", err)
 	}
 
 	return result, nil
@@ -1133,12 +1133,12 @@ func (r *GetCurrentBotApplicationInformation) Send(bot *Client) (*Application, e
 	var result *Application
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetCurrentBotApplicationInformation: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetCurrentBotApplicationInformation", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetCurrentBotApplicationInformation(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetCurrentBotApplicationInformation: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentBotApplicationInformation", err)
 	}
 
 	return result, nil
@@ -1149,12 +1149,12 @@ func (r *GetCurrentUserGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var result *GuildMember
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetCurrentUserGuildMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetCurrentUserGuildMember", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetCurrentUserGuildMember(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetCurrentUserGuildMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentUserGuildMember", err)
 	}
 
 	return result, nil
@@ -1165,12 +1165,12 @@ func (r *GetCurrentUserGuilds) Send(bot *Client) ([]*Guild, error) {
 	var result []*Guild
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetCurrentUserGuilds: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetCurrentUserGuilds", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetCurrentUserGuilds(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetCurrentUserGuilds: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentUserGuilds", err)
 	}
 
 	return result, nil
@@ -1181,12 +1181,12 @@ func (r *GetFollowupMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetFollowupMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetFollowupMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetFollowupMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetFollowupMessage", err)
 	}
 
 	return result, nil
@@ -1197,12 +1197,12 @@ func (r *GetGateway) Send(bot *Client) (*GetGateway, error) {
 	var result *GetGateway
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGateway: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGateway", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGateway(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGateway: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGateway", err)
 	}
 
 	return result, nil
@@ -1213,12 +1213,12 @@ func (r *GetGatewayBot) Send(bot *Client) (*GetGatewayBot, error) {
 	var result *GetGatewayBot
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGatewayBot: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGatewayBot", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGatewayBot(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGatewayBot: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGatewayBot", err)
 	}
 
 	return result, nil
@@ -1229,12 +1229,12 @@ func (r *GetGlobalApplicationCommand) Send(bot *Client) (*ApplicationCommand, er
 	var result *ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGlobalApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGlobalApplicationCommand", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGlobalApplicationCommand(bot.ApplicationID, r.CommandID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGlobalApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGlobalApplicationCommand", err)
 	}
 
 	return result, nil
@@ -1245,12 +1245,12 @@ func (r *GetGlobalApplicationCommands) Send(bot *Client) ([]*ApplicationCommand,
 	var result []*ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGlobalApplicationCommands: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGlobalApplicationCommands", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGlobalApplicationCommands(bot.ApplicationID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGlobalApplicationCommands: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGlobalApplicationCommands", err)
 	}
 
 	return result, nil
@@ -1261,12 +1261,12 @@ func (r *GetGuild) Send(bot *Client) (*Guild, error) {
 	var result *Guild
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuild", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuild(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuild", err)
 	}
 
 	return result, nil
@@ -1277,12 +1277,12 @@ func (r *GetGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, err
 	var result *ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildApplicationCommand", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildApplicationCommand: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildApplicationCommand", err)
 	}
 
 	return result, nil
@@ -1293,12 +1293,12 @@ func (r *GetGuildApplicationCommandPermissions) Send(bot *Client) (*GuildApplica
 	var result *GuildApplicationCommandPermissions
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildApplicationCommandPermissions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildApplicationCommandPermissions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildApplicationCommandPermissions(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildApplicationCommandPermissions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildApplicationCommandPermissions", err)
 	}
 
 	return result, nil
@@ -1309,12 +1309,12 @@ func (r *GetGuildApplicationCommands) Send(bot *Client) ([]*ApplicationCommand, 
 	var result []*ApplicationCommand
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildApplicationCommands: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildApplicationCommands", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildApplicationCommands(bot.ApplicationID, r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildApplicationCommands: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildApplicationCommands", err)
 	}
 
 	return result, nil
@@ -1325,12 +1325,12 @@ func (r *GetGuildAuditLog) Send(bot *Client) (*AuditLog, error) {
 	var result *AuditLog
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildAuditLog: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildAuditLog", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildAuditLog(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildAuditLog: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildAuditLog", err)
 	}
 
 	return result, nil
@@ -1341,12 +1341,12 @@ func (r *GetGuildBan) Send(bot *Client) (*Ban, error) {
 	var result *Ban
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildBan: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildBan", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildBan(r.GuildID, r.UserID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildBan: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildBan", err)
 	}
 
 	return result, nil
@@ -1357,12 +1357,12 @@ func (r *GetGuildBans) Send(bot *Client) ([]*Ban, error) {
 	var result []*Ban
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildBans: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildBans", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildBans(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildBans: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildBans", err)
 	}
 
 	return result, nil
@@ -1373,12 +1373,12 @@ func (r *GetGuildChannels) Send(bot *Client) ([]*Channel, error) {
 	var result []*Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildChannels: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildChannels", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildChannels(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildChannels: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildChannels", err)
 	}
 
 	return result, nil
@@ -1389,12 +1389,12 @@ func (r *GetGuildEmoji) Send(bot *Client) (*Emoji, error) {
 	var result *Emoji
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildEmoji: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildEmoji", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildEmoji(r.GuildID, r.EmojiID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildEmoji: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildEmoji", err)
 	}
 
 	return result, nil
@@ -1405,12 +1405,12 @@ func (r *GetGuildIntegrations) Send(bot *Client) ([]*Integration, error) {
 	var result []*Integration
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildIntegrations: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildIntegrations", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildIntegrations(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildIntegrations: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildIntegrations", err)
 	}
 
 	return result, nil
@@ -1421,12 +1421,12 @@ func (r *GetGuildInvites) Send(bot *Client) ([]*Invite, error) {
 	var result []*Invite
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildInvites: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildInvites", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildInvites(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildInvites: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildInvites", err)
 	}
 
 	return result, nil
@@ -1437,12 +1437,12 @@ func (r *GetGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var result *GuildMember
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildMember", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildMember(r.GuildID, r.UserID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildMember", err)
 	}
 
 	return result, nil
@@ -1453,12 +1453,12 @@ func (r *GetGuildPreview) Send(bot *Client) (*GuildPreview, error) {
 	var result *GuildPreview
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildPreview: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildPreview", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildPreview(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildPreview: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildPreview", err)
 	}
 
 	return result, nil
@@ -1469,12 +1469,12 @@ func (r *GetGuildPruneCount) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a GetGuildPruneCount: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "GetGuildPruneCount", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildPruneCount(r.GuildID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending GetGuildPruneCount: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "GetGuildPruneCount", err)
 	}
 
 	return nil
@@ -1485,12 +1485,12 @@ func (r *GetGuildRoles) Send(bot *Client) ([]*Role, error) {
 	var result []*Role
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildRoles: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildRoles", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildRoles(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildRoles: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildRoles", err)
 	}
 
 	return result, nil
@@ -1501,12 +1501,12 @@ func (r *GetGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error)
 	var result *GuildScheduledEvent
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildScheduledEvent: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildScheduledEvent", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildScheduledEvent: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildScheduledEvent", err)
 	}
 
 	return result, nil
@@ -1517,12 +1517,12 @@ func (r *GetGuildScheduledEventUsers) Send(bot *Client) ([]*GuildScheduledEventU
 	var result []*GuildScheduledEventUser
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildScheduledEventUsers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildScheduledEventUsers", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildScheduledEventUsers(r.GuildID, r.GuildScheduledEventID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildScheduledEventUsers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildScheduledEventUsers", err)
 	}
 
 	return result, nil
@@ -1533,12 +1533,12 @@ func (r *GetGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var result *Sticker
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildSticker: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildSticker", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildSticker(r.GuildID, r.StickerID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildSticker: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildSticker", err)
 	}
 
 	return result, nil
@@ -1549,12 +1549,12 @@ func (r *GetGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var result *GuildTemplate
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildTemplate", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildTemplate(r.TemplateCode), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildTemplate", err)
 	}
 
 	return result, nil
@@ -1565,12 +1565,12 @@ func (r *GetGuildTemplates) Send(bot *Client) ([]*GuildTemplate, error) {
 	var result []*GuildTemplate
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildTemplates: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildTemplates", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildTemplates(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildTemplates: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildTemplates", err)
 	}
 
 	return result, nil
@@ -1581,12 +1581,12 @@ func (r *GetGuildVanityURL) Send(bot *Client) (*Invite, error) {
 	var result *Invite
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildVanityURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildVanityURL", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildVanityURL(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildVanityURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildVanityURL", err)
 	}
 
 	return result, nil
@@ -1597,12 +1597,12 @@ func (r *GetGuildVoiceRegions) Send(bot *Client) (*VoiceRegion, error) {
 	var result *VoiceRegion
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildVoiceRegions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildVoiceRegions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildVoiceRegions(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildVoiceRegions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildVoiceRegions", err)
 	}
 
 	return result, nil
@@ -1613,12 +1613,12 @@ func (r *GetGuildWebhooks) Send(bot *Client) ([]*Webhook, error) {
 	var result []*Webhook
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildWebhooks: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWebhooks", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWebhooks(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildWebhooks: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWebhooks", err)
 	}
 
 	return result, nil
@@ -1629,12 +1629,12 @@ func (r *GetGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 	var result *WelcomeScreen
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildWelcomeScreen: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWelcomeScreen", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWelcomeScreen(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildWelcomeScreen: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWelcomeScreen", err)
 	}
 
 	return result, nil
@@ -1645,12 +1645,12 @@ func (r *GetGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 	var result *GuildWidget
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildWidget: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWidget", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWidget(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildWidget: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWidget", err)
 	}
 
 	return result, nil
@@ -1661,12 +1661,12 @@ func (r *GetGuildWidgetImage) Send(bot *Client) (*EmbedImage, error) {
 	var result *EmbedImage
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildWidgetImage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWidgetImage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWidgetImage(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildWidgetImage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWidgetImage", err)
 	}
 
 	return result, nil
@@ -1677,12 +1677,12 @@ func (r *GetGuildWidgetSettings) Send(bot *Client) (*GuildWidget, error) {
 	var result *GuildWidget
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetGuildWidgetSettings: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetGuildWidgetSettings", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetGuildWidgetSettings(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetGuildWidgetSettings: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWidgetSettings", err)
 	}
 
 	return result, nil
@@ -1693,12 +1693,12 @@ func (r *GetInvite) Send(bot *Client) (*Invite, error) {
 	var result *Invite
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetInvite: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetInvite", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetInvite(r.InviteCode), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetInvite: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetInvite", err)
 	}
 
 	return result, nil
@@ -1709,12 +1709,12 @@ func (r *GetOriginalInteractionResponse) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a GetOriginalInteractionResponse: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "GetOriginalInteractionResponse", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending GetOriginalInteractionResponse: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "GetOriginalInteractionResponse", err)
 	}
 
 	return nil
@@ -1725,12 +1725,12 @@ func (r *GetPinnedMessages) Send(bot *Client) ([]*Message, error) {
 	var result []*Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetPinnedMessages: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetPinnedMessages", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetPinnedMessages(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetPinnedMessages: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetPinnedMessages", err)
 	}
 
 	return result, nil
@@ -1741,12 +1741,12 @@ func (r *GetReactions) Send(bot *Client) ([]*User, error) {
 	var result []*User
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetReactions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetReactions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetReactions(r.ChannelID, r.MessageID, r.Emoji), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetReactions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetReactions", err)
 	}
 
 	return result, nil
@@ -1757,12 +1757,12 @@ func (r *GetStageInstance) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a GetStageInstance: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "GetStageInstance", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetStageInstance(r.ChannelID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending GetStageInstance: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "GetStageInstance", err)
 	}
 
 	return nil
@@ -1773,12 +1773,12 @@ func (r *GetSticker) Send(bot *Client) (*Sticker, error) {
 	var result *Sticker
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetSticker: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetSticker", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetSticker(r.StickerID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetSticker: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetSticker", err)
 	}
 
 	return result, nil
@@ -1789,12 +1789,12 @@ func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
 	var result *ThreadMember
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetThreadMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetThreadMember", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetThreadMember(r.ChannelID, r.UserID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetThreadMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetThreadMember", err)
 	}
 
 	return result, nil
@@ -1805,12 +1805,12 @@ func (r *GetUserConnections) Send(bot *Client) ([]*Connection, error) {
 	var result []*Connection
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetUserConnections: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetUserConnections", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetUserConnections(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetUserConnections: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetUserConnections", err)
 	}
 
 	return result, nil
@@ -1821,12 +1821,12 @@ func (r *GetWebhook) Send(bot *Client) (*Webhook, error) {
 	var result *Webhook
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetWebhook: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetWebhook", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetWebhook(r.WebhookID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetWebhook: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetWebhook", err)
 	}
 
 	return result, nil
@@ -1837,12 +1837,12 @@ func (r *GetWebhookMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetWebhookMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetWebhookMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetWebhookMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetWebhookMessage", err)
 	}
 
 	return result, nil
@@ -1853,12 +1853,12 @@ func (r *GetWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 	var result *Webhook
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a GetWebhookwithToken: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "GetWebhookwithToken", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGetWebhookwithToken(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending GetWebhookwithToken: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "GetWebhookwithToken", err)
 	}
 
 	return result, nil
@@ -1869,12 +1869,12 @@ func (r *GroupDMAddRecipient) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a GroupDMAddRecipient: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "GroupDMAddRecipient", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGroupDMAddRecipient(r.ChannelID, r.UserID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending GroupDMAddRecipient: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "GroupDMAddRecipient", err)
 	}
 
 	return nil
@@ -1885,12 +1885,12 @@ func (r *GroupDMRemoveRecipient) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a GroupDMRemoveRecipient: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "GroupDMRemoveRecipient", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointGroupDMRemoveRecipient(r.ChannelID, r.UserID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending GroupDMRemoveRecipient: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "GroupDMRemoveRecipient", err)
 	}
 
 	return nil
@@ -1901,12 +1901,12 @@ func (r *JoinThread) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a JoinThread: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "JoinThread", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointJoinThread(r.ChannelID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending JoinThread: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "JoinThread", err)
 	}
 
 	return nil
@@ -1917,12 +1917,12 @@ func (r *LeaveGuild) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a LeaveGuild: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "LeaveGuild", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointLeaveGuild(r.GuildID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending LeaveGuild: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "LeaveGuild", err)
 	}
 
 	return nil
@@ -1933,12 +1933,12 @@ func (r *LeaveThread) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a LeaveThread: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "LeaveThread", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointLeaveThread(r.ChannelID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending LeaveThread: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "LeaveThread", err)
 	}
 
 	return nil
@@ -1949,12 +1949,12 @@ func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsRespo
 	var result *ListActiveGuildThreadsResponse
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListActiveGuildThreads: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListActiveGuildThreads", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListActiveGuildThreads(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListActiveGuildThreads: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListActiveGuildThreads", err)
 	}
 
 	return result, nil
@@ -1965,12 +1965,12 @@ func (r *ListGuildEmojis) Send(bot *Client) ([]*Emoji, error) {
 	var result []*Emoji
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListGuildEmojis: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListGuildEmojis", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListGuildEmojis(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListGuildEmojis: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListGuildEmojis", err)
 	}
 
 	return result, nil
@@ -1981,12 +1981,12 @@ func (r *ListGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 	var result []*GuildMember
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListGuildMembers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListGuildMembers", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListGuildMembers(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListGuildMembers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListGuildMembers", err)
 	}
 
 	return result, nil
@@ -1997,12 +1997,12 @@ func (r *ListGuildStickers) Send(bot *Client) ([]*Sticker, error) {
 	var result []*Sticker
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListGuildStickers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListGuildStickers", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListGuildStickers(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListGuildStickers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListGuildStickers", err)
 	}
 
 	return result, nil
@@ -2013,12 +2013,12 @@ func (r *ListJoinedPrivateArchivedThreads) Send(bot *Client) (*ListJoinedPrivate
 	var result *ListJoinedPrivateArchivedThreadsResponse
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListJoinedPrivateArchivedThreads: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListJoinedPrivateArchivedThreads", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListJoinedPrivateArchivedThreads(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListJoinedPrivateArchivedThreads: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListJoinedPrivateArchivedThreads", err)
 	}
 
 	return result, nil
@@ -2029,12 +2029,12 @@ func (r *ListNitroStickerPacks) Send(bot *Client) ([]*StickerPack, error) {
 	var result []*StickerPack
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListNitroStickerPacks: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListNitroStickerPacks", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListNitroStickerPacks(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListNitroStickerPacks: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListNitroStickerPacks", err)
 	}
 
 	return result, nil
@@ -2045,12 +2045,12 @@ func (r *ListPrivateArchivedThreads) Send(bot *Client) (*ListPrivateArchivedThre
 	var result *ListPrivateArchivedThreadsResponse
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListPrivateArchivedThreads: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListPrivateArchivedThreads", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListPrivateArchivedThreads(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListPrivateArchivedThreads: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListPrivateArchivedThreads", err)
 	}
 
 	return result, nil
@@ -2061,12 +2061,12 @@ func (r *ListPublicArchivedThreads) Send(bot *Client) (*ListPublicArchivedThread
 	var result *ListPublicArchivedThreadsResponse
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListPublicArchivedThreads: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListPublicArchivedThreads", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListPublicArchivedThreads(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListPublicArchivedThreads: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListPublicArchivedThreads", err)
 	}
 
 	return result, nil
@@ -2077,12 +2077,12 @@ func (r *ListScheduledEventsforGuild) Send(bot *Client) ([]*GuildScheduledEvent,
 	var result []*GuildScheduledEvent
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListScheduledEventsforGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListScheduledEventsforGuild", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListScheduledEventsforGuild(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListScheduledEventsforGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListScheduledEventsforGuild", err)
 	}
 
 	return result, nil
@@ -2093,12 +2093,12 @@ func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
 	var result []*ThreadMember
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListThreadMembers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListThreadMembers", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListThreadMembers(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListThreadMembers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListThreadMembers", err)
 	}
 
 	return result, nil
@@ -2109,12 +2109,12 @@ func (r *ListVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 	var result []*VoiceRegion
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ListVoiceRegions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ListVoiceRegions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointListVoiceRegions(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ListVoiceRegions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ListVoiceRegions", err)
 	}
 
 	return result, nil
@@ -2125,12 +2125,12 @@ func (r *ModifyChannel) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyChannel", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyChannel(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannel", err)
 	}
 
 	return result, nil
@@ -2141,12 +2141,12 @@ func (r *ModifyChannelGroupDM) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyChannelGroupDM: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyChannelGroupDM", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyChannelGroupDM(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyChannelGroupDM: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannelGroupDM", err)
 	}
 
 	return result, nil
@@ -2157,12 +2157,12 @@ func (r *ModifyChannelGuild) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyChannelGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyChannelGuild", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyChannelGuild(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyChannelGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannelGuild", err)
 	}
 
 	return result, nil
@@ -2173,12 +2173,12 @@ func (r *ModifyChannelThread) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyChannelThread: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyChannelThread", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyChannelThread(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyChannelThread: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannelThread", err)
 	}
 
 	return result, nil
@@ -2189,12 +2189,12 @@ func (r *ModifyCurrentMember) Send(bot *Client) (*GuildMember, error) {
 	var result *GuildMember
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyCurrentMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyCurrentMember", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyCurrentMember(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyCurrentMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyCurrentMember", err)
 	}
 
 	return result, nil
@@ -2205,12 +2205,12 @@ func (r *ModifyCurrentUser) Send(bot *Client) (*User, error) {
 	var result *User
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyCurrentUser: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyCurrentUser", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyCurrentUser(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyCurrentUser: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyCurrentUser", err)
 	}
 
 	return result, nil
@@ -2221,12 +2221,12 @@ func (r *ModifyCurrentUserVoiceState) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a ModifyCurrentUserVoiceState: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "ModifyCurrentUserVoiceState", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyCurrentUserVoiceState(r.GuildID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending ModifyCurrentUserVoiceState: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "ModifyCurrentUserVoiceState", err)
 	}
 
 	return nil
@@ -2237,12 +2237,12 @@ func (r *ModifyGuild) Send(bot *Client) (*Guild, error) {
 	var result *Guild
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuild", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuild(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuild: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuild", err)
 	}
 
 	return result, nil
@@ -2253,12 +2253,12 @@ func (r *ModifyGuildChannelPositions) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a ModifyGuildChannelPositions: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "ModifyGuildChannelPositions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildChannelPositions(r.GuildID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending ModifyGuildChannelPositions: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "ModifyGuildChannelPositions", err)
 	}
 
 	return nil
@@ -2269,12 +2269,12 @@ func (r *ModifyGuildEmoji) Send(bot *Client) (*Emoji, error) {
 	var result *Emoji
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuildEmoji: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildEmoji", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildEmoji(r.GuildID, r.EmojiID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuildEmoji: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildEmoji", err)
 	}
 
 	return result, nil
@@ -2285,12 +2285,12 @@ func (r *ModifyGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var result *GuildMember
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuildMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildMember", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildMember(r.GuildID, r.UserID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuildMember: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildMember", err)
 	}
 
 	return result, nil
@@ -2301,12 +2301,12 @@ func (r *ModifyGuildRole) Send(bot *Client) (*Role, error) {
 	var result *Role
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuildRole: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildRole", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildRole(r.GuildID, r.RoleID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuildRole: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildRole", err)
 	}
 
 	return result, nil
@@ -2317,12 +2317,12 @@ func (r *ModifyGuildRolePositions) Send(bot *Client) ([]*Role, error) {
 	var result []*Role
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuildRolePositions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildRolePositions", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildRolePositions(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuildRolePositions: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildRolePositions", err)
 	}
 
 	return result, nil
@@ -2333,12 +2333,12 @@ func (r *ModifyGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 	var result *GuildScheduledEvent
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuildScheduledEvent: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildScheduledEvent", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuildScheduledEvent: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildScheduledEvent", err)
 	}
 
 	return result, nil
@@ -2349,12 +2349,12 @@ func (r *ModifyGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var result *Sticker
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuildSticker: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildSticker", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildSticker(r.GuildID, r.StickerID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuildSticker: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildSticker", err)
 	}
 
 	return result, nil
@@ -2365,12 +2365,12 @@ func (r *ModifyGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var result *GuildTemplate
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildTemplate", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildTemplate(r.GuildID, r.TemplateCode), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildTemplate", err)
 	}
 
 	return result, nil
@@ -2381,12 +2381,12 @@ func (r *ModifyGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 	var result *WelcomeScreen
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuildWelcomeScreen: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildWelcomeScreen", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildWelcomeScreen(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuildWelcomeScreen: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildWelcomeScreen", err)
 	}
 
 	return result, nil
@@ -2397,12 +2397,12 @@ func (r *ModifyGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 	var result *GuildWidget
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyGuildWidget: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyGuildWidget", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyGuildWidget(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyGuildWidget: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildWidget", err)
 	}
 
 	return result, nil
@@ -2413,12 +2413,12 @@ func (r *ModifyStageInstance) Send(bot *Client) (*StageInstance, error) {
 	var result *StageInstance
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyStageInstance: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyStageInstance", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyStageInstance(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyStageInstance: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyStageInstance", err)
 	}
 
 	return result, nil
@@ -2429,12 +2429,12 @@ func (r *ModifyUserVoiceState) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a ModifyUserVoiceState: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "ModifyUserVoiceState", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyUserVoiceState(r.GuildID, r.UserID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending ModifyUserVoiceState: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "ModifyUserVoiceState", err)
 	}
 
 	return nil
@@ -2445,12 +2445,12 @@ func (r *ModifyWebhook) Send(bot *Client) (*Webhook, error) {
 	var result *Webhook
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyWebhook: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyWebhook", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyWebhook(r.WebhookID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyWebhook: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyWebhook", err)
 	}
 
 	return result, nil
@@ -2461,12 +2461,12 @@ func (r *ModifyWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 	var result *Webhook
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ModifyWebhookwithToken: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ModifyWebhookwithToken", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointModifyWebhookwithToken(r.WebhookID, r.WebhookToken), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ModifyWebhookwithToken: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ModifyWebhookwithToken", err)
 	}
 
 	return result, nil
@@ -2477,12 +2477,12 @@ func (r *PinMessage) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a PinMessage: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "PinMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointPinMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending PinMessage: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "PinMessage", err)
 	}
 
 	return nil
@@ -2493,12 +2493,12 @@ func (r *RemoveGuildBan) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a RemoveGuildBan: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "RemoveGuildBan", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointRemoveGuildBan(r.GuildID, r.UserID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending RemoveGuildBan: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "RemoveGuildBan", err)
 	}
 
 	return nil
@@ -2509,12 +2509,12 @@ func (r *RemoveGuildMember) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a RemoveGuildMember: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "RemoveGuildMember", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointRemoveGuildMember(r.GuildID, r.UserID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending RemoveGuildMember: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "RemoveGuildMember", err)
 	}
 
 	return nil
@@ -2525,12 +2525,12 @@ func (r *RemoveGuildMemberRole) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a RemoveGuildMemberRole: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "RemoveGuildMemberRole", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointRemoveGuildMemberRole(r.GuildID, r.UserID, r.RoleID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending RemoveGuildMemberRole: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "RemoveGuildMemberRole", err)
 	}
 
 	return nil
@@ -2541,12 +2541,12 @@ func (r *RemoveThreadMember) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a RemoveThreadMember: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "RemoveThreadMember", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointRemoveThreadMember(r.ChannelID, r.UserID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending RemoveThreadMember: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "RemoveThreadMember", err)
 	}
 
 	return nil
@@ -2557,12 +2557,12 @@ func (r *SearchGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 	var result []*GuildMember
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a SearchGuildMembers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "SearchGuildMembers", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointSearchGuildMembers(r.GuildID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending SearchGuildMembers: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "SearchGuildMembers", err)
 	}
 
 	return result, nil
@@ -2573,12 +2573,12 @@ func (r *StartThreadfromMessage) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a StartThreadfromMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "StartThreadfromMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointStartThreadfromMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending StartThreadfromMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "StartThreadfromMessage", err)
 	}
 
 	return result, nil
@@ -2589,12 +2589,12 @@ func (r *StartThreadinForumChannel) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a StartThreadinForumChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "StartThreadinForumChannel", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointStartThreadinForumChannel(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending StartThreadinForumChannel: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "StartThreadinForumChannel", err)
 	}
 
 	return result, nil
@@ -2605,12 +2605,12 @@ func (r *StartThreadwithoutMessage) Send(bot *Client) (*Channel, error) {
 	var result *Channel
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a StartThreadwithoutMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "StartThreadwithoutMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointStartThreadwithoutMessage(r.ChannelID), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending StartThreadwithoutMessage: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "StartThreadwithoutMessage", err)
 	}
 
 	return result, nil
@@ -2621,12 +2621,12 @@ func (r *SyncGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var result *GuildTemplate
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a SyncGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "SyncGuildTemplate", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointSyncGuildTemplate(r.GuildID, r.TemplateCode), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending SyncGuildTemplate: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "SyncGuildTemplate", err)
 	}
 
 	return result, nil
@@ -2637,12 +2637,12 @@ func (r *TriggerTypingIndicator) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a TriggerTypingIndicator: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "TriggerTypingIndicator", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointTriggerTypingIndicator(r.ChannelID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending TriggerTypingIndicator: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "TriggerTypingIndicator", err)
 	}
 
 	return nil
@@ -2653,12 +2653,12 @@ func (r *UnpinMessage) Send(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a UnpinMessage: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "UnpinMessage", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointUnpinMessage(r.ChannelID, r.MessageID), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending UnpinMessage: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "UnpinMessage", err)
 	}
 
 	return nil

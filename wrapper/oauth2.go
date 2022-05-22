@@ -129,12 +129,12 @@ func (r *AuthorizationURL) SendAuthorizationCodeGrantURL(bot *Client) (*Redirect
 	var result *RedirectURL
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "AuthorizationURL", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "AuthorizationURL", err)
 	}
 
 	return result, nil
@@ -145,12 +145,12 @@ func (r *AccessTokenExchange) SendAccessTokenExchange(bot *Client) (*AccessToken
 	var result *AccessTokenResponse
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a AccessTokenExchange: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "AccessTokenExchange", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointTokenURL(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending AccessTokenExchange: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "AccessTokenExchange", err)
 	}
 
 	return result, nil
@@ -161,12 +161,12 @@ func (r *RefreshTokenExchange) SendRefreshTokenExchange(bot *Client) (*AccessTok
 	var result *AccessTokenResponse
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a RefreshTokenExchange: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "RefreshTokenExchange", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointTokenURL(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending RefreshTokenExchange: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "RefreshTokenExchange", err)
 	}
 
 	return result, nil
@@ -177,12 +177,12 @@ func (r *AuthorizationURL) SendImplicitAuthorizationURL(bot *Client) (*RedirectU
 	var result *RedirectURI
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ImplicitAuthorizationURL", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ImplicitAuthorizationURL", err)
 	}
 
 	return result, nil
@@ -193,12 +193,12 @@ func (r *BotAuth) SendBotAuth(bot *Client) error {
 	var result error
 	body, err := json.Marshal(r)
 	if err != nil {
-		return fmt.Errorf("an error occurred while marshalling a BotAuth: \n%w", err)
+		return fmt.Errorf(ErrSendMarshal, "BotAuth", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
 	if err != nil {
-		return fmt.Errorf("an error occurred while sending BotAuth: \n%w", err)
+		return fmt.Errorf(ErrSendRequest, "BotAuth", err)
 	}
 
 	return nil
@@ -209,12 +209,12 @@ func (r *ClientCredentialsTokenRequest) SendClientCredentialsTokenRequest(bot *C
 	var result *ClientCredentialsTokenRequest
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a ClientCredentialsTokenRequest: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "ClientCredentialsTokenRequest", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointTokenURL(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending ClientCredentialsTokenRequest: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "ClientCredentialsTokenRequest", err)
 	}
 
 	return result, nil
@@ -225,12 +225,12 @@ func (r *AuthorizationURL) SendAdvancedBotAuth(bot *Client) (*ExtendedBotAuthori
 	var result *ExtendedBotAuthorizationAccessTokenResponse
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "AdvancedBotAuth", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "AdvancedBotAuth", err)
 	}
 
 	return result, nil
@@ -241,12 +241,12 @@ func (r *AuthorizationURL) SendWebhookAuth(bot *Client) (*WebhookTokenResponse, 
 	var result *WebhookTokenResponse
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while marshalling a AuthorizationURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "WebhookAuth", err)
 	}
 
 	err = SendRequest(result, bot.client, TODO, EndpointAuthorizationURL(), body)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred while sending AuthorizationURL: \n%w", err)
+		return nil, fmt.Errorf(ErrSendRequest, "WebhookAuth", err)
 	}
 
 	return result, nil

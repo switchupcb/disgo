@@ -65,3 +65,9 @@ func SendRequest(dst any, client *fasthttp.Client, method, uri string, body []by
 
 	return StatusCodeError(response.StatusCode())
 }
+
+// Send Error Messages.
+const (
+	ErrSendMarshal = "an error occurred while marshalling a %v: \n%w"
+	ErrSendRequest = "an error occurred while sending %v: \n%w"
+)

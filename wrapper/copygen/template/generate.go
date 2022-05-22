@@ -118,25 +118,27 @@ func generateEndpointCall(request *models.Field) string {
 
 // generateMarshalErrReturn generates a return statement for the function.
 func generateMarshalErrReturn(function *models.Function, request string) string {
+	errorf := "fmt.Errorf(ErrSendMarshal" + ",\"" + request + "\"" + ", err)"
 	switch len(function.To) {
 	case 1:
-		return "return fmt.Errorf(\"an error occurred while marshalling a " + request + ": \\n%w\", err)\n"
+		return "return " + errorf + "\n"
 	case 2:
-		return "return nil, fmt.Errorf(\"an error occurred while marshalling a " + request + ": \\n%w\", err)\n"
+		return "return nil, " + errorf + "\n"
 	default:
-		return "return nil, fmt.Errorf(\"an error occurred while marshalling a " + request + ": \\n%w\", err)\n"
+		return "return nil, " + errorf + "\n"
 	}
 }
 
 // generateSendRequestErrReturn generates a return statement for the function.
 func generateSendRequestErrReturn(function *models.Function, request string) string {
+	errorf := "fmt.Errorf(ErrSendRequest" + ",\"" + request + "\"" + ", err)"
 	switch len(function.To) {
 	case 1:
-		return "return fmt.Errorf(\"an error occurred while sending " + request + ": \\n%w\", err)\n"
+		return "return " + errorf + "\n"
 	case 2:
-		return "return nil, fmt.Errorf(\"an error occurred while sending " + request + ": \\n%w\", err)\n"
+		return "return nil, " + errorf + "\n"
 	default:
-		return "return nil, fmt.Errorf(\"an error occurred while sending " + request + ": \\n%w\", err)\n"
+		return "return nil, " + errorf + "\n"
 	}
 }
 
