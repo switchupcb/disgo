@@ -68,19 +68,22 @@ func generateResultParameters(function *models.Function) string {
 
 // generateBody generates the body of a function.
 func generateBody(function *models.Function) string {
-	request := function.From[0].Field.FullDefinitionWithoutPointer()
+	request := function.From[0].Field
+	requestName := request.FullDefinitionWithoutPointer()
 	response := function.To[0].Field.FullDefinition()
 
 	var body strings.Builder
 	body.WriteString("var result " + response + "\n")
 	body.WriteString("body, err := json.Marshal(r)\n")
 	body.WriteString("if err != nil {\n")
-	body.WriteString(generateMarshalErrReturn(function, request))
+	body.WriteString(generateMarshalErrReturn(function, requestName))
 	body.WriteString("}\n")
 	body.WriteString("\n")
-	body.WriteString("err = SendRequest(result, bot.client, " + generateHTTPMethod(function) + ", " + generateEndpointCall(function.From[0].Field) + ", body)\n")
+	body.WriteString("err = SendRequest(bot.client, " + generateHTTPMethod(function) + ", " +
+		generateEndpointCall(function.From[0].Field) + ", " + generateContentType(request) +
+		", body, result)\n")
 	body.WriteString("if err != nil {\n")
-	body.WriteString(generateSendRequestErrReturn(function, request))
+	body.WriteString(generateSendRequestErrReturn(function, requestName))
 	body.WriteString("}\n")
 
 	return body.String()
@@ -131,6 +134,28 @@ func generateEndpointCall(request *models.Field) string {
 	}
 
 	return "Endpoint" + request.Definition[1:] + "(" + parameters.String() + ")"
+}
+
+// generateContentType generates the content type for a SendRequest call.
+func generateContentType(request *models.Field) string {
+	uniquetags := make(map[string]int)
+
+	for _, subfield := range request.Fields {
+		for k := range subfield.Tags {
+			uniquetags[k]++
+		}
+	}
+
+	switch {
+	case uniquetags["dasgo"] != 0:
+		return "contentTypeMulti"
+	case uniquetags["json"] != 0:
+		return "contentTypeJSON"
+	case uniquetags["url"] != 0:
+		return "contentTypeURL"
+	default:
+		return "nil"
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////

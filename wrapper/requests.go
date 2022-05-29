@@ -13,9 +13,10 @@ import (
 // TODO: refactor with timeout usage.
 var timeout time.Duration
 
-// TODO: Set HTTP METHOD (Get, Post, Put, Patch, Delete) [using Copygen Options]
+// Send Error Messages.
 const (
-	TODO = fasthttp.MethodPost
+	ErrSendMarshal = "an error occurred while marshalling a %v: \n%w"
+	ErrSendRequest = "an error occurred while sending %v: \n%w"
 )
 
 // Status Code Error Messages.
@@ -33,17 +34,25 @@ func StatusCodeError(status int) error {
 	return fmt.Errorf(ErrStatusCodeUnknown, status)
 }
 
-// ContentTypeJSON represents an HTTP header that indicates a JSON body.
-var ContentTypeJSON = []byte("application/json")
+var (
+	// contentTypeURL represents an HTTP header indicating a payload with an encoded URL Query String.
+	contentTypeURL = []byte("application/x-www-form-urlencoded")
 
-// SendRequest sends a fasthttp.Request with a JSON body using the given URI, method, and body,
+	// contentTypeJSON represents an HTTP header that indicates a payload with a JSON body.
+	contentTypeJSON = []byte("application/json")
+
+	// contentTypeMulti represents an HTTP header that indicates a payload with a multi-part (file) body.
+	contentTypeMulti = []byte("multipart/form-data")
+)
+
+// SendRequest sends a fasthttp.Request using the given URI, HTTP method, content type and body,
 // then parses the response into dst.
-func SendRequest(dst any, client *fasthttp.Client, method, uri string, body []byte) error {
+func SendRequest(client *fasthttp.Client, method, uri string, content, body []byte, dst any) error {
 	request := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(request)
 	request.SetRequestURI(uri)
 	request.Header.SetMethod(method)
-	request.Header.SetContentTypeBytes(ContentTypeJSON)
+	request.Header.SetContentTypeBytes(content)
 	request.SetBodyRaw(body)
 
 	// receive the response from the request.
@@ -53,7 +62,7 @@ func SendRequest(dst any, client *fasthttp.Client, method, uri string, body []by
 		return fmt.Errorf("%w", err)
 	}
 
-	// unmarshal the response into dst.
+	// unmarshal the JSON response into dst.
 	if response.StatusCode() == fasthttp.StatusOK {
 		err := json.Unmarshal(response.Body(), dst)
 		if err != nil {
@@ -65,9 +74,3 @@ func SendRequest(dst any, client *fasthttp.Client, method, uri string, body []by
 
 	return StatusCodeError(response.StatusCode())
 }
-
-// Send Error Messages.
-const (
-	ErrSendMarshal = "an error occurred while marshalling a %v: \n%w"
-	ErrSendRequest = "an error occurred while sending %v: \n%w"
-)
