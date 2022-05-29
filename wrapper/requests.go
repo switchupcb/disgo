@@ -2,9 +2,11 @@ package wrapper
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
 	json "github.com/goccy/go-json"
+	"github.com/gorilla/schema"
 	"github.com/valyala/fasthttp"
 )
 
@@ -15,8 +17,9 @@ var timeout time.Duration
 
 // Send Error Messages.
 const (
-	ErrSendMarshal = "an error occurred while marshalling a %v: \n%w"
-	ErrSendRequest = "an error occurred while sending %v: \n%w"
+	ErrSendMarshal = "an error occurred while marshalling a %v:\n%w"
+	ErrSendRequest = "an error occurred while sending %v:\n%w"
+	ErrQueryString = "an error occurred creating a URL Query String for %v:\n%w"
 )
 
 // Status Code Error Messages.
@@ -73,4 +76,31 @@ func SendRequest(client *fasthttp.Client, method, uri string, content, body []by
 	}
 
 	return StatusCodeError(response.StatusCode())
+}
+
+var (
+	// qsEncoder is used to create URL Query Strings from objects.
+	qsEncoder = schema.NewEncoder()
+
+	// qsDecoder is used to parse URL Query Strings into objects.
+	qsDecoder = schema.NewDecoder()
+)
+
+// init runs at the start of the program.
+func init() {
+
+	// use `url` tags for the URL Query String encoder and decoder.
+	qsEncoder.SetAliasTag("url")
+	qsDecoder.SetAliasTag("url")
+}
+
+// EndpointQueryString return a URL Query String from a given object.
+func EndpointQueryString(dst any) (string, error) {
+	params := url.Values{}
+	err := qsEncoder.Encode(dst, params)
+	if err != nil {
+		return "", err
+	}
+
+	return params.Encode(), nil
 }

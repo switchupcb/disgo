@@ -1,7 +1,6 @@
 package wrapper
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -138,12 +137,12 @@ func (r *AuthorizationURL) SendAuthorizationCodeGrantURL(bot *Client) (*Redirect
 // SendAccessTokenExchange sends a AccessTokenExchange to Discord and returns a AccessTokenResponse.
 func (r *AccessTokenExchange) SendAccessTokenExchange(bot *Client) (*AccessTokenResponse, error) {
 	var result *AccessTokenResponse
-	body, err := json.Marshal(r)
+	query, err := EndpointQueryString(r)
 	if err != nil {
-		return nil, fmt.Errorf(ErrSendMarshal, "AccessTokenExchange", err)
+		return nil, fmt.Errorf(ErrQueryString, "AccessTokenExchange", err)
 	}
 
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL(), contentTypeURL, body, result)
+	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "AccessTokenExchange", err)
 	}
@@ -154,12 +153,12 @@ func (r *AccessTokenExchange) SendAccessTokenExchange(bot *Client) (*AccessToken
 // SendRefreshTokenExchange sends a RefreshTokenExchange to Discord and returns a AccessTokenResponse.
 func (r *RefreshTokenExchange) SendRefreshTokenExchange(bot *Client) (*AccessTokenResponse, error) {
 	var result *AccessTokenResponse
-	body, err := json.Marshal(r)
+	query, err := EndpointQueryString(r)
 	if err != nil {
-		return nil, fmt.Errorf(ErrSendMarshal, "RefreshTokenExchange", err)
+		return nil, fmt.Errorf(ErrQueryString, "RefreshTokenExchange", err)
 	}
 
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL(), contentTypeURL, body, result)
+	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "RefreshTokenExchange", err)
 	}
@@ -170,17 +169,12 @@ func (r *RefreshTokenExchange) SendRefreshTokenExchange(bot *Client) (*AccessTok
 // SendImplicitAuthorizationURL sends a AuthorizationURL to Discord and returns a RedirectURI.
 func (r *AuthorizationURL) SendImplicitAuthorizationURL(bot *Client) (*RedirectURI, error) {
 	var result *RedirectURI
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, fmt.Errorf(ErrSendMarshal, "ImplicitAuthorizationURL", err)
-	}
-
-	//     fmt.Println(u.Fragment)
-
-	err = SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, body, result)
+	err := SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ImplicitAuthorizationURL", err)
 	}
+
+	//	fmt.Println(u.Fragment)
 
 	return result, nil
 }
@@ -188,12 +182,12 @@ func (r *AuthorizationURL) SendImplicitAuthorizationURL(bot *Client) (*RedirectU
 // SendBotAuth sends a BotAuth to Discord and returns a error.
 func (r *BotAuth) SendBotAuth(bot *Client) error {
 	var result error
-	body, err := json.Marshal(r)
+	query, err := EndpointQueryString(r)
 	if err != nil {
-		return fmt.Errorf(ErrSendMarshal, "BotAuth", err)
+		return fmt.Errorf(ErrQueryString, "BotAuth", err)
 	}
 
-	err = SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, body, result)
+	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointAuthorizationURL()+"?"+query, nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "BotAuth", err)
 	}
@@ -204,12 +198,12 @@ func (r *BotAuth) SendBotAuth(bot *Client) error {
 // SendClientCredentialsTokenRequest sends a ClientCredentialsTokenRequest to Discord and returns a ClientCredentialsTokenRequest.
 func (r *ClientCredentialsTokenRequest) SendClientCredentialsTokenRequest(bot *Client) (*ClientCredentialsTokenRequest, error) {
 	var result *ClientCredentialsTokenRequest
-	body, err := json.Marshal(r)
+	query, err := EndpointQueryString(r)
 	if err != nil {
-		return nil, fmt.Errorf(ErrSendMarshal, "ClientCredentialsTokenRequest", err)
+		return nil, fmt.Errorf(ErrQueryString, "ClientCredentialsTokenRequest", err)
 	}
 
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL(), contentTypeURL, body, result)
+	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ClientCredentialsTokenRequest", err)
 	}
@@ -220,12 +214,7 @@ func (r *ClientCredentialsTokenRequest) SendClientCredentialsTokenRequest(bot *C
 // SendAdvancedBotAuth sends a AuthorizationURL to Discord and returns a ExtendedBotAuthorizationAccessTokenResponse.
 func (r *AuthorizationURL) SendAdvancedBotAuth(bot *Client) (*ExtendedBotAuthorizationAccessTokenResponse, error) {
 	var result *ExtendedBotAuthorizationAccessTokenResponse
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, fmt.Errorf(ErrSendMarshal, "AdvancedBotAuth", err)
-	}
-
-	err = SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), contentTypeURL, body, result)
+	err := SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "AdvancedBotAuth", err)
 	}
@@ -236,12 +225,7 @@ func (r *AuthorizationURL) SendAdvancedBotAuth(bot *Client) (*ExtendedBotAuthori
 // SendWebhookAuth sends a AuthorizationURL to Discord and returns a WebhookTokenResponse.
 func (r *AuthorizationURL) SendWebhookAuth(bot *Client) (*WebhookTokenResponse, error) {
 	var result *WebhookTokenResponse
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, fmt.Errorf(ErrSendMarshal, "WebhookAuth", err)
-	}
-
-	err = SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), contentTypeURL, body, result)
+	err := SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "WebhookAuth", err)
 	}

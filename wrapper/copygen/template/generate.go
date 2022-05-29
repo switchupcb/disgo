@@ -70,18 +70,37 @@ func generateResultParameters(function *models.Function) string {
 func generateBody(function *models.Function) string {
 	request := function.From[0].Field
 	requestName := request.FullDefinitionWithoutPointer()
+	uniquetags := uniqueTags(request)
 	response := function.To[0].Field.FullDefinition()
+	errDecl := ":="
 
 	var body strings.Builder
 	body.WriteString("var result " + response + "\n")
-	body.WriteString("body, err := json.Marshal(r)\n")
-	body.WriteString("if err != nil {\n")
-	body.WriteString(generateMarshalErrReturn(function, requestName))
-	body.WriteString("}\n")
-	body.WriteString("\n")
-	body.WriteString("err = SendRequest(bot.client, " + generateHTTPMethod(function) + ", " +
-		generateEndpointCall(function.From[0].Field) + ", " + generateContentType(request) +
-		", body, result)\n")
+
+	httpbody := "nil"
+	if uniquetags["json"] != 0 {
+		body.WriteString("body, err " + errDecl + " json.Marshal(r)\n")
+		body.WriteString("if err != nil {\n")
+		body.WriteString(generateMarshalErrReturn(function, requestName))
+		body.WriteString("}\n")
+		body.WriteString("\n")
+		httpbody = "body"
+		errDecl = "="
+	}
+
+	endpoint := generateEndpointCall(function.From[0].Field)
+	if uniquetags["url"] != 0 {
+		body.WriteString("query, err := EndpointQueryString(r)\n")
+		body.WriteString("if err != nil {\n")
+		body.WriteString(generateQueryStringErrReturn(function, requestName))
+		body.WriteString("}\n")
+		body.WriteString("\n")
+		endpoint = endpoint + "+" + "\"?\"" + "+ query"
+		errDecl = "="
+	}
+
+	body.WriteString("err " + errDecl + " SendRequest(bot.client, " + generateHTTPMethod(function) + ", " +
+		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", result)\n")
 	body.WriteString("if err != nil {\n")
 	body.WriteString(generateSendRequestErrReturn(function, requestName))
 	body.WriteString("}\n")
@@ -137,7 +156,21 @@ func generateEndpointCall(request *models.Field) string {
 }
 
 // generateContentType generates the content type for a SendRequest call.
-func generateContentType(request *models.Field) string {
+func generateContentType(tags map[string]int) string {
+	switch {
+	case tags["dasgo"] != 0:
+		return "contentTypeMulti"
+	case tags["json"] != 0:
+		return "contentTypeJSON"
+	case tags["url"] != 0:
+		return "contentTypeURL"
+	default:
+		return "nil"
+	}
+}
+
+// uniqueTags determines the unique tags of a request.
+func uniqueTags(request *models.Field) map[string]int {
 	uniquetags := make(map[string]int)
 
 	for _, subfield := range request.Fields {
@@ -146,16 +179,7 @@ func generateContentType(request *models.Field) string {
 		}
 	}
 
-	switch {
-	case uniquetags["dasgo"] != 0:
-		return "contentTypeMulti"
-	case uniquetags["json"] != 0:
-		return "contentTypeJSON"
-	case uniquetags["url"] != 0:
-		return "contentTypeURL"
-	default:
-		return "nil"
-	}
+	return uniquetags
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -178,6 +202,19 @@ func generateMarshalErrReturn(function *models.Function, request string) string 
 // generateSendRequestErrReturn generates a return statement for the function.
 func generateSendRequestErrReturn(function *models.Function, request string) string {
 	errorf := "fmt.Errorf(ErrSendRequest" + ",\"" + request + "\"" + ", err)"
+	switch len(function.To) {
+	case 1:
+		return "return " + errorf + "\n"
+	case 2:
+		return "return nil, " + errorf + "\n"
+	default:
+		return "return nil, " + errorf + "\n"
+	}
+}
+
+// generateQueryStringErrReturn generates a return statement for the function.
+func generateQueryStringErrReturn(function *models.Function, request string) string {
+	errorf := "fmt.Errorf(ErrQueryString" + ",\"" + request + "\"" + ", err)"
 	switch len(function.To) {
 	case 1:
 		return "return " + errorf + "\n"
