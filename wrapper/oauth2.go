@@ -10,11 +10,53 @@ import (
 const (
 	grantTypeAuthorizationCodeGrant = "authorization_code"
 	grantTypeRefreshToken           = "refresh_token"
+	grantTypeClientCredentials      = "client_credentials"
 )
+
+// GenerateAuthorizationURL generates an authorization URL from a given client and response type.
+func GenerateAuthorizationURL(bot *Client, responsetype string) string {
+	params := make([]string, 0, 5)
+
+	// client_id is the application client id.
+	params = append(params, "client_id="+bot.Authorization.ClientID)
+
+	// scope is a list of OAuth2 scopes separated by url encoded spaces (%20).
+	var scope strings.Builder
+	if len(bot.Authorization.Scopes) > 0 {
+		scope.WriteString("scope=")
+
+		for i, s := range bot.Authorization.Scopes {
+			if i > 0 {
+				scope.WriteString("%20")
+			}
+
+			scope.WriteString(s)
+		}
+	}
+
+	// redirect_uri is the URL registered while creating the application.
+	if bot.Authorization.RedirectURI != "" {
+		params = append(params, "redirect_uri="+bot.Authorization.RedirectURI)
+	}
+
+	// state is the unique string mentioned in State and Security.
+	if bot.Authorization.State != "" {
+		params = append(params, "state="+bot.Authorization.State)
+	}
+
+	// prompt controls how the authorization flow handles existing authorizations.
+	if bot.Authorization.Prompt != "" {
+		params = append(params, "prompt="+bot.Authorization.Prompt)
+	}
+
+	return EndpointAuthorizationURL() + "?response_type=" + responsetype + "&" + strings.Join(params, "&")
+}
 
 // AuthorizationCodeGrant performs an OAuth2 authorization code grant.
 //
-// Send the user a valid Authorization URL, which can be generated using GenerateAuthorizationURL(bot).
+// Send the user a valid Authorization URL, which can be generated using
+// GenerateAuthorizationURL(bot, "code").
+//
 // When the user visits the Authorization URL, they will be prompted for authorization.
 // If the user accepts the prompt, they will be redirected to the `redirect_uri`.
 // This issues a GET request to the `redirect_uri` web server which YOU MUST HANDLE
@@ -50,43 +92,28 @@ func RefreshAuthorizationCodeGrant(bot *Client, token AccessTokenResponse) (*Acc
 	return exchange.Send(bot)
 }
 
-// GenerateAuthorizationURL generates an authorization URL from a given client.
-func GenerateAuthorizationURL(bot *Client) string {
-	params := make([]string, 0, 5)
-
-	// client_id is the application client id.
-	params = append(params, "client_id="+bot.Authorization.ClientID)
-
-	// scope is a list of OAuth2 scopes separated by url encoded spaces (%20).
-	var scope strings.Builder
-	if len(bot.Authorization.Scopes) > 0 {
-		scope.WriteString("scope=")
-
-		for i, s := range bot.Authorization.Scopes {
-			if i > 0 {
-				scope.WriteString("%20")
-			}
-
-			scope.WriteString(s)
-		}
+// ImplicitGrant converts a RedirectURI (from a simplified OAuth2 grant) to an AccessTokenResponse.
+//
+// Send the user a valid Authorization URL, which can be generated using
+// GenerateAuthorizationURL(bot, "token").
+//
+// When the user visits the Authorization URL, they will be prompted for authorization.
+// If the user accepts the prompt, they will be redirected to the `redirect_uri`.
+// This issues a GET request to the `redirect_uri` web server which YOU MUST HANDLE
+// by parsing the request's URI Fragments into a disgo.RedirectURI object.
+//
+// A disgo.RedirectURI object is equivalent to a disgo.AccessTokenResponse,
+// but it does NOT contain a refresh token.
+//
+// For more information, read https://discord.com/developers/docs/topics/oauth2#implicit-grant
+func ImplicitGrant(ru *RedirectURI) *AccessTokenResponse {
+	return &AccessTokenResponse{
+		AccessToken:  ru.AccessToken,
+		TokenType:    ru.TokenType,
+		ExpiresIn:    ru.ExpiresIn,
+		RefreshToken: "",
+		Scope:        ru.Scope,
 	}
-
-	// redirect_uri is the URL registered while creating the application.
-	if bot.Authorization.RedirectURI != "" {
-		params = append(params, "redirect_uri="+bot.Authorization.RedirectURI)
-	}
-
-	// state is the unique string mentioned in State and Security.
-	if bot.Authorization.State != "" {
-		params = append(params, "state="+bot.Authorization.State)
-	}
-
-	// prompt controls how the authorization flow handles existing authorizations.
-	if bot.Authorization.Prompt != "" {
-		params = append(params, "prompt="+bot.Authorization.Prompt)
-	}
-
-	return EndpointAuthorizationURL() + "?response_type=code&" + strings.Join(params, "&")
 }
 
 // Send sends an AccessTokenExchange request to Discord and returns an AccessTokenResponse.
@@ -123,15 +150,18 @@ func (r *RefreshTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	return result, nil
 }
 
-// SendImplicitAuthorizationURL sends a AuthorizationURL to Discord and returns a RedirectURI.
-func (r *AuthorizationURL) SendImplicitAuthorizationURL(bot *Client) (*RedirectURI, error) {
-	var result *RedirectURI
-	err := SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
+// Send sends a ClientCredentialsTokenRequest to Discord and returns a ClientCredentialsTokenRequest.
+func (r *ClientCredentialsTokenRequest) Send(bot *Client) (*ClientCredentialsTokenRequest, error) {
+	query, err := EndpointQueryString(r)
 	if err != nil {
-		return nil, fmt.Errorf(ErrSendRequest, "ImplicitAuthorizationURL", err)
+		return nil, fmt.Errorf(ErrQueryString, "ClientCredentialsTokenRequest", err)
 	}
 
-	//	fmt.Println(u.Fragment)
+	var result *ClientCredentialsTokenRequest
+	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	if err != nil {
+		return nil, fmt.Errorf(ErrSendRequest, "ClientCredentialsTokenRequest", err)
+	}
 
 	return result, nil
 }
@@ -150,22 +180,6 @@ func (r *BotAuth) SendBotAuth(bot *Client) error {
 	}
 
 	return nil
-}
-
-// SendClientCredentialsTokenRequest sends a ClientCredentialsTokenRequest to Discord and returns a ClientCredentialsTokenRequest.
-func (r *ClientCredentialsTokenRequest) SendClientCredentialsTokenRequest(bot *Client) (*ClientCredentialsTokenRequest, error) {
-	var result *ClientCredentialsTokenRequest
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, fmt.Errorf(ErrQueryString, "ClientCredentialsTokenRequest", err)
-	}
-
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
-	if err != nil {
-		return nil, fmt.Errorf(ErrSendRequest, "ClientCredentialsTokenRequest", err)
-	}
-
-	return result, nil
 }
 
 // SendAdvancedBotAuth sends a AuthorizationURL to Discord and returns a ExtendedBotAuthorizationAccessTokenResponse.
