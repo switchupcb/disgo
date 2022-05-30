@@ -3,6 +3,7 @@ package wrapper
 import (
 	"encoding/base64"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/valyala/fasthttp"
@@ -15,8 +16,13 @@ const (
 )
 
 // GenerateAuthorizationURL generates an authorization URL from a given client and response type.
-func GenerateAuthorizationURL(bot *Client, responsetype string) string {
-	params := make([]string, 0, 5)
+func GenerateAuthorizationURL(bot *Client, response string) string {
+	params := make([]string, 0, 6)
+
+	// response_type is the type of response the redirect will return.
+	if response != "" {
+		params = append(params, "responsetype="+response)
+	}
 
 	// client_id is the application client id.
 	params = append(params, "client_id="+bot.Authorization.ClientID)
@@ -42,7 +48,50 @@ func GenerateAuthorizationURL(bot *Client, responsetype string) string {
 		params = append(params, "prompt="+bot.Authorization.Prompt)
 	}
 
-	return EndpointAuthorizationURL() + "?response_type=" + responsetype + "&" + strings.Join(params, "&")
+	return EndpointAuthorizationURL() + "?" + strings.Join(params, "&")
+}
+
+// BotAuthParams represents parameters used to generate a bot authorization URL.
+type BotAuthParams struct {
+	// Bot provides the client_id and scopes parameters.
+	Bot *Client
+
+	// Permissions represents the permissions the bot is requesting.
+	Permissions BitFlag
+
+	// GuildID pre-selects a guild in the authorization prompt.
+	GuildID string
+
+	// DisableGuildSelect disables the ability to select other guilds
+	// in the authorization prompt (when GuildID is provided).
+	DisableGuildSelect bool
+
+	// ResponseType provides the type of response the OAuth2 flow will return.
+	//
+	// In the context of bot authorization, response_type is only provided when
+	// a scope outside of `bot` and `applications.commands` is requested.
+	ResponseType string
+}
+
+// GenerateBotAuthorizationURL generates a bot authorization URL using the given BotAuthParams.
+//
+// Bot.Scopes must include "bot" to enable the OAuth2 Bot Flow.
+func GenerateBotAuthorizationURL(p BotAuthParams) string {
+	params := make([]string, 0, 3)
+
+	// permissions is permissions the bot is requesting.
+	params = append(params, "permissions="+strconv.FormatUint(uint64(p.Permissions), 10))
+
+	// guild_id is the Guild ID of the guild that is pre-selected in the authorization prompt.
+	if p.GuildID != "" {
+		params = append(params, "guild_id="+p.GuildID)
+	}
+
+	// disable_guild_select determines whether the user will be allowed to select a guild
+	// other than the guild_id.
+	params = append(params, "disable_guild_select="+strconv.FormatBool(p.DisableGuildSelect))
+
+	return GenerateAuthorizationURL(p.Bot, p.ResponseType) + strings.Join(params, "&")
 }
 
 // AuthorizationCodeGrant performs an OAuth2 authorization code grant.
@@ -130,6 +179,36 @@ func ClientCredentialsGrant(bot *Client) (*AccessTokenResponse, error) {
 	return grant.Send(bot)
 }
 
+// BotAuthorization performs a specialized OAuth2 flow for users to add bots to guilds.
+//
+// Send the user a valid Bot Authorization URL, which can be generated using
+// GenerateBotAuthorizationURL(disgo.BotAuthParams{...}).
+//
+// When the user visits the Bot Authorization URL, they will be prompted for authorization.
+// If the user accepts the prompt (with a guild), the bot will be added to the selected guild.
+//
+// For more information read, https://discord.com/developers/docs/topics/oauth2#bot-authorization-flow
+func BotAuthorization() {}
+
+// AdvancedBotAuthorization performs a specialized OAuth2 flow for users to add bots to guilds.
+//
+// Send the user a valid Bot Authorization URL, which can be generated using
+// GenerateBotAuthorizationURL(disgo.BotAuthParams{...}).
+//
+// If the user accepts the prompt (with a guild), they will be redirected to the `redirect_uri`.
+// This issues a GET request to the `redirect_uri` web server which YOU MUST HANDLE
+// by parsing the request's URL Query String into a disgo.RedirectURL object.
+//
+// Retrieve the user's access token by calling THIS FUNCTION (with the disgo.RedirectURL parameter),
+// which performs an Access Token Exchange.
+//
+// Refresh the token by using RefreshAuthorizationCodeGrant(bot, token).
+//
+// For more information read, https://discord.com/developers/docs/topics/oauth2#advanced-bot-authorization
+func AdvancedBotAuthorization(bot *Client, ru *RedirectURL) (*AccessTokenResponse, error) {
+	return AuthorizationCodeGrant(bot, ru)
+}
+
 // Send sends an AccessTokenExchange request to Discord and returns an AccessTokenResponse.
 func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	query, err := EndpointQueryString(r)
@@ -175,44 +254,6 @@ func (r *ClientCredentialsTokenRequest) Send(bot *Client) (*AccessTokenResponse,
 	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ClientCredentialsTokenRequest", err)
-	}
-
-	return result, nil
-}
-
-// SendBotAuth sends a BotAuth to Discord and returns a error.
-func (r *BotAuth) SendBotAuth(bot *Client) error {
-	var result error
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return fmt.Errorf(ErrQueryString, "BotAuth", err)
-	}
-
-	err = SendRequest(bot, fasthttp.MethodGet, EndpointAuthorizationURL()+"?"+query, nil, nil, result)
-	if err != nil {
-		return fmt.Errorf(ErrSendRequest, "BotAuth", err)
-	}
-
-	return nil
-}
-
-// SendAdvancedBotAuth sends a AuthorizationURL to Discord and returns a ExtendedBotAuthorizationAccessTokenResponse.
-func (r *AuthorizationURL) SendAdvancedBotAuth(bot *Client) (*ExtendedBotAuthorizationAccessTokenResponse, error) {
-	var result *ExtendedBotAuthorizationAccessTokenResponse
-	err := SendRequest(bot, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
-	if err != nil {
-		return nil, fmt.Errorf(ErrSendRequest, "AdvancedBotAuth", err)
-	}
-
-	return result, nil
-}
-
-// SendWebhookAuth sends a AuthorizationURL to Discord and returns a WebhookTokenResponse.
-func (r *AuthorizationURL) SendWebhookAuth(bot *Client) (*WebhookTokenResponse, error) {
-	var result *WebhookTokenResponse
-	err := SendRequest(bot, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
-	if err != nil {
-		return nil, fmt.Errorf(ErrSendRequest, "WebhookAuth", err)
 	}
 
 	return result, nil
