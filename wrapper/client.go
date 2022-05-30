@@ -1,15 +1,47 @@
 package wrapper
 
-import "github.com/valyala/fasthttp"
+import (
+	"time"
+
+	"github.com/valyala/fasthttp"
+)
 
 // Client represents a Discord Application.
 type Client struct {
 	ApplicationID string
+
+	// Authentication contains parameters required to authenticate the bot.
+	Authentication *Authentication
+
+	// Authorization contains parameters required to authorize a client's access to resources.
 	Authorization *Authorization
-	client        *fasthttp.Client
+
+	// Config represents parameters used to perform various actions by the client.
+	Config *Config
 }
 
-// Authorization represents authorization parameters required to authorize a client.
+// Authentication represents authentication parameters required to authenticate the bot.
+// https://discord.com/developers/docs/reference#authentication
+type Authentication struct {
+	// Header represents a Token Authorization Header.
+	Header string
+}
+
+// BotToken generates a Bot Token Authorization Header.
+func BotToken(token string) *Authentication {
+	return &Authentication{
+		Header: "Bot " + token,
+	}
+}
+
+// BearerToken generates a Bearer Token Authorization Header.
+func BearerToken(token string) *Authentication {
+	return &Authentication{
+		"Bearer" + token,
+	}
+}
+
+// Authorization represents authorization parameters required to authorize a client's access to resources.
 type Authorization struct {
 	// ClientID represents the application's client_id.
 	ClientID string
@@ -29,4 +61,34 @@ type Authorization struct {
 
 	// prompt controls how the authorization flow handles existing authorizations.
 	Prompt string
+}
+
+// Config represents parameters used to perform various actions by the client.
+type Config struct {
+	// Client is used to send requests.
+	//
+	// Use Client to set a custom User-Agent in the HTTP Request Header.
+	// https://discord.com/developers/docs/reference#user-agent
+	//
+	// https://pkg.go.dev/github.com/valyala/fasthttp#Client
+	Client *fasthttp.Client
+
+	// Timeout represents the amount of time a request will wait for a response.
+	Timeout time.Duration
+}
+
+// Default Configuration Values.
+const (
+	VersionDiscordAPI     = "10"
+	defaultUserAgent      = "DiscordBot (https://github.com/switchupcb/disgo, " + "v" + VersionDiscordAPI + ")"
+	defaultRequestTimeout = time.Second * 3
+)
+
+// DefaultConfig returns a default client configuration.
+func DefaultConfig() *Config {
+	var c *Config
+	c.Client.Name = defaultUserAgent
+	c.Timeout = defaultRequestTimeout
+
+	return c
 }

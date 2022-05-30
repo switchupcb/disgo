@@ -27,7 +27,7 @@ You create a **Client** that calls for **Resources** using **Requests** and hand
 
 ### Flags
 
-A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides. All flags are denoted by `Flag` in disgo: For example, `disgo.FlagUserSTAFF`, `disgo.FlagLevelVerificationHIGH`, `disgo.FlagTierPremiumNONE`, etc.
+A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides. All flags are denoted by `Flag` in disgo: For example, `disgo.FlagUserSTAFF`, `disgo.FlagVerificationLevelHIGH`, `disgo.FlagPremiumTierNONE`, etc.
 
 ### Caching
 
@@ -56,9 +56,10 @@ This [example](/_examples/main) creates a bot that creates an application comman
 Use the client to configure the bot's settings.
 ```go
 bot := disgo.Client{
-    Config: disgo.Config{
-
-    },
+    // Set the Authentication Header using BotToken() or BearerToken().
+    Authentication: disgo.BotToken("TOKEN"),
+    Authorization: &disgo.Authorization{ ... },
+    Config: disgo.DefaultConfig(),
 }
 ```
 

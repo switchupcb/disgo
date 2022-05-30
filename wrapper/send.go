@@ -18,7 +18,7 @@ func (r *AddGuildMember) Send(bot *Client) (*GuildMember, error) {
 	}
 
 	var result *GuildMember
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointAddGuildMember(r.GuildID, r.UserID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointAddGuildMember(r.GuildID, r.UserID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "AddGuildMember", err)
 	}
@@ -29,7 +29,7 @@ func (r *AddGuildMember) Send(bot *Client) (*GuildMember, error) {
 // Send sends a AddGuildMemberRole request to Discord and returns a error.
 func (r *AddGuildMemberRole) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointAddGuildMemberRole(r.GuildID, r.UserID, r.RoleID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointAddGuildMemberRole(r.GuildID, r.UserID, r.RoleID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "AddGuildMemberRole", err)
 	}
@@ -40,7 +40,7 @@ func (r *AddGuildMemberRole) Send(bot *Client) error {
 // Send sends a AddThreadMember request to Discord and returns a error.
 func (r *AddThreadMember) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointAddThreadMember(r.ChannelID, r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointAddThreadMember(r.ChannelID, r.UserID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "AddThreadMember", err)
 	}
@@ -51,7 +51,7 @@ func (r *AddThreadMember) Send(bot *Client) error {
 // Send sends a BatchEditApplicationCommandPermissions request to Discord and returns a GuildApplicationCommandPermissions.
 func (r *BatchEditApplicationCommandPermissions) Send(bot *Client) (*GuildApplicationCommandPermissions, error) {
 	var result *GuildApplicationCommandPermissions
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointBatchEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointBatchEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "BatchEditApplicationCommandPermissions", err)
 	}
@@ -67,7 +67,7 @@ func (r *BeginGuildPrune) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointBeginGuildPrune(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointBeginGuildPrune(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "BeginGuildPrune", err)
 	}
@@ -83,7 +83,7 @@ func (r *BulkDeleteMessages) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodPut, EndpointBulkDeleteMessages(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPut, EndpointBulkDeleteMessages(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "BulkDeleteMessages", err)
 	}
@@ -99,7 +99,7 @@ func (r *BulkOverwriteGlobalApplicationCommands) Send(bot *Client) ([]*Applicati
 	}
 
 	var result []*ApplicationCommand
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointBulkOverwriteGlobalApplicationCommands(bot.ApplicationID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointBulkOverwriteGlobalApplicationCommands(bot.ApplicationID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "BulkOverwriteGlobalApplicationCommands", err)
 	}
@@ -115,7 +115,7 @@ func (r *BulkOverwriteGuildApplicationCommands) Send(bot *Client) ([]*Applicatio
 	}
 
 	var result []*ApplicationCommand
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointBulkOverwriteGuildApplicationCommands(bot.ApplicationID, r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointBulkOverwriteGuildApplicationCommands(bot.ApplicationID, r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "BulkOverwriteGuildApplicationCommands", err)
 	}
@@ -131,7 +131,7 @@ func (r *CreateChannelInvite) Send(bot *Client) (*Invite, error) {
 	}
 
 	var result *Invite
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointCreateChannelInvite(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointCreateChannelInvite(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateChannelInvite", err)
 	}
@@ -142,7 +142,7 @@ func (r *CreateChannelInvite) Send(bot *Client) (*Invite, error) {
 // Send sends a CreateFollowupMessage request to Discord and returns a Message.
 func (r *CreateFollowupMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointCreateFollowupMessage(bot.ApplicationID, r.InteractionToken), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointCreateFollowupMessage(bot.ApplicationID, r.InteractionToken), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateFollowupMessage", err)
 	}
@@ -158,7 +158,7 @@ func (r *CreateGlobalApplicationCommand) Send(bot *Client) (*ApplicationCommand,
 	}
 
 	var result *ApplicationCommand
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointCreateGlobalApplicationCommand(bot.ApplicationID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointCreateGlobalApplicationCommand(bot.ApplicationID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGlobalApplicationCommand", err)
 	}
@@ -174,7 +174,7 @@ func (r *CreateGroupDM) Send(bot *Client) (*Channel, error) {
 	}
 
 	var result *Channel
-	err = SendRequest(bot.client, fasthttp.MethodPut, EndpointCreateGroupDM(), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPut, EndpointCreateGroupDM(), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGroupDM", err)
 	}
@@ -190,7 +190,7 @@ func (r *CreateGuild) Send(bot *Client) (*Guild, error) {
 	}
 
 	var result *Guild
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointCreateGuild(), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointCreateGuild(), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuild", err)
 	}
@@ -206,7 +206,7 @@ func (r *CreateGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, 
 	}
 
 	var result *ApplicationCommand
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointCreateGuildApplicationCommand(bot.ApplicationID, r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointCreateGuildApplicationCommand(bot.ApplicationID, r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildApplicationCommand", err)
 	}
@@ -222,7 +222,7 @@ func (r *CreateGuildBan) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodPut, EndpointCreateGuildBan(r.GuildID, r.UserID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPut, EndpointCreateGuildBan(r.GuildID, r.UserID), contentTypeJSON, body, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "CreateGuildBan", err)
 	}
@@ -238,7 +238,7 @@ func (r *CreateGuildChannel) Send(bot *Client) (*Channel, error) {
 	}
 
 	var result *Channel
-	err = SendRequest(bot.client, fasthttp.MethodPut, EndpointCreateGuildChannel(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPut, EndpointCreateGuildChannel(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildChannel", err)
 	}
@@ -254,7 +254,7 @@ func (r *CreateGuildEmoji) Send(bot *Client) (*Emoji, error) {
 	}
 
 	var result *Emoji
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointCreateGuildEmoji(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointCreateGuildEmoji(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildEmoji", err)
 	}
@@ -270,7 +270,7 @@ func (r *CreateGuildRole) Send(bot *Client) (*Role, error) {
 	}
 
 	var result *Role
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointCreateGuildRole(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointCreateGuildRole(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildRole", err)
 	}
@@ -286,7 +286,7 @@ func (r *CreateGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 	}
 
 	var result *GuildScheduledEvent
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointCreateGuildScheduledEvent(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointCreateGuildScheduledEvent(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildScheduledEvent", err)
 	}
@@ -302,7 +302,7 @@ func (r *CreateGuildSticker) Send(bot *Client) (*Sticker, error) {
 	}
 
 	var result *Sticker
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointCreateGuildSticker(r.GuildID), contentTypeMulti, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointCreateGuildSticker(r.GuildID), contentTypeMulti, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildSticker", err)
 	}
@@ -318,7 +318,7 @@ func (r *CreateGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	}
 
 	var result *GuildTemplate
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointCreateGuildTemplate(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointCreateGuildTemplate(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildTemplate", err)
 	}
@@ -334,7 +334,7 @@ func (r *CreateGuildfromGuildTemplate) Send(bot *Client) ([]*GuildTemplate, erro
 	}
 
 	var result []*GuildTemplate
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointCreateGuildfromGuildTemplate(r.TemplateCode), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointCreateGuildfromGuildTemplate(r.TemplateCode), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildfromGuildTemplate", err)
 	}
@@ -345,7 +345,7 @@ func (r *CreateGuildfromGuildTemplate) Send(bot *Client) ([]*GuildTemplate, erro
 // Send sends a CreateInteractionResponse request to Discord and returns a error.
 func (r *CreateInteractionResponse) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointCreateInteractionResponse(r.InteractionID, r.InteractionToken), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointCreateInteractionResponse(r.InteractionID, r.InteractionToken), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "CreateInteractionResponse", err)
 	}
@@ -361,7 +361,7 @@ func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 	}
 
 	var result *Message
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointCreateMessage(r.ChannelID), contentTypeMulti, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointCreateMessage(r.ChannelID), contentTypeMulti, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateMessage", err)
 	}
@@ -372,7 +372,7 @@ func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 // Send sends a CreateReaction request to Discord and returns a error.
 func (r *CreateReaction) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointCreateReaction(r.ChannelID, r.MessageID, r.Emoji), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointCreateReaction(r.ChannelID, r.MessageID, r.Emoji), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "CreateReaction", err)
 	}
@@ -388,7 +388,7 @@ func (r *CreateStageInstance) Send(bot *Client) (*StageInstance, error) {
 	}
 
 	var result *StageInstance
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointCreateStageInstance(), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointCreateStageInstance(), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateStageInstance", err)
 	}
@@ -404,7 +404,7 @@ func (r *CreateWebhook) Send(bot *Client) (*Webhook, error) {
 	}
 
 	var result *Webhook
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointCreateWebhook(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointCreateWebhook(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateWebhook", err)
 	}
@@ -415,7 +415,7 @@ func (r *CreateWebhook) Send(bot *Client) (*Webhook, error) {
 // Send sends a CrosspostMessage request to Discord and returns a Message.
 func (r *CrosspostMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointCrosspostMessage(r.ChannelID, r.MessageID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointCrosspostMessage(r.ChannelID, r.MessageID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CrosspostMessage", err)
 	}
@@ -426,7 +426,7 @@ func (r *CrosspostMessage) Send(bot *Client) (*Message, error) {
 // Send sends a DeleteAllReactions request to Discord and returns a error.
 func (r *DeleteAllReactions) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointDeleteAllReactions(r.ChannelID, r.MessageID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointDeleteAllReactions(r.ChannelID, r.MessageID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteAllReactions", err)
 	}
@@ -437,7 +437,7 @@ func (r *DeleteAllReactions) Send(bot *Client) error {
 // Send sends a DeleteAllReactionsforEmoji request to Discord and returns a error.
 func (r *DeleteAllReactionsforEmoji) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointDeleteAllReactionsforEmoji(r.ChannelID, r.MessageID, r.Emoji), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointDeleteAllReactionsforEmoji(r.ChannelID, r.MessageID, r.Emoji), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteAllReactionsforEmoji", err)
 	}
@@ -448,7 +448,7 @@ func (r *DeleteAllReactionsforEmoji) Send(bot *Client) error {
 // Send sends a DeleteChannelPermission request to Discord and returns a error.
 func (r *DeleteChannelPermission) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointDeleteChannelPermission(r.ChannelID, r.OverwriteID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointDeleteChannelPermission(r.ChannelID, r.OverwriteID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteChannelPermission", err)
 	}
@@ -459,7 +459,7 @@ func (r *DeleteChannelPermission) Send(bot *Client) error {
 // Send sends a DeleteCloseChannel request to Discord and returns a Channel.
 func (r *DeleteCloseChannel) Send(bot *Client) (*Channel, error) {
 	var result *Channel
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointDeleteCloseChannel(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointDeleteCloseChannel(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "DeleteCloseChannel", err)
 	}
@@ -470,7 +470,7 @@ func (r *DeleteCloseChannel) Send(bot *Client) (*Channel, error) {
 // Send sends a DeleteFollowupMessage request to Discord and returns a error.
 func (r *DeleteFollowupMessage) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointDeleteFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointDeleteFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteFollowupMessage", err)
 	}
@@ -481,7 +481,7 @@ func (r *DeleteFollowupMessage) Send(bot *Client) error {
 // Send sends a DeleteGlobalApplicationCommand request to Discord and returns a error.
 func (r *DeleteGlobalApplicationCommand) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointDeleteGlobalApplicationCommand(bot.ApplicationID, r.CommandID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointDeleteGlobalApplicationCommand(bot.ApplicationID, r.CommandID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGlobalApplicationCommand", err)
 	}
@@ -492,7 +492,7 @@ func (r *DeleteGlobalApplicationCommand) Send(bot *Client) error {
 // Send sends a DeleteGuild request to Discord and returns a error.
 func (r *DeleteGuild) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointDeleteGuild(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointDeleteGuild(r.GuildID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuild", err)
 	}
@@ -503,7 +503,7 @@ func (r *DeleteGuild) Send(bot *Client) error {
 // Send sends a DeleteGuildApplicationCommand request to Discord and returns a error.
 func (r *DeleteGuildApplicationCommand) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPut, EndpointDeleteGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPut, EndpointDeleteGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildApplicationCommand", err)
 	}
@@ -514,7 +514,7 @@ func (r *DeleteGuildApplicationCommand) Send(bot *Client) error {
 // Send sends a DeleteGuildEmoji request to Discord and returns a error.
 func (r *DeleteGuildEmoji) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointDeleteGuildEmoji(r.GuildID, r.EmojiID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointDeleteGuildEmoji(r.GuildID, r.EmojiID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildEmoji", err)
 	}
@@ -525,7 +525,7 @@ func (r *DeleteGuildEmoji) Send(bot *Client) error {
 // Send sends a DeleteGuildIntegration request to Discord and returns a error.
 func (r *DeleteGuildIntegration) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointDeleteGuildIntegration(r.GuildID, r.IntegrationID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointDeleteGuildIntegration(r.GuildID, r.IntegrationID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildIntegration", err)
 	}
@@ -536,7 +536,7 @@ func (r *DeleteGuildIntegration) Send(bot *Client) error {
 // Send sends a DeleteGuildRole request to Discord and returns a error.
 func (r *DeleteGuildRole) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointDeleteGuildRole(r.GuildID, r.RoleID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointDeleteGuildRole(r.GuildID, r.RoleID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildRole", err)
 	}
@@ -547,7 +547,7 @@ func (r *DeleteGuildRole) Send(bot *Client) error {
 // Send sends a DeleteGuildScheduledEvent request to Discord and returns a error.
 func (r *DeleteGuildScheduledEvent) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointDeleteGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointDeleteGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildScheduledEvent", err)
 	}
@@ -558,7 +558,7 @@ func (r *DeleteGuildScheduledEvent) Send(bot *Client) error {
 // Send sends a DeleteGuildSticker request to Discord and returns a error.
 func (r *DeleteGuildSticker) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointDeleteGuildSticker(r.GuildID, r.StickerID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointDeleteGuildSticker(r.GuildID, r.StickerID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteGuildSticker", err)
 	}
@@ -569,7 +569,7 @@ func (r *DeleteGuildSticker) Send(bot *Client) error {
 // Send sends a DeleteGuildTemplate request to Discord and returns a GuildTemplate.
 func (r *DeleteGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var result *GuildTemplate
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointDeleteGuildTemplate(r.GuildID, r.TemplateCode), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointDeleteGuildTemplate(r.GuildID, r.TemplateCode), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "DeleteGuildTemplate", err)
 	}
@@ -580,7 +580,7 @@ func (r *DeleteGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 // Send sends a DeleteInvite request to Discord and returns a Invite.
 func (r *DeleteInvite) Send(bot *Client) (*Invite, error) {
 	var result *Invite
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointDeleteInvite(r.InviteCode), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointDeleteInvite(r.InviteCode), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "DeleteInvite", err)
 	}
@@ -591,7 +591,7 @@ func (r *DeleteInvite) Send(bot *Client) (*Invite, error) {
 // Send sends a DeleteMessage request to Discord and returns a error.
 func (r *DeleteMessage) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointDeleteMessage(r.ChannelID, r.MessageID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointDeleteMessage(r.ChannelID, r.MessageID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteMessage", err)
 	}
@@ -602,7 +602,7 @@ func (r *DeleteMessage) Send(bot *Client) error {
 // Send sends a DeleteOriginalInteractionResponse request to Discord and returns a error.
 func (r *DeleteOriginalInteractionResponse) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPut, EndpointDeleteOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPut, EndpointDeleteOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteOriginalInteractionResponse", err)
 	}
@@ -613,7 +613,7 @@ func (r *DeleteOriginalInteractionResponse) Send(bot *Client) error {
 // Send sends a DeleteOwnReaction request to Discord and returns a error.
 func (r *DeleteOwnReaction) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointDeleteOwnReaction(r.ChannelID, r.MessageID, r.Emoji), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointDeleteOwnReaction(r.ChannelID, r.MessageID, r.Emoji), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteOwnReaction", err)
 	}
@@ -624,7 +624,7 @@ func (r *DeleteOwnReaction) Send(bot *Client) error {
 // Send sends a DeleteStageInstance request to Discord and returns a error.
 func (r *DeleteStageInstance) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointDeleteStageInstance(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointDeleteStageInstance(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteStageInstance", err)
 	}
@@ -635,7 +635,7 @@ func (r *DeleteStageInstance) Send(bot *Client) error {
 // Send sends a DeleteUserReaction request to Discord and returns a error.
 func (r *DeleteUserReaction) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointDeleteUserReaction(r.ChannelID, r.MessageID, r.Emoji, r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointDeleteUserReaction(r.ChannelID, r.MessageID, r.Emoji, r.UserID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteUserReaction", err)
 	}
@@ -646,7 +646,7 @@ func (r *DeleteUserReaction) Send(bot *Client) error {
 // Send sends a DeleteWebhook request to Discord and returns a error.
 func (r *DeleteWebhook) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointDeleteWebhook(r.WebhookID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointDeleteWebhook(r.WebhookID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteWebhook", err)
 	}
@@ -662,7 +662,7 @@ func (r *DeleteWebhookMessage) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointDeleteWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointDeleteWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteWebhookMessage", err)
 	}
@@ -673,7 +673,7 @@ func (r *DeleteWebhookMessage) Send(bot *Client) error {
 // Send sends a DeleteWebhookwithToken request to Discord and returns a error.
 func (r *DeleteWebhookwithToken) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointDeleteWebhookwithToken(r.WebhookID, r.WebhookToken), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointDeleteWebhookwithToken(r.WebhookID, r.WebhookToken), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "DeleteWebhookwithToken", err)
 	}
@@ -689,7 +689,7 @@ func (r *EditApplicationCommandPermissions) Send(bot *Client) (*GuildApplication
 	}
 
 	var result *GuildApplicationCommandPermissions
-	err = SendRequest(bot.client, fasthttp.MethodPut, EndpointEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPut, EndpointEditApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditApplicationCommandPermissions", err)
 	}
@@ -705,7 +705,7 @@ func (r *EditChannelPermissions) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointEditChannelPermissions(r.ChannelID, r.OverwriteID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointEditChannelPermissions(r.ChannelID, r.OverwriteID), contentTypeJSON, body, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "EditChannelPermissions", err)
 	}
@@ -716,7 +716,7 @@ func (r *EditChannelPermissions) Send(bot *Client) error {
 // Send sends a EditFollowupMessage request to Discord and returns a Message.
 func (r *EditFollowupMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
-	err := SendRequest(bot.client, fasthttp.MethodPut, EndpointEditFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPut, EndpointEditFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditFollowupMessage", err)
 	}
@@ -732,7 +732,7 @@ func (r *EditGlobalApplicationCommand) Send(bot *Client) (*ApplicationCommand, e
 	}
 
 	var result *ApplicationCommand
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointEditGlobalApplicationCommand(bot.ApplicationID, r.CommandID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointEditGlobalApplicationCommand(bot.ApplicationID, r.CommandID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditGlobalApplicationCommand", err)
 	}
@@ -748,7 +748,7 @@ func (r *EditGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, er
 	}
 
 	var result *ApplicationCommand
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointEditGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointEditGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditGuildApplicationCommand", err)
 	}
@@ -764,7 +764,7 @@ func (r *EditMessage) Send(bot *Client) (*Message, error) {
 	}
 
 	var result *Message
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointEditMessage(r.ChannelID, r.MessageID), contentTypeMulti, body, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointEditMessage(r.ChannelID, r.MessageID), contentTypeMulti, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditMessage", err)
 	}
@@ -775,7 +775,7 @@ func (r *EditMessage) Send(bot *Client) (*Message, error) {
 // Send sends a EditOriginalInteractionResponse request to Discord and returns a Message.
 func (r *EditOriginalInteractionResponse) Send(bot *Client) (*Message, error) {
 	var result *Message
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointEditOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointEditOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditOriginalInteractionResponse", err)
 	}
@@ -796,7 +796,7 @@ func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 	}
 
 	var result *Message
-	err = SendRequest(bot.client, fasthttp.MethodPut, EndpointEditWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, contentTypeMulti, body, result)
+	err = SendRequest(bot, fasthttp.MethodPut, EndpointEditWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, contentTypeMulti, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditWebhookMessage", err)
 	}
@@ -812,7 +812,7 @@ func (r *ExecuteGitHubCompatibleWebhook) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodPut, EndpointExecuteGitHubCompatibleWebhook(r.WebhookID, r.WebhookToken)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPut, EndpointExecuteGitHubCompatibleWebhook(r.WebhookID, r.WebhookToken)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ExecuteGitHubCompatibleWebhook", err)
 	}
@@ -828,7 +828,7 @@ func (r *ExecuteSlackCompatibleWebhook) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointExecuteSlackCompatibleWebhook(r.WebhookID, r.WebhookToken)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointExecuteSlackCompatibleWebhook(r.WebhookID, r.WebhookToken)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ExecuteSlackCompatibleWebhook", err)
 	}
@@ -849,7 +849,7 @@ func (r *ExecuteWebhook) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointExecuteWebhook(r.WebhookID, r.WebhookToken)+"?"+query, contentTypeMulti, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointExecuteWebhook(r.WebhookID, r.WebhookToken)+"?"+query, contentTypeMulti, body, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ExecuteWebhook", err)
 	}
@@ -865,7 +865,7 @@ func (r *FollowNewsChannel) Send(bot *Client) (*FollowedChannel, error) {
 	}
 
 	var result *FollowedChannel
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointFollowNewsChannel(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointFollowNewsChannel(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "FollowNewsChannel", err)
 	}
@@ -876,7 +876,7 @@ func (r *FollowNewsChannel) Send(bot *Client) (*FollowedChannel, error) {
 // Send sends a GetApplicationCommandPermissions request to Discord and returns a GuildApplicationCommandPermissions.
 func (r *GetApplicationCommandPermissions) Send(bot *Client) (*GuildApplicationCommandPermissions, error) {
 	var result *GuildApplicationCommandPermissions
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetApplicationCommandPermissions(bot.ApplicationID, r.GuildID, r.CommandID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetApplicationCommandPermissions", err)
 	}
@@ -887,7 +887,7 @@ func (r *GetApplicationCommandPermissions) Send(bot *Client) (*GuildApplicationC
 // Send sends a GetChannel request to Discord and returns a Channel.
 func (r *GetChannel) Send(bot *Client) (*Channel, error) {
 	var result *Channel
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetChannel(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetChannel(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannel", err)
 	}
@@ -898,7 +898,7 @@ func (r *GetChannel) Send(bot *Client) (*Channel, error) {
 // Send sends a GetChannelInvites request to Discord and returns a []*Invite.
 func (r *GetChannelInvites) Send(bot *Client) ([]*Invite, error) {
 	var result []*Invite
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetChannelInvites(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetChannelInvites(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannelInvites", err)
 	}
@@ -909,7 +909,7 @@ func (r *GetChannelInvites) Send(bot *Client) ([]*Invite, error) {
 // Send sends a GetChannelMessage request to Discord and returns a Message.
 func (r *GetChannelMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetChannelMessage(r.ChannelID, r.MessageID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetChannelMessage(r.ChannelID, r.MessageID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannelMessage", err)
 	}
@@ -925,7 +925,7 @@ func (r *GetChannelMessages) Send(bot *Client) ([]*Message, error) {
 	}
 
 	var result []*Message
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointGetChannelMessages(r.ChannelID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointGetChannelMessages(r.ChannelID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannelMessages", err)
 	}
@@ -936,7 +936,7 @@ func (r *GetChannelMessages) Send(bot *Client) ([]*Message, error) {
 // Send sends a GetChannelWebhooks request to Discord and returns a []*Webhook.
 func (r *GetChannelWebhooks) Send(bot *Client) ([]*Webhook, error) {
 	var result []*Webhook
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetChannelWebhooks(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetChannelWebhooks(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetChannelWebhooks", err)
 	}
@@ -947,7 +947,7 @@ func (r *GetChannelWebhooks) Send(bot *Client) ([]*Webhook, error) {
 // Send sends a GetCurrentAuthorizationInformation request to Discord and returns a CurrentAuthorizationInformationResponse.
 func (r *GetCurrentAuthorizationInformation) Send(bot *Client) (*CurrentAuthorizationInformationResponse, error) {
 	var result *CurrentAuthorizationInformationResponse
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointGetCurrentAuthorizationInformation(), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointGetCurrentAuthorizationInformation(), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentAuthorizationInformation", err)
 	}
@@ -958,7 +958,7 @@ func (r *GetCurrentAuthorizationInformation) Send(bot *Client) (*CurrentAuthoriz
 // Send sends a GetCurrentBotApplicationInformation request to Discord and returns a Application.
 func (r *GetCurrentBotApplicationInformation) Send(bot *Client) (*Application, error) {
 	var result *Application
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetCurrentBotApplicationInformation(), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetCurrentBotApplicationInformation(), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentBotApplicationInformation", err)
 	}
@@ -969,7 +969,7 @@ func (r *GetCurrentBotApplicationInformation) Send(bot *Client) (*Application, e
 // Send sends a GetCurrentUser request to Discord and returns a User.
 func (r *GetCurrentUser) Send(bot *Client) (*User, error) {
 	var result *User
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointGetCurrentUser(), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointGetCurrentUser(), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentUser", err)
 	}
@@ -980,7 +980,7 @@ func (r *GetCurrentUser) Send(bot *Client) (*User, error) {
 // Send sends a GetCurrentUserGuildMember request to Discord and returns a GuildMember.
 func (r *GetCurrentUserGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var result *GuildMember
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointGetCurrentUserGuildMember(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointGetCurrentUserGuildMember(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentUserGuildMember", err)
 	}
@@ -996,7 +996,7 @@ func (r *GetCurrentUserGuilds) Send(bot *Client) ([]*Guild, error) {
 	}
 
 	var result []*Guild
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointGetCurrentUserGuilds(), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointGetCurrentUserGuilds(), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetCurrentUserGuilds", err)
 	}
@@ -1007,7 +1007,7 @@ func (r *GetCurrentUserGuilds) Send(bot *Client) ([]*Guild, error) {
 // Send sends a GetFollowupMessage request to Discord and returns a Message.
 func (r *GetFollowupMessage) Send(bot *Client) (*Message, error) {
 	var result *Message
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetFollowupMessage", err)
 	}
@@ -1018,7 +1018,7 @@ func (r *GetFollowupMessage) Send(bot *Client) (*Message, error) {
 // Send sends a GetGateway request to Discord and returns a GetGatewayBotResponse.
 func (r *GetGateway) Send(bot *Client) (*GetGatewayBotResponse, error) {
 	var result *GetGatewayBotResponse
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetGateway(), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetGateway(), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGateway", err)
 	}
@@ -1029,7 +1029,7 @@ func (r *GetGateway) Send(bot *Client) (*GetGatewayBotResponse, error) {
 // Send sends a GetGatewayBot request to Discord and returns a GetGatewayBotResponse.
 func (r *GetGatewayBot) Send(bot *Client) (*GetGatewayBotResponse, error) {
 	var result *GetGatewayBotResponse
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointGetGatewayBot(), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointGetGatewayBot(), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGatewayBot", err)
 	}
@@ -1040,7 +1040,7 @@ func (r *GetGatewayBot) Send(bot *Client) (*GetGatewayBotResponse, error) {
 // Send sends a GetGlobalApplicationCommand request to Discord and returns a ApplicationCommand.
 func (r *GetGlobalApplicationCommand) Send(bot *Client) (*ApplicationCommand, error) {
 	var result *ApplicationCommand
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGlobalApplicationCommand(bot.ApplicationID, r.CommandID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGlobalApplicationCommand(bot.ApplicationID, r.CommandID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGlobalApplicationCommand", err)
 	}
@@ -1056,7 +1056,7 @@ func (r *GetGlobalApplicationCommands) Send(bot *Client) ([]*ApplicationCommand,
 	}
 
 	var result []*ApplicationCommand
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointGetGlobalApplicationCommands(bot.ApplicationID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointGetGlobalApplicationCommands(bot.ApplicationID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGlobalApplicationCommands", err)
 	}
@@ -1072,7 +1072,7 @@ func (r *GetGuild) Send(bot *Client) (*Guild, error) {
 	}
 
 	var result *Guild
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetGuild(r.GuildID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointGetGuild(r.GuildID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuild", err)
 	}
@@ -1083,7 +1083,7 @@ func (r *GetGuild) Send(bot *Client) (*Guild, error) {
 // Send sends a GetGuildApplicationCommand request to Discord and returns a ApplicationCommand.
 func (r *GetGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, error) {
 	var result *ApplicationCommand
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildApplicationCommand(bot.ApplicationID, r.GuildID, r.CommandID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildApplicationCommand", err)
 	}
@@ -1094,7 +1094,7 @@ func (r *GetGuildApplicationCommand) Send(bot *Client) (*ApplicationCommand, err
 // Send sends a GetGuildApplicationCommandPermissions request to Discord and returns a GuildApplicationCommandPermissions.
 func (r *GetGuildApplicationCommandPermissions) Send(bot *Client) (*GuildApplicationCommandPermissions, error) {
 	var result *GuildApplicationCommandPermissions
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildApplicationCommandPermissions(bot.ApplicationID, r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildApplicationCommandPermissions(bot.ApplicationID, r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildApplicationCommandPermissions", err)
 	}
@@ -1110,7 +1110,7 @@ func (r *GetGuildApplicationCommands) Send(bot *Client) ([]*ApplicationCommand, 
 	}
 
 	var result []*ApplicationCommand
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildApplicationCommands(bot.ApplicationID, r.GuildID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildApplicationCommands(bot.ApplicationID, r.GuildID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildApplicationCommands", err)
 	}
@@ -1126,7 +1126,7 @@ func (r *GetGuildAuditLog) Send(bot *Client) (*AuditLog, error) {
 	}
 
 	var result *AuditLog
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildAuditLog(r.GuildID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildAuditLog(r.GuildID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildAuditLog", err)
 	}
@@ -1137,7 +1137,7 @@ func (r *GetGuildAuditLog) Send(bot *Client) (*AuditLog, error) {
 // Send sends a GetGuildBan request to Discord and returns a Ban.
 func (r *GetGuildBan) Send(bot *Client) (*Ban, error) {
 	var result *Ban
-	err := SendRequest(bot.client, fasthttp.MethodPut, EndpointGetGuildBan(r.GuildID, r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPut, EndpointGetGuildBan(r.GuildID, r.UserID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildBan", err)
 	}
@@ -1153,7 +1153,7 @@ func (r *GetGuildBans) Send(bot *Client) ([]*Ban, error) {
 	}
 
 	var result []*Ban
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetGuildBans(r.GuildID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointGetGuildBans(r.GuildID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildBans", err)
 	}
@@ -1164,7 +1164,7 @@ func (r *GetGuildBans) Send(bot *Client) ([]*Ban, error) {
 // Send sends a GetGuildChannels request to Discord and returns a []*Channel.
 func (r *GetGuildChannels) Send(bot *Client) ([]*Channel, error) {
 	var result []*Channel
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetGuildChannels(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetGuildChannels(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildChannels", err)
 	}
@@ -1175,7 +1175,7 @@ func (r *GetGuildChannels) Send(bot *Client) ([]*Channel, error) {
 // Send sends a GetGuildEmoji request to Discord and returns a Emoji.
 func (r *GetGuildEmoji) Send(bot *Client) (*Emoji, error) {
 	var result *Emoji
-	err := SendRequest(bot.client, fasthttp.MethodPut, EndpointGetGuildEmoji(r.GuildID, r.EmojiID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPut, EndpointGetGuildEmoji(r.GuildID, r.EmojiID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildEmoji", err)
 	}
@@ -1186,7 +1186,7 @@ func (r *GetGuildEmoji) Send(bot *Client) (*Emoji, error) {
 // Send sends a GetGuildIntegrations request to Discord and returns a []*Integration.
 func (r *GetGuildIntegrations) Send(bot *Client) ([]*Integration, error) {
 	var result []*Integration
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointGetGuildIntegrations(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointGetGuildIntegrations(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildIntegrations", err)
 	}
@@ -1197,7 +1197,7 @@ func (r *GetGuildIntegrations) Send(bot *Client) ([]*Integration, error) {
 // Send sends a GetGuildInvites request to Discord and returns a []*Invite.
 func (r *GetGuildInvites) Send(bot *Client) ([]*Invite, error) {
 	var result []*Invite
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointGetGuildInvites(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointGetGuildInvites(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildInvites", err)
 	}
@@ -1208,7 +1208,7 @@ func (r *GetGuildInvites) Send(bot *Client) ([]*Invite, error) {
 // Send sends a GetGuildMember request to Discord and returns a GuildMember.
 func (r *GetGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var result *GuildMember
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildMember(r.GuildID, r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildMember(r.GuildID, r.UserID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildMember", err)
 	}
@@ -1219,7 +1219,7 @@ func (r *GetGuildMember) Send(bot *Client) (*GuildMember, error) {
 // Send sends a GetGuildPreview request to Discord and returns a GuildPreview.
 func (r *GetGuildPreview) Send(bot *Client) (*GuildPreview, error) {
 	var result *GuildPreview
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildPreview(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildPreview(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildPreview", err)
 	}
@@ -1235,7 +1235,7 @@ func (r *GetGuildPruneCount) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodPut, EndpointGetGuildPruneCount(r.GuildID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPut, EndpointGetGuildPruneCount(r.GuildID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GetGuildPruneCount", err)
 	}
@@ -1246,7 +1246,7 @@ func (r *GetGuildPruneCount) Send(bot *Client) error {
 // Send sends a GetGuildRoles request to Discord and returns a []*Role.
 func (r *GetGuildRoles) Send(bot *Client) ([]*Role, error) {
 	var result []*Role
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointGetGuildRoles(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointGetGuildRoles(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildRoles", err)
 	}
@@ -1262,7 +1262,7 @@ func (r *GetGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error)
 	}
 
 	var result *GuildScheduledEvent
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildScheduledEvent", err)
 	}
@@ -1278,7 +1278,7 @@ func (r *GetGuildScheduledEventUsers) Send(bot *Client) ([]*GuildScheduledEventU
 	}
 
 	var result []*GuildScheduledEventUser
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointGetGuildScheduledEventUsers(r.GuildID, r.GuildScheduledEventID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointGetGuildScheduledEventUsers(r.GuildID, r.GuildScheduledEventID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildScheduledEventUsers", err)
 	}
@@ -1289,7 +1289,7 @@ func (r *GetGuildScheduledEventUsers) Send(bot *Client) ([]*GuildScheduledEventU
 // Send sends a GetGuildSticker request to Discord and returns a Sticker.
 func (r *GetGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var result *Sticker
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetGuildSticker(r.GuildID, r.StickerID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetGuildSticker(r.GuildID, r.StickerID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildSticker", err)
 	}
@@ -1300,7 +1300,7 @@ func (r *GetGuildSticker) Send(bot *Client) (*Sticker, error) {
 // Send sends a GetGuildTemplate request to Discord and returns a GuildTemplate.
 func (r *GetGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var result *GuildTemplate
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetGuildTemplate(r.TemplateCode), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetGuildTemplate(r.TemplateCode), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildTemplate", err)
 	}
@@ -1311,7 +1311,7 @@ func (r *GetGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 // Send sends a GetGuildTemplates request to Discord and returns a []*GuildTemplate.
 func (r *GetGuildTemplates) Send(bot *Client) ([]*GuildTemplate, error) {
 	var result []*GuildTemplate
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointGetGuildTemplates(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointGetGuildTemplates(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildTemplates", err)
 	}
@@ -1327,7 +1327,7 @@ func (r *GetGuildVanityURL) Send(bot *Client) (*Invite, error) {
 	}
 
 	var result *Invite
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildVanityURL(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildVanityURL(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildVanityURL", err)
 	}
@@ -1338,7 +1338,7 @@ func (r *GetGuildVanityURL) Send(bot *Client) (*Invite, error) {
 // Send sends a GetGuildVoiceRegions request to Discord and returns a VoiceRegion.
 func (r *GetGuildVoiceRegions) Send(bot *Client) (*VoiceRegion, error) {
 	var result *VoiceRegion
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointGetGuildVoiceRegions(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointGetGuildVoiceRegions(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildVoiceRegions", err)
 	}
@@ -1349,7 +1349,7 @@ func (r *GetGuildVoiceRegions) Send(bot *Client) (*VoiceRegion, error) {
 // Send sends a GetGuildWebhooks request to Discord and returns a []*Webhook.
 func (r *GetGuildWebhooks) Send(bot *Client) ([]*Webhook, error) {
 	var result []*Webhook
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildWebhooks(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildWebhooks(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWebhooks", err)
 	}
@@ -1360,7 +1360,7 @@ func (r *GetGuildWebhooks) Send(bot *Client) ([]*Webhook, error) {
 // Send sends a GetGuildWelcomeScreen request to Discord and returns a WelcomeScreen.
 func (r *GetGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 	var result *WelcomeScreen
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildWelcomeScreen(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildWelcomeScreen(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWelcomeScreen", err)
 	}
@@ -1371,7 +1371,7 @@ func (r *GetGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 // Send sends a GetGuildWidget request to Discord and returns a GuildWidget.
 func (r *GetGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 	var result *GuildWidget
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildWidget(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildWidget(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWidget", err)
 	}
@@ -1387,7 +1387,7 @@ func (r *GetGuildWidgetImage) Send(bot *Client) (*EmbedImage, error) {
 	}
 
 	var result *EmbedImage
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointGetGuildWidgetImage(r.GuildID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointGetGuildWidgetImage(r.GuildID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWidgetImage", err)
 	}
@@ -1398,7 +1398,7 @@ func (r *GetGuildWidgetImage) Send(bot *Client) (*EmbedImage, error) {
 // Send sends a GetGuildWidgetSettings request to Discord and returns a GuildWidget.
 func (r *GetGuildWidgetSettings) Send(bot *Client) (*GuildWidget, error) {
 	var result *GuildWidget
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetGuildWidgetSettings(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGuildWidgetSettings(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGuildWidgetSettings", err)
 	}
@@ -1414,7 +1414,7 @@ func (r *GetInvite) Send(bot *Client) (*Invite, error) {
 	}
 
 	var result *Invite
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetInvite(r.InviteCode)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointGetInvite(r.InviteCode)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetInvite", err)
 	}
@@ -1425,7 +1425,7 @@ func (r *GetInvite) Send(bot *Client) (*Invite, error) {
 // Send sends a GetOriginalInteractionResponse request to Discord and returns a error.
 func (r *GetOriginalInteractionResponse) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GetOriginalInteractionResponse", err)
 	}
@@ -1436,7 +1436,7 @@ func (r *GetOriginalInteractionResponse) Send(bot *Client) error {
 // Send sends a GetPinnedMessages request to Discord and returns a []*Message.
 func (r *GetPinnedMessages) Send(bot *Client) ([]*Message, error) {
 	var result []*Message
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetPinnedMessages(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetPinnedMessages(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetPinnedMessages", err)
 	}
@@ -1452,7 +1452,7 @@ func (r *GetReactions) Send(bot *Client) ([]*User, error) {
 	}
 
 	var result []*User
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointGetReactions(r.ChannelID, r.MessageID, r.Emoji)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointGetReactions(r.ChannelID, r.MessageID, r.Emoji)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetReactions", err)
 	}
@@ -1463,7 +1463,7 @@ func (r *GetReactions) Send(bot *Client) ([]*User, error) {
 // Send sends a GetStageInstance request to Discord and returns a error.
 func (r *GetStageInstance) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetStageInstance(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetStageInstance(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GetStageInstance", err)
 	}
@@ -1474,7 +1474,7 @@ func (r *GetStageInstance) Send(bot *Client) error {
 // Send sends a GetSticker request to Discord and returns a Sticker.
 func (r *GetSticker) Send(bot *Client) (*Sticker, error) {
 	var result *Sticker
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetSticker(r.StickerID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetSticker(r.StickerID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetSticker", err)
 	}
@@ -1485,7 +1485,7 @@ func (r *GetSticker) Send(bot *Client) (*Sticker, error) {
 // Send sends a GetThreadMember request to Discord and returns a ThreadMember.
 func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
 	var result *ThreadMember
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetThreadMember(r.ChannelID, r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetThreadMember(r.ChannelID, r.UserID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetThreadMember", err)
 	}
@@ -1496,7 +1496,7 @@ func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
 // Send sends a GetUser request to Discord and returns a User.
 func (r *GetUser) Send(bot *Client) (*User, error) {
 	var result *User
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetUser(r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetUser(r.UserID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetUser", err)
 	}
@@ -1507,7 +1507,7 @@ func (r *GetUser) Send(bot *Client) (*User, error) {
 // Send sends a GetUserConnections request to Discord and returns a []*Connection.
 func (r *GetUserConnections) Send(bot *Client) ([]*Connection, error) {
 	var result []*Connection
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGetUserConnections(), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetUserConnections(), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetUserConnections", err)
 	}
@@ -1518,7 +1518,7 @@ func (r *GetUserConnections) Send(bot *Client) ([]*Connection, error) {
 // Send sends a GetWebhook request to Discord and returns a Webhook.
 func (r *GetWebhook) Send(bot *Client) (*Webhook, error) {
 	var result *Webhook
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointGetWebhook(r.WebhookID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointGetWebhook(r.WebhookID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetWebhook", err)
 	}
@@ -1534,7 +1534,7 @@ func (r *GetWebhookMessage) Send(bot *Client) (*Message, error) {
 	}
 
 	var result *Message
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointGetWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointGetWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetWebhookMessage", err)
 	}
@@ -1545,7 +1545,7 @@ func (r *GetWebhookMessage) Send(bot *Client) (*Message, error) {
 // Send sends a GetWebhookwithToken request to Discord and returns a Webhook.
 func (r *GetWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 	var result *Webhook
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointGetWebhookwithToken(r.WebhookID, r.WebhookToken), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetWebhookwithToken(r.WebhookID, r.WebhookToken), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetWebhookwithToken", err)
 	}
@@ -1561,7 +1561,7 @@ func (r *GroupDMAddRecipient) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointGroupDMAddRecipient(r.ChannelID, r.UserID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointGroupDMAddRecipient(r.ChannelID, r.UserID), contentTypeJSON, body, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GroupDMAddRecipient", err)
 	}
@@ -1572,7 +1572,7 @@ func (r *GroupDMAddRecipient) Send(bot *Client) error {
 // Send sends a GroupDMRemoveRecipient request to Discord and returns a error.
 func (r *GroupDMRemoveRecipient) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointGroupDMRemoveRecipient(r.ChannelID, r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGroupDMRemoveRecipient(r.ChannelID, r.UserID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GroupDMRemoveRecipient", err)
 	}
@@ -1583,7 +1583,7 @@ func (r *GroupDMRemoveRecipient) Send(bot *Client) error {
 // Send sends a JoinThread request to Discord and returns a error.
 func (r *JoinThread) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointJoinThread(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointJoinThread(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "JoinThread", err)
 	}
@@ -1594,7 +1594,7 @@ func (r *JoinThread) Send(bot *Client) error {
 // Send sends a LeaveGuild request to Discord and returns a error.
 func (r *LeaveGuild) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointLeaveGuild(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointLeaveGuild(r.GuildID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "LeaveGuild", err)
 	}
@@ -1605,7 +1605,7 @@ func (r *LeaveGuild) Send(bot *Client) error {
 // Send sends a LeaveThread request to Discord and returns a error.
 func (r *LeaveThread) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointLeaveThread(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointLeaveThread(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "LeaveThread", err)
 	}
@@ -1621,7 +1621,7 @@ func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsRespo
 	}
 
 	var result *ListActiveGuildThreadsResponse
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointListActiveGuildThreads(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointListActiveGuildThreads(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListActiveGuildThreads", err)
 	}
@@ -1632,7 +1632,7 @@ func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsRespo
 // Send sends a ListGuildEmojis request to Discord and returns a []*Emoji.
 func (r *ListGuildEmojis) Send(bot *Client) ([]*Emoji, error) {
 	var result []*Emoji
-	err := SendRequest(bot.client, fasthttp.MethodPut, EndpointListGuildEmojis(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPut, EndpointListGuildEmojis(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListGuildEmojis", err)
 	}
@@ -1648,7 +1648,7 @@ func (r *ListGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 	}
 
 	var result []*GuildMember
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointListGuildMembers(r.GuildID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointListGuildMembers(r.GuildID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListGuildMembers", err)
 	}
@@ -1659,7 +1659,7 @@ func (r *ListGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 // Send sends a ListGuildStickers request to Discord and returns a []*Sticker.
 func (r *ListGuildStickers) Send(bot *Client) ([]*Sticker, error) {
 	var result []*Sticker
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointListGuildStickers(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointListGuildStickers(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListGuildStickers", err)
 	}
@@ -1675,7 +1675,7 @@ func (r *ListJoinedPrivateArchivedThreads) Send(bot *Client) (*ListJoinedPrivate
 	}
 
 	var result *ListJoinedPrivateArchivedThreadsResponse
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointListJoinedPrivateArchivedThreads(r.ChannelID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointListJoinedPrivateArchivedThreads(r.ChannelID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListJoinedPrivateArchivedThreads", err)
 	}
@@ -1691,7 +1691,7 @@ func (r *ListNitroStickerPacks) Send(bot *Client) ([]*StickerPack, error) {
 	}
 
 	var result []*StickerPack
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointListNitroStickerPacks(), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointListNitroStickerPacks(), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListNitroStickerPacks", err)
 	}
@@ -1707,7 +1707,7 @@ func (r *ListPrivateArchivedThreads) Send(bot *Client) (*ListPrivateArchivedThre
 	}
 
 	var result *ListPrivateArchivedThreadsResponse
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointListPrivateArchivedThreads(r.ChannelID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointListPrivateArchivedThreads(r.ChannelID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListPrivateArchivedThreads", err)
 	}
@@ -1723,7 +1723,7 @@ func (r *ListPublicArchivedThreads) Send(bot *Client) (*ListPublicArchivedThread
 	}
 
 	var result *ListPublicArchivedThreadsResponse
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointListPublicArchivedThreads(r.ChannelID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointListPublicArchivedThreads(r.ChannelID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListPublicArchivedThreads", err)
 	}
@@ -1739,7 +1739,7 @@ func (r *ListScheduledEventsforGuild) Send(bot *Client) ([]*GuildScheduledEvent,
 	}
 
 	var result []*GuildScheduledEvent
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointListScheduledEventsforGuild(r.GuildID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointListScheduledEventsforGuild(r.GuildID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListScheduledEventsforGuild", err)
 	}
@@ -1750,7 +1750,7 @@ func (r *ListScheduledEventsforGuild) Send(bot *Client) ([]*GuildScheduledEvent,
 // Send sends a ListThreadMembers request to Discord and returns a []*ThreadMember.
 func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
 	var result []*ThreadMember
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointListThreadMembers(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointListThreadMembers(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListThreadMembers", err)
 	}
@@ -1761,7 +1761,7 @@ func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
 // Send sends a ListVoiceRegions request to Discord and returns a []*VoiceRegion.
 func (r *ListVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 	var result []*VoiceRegion
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointListVoiceRegions(), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointListVoiceRegions(), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ListVoiceRegions", err)
 	}
@@ -1772,7 +1772,7 @@ func (r *ListVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 // Send sends a ModifyChannel request to Discord and returns a Channel.
 func (r *ModifyChannel) Send(bot *Client) (*Channel, error) {
 	var result *Channel
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyChannel(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointModifyChannel(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannel", err)
 	}
@@ -1788,7 +1788,7 @@ func (r *ModifyChannelGroupDM) Send(bot *Client) (*Channel, error) {
 	}
 
 	var result *Channel
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyChannelGroupDM(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyChannelGroupDM(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannelGroupDM", err)
 	}
@@ -1804,7 +1804,7 @@ func (r *ModifyChannelGuild) Send(bot *Client) (*Channel, error) {
 	}
 
 	var result *Channel
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyChannelGuild(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyChannelGuild(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannelGuild", err)
 	}
@@ -1820,7 +1820,7 @@ func (r *ModifyChannelThread) Send(bot *Client) (*Channel, error) {
 	}
 
 	var result *Channel
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointModifyChannelThread(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointModifyChannelThread(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyChannelThread", err)
 	}
@@ -1836,7 +1836,7 @@ func (r *ModifyCurrentMember) Send(bot *Client) (*GuildMember, error) {
 	}
 
 	var result *GuildMember
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointModifyCurrentMember(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointModifyCurrentMember(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyCurrentMember", err)
 	}
@@ -1852,7 +1852,7 @@ func (r *ModifyCurrentUser) Send(bot *Client) (*User, error) {
 	}
 
 	var result *User
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointModifyCurrentUser(), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointModifyCurrentUser(), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyCurrentUser", err)
 	}
@@ -1868,7 +1868,7 @@ func (r *ModifyCurrentUserVoiceState) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyCurrentUserVoiceState(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyCurrentUserVoiceState(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ModifyCurrentUserVoiceState", err)
 	}
@@ -1884,7 +1884,7 @@ func (r *ModifyGuild) Send(bot *Client) (*Guild, error) {
 	}
 
 	var result *Guild
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyGuild(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyGuild(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuild", err)
 	}
@@ -1900,7 +1900,7 @@ func (r *ModifyGuildChannelPositions) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointModifyGuildChannelPositions(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointModifyGuildChannelPositions(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ModifyGuildChannelPositions", err)
 	}
@@ -1916,7 +1916,7 @@ func (r *ModifyGuildEmoji) Send(bot *Client) (*Emoji, error) {
 	}
 
 	var result *Emoji
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyGuildEmoji(r.GuildID, r.EmojiID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyGuildEmoji(r.GuildID, r.EmojiID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildEmoji", err)
 	}
@@ -1932,7 +1932,7 @@ func (r *ModifyGuildMember) Send(bot *Client) (*GuildMember, error) {
 	}
 
 	var result *GuildMember
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyGuildMember(r.GuildID, r.UserID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyGuildMember(r.GuildID, r.UserID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildMember", err)
 	}
@@ -1948,7 +1948,7 @@ func (r *ModifyGuildRole) Send(bot *Client) (*Role, error) {
 	}
 
 	var result *Role
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointModifyGuildRole(r.GuildID, r.RoleID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointModifyGuildRole(r.GuildID, r.RoleID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildRole", err)
 	}
@@ -1964,7 +1964,7 @@ func (r *ModifyGuildRolePositions) Send(bot *Client) ([]*Role, error) {
 	}
 
 	var result []*Role
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointModifyGuildRolePositions(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointModifyGuildRolePositions(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildRolePositions", err)
 	}
@@ -1980,7 +1980,7 @@ func (r *ModifyGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 	}
 
 	var result *GuildScheduledEvent
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildScheduledEvent", err)
 	}
@@ -1996,7 +1996,7 @@ func (r *ModifyGuildSticker) Send(bot *Client) (*Sticker, error) {
 	}
 
 	var result *Sticker
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyGuildSticker(r.GuildID, r.StickerID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyGuildSticker(r.GuildID, r.StickerID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildSticker", err)
 	}
@@ -2012,7 +2012,7 @@ func (r *ModifyGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	}
 
 	var result *GuildTemplate
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointModifyGuildTemplate(r.GuildID, r.TemplateCode), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointModifyGuildTemplate(r.GuildID, r.TemplateCode), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildTemplate", err)
 	}
@@ -2028,7 +2028,7 @@ func (r *ModifyGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 	}
 
 	var result *WelcomeScreen
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyGuildWelcomeScreen(r.GuildID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyGuildWelcomeScreen(r.GuildID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildWelcomeScreen", err)
 	}
@@ -2039,7 +2039,7 @@ func (r *ModifyGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 // Send sends a ModifyGuildWidget request to Discord and returns a GuildWidget.
 func (r *ModifyGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 	var result *GuildWidget
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyGuildWidget(r.GuildID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointModifyGuildWidget(r.GuildID), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyGuildWidget", err)
 	}
@@ -2055,7 +2055,7 @@ func (r *ModifyStageInstance) Send(bot *Client) (*StageInstance, error) {
 	}
 
 	var result *StageInstance
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyStageInstance(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyStageInstance(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyStageInstance", err)
 	}
@@ -2071,7 +2071,7 @@ func (r *ModifyUserVoiceState) Send(bot *Client) error {
 	}
 
 	var result error
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointModifyUserVoiceState(r.GuildID, r.UserID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointModifyUserVoiceState(r.GuildID, r.UserID), contentTypeJSON, body, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ModifyUserVoiceState", err)
 	}
@@ -2087,7 +2087,7 @@ func (r *ModifyWebhook) Send(bot *Client) (*Webhook, error) {
 	}
 
 	var result *Webhook
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointModifyWebhook(r.WebhookID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointModifyWebhook(r.WebhookID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyWebhook", err)
 	}
@@ -2098,7 +2098,7 @@ func (r *ModifyWebhook) Send(bot *Client) (*Webhook, error) {
 // Send sends a ModifyWebhookwithToken request to Discord and returns a Webhook.
 func (r *ModifyWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 	var result *Webhook
-	err := SendRequest(bot.client, fasthttp.MethodPatch, EndpointModifyWebhookwithToken(r.WebhookID, r.WebhookToken), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPatch, EndpointModifyWebhookwithToken(r.WebhookID, r.WebhookToken), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ModifyWebhookwithToken", err)
 	}
@@ -2109,7 +2109,7 @@ func (r *ModifyWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 // Send sends a PinMessage request to Discord and returns a error.
 func (r *PinMessage) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointPinMessage(r.ChannelID, r.MessageID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointPinMessage(r.ChannelID, r.MessageID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "PinMessage", err)
 	}
@@ -2120,7 +2120,7 @@ func (r *PinMessage) Send(bot *Client) error {
 // Send sends a RemoveGuildBan request to Discord and returns a error.
 func (r *RemoveGuildBan) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodDelete, EndpointRemoveGuildBan(r.GuildID, r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodDelete, EndpointRemoveGuildBan(r.GuildID, r.UserID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "RemoveGuildBan", err)
 	}
@@ -2131,7 +2131,7 @@ func (r *RemoveGuildBan) Send(bot *Client) error {
 // Send sends a RemoveGuildMember request to Discord and returns a error.
 func (r *RemoveGuildMember) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointRemoveGuildMember(r.GuildID, r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointRemoveGuildMember(r.GuildID, r.UserID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "RemoveGuildMember", err)
 	}
@@ -2142,7 +2142,7 @@ func (r *RemoveGuildMember) Send(bot *Client) error {
 // Send sends a RemoveGuildMemberRole request to Discord and returns a error.
 func (r *RemoveGuildMemberRole) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointRemoveGuildMemberRole(r.GuildID, r.UserID, r.RoleID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointRemoveGuildMemberRole(r.GuildID, r.UserID, r.RoleID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "RemoveGuildMemberRole", err)
 	}
@@ -2153,7 +2153,7 @@ func (r *RemoveGuildMemberRole) Send(bot *Client) error {
 // Send sends a RemoveThreadMember request to Discord and returns a error.
 func (r *RemoveThreadMember) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodPost, EndpointRemoveThreadMember(r.ChannelID, r.UserID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodPost, EndpointRemoveThreadMember(r.ChannelID, r.UserID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "RemoveThreadMember", err)
 	}
@@ -2169,7 +2169,7 @@ func (r *SearchGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 	}
 
 	var result []*GuildMember
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointSearchGuildMembers(r.GuildID)+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointSearchGuildMembers(r.GuildID)+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "SearchGuildMembers", err)
 	}
@@ -2185,7 +2185,7 @@ func (r *StartThreadfromMessage) Send(bot *Client) (*Channel, error) {
 	}
 
 	var result *Channel
-	err = SendRequest(bot.client, fasthttp.MethodPatch, EndpointStartThreadfromMessage(r.ChannelID, r.MessageID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodPatch, EndpointStartThreadfromMessage(r.ChannelID, r.MessageID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "StartThreadfromMessage", err)
 	}
@@ -2201,7 +2201,7 @@ func (r *StartThreadinForumChannel) Send(bot *Client) (*Channel, error) {
 	}
 
 	var result *Channel
-	err = SendRequest(bot.client, fasthttp.MethodDelete, EndpointStartThreadinForumChannel(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodDelete, EndpointStartThreadinForumChannel(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "StartThreadinForumChannel", err)
 	}
@@ -2217,7 +2217,7 @@ func (r *StartThreadwithoutMessage) Send(bot *Client) (*Channel, error) {
 	}
 
 	var result *Channel
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointStartThreadwithoutMessage(r.ChannelID), contentTypeJSON, body, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointStartThreadwithoutMessage(r.ChannelID), contentTypeJSON, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "StartThreadwithoutMessage", err)
 	}
@@ -2228,7 +2228,7 @@ func (r *StartThreadwithoutMessage) Send(bot *Client) (*Channel, error) {
 // Send sends a SyncGuildTemplate request to Discord and returns a GuildTemplate.
 func (r *SyncGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var result *GuildTemplate
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointSyncGuildTemplate(r.GuildID, r.TemplateCode), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointSyncGuildTemplate(r.GuildID, r.TemplateCode), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "SyncGuildTemplate", err)
 	}
@@ -2239,7 +2239,7 @@ func (r *SyncGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 // Send sends a TriggerTypingIndicator request to Discord and returns a error.
 func (r *TriggerTypingIndicator) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointTriggerTypingIndicator(r.ChannelID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointTriggerTypingIndicator(r.ChannelID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "TriggerTypingIndicator", err)
 	}
@@ -2250,7 +2250,7 @@ func (r *TriggerTypingIndicator) Send(bot *Client) error {
 // Send sends a UnpinMessage request to Discord and returns a error.
 func (r *UnpinMessage) Send(bot *Client) error {
 	var result error
-	err := SendRequest(bot.client, fasthttp.MethodGet, EndpointUnpinMessage(r.ChannelID, r.MessageID), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointUnpinMessage(r.ChannelID, r.MessageID), nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "UnpinMessage", err)
 	}

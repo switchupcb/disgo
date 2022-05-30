@@ -1,6 +1,7 @@
 package wrapper
 
 import (
+	"encoding/base64"
 	"fmt"
 	"strings"
 
@@ -21,17 +22,9 @@ func GenerateAuthorizationURL(bot *Client, responsetype string) string {
 	params = append(params, "client_id="+bot.Authorization.ClientID)
 
 	// scope is a list of OAuth2 scopes separated by url encoded spaces (%20).
-	var scope strings.Builder
-	if len(bot.Authorization.Scopes) > 0 {
-		scope.WriteString("scope=")
-
-		for i, s := range bot.Authorization.Scopes {
-			if i > 0 {
-				scope.WriteString("%20")
-			}
-
-			scope.WriteString(s)
-		}
+	scope := urlQueryStringScope(bot.Authorization.Scopes)
+	if scope != "" {
+		params = append(params, scope)
 	}
 
 	// redirect_uri is the URL registered while creating the application.
@@ -81,7 +74,7 @@ func AuthorizationCodeGrant(bot *Client, ru *RedirectURL) (*AccessTokenResponse,
 }
 
 // RefreshAuthorizationCodeGrant refreshes an Access Token from an OAuth2 authorization code grant.
-func RefreshAuthorizationCodeGrant(bot *Client, token AccessTokenResponse) (*AccessTokenResponse, error) {
+func RefreshAuthorizationCodeGrant(bot *Client, token *AccessTokenResponse) (*AccessTokenResponse, error) {
 	exchange := &RefreshTokenExchange{
 		ClientID:     bot.Authorization.ClientID,
 		ClientSecret: bot.Authorization.ClientSecret,
@@ -116,6 +109,27 @@ func ImplicitGrant(ru *RedirectURI) *AccessTokenResponse {
 	}
 }
 
+// ClientCredentialsGrant performs a client credential OAuth2 grant for TESTING PURPOSES.
+//
+// The bot client's Authentication Header will be set to a Basic Authentication Header that
+// uses the bot's ClientID as a username and ClientSecret as a password.
+//
+// A request will be made for a Client Credential grant which returns a disgo.AccessTokenResponse
+// that does NOT contain a refresh token.
+//
+// For more information, read https://discord.com/developers/docs/topics/oauth2#client-credentials-grant
+func ClientCredentialsGrant(bot *Client) (*AccessTokenResponse, error) {
+	bot.Authentication.Header = "Basic " +
+		base64.StdEncoding.EncodeToString([]byte(bot.Authorization.ClientID+":"+bot.Authorization.ClientSecret))
+
+	grant := &ClientCredentialsTokenRequest{
+		GrantType: grantTypeClientCredentials,
+		Scope:     urlQueryStringScope(bot.Authorization.Scopes),
+	}
+
+	return grant.Send(bot)
+}
+
 // Send sends an AccessTokenExchange request to Discord and returns an AccessTokenResponse.
 func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	query, err := EndpointQueryString(r)
@@ -124,7 +138,7 @@ func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	}
 
 	var result *AccessTokenResponse
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "AccessTokenExchange", err)
 	}
@@ -142,7 +156,7 @@ func (r *RefreshTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	}
 
 	var result *AccessTokenResponse
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "RefreshTokenExchange", err)
 	}
@@ -151,14 +165,14 @@ func (r *RefreshTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 }
 
 // Send sends a ClientCredentialsTokenRequest to Discord and returns a ClientCredentialsTokenRequest.
-func (r *ClientCredentialsTokenRequest) Send(bot *Client) (*ClientCredentialsTokenRequest, error) {
+func (r *ClientCredentialsTokenRequest) Send(bot *Client) (*AccessTokenResponse, error) {
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, fmt.Errorf(ErrQueryString, "ClientCredentialsTokenRequest", err)
 	}
 
-	var result *ClientCredentialsTokenRequest
-	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	var result *AccessTokenResponse
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ClientCredentialsTokenRequest", err)
 	}
@@ -174,7 +188,7 @@ func (r *BotAuth) SendBotAuth(bot *Client) error {
 		return fmt.Errorf(ErrQueryString, "BotAuth", err)
 	}
 
-	err = SendRequest(bot.client, fasthttp.MethodGet, EndpointAuthorizationURL()+"?"+query, nil, nil, result)
+	err = SendRequest(bot, fasthttp.MethodGet, EndpointAuthorizationURL()+"?"+query, nil, nil, result)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "BotAuth", err)
 	}
@@ -185,7 +199,7 @@ func (r *BotAuth) SendBotAuth(bot *Client) error {
 // SendAdvancedBotAuth sends a AuthorizationURL to Discord and returns a ExtendedBotAuthorizationAccessTokenResponse.
 func (r *AuthorizationURL) SendAdvancedBotAuth(bot *Client) (*ExtendedBotAuthorizationAccessTokenResponse, error) {
 	var result *ExtendedBotAuthorizationAccessTokenResponse
-	err := SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "AdvancedBotAuth", err)
 	}
@@ -196,10 +210,30 @@ func (r *AuthorizationURL) SendAdvancedBotAuth(bot *Client) (*ExtendedBotAuthori
 // SendWebhookAuth sends a AuthorizationURL to Discord and returns a WebhookTokenResponse.
 func (r *AuthorizationURL) SendWebhookAuth(bot *Client) (*WebhookTokenResponse, error) {
 	var result *WebhookTokenResponse
-	err := SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
+	err := SendRequest(bot, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "WebhookAuth", err)
 	}
 
 	return result, nil
+}
+
+// urlQueryStringScope parses a given slice of scopes to generate a valid URL Query String.
+func urlQueryStringScope(scopes []string) string {
+	if len(scopes) > 0 {
+		var scope strings.Builder
+		scope.WriteString("scope=")
+
+		for i, s := range scopes {
+			if i > 0 {
+				scope.WriteString("%20")
+			}
+
+			scope.WriteString(s)
+		}
+
+		return scope.String()
+	}
+
+	return ""
 }

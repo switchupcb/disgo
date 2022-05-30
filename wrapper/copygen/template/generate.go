@@ -99,7 +99,7 @@ func generateBody(function *models.Function) string {
 	}
 
 	body.WriteString("var result " + response + "\n")
-	body.WriteString("err " + errDecl + " SendRequest(bot.client, " + generateHTTPMethod(function) + ", " +
+	body.WriteString("err " + errDecl + " SendRequest(bot, " + generateHTTPMethod(function) + ", " +
 		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", result)\n")
 	body.WriteString("if err != nil {\n")
 	body.WriteString(generateSendRequestErrReturn(function, requestName))
