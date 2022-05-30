@@ -46,6 +46,14 @@ var (
 
 	// contentTypeMulti represents an HTTP header that indicates a payload with a multi-part (file) body.
 	contentTypeMulti = []byte("multipart/form-data")
+
+	// headerLocation represents a byte representation of "Location" for HTTP header functionality.
+	headerLocation = []byte("Location")
+)
+
+// SendRequest Error Messages.
+var (
+	ErrRedirect = "an error occurred redirecting from %v due to a missing Location HTTP header"
 )
 
 // SendRequest sends a fasthttp.Request using the given URI, HTTP method, content type and body,
@@ -61,6 +69,8 @@ func SendRequest(client *fasthttp.Client, method, uri string, content, body []by
 	// receive the response from the request.
 	response := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(response)
+
+SEND:
 	if err := client.DoTimeout(request, response, timeout); err != nil {
 		return fmt.Errorf("%w", err)
 	}
@@ -73,6 +83,17 @@ func SendRequest(client *fasthttp.Client, method, uri string, content, body []by
 		}
 
 		return nil
+	}
+
+	// follow redirects.
+	if fasthttp.StatusCodeIsRedirect(response.StatusCode()) {
+		location := response.Header.PeekBytes(headerLocation)
+		if len(location) == 0 {
+			return fmt.Errorf(ErrRedirect, uri)
+		}
+
+		request.URI().UpdateBytes(location)
+		goto SEND
 	}
 
 	return StatusCodeError(response.StatusCode())
