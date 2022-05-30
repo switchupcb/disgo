@@ -4,6 +4,7 @@ go 1.18
 
 require (
 	github.com/goccy/go-json v0.9.6
+	github.com/gorilla/schema v1.2.0
 	github.com/valyala/fasthttp v1.35.0
 )
 

@@ -40,7 +40,7 @@ func Function(function *models.Function) string {
 
 // generateComment generates a function comment.
 func generateComment(function *models.Function) string {
-	return "// Send sends a " + function.From[0].Field.FullDefinitionWithoutPointer() + " to Discord and returns a " + function.To[0].Field.FullDefinitionWithoutPointer() + "."
+	return "// Send sends a " + function.From[0].Field.FullDefinitionWithoutPointer() + " request to Discord and returns a " + function.To[0].Field.FullDefinitionWithoutPointer() + "."
 }
 
 // generateSignature generates a function's signature.
@@ -68,25 +68,68 @@ func generateResultParameters(function *models.Function) string {
 
 // generateBody generates the body of a function.
 func generateBody(function *models.Function) string {
-	request := function.From[0].Field.FullDefinitionWithoutPointer()
+	request := function.From[0].Field
+	requestName := request.FullDefinitionWithoutPointer()
+	uniquetags := uniqueTags(request)
 	response := function.To[0].Field.FullDefinition()
+	errDecl := ":="
 
 	var body strings.Builder
+
+	httpbody := "nil"
+	if uniquetags["json"] != 0 {
+		body.WriteString("body, err " + errDecl + " json.Marshal(r)\n")
+		body.WriteString("if err != nil {\n")
+		body.WriteString(generateMarshalErrReturn(function, requestName))
+		body.WriteString("}\n")
+		body.WriteString("\n")
+		httpbody = "body"
+		errDecl = "="
+	}
+
+	endpoint := generateEndpointCall(function.From[0].Field)
+	if uniquetags["url"] != 0 {
+		body.WriteString("query, err := EndpointQueryString(r)\n")
+		body.WriteString("if err != nil {\n")
+		body.WriteString(generateQueryStringErrReturn(function, requestName))
+		body.WriteString("}\n")
+		body.WriteString("\n")
+		endpoint = endpoint + "+" + "\"?\"" + "+ query"
+		errDecl = "="
+	}
+
 	body.WriteString("var result " + response + "\n")
-	body.WriteString("body, err := json.Marshal(r)\n")
+	body.WriteString("err " + errDecl + " SendRequest(bot, " + generateHTTPMethod(function) + ", " +
+		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", result)\n")
 	body.WriteString("if err != nil {\n")
-	body.WriteString(generateMarshalErrReturn(function, request))
-	body.WriteString("}\n")
-	body.WriteString("\n")
-	body.WriteString("err = SendRequest(result, bot.client, TODO, " + generateEndpointCall(function.From[0].Field) + ", body)\n")
-	body.WriteString("if err != nil {\n")
-	body.WriteString(generateSendRequestErrReturn(function, request))
+	body.WriteString(generateSendRequestErrReturn(function, requestName))
 	body.WriteString("}\n")
 
 	return body.String()
 }
 
-// generateEndpointCall generates the endpoint function call (parameter) for a SendRequestJSON call.
+// generateHTTPMethod generates the HTTP method type for a SendRequest call.
+func generateHTTPMethod(function *models.Function) string {
+	http := function.Options.Custom["http"][0]
+
+	var method string
+	switch http {
+	case "GET":
+		method = "Get"
+	case "POST":
+		method = "Post"
+	case "PUT":
+		method = "Put"
+	case "PATCH":
+		method = "Patch"
+	case "DELETE":
+		method = "Delete"
+	}
+
+	return "fasthttp.Method" + method
+}
+
+// generateEndpointCall generates the endpoint function call (parameter) for a SendRequest call.
 func generateEndpointCall(request *models.Field) string {
 	var parameters strings.Builder
 
@@ -112,31 +155,73 @@ func generateEndpointCall(request *models.Field) string {
 	return "Endpoint" + request.Definition[1:] + "(" + parameters.String() + ")"
 }
 
+// generateContentType generates the content type for a SendRequest call.
+func generateContentType(tags map[string]int) string {
+	switch {
+	case tags["dasgo"] != 0:
+		return "contentTypeMulti"
+	case tags["json"] != 0:
+		return "contentTypeJSON"
+	case tags["url"] != 0:
+		return "contentTypeURL"
+	default:
+		return "nil"
+	}
+}
+
+// uniqueTags determines the unique tags of a request.
+func uniqueTags(request *models.Field) map[string]int {
+	uniquetags := make(map[string]int)
+
+	for _, subfield := range request.Fields {
+		for k := range subfield.Tags {
+			uniquetags[k]++
+		}
+	}
+
+	return uniquetags
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Return
 ////////////////////////////////////////////////////////////////////////////////
 
 // generateMarshalErrReturn generates a return statement for the function.
 func generateMarshalErrReturn(function *models.Function, request string) string {
+	errorf := "fmt.Errorf(ErrSendMarshal" + ",\"" + request + "\"" + ", err)"
 	switch len(function.To) {
 	case 1:
-		return "return fmt.Errorf(\"an error occurred while marshalling a " + request + ": \\n%w\", err)\n"
+		return "return " + errorf + "\n"
 	case 2:
-		return "return nil, fmt.Errorf(\"an error occurred while marshalling a " + request + ": \\n%w\", err)\n"
+		return "return nil, " + errorf + "\n"
 	default:
-		return "return nil, fmt.Errorf(\"an error occurred while marshalling a " + request + ": \\n%w\", err)\n"
+		return "return nil, " + errorf + "\n"
 	}
 }
 
 // generateSendRequestErrReturn generates a return statement for the function.
 func generateSendRequestErrReturn(function *models.Function, request string) string {
+	errorf := "fmt.Errorf(ErrSendRequest" + ",\"" + request + "\"" + ", err)"
 	switch len(function.To) {
 	case 1:
-		return "return fmt.Errorf(\"an error occurred while sending " + request + ": \\n%w\", err)\n"
+		return "return " + errorf + "\n"
 	case 2:
-		return "return nil, fmt.Errorf(\"an error occurred while sending " + request + ": \\n%w\", err)\n"
+		return "return nil, " + errorf + "\n"
 	default:
-		return "return nil, fmt.Errorf(\"an error occurred while sending " + request + ": \\n%w\", err)\n"
+		return "return nil, " + errorf + "\n"
+	}
+}
+
+// generateQueryStringErrReturn generates a return statement for the function.
+func generateQueryStringErrReturn(function *models.Function, request string) string {
+	errorf := "fmt.Errorf(ErrQueryString" + ",\"" + request + "\"" + ", err)"
+	switch len(function.To) {
+	case 1:
+		return "return " + errorf + "\n"
+	case 2:
+		return "return nil, " + errorf + "\n"
+	default:
+		return "return nil, " + errorf + "\n"
 	}
 }
 

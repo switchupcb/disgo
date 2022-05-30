@@ -27,7 +27,7 @@ You create a **Client** that calls for **Resources** using **Requests** and hand
 
 ### Flags
 
-A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides. All flags are denoted by `Flag` in disgo: For example, `disgo.FlagUserSTAFF`, `disgo.FlagLevelVerificationHIGH`, `disgo.FlagTierPremiumNONE`, etc.
+A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides. All flags are denoted by `Flag` in disgo: For example, `disgo.FlagUserSTAFF`, `disgo.FlagVerificationLevelHIGH`, `disgo.FlagPremiumTierNONE`, etc.
 
 ### Caching
 
@@ -56,9 +56,10 @@ This [example](/_examples/main) creates a bot that creates an application comman
 Use the client to configure the bot's settings.
 ```go
 bot := disgo.Client{
-    Config: disgo.Config{
-
-    },
+    // Set the Authentication Header using BotToken() or BearerToken().
+    Authentication: disgo.BotToken("TOKEN"),
+    Authorization: &disgo.Authorization{ ... },
+    Config: disgo.DefaultConfig(),
 }
 ```
 
@@ -83,12 +84,9 @@ if err != nil {
 
 ## Handle an Event
 
-Create an **event handler** and add it to a **session** _(without using the Shard Manager)_.
+Create an **event handler** and add it to the **bot**.
 
 ```go
-// Add a session.
-bot.Sessions = append(bot.Sessions, disgo.Session{})
-
 // Define an event handler.
 handler := disgo.EventHandler{
     Event: disgo.EventInteractionCreate,
@@ -97,15 +95,19 @@ handler := disgo.EventHandler{
     },
 }
 
-// Add the event handler to the session.
-bot.Sessions[0].Handlers.Add(handler)
+// Add the event handler to the bot.
+bot.Add(handler)
 ```
 
 ### Output
 
-Open the WebSocket **Session** to receive events.
+Open a WebSocket **Session** to receive events.
 
 ```go
+// Add a session.
+bot.Sessions = append(bot.Sessions, disgo.Session{})
+
+// Open the session.
 session, err := bot.Sessions[0].Open()
 if err != nil {
     log.Println("error: can't open websocket session to Discord")
@@ -139,7 +141,7 @@ disgo.Client.Session.Handlers.Add(<handler>)
 disgo.Client.Session.Handlers.Remove(<handler>)
 
 // Use flags to specify options.
-disgo.Flag<Option Type (in reverse order)><Option Name>
+disgo.Flag<Option><Name>
 
 // Use the client to manage the optional cache.
 disgo.Client.Cache.<Settings>
@@ -178,7 +180,7 @@ Disgo is the easiest Discord Go API for developers to use and contribute to. You
 | :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
 | Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 1K/10K                    |
 | DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | 10K/10K                   |
-| Disgord   | Contribution Guidelines, Project Architecture, No Linter, ORM                                                                                                                                                                             | ?/30K                     |
+| Disgord   | Contribution Guidelines, No Linter, ORM, Not Feature Complete                                                                                                                                                                             | ?/30K                     |
 
 ## Ecosystem
 
@@ -188,12 +190,11 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 
 ### Libraries
 
-| Library                                                            | Description                                             |
-| :----------------------------------------------------------------- | :------------------------------------------------------ |
-| [Discord API Spec](https://github.com/switchupcb/discord-api-spec) | Up-to-date Machine Readable Specification for Discord.  |
-| [Dasgo](https://github.com/switchupcb/dasgo)                       | Go Struct Type Definitions for Discord.                 |
-| Disgo Template                                                     | Get started on a Discord Bot with this Disgo Framework. |
-| [Copygen](https://github.com/switchupcb/copygen)                   | Generate custom type-based code.                        |
+| Library                                          | Description                                             |
+| :----------------------------------------------- | :------------------------------------------------------ |
+| [Copygen](https://github.com/switchupcb/copygen) | Generate custom type-based code.                        |
+| [Dasgo](https://github.com/switchupcb/dasgo)     | Go Struct Type Definitions for Discord.                 |
+| Disgo Template                                   | Get started on a Discord Bot with this Disgo Framework. |
 
 ### Credits
 

@@ -82,13 +82,12 @@ Integration tests are used to ensure functionality between the API and Discord.
 
 Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to complete it:
 
-1. Implement Client (OAuth).
-2. Implement Gateway (WebSocket, Events).
-3. Implement Rate Limits.
-4. Implement Retries.
-5. **Implement Testing** _[usable at this stage]_.
-6. Implement Sharding.
-7. Implement Cache (which is likely where most effort lies; caching is difficult).
+1. Implement Gateway (WebSocket, Events).
+2. Implement Rate Limits (HTTP, Gateway)
+3. Implement Retries.
+4. **Implement Testing** _[usable at this stage]_.
+5. Implement Sharding.
+6. Implement Cache (which is likely where most effort lies; caching is difficult).
 
 In addition, we must make [decisions](/_contribution/libraries/) for the following:
 1. UDP connections (Voice)

@@ -3,63 +3,66 @@ package wrapper
 // Discord API Endpoints
 const (
 	EndpointBaseURL = "https://discord.com/api/v9/"
-	widgetjson      = "widget.json"
-	scheduledevents = "scheduled-events"
-	bans            = "bans"
-	original        = "@original"
-	pins            = "pins"
-	followers       = "followers"
-	preview         = "preview"
-	regions         = "regions"
-	threads         = "threads"
-	auditlogs       = "audit-logs"
-	crosspost       = "crosspost"
+	typing          = "typing"
 	members         = "members"
-	slack           = "slack"
-	gateway         = "gateway"
-	applications    = "applications"
-	connections     = "connections"
+	recipients      = "recipients"
+	prune           = "prune"
+	github          = "github"
 	guilds          = "guilds"
 	public          = "public"
-	nick            = "nick"
-	vanityurl       = "vanity-url"
-	typing          = "typing"
-	prune           = "prune"
-	welcomescreen   = "welcome-screen"
-	active          = "active"
-	me              = "@me"
-	emojis          = "emojis"
-	integrations    = "integrations"
-	widget          = "widget"
-	stickerpacks    = "sticker-packs"
-	bot             = "bot"
-	interactions    = "interactions"
-	permissions     = "permissions"
-	roles           = "roles"
-	widgetpng       = "widget.png"
-	commands        = "commands"
-	invites         = "invites"
-	templates       = "templates"
-	stageinstances  = "stage-instances"
-	stickers        = "stickers"
-	github          = "github"
-	slash           = "/"
 	reactions       = "reactions"
-	bulkdelete      = "bulk-delete"
-	users           = "users"
-	oauth           = "oauth2"
-	channels        = "channels"
-	recipients      = "recipients"
+	integrations    = "integrations"
+	messages        = "messages"
+	followers       = "followers"
+	active          = "active"
+	member          = "member"
+	applications    = "applications"
+	me              = "@me"
 	threadmembers   = "thread-members"
+	nick            = "nick"
+	widgetjson      = "widget.json"
+	welcomescreen   = "welcome-screen"
+	gateway         = "gateway"
+	authorize       = "authorize"
+	threads         = "threads"
 	archived        = "archived"
 	search          = "search"
-	messages        = "messages"
-	voicestates     = "voice-states"
-	voice           = "voice"
+	slack           = "slack"
+	slash           = "/"
+	emojis          = "emojis"
+	stageinstances  = "stage-instances"
+	connections     = "connections"
+	token           = "token"
+	channels        = "channels"
 	private         = "private"
+	preview         = "preview"
+	widgetpng       = "widget.png"
+	stickerpacks    = "sticker-packs"
+	crosspost       = "crosspost"
+	invites         = "invites"
+	vanityurl       = "vanity-url"
+	voice           = "voice"
+	revoke          = "revoke"
+	commands        = "commands"
+	original        = "@original"
+	pins            = "pins"
+	bans            = "bans"
+	regions         = "regions"
+	widget          = "widget"
+	interactions    = "interactions"
+	roles           = "roles"
+	voicestates     = "voice-states"
+	oauth           = "oauth2"
+	stickers        = "stickers"
+	permissions     = "permissions"
 	callback        = "callback"
-	member          = "member"
 	webhooks        = "webhooks"
+	auditlogs       = "audit-logs"
+	bulkdelete      = "bulk-delete"
+	templates       = "templates"
+	users           = "users"
+	scheduledevents = "scheduled-events"
+	bot             = "bot"
 )
 
 // EndpointGetGlobalApplicationCommands builds a query for an HTTP request.
@@ -885,6 +888,21 @@ func EndpointGetGateway() string {
 // EndpointGetGatewayBot builds a query for an HTTP request.
 func EndpointGetGatewayBot() string {
 	return EndpointBaseURL + gateway + slash + bot
+}
+
+// EndpointAuthorizationURL builds a query for an HTTP request.
+func EndpointAuthorizationURL() string {
+	return EndpointBaseURL + oauth + slash + authorize
+}
+
+// EndpointTokenURL builds a query for an HTTP request.
+func EndpointTokenURL() string {
+	return EndpointBaseURL + oauth + slash + token
+}
+
+// EndpointTokenRevocationURL builds a query for an HTTP request.
+func EndpointTokenRevocationURL() string {
+	return EndpointBaseURL + oauth + slash + token + slash + revoke
 }
 
 // EndpointGetCurrentBotApplicationInformation builds a query for an HTTP request.
