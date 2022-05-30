@@ -209,6 +209,54 @@ func AdvancedBotAuthorization(bot *Client, ru *RedirectURL) (*AccessTokenRespons
 	return AuthorizationCodeGrant(bot, ru)
 }
 
+// WebhookAuthorization performs a specialized OAuth2 authorization code grant.
+//
+// Send the user a valid Authorization URL, which can be generated using
+// GenerateAuthorizationURL(bot, "code") when bot.Scopes is set to `webhook.incoming`.
+//
+// When the user visits the Authorization URL, they will be prompted for authorization.
+// If the user accepts the prompt (with a channel), they will be redirected to the `redirect_uri`.
+// This issues a GET request to the `redirect_uri` web server which YOU MUST HANDLE
+// by parsing the request's URL Query String into a disgo.RedirectURL object.
+//
+// Retrieve the user's access token by calling THIS FUNCTION (with the disgo.RedirectURL parameter),
+// which performs an Access Token Exchange.
+//
+// Refresh the token by using RefreshAuthorizationCodeGrant(bot, token).
+//
+// For more information read, https://discord.com/developers/docs/topics/oauth2#webhooks
+func WebhookAuthorization(bot *Client, ru *RedirectURL) (*AccessTokenResponse, *Webhook, error) {
+	exchange := &AccessTokenExchange{
+		ClientID:     bot.Authorization.ClientID,
+		ClientSecret: bot.Authorization.ClientSecret,
+		GrantType:    grantTypeAuthorizationCodeGrant,
+		Code:         ru.Code,
+		RedirectURI:  bot.Authorization.RedirectURI,
+	}
+
+	query, err := EndpointQueryString(exchange)
+	if err != nil {
+		return nil, nil, fmt.Errorf(ErrQueryString, "WebhookAuthorization", err)
+	}
+
+	var result *WebhookTokenResponse
+	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	if err != nil {
+		return nil, nil, fmt.Errorf(ErrSendRequest, "WebhookAuthorization", err)
+	}
+
+	// convert the webhook token response to an access token response (and webhook).
+	token := &AccessTokenResponse{
+		AccessToken:  result.AccessToken,
+		TokenType:    result.TokenType,
+		ExpiresIn:    result.ExpiresIn,
+		RefreshToken: result.RefreshToken,
+		Scope:        result.Scope,
+	}
+
+	return token, result.Webhook, nil
+}
+
 // Send sends an AccessTokenExchange request to Discord and returns an AccessTokenResponse.
 func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	query, err := EndpointQueryString(r)
