@@ -88,6 +88,7 @@ SEND:
 		}
 
 		request.URI().UpdateBytes(location)
+
 		goto SEND
 	}
 
@@ -101,7 +102,6 @@ var (
 
 // init runs at the start of the program.
 func init() {
-
 	// use `url` tags for the URL Query String encoder and decoder.
 	qsEncoder.SetAliasTag("url")
 }
@@ -111,7 +111,7 @@ func EndpointQueryString(dst any) (string, error) {
 	params := url.Values{}
 	err := qsEncoder.Encode(dst, params)
 	if err != nil {
-		return "", err
+		return "", err //nolint:wrapcheck
 	}
 
 	return params.Encode(), nil

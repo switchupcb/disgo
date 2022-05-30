@@ -85,7 +85,7 @@ const (
 
 // DefaultConfig returns a default client configuration.
 func DefaultConfig() *Config {
-	var c *Config
+	c := new(Config)
 	c.Client.Name = defaultUserAgent
 	c.Timeout = defaultRequestTimeout
 

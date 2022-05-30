@@ -13,11 +13,14 @@ const (
 	grantTypeAuthorizationCodeGrant = "authorization_code"
 	grantTypeRefreshToken           = "refresh_token"
 	grantTypeClientCredentials      = "client_credentials"
+	amountAuthURLParams             = 6
+	amountAuthURLParamsBot          = 3
+	base10                          = 10
 )
 
 // GenerateAuthorizationURL generates an authorization URL from a given client and response type.
 func GenerateAuthorizationURL(bot *Client, response string) string {
-	params := make([]string, 0, 6)
+	params := make([]string, 0, amountAuthURLParams)
 
 	// response_type is the type of response the redirect will return.
 	if response != "" {
@@ -77,10 +80,10 @@ type BotAuthParams struct {
 //
 // Bot.Scopes must include "bot" to enable the OAuth2 Bot Flow.
 func GenerateBotAuthorizationURL(p BotAuthParams) string {
-	params := make([]string, 0, 3)
+	params := make([]string, 0, amountAuthURLParamsBot)
 
 	// permissions is permissions the bot is requesting.
-	params = append(params, "permissions="+strconv.FormatUint(uint64(p.Permissions), 10))
+	params = append(params, "permissions="+strconv.FormatUint(uint64(p.Permissions), base10))
 
 	// guild_id is the Guild ID of the guild that is pre-selected in the authorization prompt.
 	if p.GuildID != "" {
@@ -239,7 +242,7 @@ func WebhookAuthorization(bot *Client, ru *RedirectURL) (*AccessTokenResponse, *
 		return nil, nil, fmt.Errorf(ErrQueryString, "WebhookAuthorization", err)
 	}
 
-	var result *WebhookTokenResponse
+	result := new(WebhookTokenResponse)
 	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, nil, fmt.Errorf(ErrSendRequest, "WebhookAuthorization", err)
