@@ -40,7 +40,7 @@ func Function(function *models.Function) string {
 
 // generateComment generates a function comment.
 func generateComment(function *models.Function) string {
-	return "// Send sends a " + function.From[0].Field.FullDefinitionWithoutPointer() + " to Discord and returns a " + function.To[0].Field.FullDefinitionWithoutPointer() + "."
+	return "// Send sends a " + function.From[0].Field.FullDefinitionWithoutPointer() + " request to Discord and returns a " + function.To[0].Field.FullDefinitionWithoutPointer() + "."
 }
 
 // generateSignature generates a function's signature.
@@ -75,7 +75,6 @@ func generateBody(function *models.Function) string {
 	errDecl := ":="
 
 	var body strings.Builder
-	body.WriteString("var result " + response + "\n")
 
 	httpbody := "nil"
 	if uniquetags["json"] != 0 {
@@ -99,6 +98,7 @@ func generateBody(function *models.Function) string {
 		errDecl = "="
 	}
 
+	body.WriteString("var result " + response + "\n")
 	body.WriteString("err " + errDecl + " SendRequest(bot.client, " + generateHTTPMethod(function) + ", " +
 		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", result)\n")
 	body.WriteString("if err != nil {\n")

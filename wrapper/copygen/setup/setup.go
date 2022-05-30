@@ -335,9 +335,9 @@ type Copygen interface {
 	// http DELETE
 	DeleteWebhookMessage(*disgo.DeleteWebhookMessage) error
 	// http GET
-	GetGateway(*disgo.GetGateway) (*disgo.GetGateway, error)
+	GetGateway(*disgo.GetGateway) (*disgo.GetGatewayBotResponse, error)
 	// http GET
-	GetGatewayBot(*disgo.GetGatewayBot) (*disgo.GetGatewayBot, error)
+	GetGatewayBot(*disgo.GetGatewayBot) (*disgo.GetGatewayBotResponse, error)
 	// http GET
 	GetCurrentBotApplicationInformation(*disgo.GetCurrentBotApplicationInformation) (*disgo.Application, error)
 	// http GET

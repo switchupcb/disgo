@@ -7,81 +7,47 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+const (
+	grantTypeAuthorizationCodeGrant = "authorization_code"
+	grantTypeRefreshToken           = "refresh_token"
+)
+
 // AuthorizationCodeGrant performs an OAuth2 authorization code grant.
-// https://discord.com/developers/docs/topics/oauth2#authorization-code-grant
-func AuthorizationCodeGrant(bot *Client) error {
-	// scope is a list of OAuth2 scopes separated by url encoded spaces (%20).
-	var scope strings.Builder
-	if len(bot.Authorization.Scopes) > 0 {
-		scope.WriteString("scope=")
-
-		for i, s := range bot.Authorization.Scopes {
-			if i > 0 {
-				scope.WriteString("%20")
-			}
-
-			scope.WriteString(s)
-		}
-	}
-
-	// retrieve an access code.
-	authurl := AuthorizationURL{
-		ResponseType: "code",
-		ClientID:     bot.Authorization.ClientID,
-		Scope:        scope.String(),
-		State:        bot.Authorization.State,
-		RedirectURI:  bot.Authorization.RedirectURI,
-		Prompt:       bot.Authorization.Prompt,
-	}
-
-	// TODO
-	// follow redirect in send function
-	//  m, _ := url.ParseQuery(u.RawQuery)
-	//  schemaDecoder.Decode(dst, redirecturl) or manual equivalent.
-
-	redirecturl, err := authurl.SendAuthorizationCodeGrantURL(bot)
-	if err != nil {
-		return err
-	}
-
-	// exchange the access code for a user's access token.
-	accesstokenexchange := AccessTokenExchange{
+//
+// Send the user a valid Authorization URL, which can be generated using GenerateAuthorizationURL(bot).
+// When the user visits the Authorization URL, they will be prompted for authorization.
+// If the user accepts the prompt, they will be redirected to the `redirect_uri`.
+// This issues a GET request to the `redirect_uri` web server which YOU MUST HANDLE
+// by parsing the request's URL Query String into a disgo.RedirectURL object.
+//
+// Retrieve the user's access token by calling THIS FUNCTION (with the disgo.RedirectURL parameter),
+// which performs an Access Token Exchange.
+//
+// Refresh the token by using RefreshAuthorizationCodeGrant(bot, token).
+//
+// For more information, read https://discord.com/developers/docs/topics/oauth2#authorization-code-grant
+func AuthorizationCodeGrant(bot *Client, ru *RedirectURL) (*AccessTokenResponse, error) {
+	exchange := &AccessTokenExchange{
 		ClientID:     bot.Authorization.ClientID,
 		ClientSecret: bot.Authorization.ClientSecret,
-		GrantType:    "authorization_code",
-		Code:         redirecturl.Code,
+		GrantType:    grantTypeAuthorizationCodeGrant,
+		Code:         ru.Code,
 		RedirectURI:  bot.Authorization.RedirectURI,
 	}
 
-	// set bot AccessToken information.
-	bot.AccessToken, err = accesstokenexchange.SendAccessTokenExchange(bot)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return exchange.Send(bot)
 }
 
-// RefreshAccessTokenExchange refreshes the given client's access token.
-func RefreshAccessTokenExchange(bot *Client) error {
-	if bot.AccessToken == nil {
-		return fmt.Errorf("cannot refresh access token without access token information.")
+// RefreshAuthorizationCodeGrant refreshes an Access Token from an OAuth2 authorization code grant.
+func RefreshAuthorizationCodeGrant(bot *Client, token AccessTokenResponse) (*AccessTokenResponse, error) {
+	exchange := &RefreshTokenExchange{
+		ClientID:     bot.Authorization.ClientID,
+		ClientSecret: bot.Authorization.ClientSecret,
+		GrantType:    grantTypeRefreshToken,
+		RefreshToken: token.RefreshToken,
 	}
 
-	/*
-		// post request to access token url
-		data = {
-			"client_id": bot.Authorization.ClientID,
-			"client_secret": bot.Authorization.ClientSecret,
-			"grant_type": "refresh_token",
-			"refresh_token": bot.AccessToken.RefreshToken
-		  }
-		  headers = {
-			'Content-Type': 'application/x-www-form-urlencoded'
-		  }
-	*/
-
-	return nil
+	return exchange.Send(bot)
 }
 
 // GenerateAuthorizationURL generates an authorization URL from a given client.
@@ -123,25 +89,14 @@ func GenerateAuthorizationURL(bot *Client) string {
 	return EndpointAuthorizationURL() + "?response_type=code&" + strings.Join(params, "&")
 }
 
-// SendAuthorizationCodeGrantURL sends a AuthorizationURL to Discord and returns a RedirectURL.
-func (r *AuthorizationURL) SendAuthorizationCodeGrantURL(bot *Client) (*RedirectURL, error) {
-	var result *RedirectURL
-	err := SendRequest(bot.client, fasthttp.MethodGet, GenerateAuthorizationURL(bot), nil, nil, result)
-	if err != nil {
-		return nil, fmt.Errorf(ErrSendRequest, "AuthorizationURL", err)
-	}
-
-	return result, nil
-}
-
-// SendAccessTokenExchange sends a AccessTokenExchange to Discord and returns a AccessTokenResponse.
-func (r *AccessTokenExchange) SendAccessTokenExchange(bot *Client) (*AccessTokenResponse, error) {
-	var result *AccessTokenResponse
+// Send sends an AccessTokenExchange request to Discord and returns an AccessTokenResponse.
+func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, fmt.Errorf(ErrQueryString, "AccessTokenExchange", err)
 	}
 
+	var result *AccessTokenResponse
 	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "AccessTokenExchange", err)
@@ -150,14 +105,16 @@ func (r *AccessTokenExchange) SendAccessTokenExchange(bot *Client) (*AccessToken
 	return result, nil
 }
 
-// SendRefreshTokenExchange sends a RefreshTokenExchange to Discord and returns a AccessTokenResponse.
-func (r *RefreshTokenExchange) SendRefreshTokenExchange(bot *Client) (*AccessTokenResponse, error) {
-	var result *AccessTokenResponse
+// Send sends a RefreshTokenExchange request to Discord and returns an AccessTokenResponse.
+//
+// Uses the RefreshTokenExchange ClientID and ClientSecret.
+func (r *RefreshTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, fmt.Errorf(ErrQueryString, "RefreshTokenExchange", err)
 	}
 
+	var result *AccessTokenResponse
 	err = SendRequest(bot.client, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "RefreshTokenExchange", err)
