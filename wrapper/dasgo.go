@@ -936,6 +936,12 @@ const (
 	FlagStatusTypeOffline      = "offline"
 )
 
+// Version
+// https://discord.com/developers/docs/reference#api-versioning
+const (
+	VersionDiscordAPI = "10"
+)
+
 // Locales
 // https://discord.com/developers/docs/reference#locales
 const (

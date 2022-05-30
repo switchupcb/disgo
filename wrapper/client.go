@@ -79,7 +79,6 @@ type Config struct {
 
 // Default Configuration Values.
 const (
-	VersionDiscordAPI     = "10"
 	defaultUserAgent      = "DiscordBot (https://github.com/switchupcb/disgo, " + "v" + VersionDiscordAPI + ")"
 	defaultRequestTimeout = time.Second * 3
 )
