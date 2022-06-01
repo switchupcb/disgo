@@ -6,6 +6,7 @@ require (
 	github.com/goccy/go-json v0.9.6
 	github.com/gorilla/schema v1.2.0
 	github.com/valyala/fasthttp v1.35.0
+	nhooyr.io/websocket v1.8.7
 )
 
 require (

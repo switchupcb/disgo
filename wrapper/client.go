@@ -23,21 +23,31 @@ type Client struct {
 // Authentication represents authentication parameters required to authenticate the bot.
 // https://discord.com/developers/docs/reference#authentication
 type Authentication struct {
+	// Token represents the Authentication Token used to authentiate the bot.
+	Token string
+
+	// TokenType represents the type of the Authentication Token.
+	TokenType string
+
 	// Header represents a Token Authorization Header.
 	Header string
 }
 
-// BotToken generates a Bot Token Authorization Header.
+// BotToken uses a given token to return a valid Authentication Object for a bot token type.
 func BotToken(token string) *Authentication {
 	return &Authentication{
-		Header: "Bot " + token,
+		Token:     token,
+		TokenType: "Bot",
+		Header:    "Bot " + token,
 	}
 }
 
-// BearerToken generates a Bearer Token Authorization Header.
+// BearerToken uses a given token to return a valid Authentication Object for a bearer token type.
 func BearerToken(token string) *Authentication {
 	return &Authentication{
-		"Bearer" + token,
+		Token:     token,
+		TokenType: "Bearer",
+		Header:    "Bearer" + token,
 	}
 }
 
@@ -75,11 +85,25 @@ type Config struct {
 
 	// Timeout represents the amount of time a request will wait for a response.
 	Timeout time.Duration
+
+	// GatewayPresenceUpdate represents the presence or status update of a bot.
+	//
+	// GatewayPresenceUpdate is used when the bot connects to a sesssion.
+	//
+	// https://discord.com/developers/docs/topics/gateway#update-presence
+	GatewayPresenceUpdate *GatewayPresenceUpdate
+
+	// Intents represents a Discord Gateway Intent.
+	//
+	// You must specify a Gateway Intent in order to gain access to Events.
+	//
+	// https://discord.com/developers/docs/topics/gateway#gateway-intents
+	Intents BitFlag
 }
 
 // Default Configuration Values.
 const (
-	defaultUserAgent      = "DiscordBot (https://github.com/switchupcb/disgo, " + "v" + VersionDiscordAPI + ")"
+	defaultUserAgent      = "DiscordBot (https://" + module + ", v" + VersionDiscordAPI + ")"
 	defaultRequestTimeout = time.Second * 3
 )
 
