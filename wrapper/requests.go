@@ -65,19 +65,12 @@ func SendRequest(bot *Client, method, uri string, content, body []byte, dst any)
 	response := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(response)
 
+	// send the request.
+	retries := 0
+
 SEND:
 	if err := bot.Config.Client.DoTimeout(request, response, bot.Config.Timeout); err != nil {
 		return fmt.Errorf("%w", err)
-	}
-
-	// unmarshal the JSON response into dst.
-	if response.StatusCode() == fasthttp.StatusOK {
-		err := json.Unmarshal(response.Body(), dst)
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
-		return nil
 	}
 
 	// follow redirects.
@@ -92,7 +85,32 @@ SEND:
 		goto SEND
 	}
 
-	return StatusCodeError(response.StatusCode())
+	// handle the request.
+	switch response.StatusCode() {
+
+	// unmarshal the JSON response into dst.
+	case fasthttp.StatusOK:
+		err := json.Unmarshal(response.Body(), dst)
+		if err != nil {
+			return fmt.Errorf("%w", err)
+		}
+
+		return nil
+
+	// retry the request on a bad gateway server error.
+	case fasthttp.StatusBadGateway:
+		if retries < bot.Config.Retries {
+			retries++
+
+			goto SEND
+		}
+
+		return StatusCodeError(fasthttp.StatusBadGateway)
+
+	default:
+		// TODO: JSON Status Code errors are not equivalent to HTTP Status Code errors.
+		return StatusCodeError(response.StatusCode())
+	}
 }
 
 var (
