@@ -18,17 +18,13 @@ The repository consists of a detailed [README](/README.md), [examples](/_example
 
 ### Disgo
 
-The API Wrapper consists of multiple packages. A [bundler](https://pkg.go.dev/golang.org/x/tools/cmd/bundle) is used to package the API into a single-usable package _(`disgo.go`)_.
+| Package | Description       |
+| :------ | :---------------- |
+| wrapper | API Wrapper.      |
+| cache   | Cache.            |
+| shard   | Sharding Manager. |
 
-| Package   | Description                                   |
-| :-------- | :-------------------------------------------- |
-| wrapper   | Contains the wrapper bundling functionality.  |
-| client    | The Disgo Client Abstraction.                 |
-| events    | Discord API Events.                           |
-| pkg       | Utility functionality for specific libraries. |
-| requests  | Discord API Requests.                         |
-| resources | Discord API Resources.                        |
-| sessions  | Discord API WebSocket Sessions (Gateways).    |
+_A [bundler](https://pkg.go.dev/golang.org/x/tools/cmd/bundle) is used to package the API into a `disgo` package (`disgo.go`)_.
 
 #### Structs
 
@@ -84,10 +80,9 @@ Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to c
 
 1. Implement Gateway (WebSocket, Events).
 2. Implement Rate Limits (HTTP, Gateway)
-3. Implement Retries.
-4. **Implement Testing** _[usable at this stage]_.
-5. Implement Sharding.
-6. Implement Cache (which is likely where most effort lies; caching is difficult).
+3. **Implement Testing** _[usable at this stage]_.
+4. Implement Sharding.
+5. Implement Cache (which is likely where most effort lies; caching is difficult).
 
 In addition, we must make [decisions](/_contribution/libraries/) for the following:
 1. UDP connections (Voice)

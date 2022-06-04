@@ -23,21 +23,127 @@ const (
 
 // Gateway Close Event Codes
 // https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-close-event-codes
-const (
-	FlagGatewayCloseEventCodeUnknownError         = 4000
-	FlagGatewayCloseEventCodeUnknownOpcode        = 4001
-	FlagGatewayCloseEventCodeDecodeError          = 4002
-	FlagGatewayCloseEventCodeNotAuthenticated     = 4003
-	FlagGatewayCloseEventCodeAuthenticationFailed = 4004
-	FlagGatewayCloseEventCodeAlreadyAuthenticated = 4005
-	FlagGatewayCloseEventCodeInvalidSeq           = 4007
-	FlagGatewayCloseEventCodeRateLimited          = 4008
-	FlagGatewayCloseEventCodeSessionTimed         = 4009
-	FlagGatewayCloseEventCodeInvalidShard         = 4010
-	FlagGatewayCloseEventCodeShardingRequired     = 4011
-	FlagGatewayCloseEventCodeInvalidAPIVersion    = 4012
-	FlagGatewayCloseEventCodeInvalidIntent        = 4013
-	FlagGatewayCloseEventCodeDisallowedIntent     = 4014
+type GatewayCloseEventCode struct {
+	Code        int
+	Description string
+	Explanation string
+	Reconnect   bool
+}
+
+var (
+	FlagGatewayCloseEventCodeUnknownError = GatewayCloseEventCode{
+		Code:        4000,
+		Description: "Unknown error",
+		Explanation: "We're not sure what went wrong. Try reconnecting?",
+		Reconnect:   true,
+	}
+
+	FlagGatewayCloseEventCodeUnknownOpcode = GatewayCloseEventCode{
+		Code:        4001,
+		Description: "Unknown opcode",
+		Explanation: "You sent an invalid Gateway opcode or an invalid payload for an opcode. Don't do that!",
+		Reconnect:   true,
+	}
+
+	FlagGatewayCloseEventCodeDecodeError = GatewayCloseEventCode{
+		Code:        4002,
+		Description: "Decode error",
+		Explanation: "You sent an invalid payload to us. Don't do that!",
+		Reconnect:   true,
+	}
+
+	FlagGatewayCloseEventCodeNotAuthenticated = GatewayCloseEventCode{
+		Code:        4003,
+		Description: "Not authenticated",
+		Explanation: "You sent us a payload prior to identifying.",
+		Reconnect:   true,
+	}
+
+	FlagGatewayCloseEventCodeAuthenticationFailed = GatewayCloseEventCode{
+		Code:        4004,
+		Description: "Authentication failed",
+		Explanation: "The account token sent with your identify payload is incorrect.",
+		Reconnect:   false,
+	}
+
+	FlagGatewayCloseEventCodeAlreadyAuthenticated = GatewayCloseEventCode{
+		Code:        4005,
+		Description: "Already authenticated",
+		Explanation: "You sent more than one identify payload. Don't do that!",
+		Reconnect:   true,
+	}
+
+	FlagGatewayCloseEventCodeInvalidSeq = GatewayCloseEventCode{
+		Code:        4007,
+		Description: "Invalid seq",
+		Explanation: "The sequence sent when resuming the session was invalid. Reconnect and start a new session.",
+		Reconnect:   true,
+	}
+
+	FlagGatewayCloseEventCodeRateLimited = GatewayCloseEventCode{
+		Code:        4008,
+		Description: "Rate limited.",
+		Explanation: "You're sending payloads to us too quickly. Slow it down! You will be disconnected on receiving this.",
+		Reconnect:   true,
+	}
+
+	FlagGatewayCloseEventCodeSessionTimed = GatewayCloseEventCode{
+		Code:        4009,
+		Description: "Session timed out",
+		Explanation: "Your session timed out. Reconnect and start a new one.",
+		Reconnect:   true,
+	}
+
+	FlagGatewayCloseEventCodeInvalidShard = GatewayCloseEventCode{
+		Code:        4010,
+		Description: "Invalid shard",
+		Explanation: "You sent us an invalid shard when identifying.",
+		Reconnect:   false,
+	}
+
+	FlagGatewayCloseEventCodeShardingRequired = GatewayCloseEventCode{
+		Code:        4011,
+		Description: "Sharding required",
+		Explanation: "The session would have handled too many guilds - you are required to shard your connection in order to connect.",
+		Reconnect:   false,
+	}
+
+	FlagGatewayCloseEventCodeInvalidAPIVersion = GatewayCloseEventCode{
+		Code:        4012,
+		Description: "Invalid API version",
+		Explanation: "You sent an invalid version for the gateway.",
+		Reconnect:   false,
+	}
+
+	FlagGatewayCloseEventCodeInvalidIntent = GatewayCloseEventCode{
+		Code:        4013,
+		Description: "Invalid intent(s)",
+		Explanation: "You sent an invalid intent for a Gateway Intent. You may have incorrectly calculated the bitwise value.",
+		Reconnect:   false,
+	}
+
+	FlagGatewayCloseEventCodeDisallowedIntent = GatewayCloseEventCode{
+		Code:        4014,
+		Description: "Disallowed intent(s)",
+		Explanation: "You sent a disallowed intent for a Gateway Intent. You may have tried to specify an intent that you have not enabled or are not approved for.",
+		Reconnect:   false,
+	}
+
+	GatewayCloseEventCodes = map[int]*GatewayCloseEventCode{
+		FlagGatewayCloseEventCodeUnknownError.Code:         &FlagGatewayCloseEventCodeUnknownError,
+		FlagGatewayCloseEventCodeUnknownOpcode.Code:        &FlagGatewayCloseEventCodeUnknownOpcode,
+		FlagGatewayCloseEventCodeDecodeError.Code:          &FlagGatewayCloseEventCodeDecodeError,
+		FlagGatewayCloseEventCodeNotAuthenticated.Code:     &FlagGatewayCloseEventCodeNotAuthenticated,
+		FlagGatewayCloseEventCodeAuthenticationFailed.Code: &FlagGatewayCloseEventCodeAuthenticationFailed,
+		FlagGatewayCloseEventCodeAlreadyAuthenticated.Code: &FlagGatewayCloseEventCodeAlreadyAuthenticated,
+		FlagGatewayCloseEventCodeInvalidSeq.Code:           &FlagGatewayCloseEventCodeInvalidSeq,
+		FlagGatewayCloseEventCodeRateLimited.Code:          &FlagGatewayCloseEventCodeRateLimited,
+		FlagGatewayCloseEventCodeSessionTimed.Code:         &FlagGatewayCloseEventCodeSessionTimed,
+		FlagGatewayCloseEventCodeInvalidShard.Code:         &FlagGatewayCloseEventCodeInvalidShard,
+		FlagGatewayCloseEventCodeInvalidAPIVersion.Code:    &FlagGatewayCloseEventCodeInvalidAPIVersion,
+		FlagGatewayCloseEventCodeInvalidIntent.Code:        &FlagGatewayCloseEventCodeInvalidIntent,
+		FlagGatewayCloseEventCodeDisallowedIntent.Code:     &FlagGatewayCloseEventCodeDisallowedIntent,
+	}
 )
 
 // Voice Opcodes
@@ -58,24 +164,104 @@ const (
 
 // Voice Close Event Codes
 // https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-close-event-codes
-const (
-	FlagVoiceCloseEventCodeUnknownOpcode         = 4001
-	FlagVoiceCloseEventCodeFailedDecode          = 4002
-	FlagVoiceCloseEventCodeNotAuthenticated      = 4003
-	FlagVoiceCloseEventCodeAuthenticationFailed  = 4004
-	FlagVoiceCloseEventCodeAlreadyAuthenticated  = 4005
-	FlagVoiceCloseEventCodeInvalidSession        = 4006
-	FlagVoiceCloseEventCodeSessionTimeout        = 4009
-	FlagVoiceCloseEventCodeServerNotFound        = 4011
-	FlagVoiceCloseEventCodeUnknownProtocol       = 4012
-	FlagVoiceCloseEventCodeDisconnectedChannel   = 4014
-	FlagVoiceCloseEventCodeVoiceServerCrash      = 4015
-	FlagVoiceCloseEventCodeUnknownEncryptionMode = 4016
+type VoiceCloseEventCode struct {
+	Code        int
+	Description string
+	Explanation string
+}
+
+var (
+	FlagVoiceCloseEventCodeUnknownOpcode = VoiceCloseEventCode{
+		Code:        4001,
+		Description: "Unknown opcode",
+		Explanation: "You sent an invalid opcode.",
+	}
+
+	FlagVoiceCloseEventCodeFailedDecode = VoiceCloseEventCode{
+		Code:        4002,
+		Description: "Failed to decode payload",
+		Explanation: "You sent a invalid payload in your identifying to the Gateway.",
+	}
+
+	FlagVoiceCloseEventCodeNotAuthenticated = VoiceCloseEventCode{
+		Code:        4003,
+		Description: "Not authenticated",
+		Explanation: "You sent a payload before identifying with the Gateway.",
+	}
+
+	FlagVoiceCloseEventCodeAuthenticationFailed = VoiceCloseEventCode{
+		Code:        4004,
+		Description: "Authentication failed",
+		Explanation: "The token you sent in your identify payload is incorrect.",
+	}
+
+	FlagVoiceCloseEventCodeAlreadyAuthenticated = VoiceCloseEventCode{
+		Code:        4005,
+		Description: "Already authenticated",
+		Explanation: "You sent more than one identify payload. Stahp.",
+	}
+
+	FlagVoiceCloseEventCodeInvalidSession = VoiceCloseEventCode{
+		Code:        4006,
+		Description: "Session no longer valid",
+		Explanation: "Your session is no longer valid.",
+	}
+
+	FlagVoiceCloseEventCodeSessionTimeout = VoiceCloseEventCode{
+		Code:        4009,
+		Description: "Session timeout",
+		Explanation: "Your session has timed out.",
+	}
+
+	FlagVoiceCloseEventCodeServerNotFound = VoiceCloseEventCode{
+		Code:        4011,
+		Description: "Server not found",
+		Explanation: "We can't find the server you're trying to connect to.",
+	}
+
+	FlagVoiceCloseEventCodeUnknownProtocol = VoiceCloseEventCode{
+		Code:        4012,
+		Description: "Unknown protocol",
+		Explanation: "We didn't recognize the protocol you sent.",
+	}
+
+	FlagVoiceCloseEventCodeDisconnectedChannel = VoiceCloseEventCode{
+		Code:        4014,
+		Description: "Disconnected",
+		Explanation: "Channel was deleted, you were kicked, voice server changed, or the main gateway session was dropped. Don't reconnect.",
+	}
+
+	FlagVoiceCloseEventCodeVoiceServerCrash = VoiceCloseEventCode{
+		Code:        4015,
+		Description: "Voice server crashed",
+		Explanation: "The server crashed. Our bad! Try resuming.",
+	}
+
+	FlagVoiceCloseEventCodeUnknownEncryptionMode = VoiceCloseEventCode{
+		Code:        4016,
+		Description: "Unknown encryption mode",
+		Explanation: "We didn't recognize your encryption.",
+	}
+
+	VoiceCloseEventCodes = map[int]*VoiceCloseEventCode{
+		FlagVoiceCloseEventCodeUnknownOpcode.Code:         &FlagVoiceCloseEventCodeUnknownOpcode,
+		FlagVoiceCloseEventCodeFailedDecode.Code:          &FlagVoiceCloseEventCodeFailedDecode,
+		FlagVoiceCloseEventCodeNotAuthenticated.Code:      &FlagVoiceCloseEventCodeNotAuthenticated,
+		FlagVoiceCloseEventCodeAuthenticationFailed.Code:  &FlagVoiceCloseEventCodeAuthenticationFailed,
+		FlagVoiceCloseEventCodeAlreadyAuthenticated.Code:  &FlagVoiceCloseEventCodeAlreadyAuthenticated,
+		FlagVoiceCloseEventCodeInvalidSession.Code:        &FlagVoiceCloseEventCodeInvalidSession,
+		FlagVoiceCloseEventCodeSessionTimeout.Code:        &FlagVoiceCloseEventCodeSessionTimeout,
+		FlagVoiceCloseEventCodeServerNotFound.Code:        &FlagVoiceCloseEventCodeServerNotFound,
+		FlagVoiceCloseEventCodeUnknownProtocol.Code:       &FlagVoiceCloseEventCodeUnknownProtocol,
+		FlagVoiceCloseEventCodeDisconnectedChannel.Code:   &FlagVoiceCloseEventCodeDisconnectedChannel,
+		FlagVoiceCloseEventCodeVoiceServerCrash.Code:      &FlagVoiceCloseEventCodeVoiceServerCrash,
+		FlagVoiceCloseEventCodeUnknownEncryptionMode.Code: &FlagVoiceCloseEventCodeUnknownEncryptionMode,
+	}
 )
 
 // HTTP Response Codes
 // https://discord.com/developers/docs/topics/opcodes-and-status-codes#http-http-response-codes
-const (
+var (
 	FlagHTTPResponseCodeOK                 = 200
 	FlagHTTPResponseCodeCREATED            = 201
 	FlagHTTPResponseCodeNOCONTENT          = 204
@@ -87,7 +273,22 @@ const (
 	FlagHTTPResponseCodeMETHODNOTALLOWED   = 405
 	FlagHTTPResponseCodeTOOMANYREQUESTS    = 429
 	FlagHTTPResponseCodeGATEWAYUNAVAILABLE = 502
-	FlagHTTPResponseCodeSERVERERROR        = 504 // 5xx (504 Not Guaranteed)
+	FlagHTTPResponseCodeSERVERERROR        = 500 // 5xx (500 Not Guaranteed)
+
+	HTTPResponseCodes = map[int]string{
+		FlagHTTPResponseCodeOK:                 "The request completed successfully.",
+		FlagHTTPResponseCodeCREATED:            "The entity was created successfully.",
+		FlagHTTPResponseCodeNOCONTENT:          "The request completed successfully but returned no content.",
+		FlagHTTPResponseCodeNOTMODIFIED:        "The entity was not modified (no action was taken).",
+		FlagHTTPResponseCodeBADREQUEST:         "The request was improperly formatted, or the server couldn't understand it.",
+		FlagHTTPResponseCodeUNAUTHORIZED:       "The Authorization header was missing or invalid.",
+		FlagHTTPResponseCodeFORBIDDEN:          "The Authorization token you passed did not have permission to the resource.",
+		FlagHTTPResponseCodeNOTFOUND:           "The resource at the location specified doesn't exist.",
+		FlagHTTPResponseCodeMETHODNOTALLOWED:   "The HTTP method used is not valid for the location specified.",
+		FlagHTTPResponseCodeTOOMANYREQUESTS:    "You are being rate limited, see Rate Limits.",
+		FlagHTTPResponseCodeGATEWAYUNAVAILABLE: "There was not a gateway available to process your request. Wait a bit and retry.",
+		FlagHTTPResponseCodeSERVERERROR:        "The server had an error processing your request (these are rare).",
+	}
 )
 
 // JSON Error Codes
@@ -3524,32 +3725,30 @@ const (
 
 // Guild Features
 // https://discord.com/developers/docs/resources/guild#guild-object-guild-features
-var (
-	GuildFeatures = map[string]string{
-		"ANIMATED_BANNER":                  "guild has access to set an animated guild banner image",
-		"ANIMATED_ICON":                    "guild has access to set an animated guild icon",
-		"BANNER":                           "guild has access to set a guild banner image",
-		"COMMERCE":                         "guild has access to use commerce features (i.e. create store channels)",
-		"COMMUNITY":                        "guild can enable welcome screen, Membership Screening, stage channels and discovery, and receives community updates",
-		"DISCOVERABLE":                     "guild is able to be discovered in the directory",
-		"FEATURABLE":                       "guild is able to be featured in the directory",
-		"INVITE_SPLASH":                    "guild has access to set an invite splash background",
-		"MEMBER_VERIFICATION_GATE_ENABLED": "guild has enabled Membership Screening",
-		"MONETIZATION_ENABLED":             "guild has enabled monetization",
-		"MORE_STICKERS":                    "guild has increased custom sticker slots",
-		"NEWS":                             "guild has access to create news channels",
-		"PARTNERED":                        "guild is partnered",
-		"PREVIEW_ENABLED":                  "guild can be previewed before joining via Membership Screening or the directory",
-		"PRIVATE_THREADS":                  "guild has access to create private threads",
-		"ROLE_ICONS":                       "guild is able to set role icons",
-		"SEVEN_DAY_THREAD_ARCHIVE":         "guild has access to the seven day archive time for threads",
-		"THREE_DAY_THREAD_ARCHIVE":         "guild has access to the three day archive time for threads",
-		"TICKETED_EVENTS_ENABLED":          "guild has enabled ticketed events",
-		"VANITY_URL":                       "guild has access to set a vanity URL",
-		"VERIFIED":                         "guild is verified",
-		"VIP_REGIONS":                      "guild has access to set 384kbps bitrate in voice (previously VIP voice servers)",
-		"WELCOME_SCREEN_ENABLED":           "guild has enabled the welcome screen",
-	}
+const (
+	FlagGuildFeatureANIMATED_BANNER                  = "ANIMATED_BANNER"
+	FlagGuildFeatureANIMATED_ICON                    = "ANIMATED_ICON"
+	FlagGuildFeatureBANNER                           = "BANNER"
+	FlagGuildFeatureCOMMERCE                         = "COMMERCE"
+	FlagGuildFeatureCOMMUNITY                        = "COMMUNITY"
+	FlagGuildFeatureDISCOVERABLE                     = "DISCOVERABLE"
+	FlagGuildFeatureFEATURABLE                       = "FEATURABLE"
+	FlagGuildFeatureINVITE_SPLASH                    = "INVITE_SPLASH"
+	FlagGuildFeatureMEMBER_VERIFICATION_GATE_ENABLED = "MEMBER_VERIFICATION_GATE_ENABLED"
+	FlagGuildFeatureMONETIZATION_ENABLED             = "MONETIZATION_ENABLED"
+	FlagGuildFeatureMORE_STICKERS                    = "MORE_STICKERS"
+	FlagGuildFeatureNEWS                             = "NEWS"
+	FlagGuildFeaturePARTNERED                        = "PARTNERED"
+	FlagGuildFeaturePREVIEW_ENABLED                  = "PREVIEW_ENABLED"
+	FlagGuildFeaturePRIVATE_THREADS                  = "PRIVATE_THREADS"
+	FlagGuildFeatureROLE_ICONS                       = "ROLE_ICONS"
+	FlagGuildFeatureSEVEN_DAY_THREAD_ARCHIVE         = "SEVEN_DAY_THREAD_ARCHIVE"
+	FlagGuildFeatureTHREE_DAY_THREAD_ARCHIVE         = "THREE_DAY_THREAD_ARCHIVE"
+	FlagGuildFeatureTICKETED_EVENTS_ENABLED          = "TICKETED_EVENTS_ENABLED"
+	FlagGuildFeatureVANITY_URL                       = "VANITY_URL"
+	FlagGuildFeatureVERIFIED                         = "VERIFIED"
+	FlagGuildFeatureVIP_REGIONS                      = "VIP_REGIONS"
+	FlagGuildFeatureWELCOME_SCREEN_ENABLED           = "WELCOME_SCREEN_ENABLED"
 )
 
 // Guild Preview Object

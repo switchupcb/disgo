@@ -86,6 +86,9 @@ type Config struct {
 	// Timeout represents the amount of time a request will wait for a response.
 	Timeout time.Duration
 
+	// Retries represents the amount of time a request will retry a bad gateway.
+	Retries int
+
 	// GatewayPresenceUpdate represents the presence or status update of a bot.
 	//
 	// GatewayPresenceUpdate is used when the bot connects to a sesssion.
@@ -112,6 +115,7 @@ func DefaultConfig() *Config {
 	c := new(Config)
 	c.Client.Name = defaultUserAgent
 	c.Timeout = defaultRequestTimeout
+	c.Retries = 1
 
 	return c
 }
