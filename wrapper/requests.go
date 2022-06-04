@@ -9,29 +9,6 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// Send Error Messages.
-const (
-	ErrSendMarshal = "an error occurred while marshalling a %v:\n%w"
-	ErrSendRequest = "an error occurred while sending %v:\n%w"
-	ErrQueryString = "an error occurred creating a URL Query String for %v:\n%w"
-	ErrRedirect    = "an error occurred redirecting from %v due to a missing Location HTTP header"
-)
-
-// Status Code Error Messages.
-const (
-	ErrStatusCodeKnown   = "Status Code %d: %v"
-	ErrStatusCodeUnknown = "Status Code %d: Unknown status code error from Discord"
-)
-
-// StatusCodeError handles a Discord API HTTP Status Code and returns the relevant error.
-func StatusCodeError(status int) error {
-	if msg, ok := JSONErrorCodes[status]; ok {
-		return fmt.Errorf(ErrStatusCodeKnown, status, msg)
-	}
-
-	return fmt.Errorf(ErrStatusCodeUnknown, status)
-}
-
 // HTTP header variables.
 var (
 	// contentTypeURL represents an HTTP header indicating a payload with an encoded URL Query String.
@@ -85,10 +62,8 @@ SEND:
 		goto SEND
 	}
 
-	// handle the request.
+	// handle the response.
 	switch response.StatusCode() {
-
-	// unmarshal the JSON response into dst.
 	case fasthttp.StatusOK:
 		err := json.Unmarshal(response.Body(), dst)
 		if err != nil {
@@ -108,7 +83,6 @@ SEND:
 		return StatusCodeError(fasthttp.StatusBadGateway)
 
 	default:
-		// TODO: JSON Status Code errors are not equivalent to HTTP Status Code errors.
 		return StatusCodeError(response.StatusCode())
 	}
 }
