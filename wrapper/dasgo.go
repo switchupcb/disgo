@@ -8,17 +8,17 @@ import (
 // Gateway Opcodes
 // https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
 const (
-	FlagGatewayOpcodeDispatch  = 0
-	FlagGatewayOpcodeHeartbeat = 1
-	FlagGatewayOpcodeIdentify  = 2
-	FlagGatewayOpcodePresence  = 3
-	FlagGatewayOpcodeVoice     = 4
-	FlagGatewayOpcodeResume    = 6
-	FlagGatewayOpcodeReconnect = 7
-	FlagGatewayOpcodeRequest   = 8
-	FlagGatewayOpcodeInvalid   = 9
-	FlagGatewayOpcodeHello     = 10
-	FlagGatewayOpcodeAck       = 11
+	FlagGatewayOpcodeDispatch            = 0
+	FlagGatewayOpcodeHeartbeat           = 1
+	FlagGatewayOpcodeIdentify            = 2
+	FlagGatewayOpcodePresenceUpdate      = 3
+	FlagGatewayOpcodeVoiceStateUpdate    = 4
+	FlagGatewayOpcodeResume              = 6
+	FlagGatewayOpcodeReconnect           = 7
+	FlagGatewayOpcodeRequestGuildMembers = 8
+	FlagGatewayOpcodeInvalidSession      = 9
+	FlagGatewayOpcodeHello               = 10
+	FlagGatewayOpcodeHeartbeatACK        = 11
 )
 
 // Gateway Close Event Codes
@@ -497,6 +497,70 @@ type CodeFlag uint16
 // https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events
 type Event interface{}
 
+// Gateway Event Names
+// https://discord.com/developers/docs/topics/gateway#event-names
+const (
+	FlagGatewayEventNameHello                               = "HELLO"
+	FlagGatewayEventNameReady                               = "READY"
+	FlagGatewayEventNameResumed                             = "RESUMED"
+	FlagGatewayEventNameReconnect                           = "RECONNECT"
+	FlagGatewayEventNameInvalidSession                      = "INVALID_SESSION"
+	FlagGatewayEventNameApplicationCommandPermissionsUpdate = "APPLICATION_COMMAND_PERMISSIONS_UPDATE"
+	FlagGatewayEventNameChannelCreate                       = "CHANNEL_CREATE"
+	FlagGatewayEventNameChannelUpdate                       = "CHANNEL_UPDATE"
+	FlagGatewayEventNameChannelDelete                       = "CHANNEL_DELETE"
+	FlagGatewayEventNameChannelPinsUpdate                   = "CHANNEL_PINS_UPDATE"
+	FlagGatewayEventNameThreadCreate                        = "THREAD_CREATE"
+	FlagGatewayEventNameThreadUpdate                        = "THREAD_UPDATE"
+	FlagGatewayEventNameThreadDelete                        = "THREAD_DELETE"
+	FlagGatewayEventNameThreadListSync                      = "THREAD_LIST_SYNC"
+	FlagGatewayEventNameThreadMemberUpdate                  = "THREAD_MEMBER_UPDATE"
+	FlagGatewayEventNameThreadMembersUpdate                 = "THREAD_MEMBERS_UPDATE"
+	FlagGatewayEventNameGuildCreate                         = "GUILD_CREATE"
+	FlagGatewayEventNameGuildUpdate                         = "GUILD_UPDATE"
+	FlagGatewayEventNameGuildDelete                         = "GUILD_DELETE"
+	FlagGatewayEventNameGuildBanAdd                         = "GUILD_BAN_ADD"
+	FlagGatewayEventNameGuildBanRemove                      = "GUILD_BAN_REMOVE"
+	FlagGatewayEventNameGuildEmojisUpdate                   = "GUILD_EMOJIS_UPDATE"
+	FlagGatewayEventNameGuildStickersUpdate                 = "GUILD_STICKERS_UPDATE"
+	FlagGatewayEventNameGuildIntegrationsUpdate             = "GUILD_INTEGRATIONS_UPDATE"
+	FlagGatewayEventNameGuildMemberAdd                      = "GUILD_MEMBER_ADD"
+	FlagGatewayEventNameGuildMemberRemove                   = "GUILD_MEMBER_REMOVE"
+	FlagGatewayEventNameGuildMemberUpdate                   = "GUILD_MEMBER_UPDATE"
+	FlagGatewayEventNameGuildMembersChunk                   = "GUILD_MEMBERS_CHUNK"
+	FlagGatewayEventNameGuildRoleCreate                     = "GUILD_ROLE_CREATE"
+	FlagGatewayEventNameGuildRoleUpdate                     = "GUILD_ROLE_UPDATE"
+	FlagGatewayEventNameGuildRoleDelete                     = "GUILD_ROLE_DELETE"
+	FlagGatewayEventNameGuildScheduledEventCreate           = "GUILD_SCHEDULED_EVENT_CREATE"
+	FlagGatewayEventNameGuildScheduledEventUpdate           = "GUILD_SCHEDULED_EVENT_UPDATE"
+	FlagGatewayEventNameGuildScheduledEventDelete           = "GUILD_SCHEDULED_EVENT_DELETE"
+	FlagGatewayEventNameGuildScheduledEventUserAdd          = "GUILD_SCHEDULED_EVENT_USER_ADD"
+	FlagGatewayEventNameGuildScheduledEventUserRemove       = "GUILD_SCHEDULED_EVENT_USER_REMOVE"
+	FlagGatewayEventNameIntegrationCreate                   = "INTEGRATION_CREATE"
+	FlagGatewayEventNameIntegrationUpdate                   = "INTEGRATION_UPDATE"
+	FlagGatewayEventNameIntegrationDelete                   = "INTEGRATION_DELETE"
+	FlagGatewayEventNameInteractionCreate                   = "INTERACTION_CREATE"
+	FlagGatewayEventNameInviteCreate                        = "INVITE_CREATE"
+	FlagGatewayEventNameInviteDelete                        = "INVITE_DELETE"
+	FlagGatewayEventNameMessageCreate                       = "MESSAGE_CREATE"
+	FlagGatewayEventNameMessageUpdate                       = "MESSAGE_UPDATE"
+	FlagGatewayEventNameMessageDelete                       = "MESSAGE_DELETE"
+	FlagGatewayEventNameMessageDeleteBulk                   = "MESSAGE_DELETE_BULK"
+	FlagGatewayEventNameMessageReactionAdd                  = "MESSAGE_REACTION_ADD"
+	FlagGatewayEventNameMessageReactionRemove               = "MESSAGE_REACTION_REMOVE"
+	FlagGatewayEventNameMessageReactionRemoveAll            = "MESSAGE_REACTION_REMOVE_ALL"
+	FlagGatewayEventNameMessageReactionRemoveEmoji          = "MESSAGE_REACTION_REMOVE_EMOJI"
+	FlagGatewayEventNamePresenceUpdate                      = "PRESENCE_UPDATE"
+	FlagGatewayEventNameStageInstanceCreate                 = "STAGE_INSTANCE_CREATE"
+	FlagGatewayEventNameStageInstanceDelete                 = "STAGE_INSTANCE_DELETE"
+	FlagGatewayEventNameStageInstanceUpdate                 = "STAGE_INSTANCE_UPDATE"
+	FlagGatewayEventNameTypingStart                         = "TYPING_START"
+	FlagGatewayEventNameUserUpdate                          = "USER_UPDATE"
+	FlagGatewayEventNameVoiceStateUpdate                    = "VOICE_STATE_UPDATE"
+	FlagGatewayEventNameVoiceServerUpdate                   = "VOICE_SERVER_UPDATE"
+	FlagGatewayEventNameWebhooksUpdate                      = "WEBHOOKS_UPDATE"
+)
+
 // Hello Structure
 // https://discord.com/developers/docs/topics/gateway#hello-hello-structure
 type Hello struct {
@@ -940,9 +1004,9 @@ type WebhooksUpdate struct {
 // Gateway Payload Structure
 // https://discord.com/developers/docs/topics/gateway#payloads-gateway-payload-structure
 type GatewayPayload struct {
-	Op             *Flag           `json:"op,omitempty"`
+	Op             *int            `json:"op,omitempty"`
 	Data           json.RawMessage `json:"d,omitempty"`
-	SequenceNumber uint32          `json:"s,omitempty"`
+	SequenceNumber int             `json:"s,omitempty"`
 	EventName      string          `json:"t,omitempty"`
 }
 

@@ -18,6 +18,9 @@ type Client struct {
 
 	// Config represents parameters used to perform various actions by the client.
 	Config *Config
+
+	// Handlers represents a bot's event handlers.
+	Handlers *Handlers
 }
 
 // Authentication represents authentication parameters required to authenticate the bot.

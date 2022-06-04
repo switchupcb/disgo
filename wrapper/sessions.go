@@ -3,9 +3,11 @@ package wrapper
 import (
 	"context"
 	"fmt"
+	"log"
 	"runtime"
 	"time"
 
+	json "github.com/goccy/go-json"
 	"nhooyr.io/websocket"
 	"nhooyr.io/websocket/wsjson"
 )
@@ -150,4 +152,67 @@ func Terminate(c *websocket.Conn) error {
 	c.Close(statusCode, "Close TCP Connection")
 
 	return nil
+}
+
+// onEvent handles an event using its JSON data.
+func (bot *Client) onEvent(s *Session, data []byte) error {
+	var event GatewayPayload
+	err := json.Unmarshal(data, &event)
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	// run the bot's event handlers based on the Receive Opcode.
+	//
+	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
+	switch *event.Op {
+	case FlagGatewayOpcodeDispatch:
+		s.Seq = event.SequenceNumber
+		go bot.handle(event.EventName, event.Data)
+
+	case FlagGatewayOpcodeHello:
+
+	case FlagGatewayOpcodeHeartbeat:
+
+	case FlagGatewayOpcodeHeartbeatACK:
+
+	case FlagGatewayOpcodeReconnect:
+
+	case FlagGatewayOpcodeInvalidSession:
+
+	}
+
+	return nil
+}
+
+// TODO: Automatically generate the following code using copygen.
+// Handlers represents a bot's event handlers.
+type Handlers struct {
+	Hello          []func(*Hello)
+	Ready          []func(*Ready)
+	Resumed        []func(*Resumed)
+	Reconnect      []func(*Reconnect)
+	InvalidSession []func(*InvalidSession)
+}
+
+// handle handles an event using its name and JSON data.
+func (bot *Client) handle(name string, data json.RawMessage) {
+	switch name {
+	case FlagGatewayEventNameHello:
+		var event *Hello
+		err := json.Unmarshal(data, event)
+		if err != nil {
+			// TODO: fix goroutine error handling semantics.
+			log.Panicf("%v", err)
+		}
+
+		for _, handler := range bot.Handlers.Hello {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameReady:
+	case FlagGatewayEventNameResumed:
+	case FlagGatewayEventNameReconnect:
+	case FlagGatewayEventNameInvalidSession:
+	}
 }
