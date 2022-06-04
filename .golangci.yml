@@ -46,3 +46,7 @@ linters-settings:
 
   nlreturn:
     block-size: 2
+  
+  gomnd:
+    ignored-files:
+      - dasgo.go

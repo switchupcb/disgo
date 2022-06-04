@@ -84,10 +84,9 @@ Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to c
 
 1. Implement Gateway (WebSocket, Events).
 2. Implement Rate Limits (HTTP, Gateway)
-3. Implement Retries.
-4. **Implement Testing** _[usable at this stage]_.
-5. Implement Sharding.
-6. Implement Cache (which is likely where most effort lies; caching is difficult).
+3. **Implement Testing** _[usable at this stage]_.
+4. Implement Sharding.
+5. Implement Cache (which is likely where most effort lies; caching is difficult).
 
 In addition, we must make [decisions](/_contribution/libraries/) for the following:
 1. UDP connections (Voice)
