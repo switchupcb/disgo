@@ -18,17 +18,13 @@ The repository consists of a detailed [README](/README.md), [examples](/_example
 
 ### Disgo
 
-The API Wrapper consists of multiple packages. A [bundler](https://pkg.go.dev/golang.org/x/tools/cmd/bundle) is used to package the API into a single-usable package _(`disgo.go`)_.
+| Package | Description       |
+| :------ | :---------------- |
+| wrapper | API Wrapper.      |
+| cache   | Cache.            |
+| shard   | Sharding Manager. |
 
-| Package   | Description                                   |
-| :-------- | :-------------------------------------------- |
-| wrapper   | Contains the wrapper bundling functionality.  |
-| client    | The Disgo Client Abstraction.                 |
-| events    | Discord API Events.                           |
-| pkg       | Utility functionality for specific libraries. |
-| requests  | Discord API Requests.                         |
-| resources | Discord API Resources.                        |
-| sessions  | Discord API WebSocket Sessions (Gateways).    |
+_A [bundler](https://pkg.go.dev/golang.org/x/tools/cmd/bundle) is used to package the API into a `disgo` package (`disgo.go`)_.
 
 #### Structs
 
