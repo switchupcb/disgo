@@ -39,3 +39,8 @@ func JSONCodeError(status int) error {
 
 	return fmt.Errorf(ErrJSONErrorUnknown, status)
 }
+
+// Gateway Error Code Messages.
+const (
+	ErrEventUnmarshal = "an error occurred while unmarshalling a %v Event:\n%w"
+)

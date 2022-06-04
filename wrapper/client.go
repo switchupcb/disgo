@@ -16,17 +16,20 @@ type Client struct {
 	// Authorization contains parameters required to authorize a client's access to resources.
 	Authorization *Authorization
 
-	// Config represents parameters used to perform various actions by the client.
-	Config *Config
+	// Sessions contains sessions a bot uses to interact with the Discord Gateway.
+	Sessions []*Session
 
 	// Handlers represents a bot's event handlers.
 	Handlers *Handlers
+
+	// Config represents parameters used to perform various actions by the client.
+	Config *Config
 }
 
 // Authentication represents authentication parameters required to authenticate the bot.
 // https://discord.com/developers/docs/reference#authentication
 type Authentication struct {
-	// Token represents the Authentication Token used to authentiate the bot.
+	// Token represents the Authentication Token used to authenticate the bot.
 	Token string
 
 	// TokenType represents the type of the Authentication Token.
@@ -94,7 +97,7 @@ type Config struct {
 
 	// GatewayPresenceUpdate represents the presence or status update of a bot.
 	//
-	// GatewayPresenceUpdate is used when the bot connects to a sesssion.
+	// GatewayPresenceUpdate is used when the bot connects to a session.
 	//
 	// https://discord.com/developers/docs/topics/gateway#update-presence
 	GatewayPresenceUpdate *GatewayPresenceUpdate
