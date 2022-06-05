@@ -76,7 +76,7 @@ func (bot *Client) Connect(s *Session) error {
 	// go listen for events
 	// TODO: deal with heartbeat by starting to listen for events.
 
-	// send an Identify event to the Discord Gateway.
+	// send an Identify event to the Discord Gateway (Opcode 2).
 	event := Identify{
 		Token: bot.Authentication.Token,
 		Properties: IdentifyConnectionProperties{
@@ -175,17 +175,59 @@ func (bot *Client) onEvent(s *Session, data []byte) error {
 
 	case FlagGatewayOpcodeHello:
 
-	case FlagGatewayOpcodeHeartbeat:
+		go bot.handle(event.EventName, event.Data)
 
+	case FlagGatewayOpcodeHeartbeat:
+		// Sequence number must be updated for when Opcode 1 Heartbeat is sent to Gateway.
+		s.Seq = event.SequenceNumber
+		go bot.heartbeat(s, data)
 	case FlagGatewayOpcodeHeartbeatACK:
+		// receive Hearbeat ACK from Gateway.
+		go bot.handle(event.EventName, event.Data)
 
 	case FlagGatewayOpcodeReconnect:
+		//
 
 	case FlagGatewayOpcodeInvalidSession:
 
 	}
 
 	return nil
+}
+
+// heatbeat send the payload to the Discord Gateway to verify the connection is alive.
+// TODO: retrieve heartbeat interval and begin sending Opcode 1 Hearbeat payloads to Discord Gateway.
+func (bot *Client) heartbeat(s *Session, data json.RawMessage) {
+	var hello Hello
+	err := json.Unmarshal(data, hello)
+	if err != nil {
+		// TODO: fix goroutine error handling semantics.
+		log.Panicf("%v", err)
+	}
+
+	// connect to the Discord Gateway Websocket.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	conn, _, err := websocket.Dial(ctx, s.Endpoint, nil)
+	if err != nil {
+		log.Panicf("%v", err)
+	}
+	defer conn.Close(websocket.StatusInternalError, "StatusInternalError")
+
+	// Heartbeat is what is the payload send to tge Gateway every HeartbeatInterval miliseconds.
+	var hb Heartbeat
+	hb.Op = 1
+	hb.Data = int64(s.Seq)
+
+	// Begin sending Opcode 1 Heartbeat Payloads
+	for {
+		time.Sleep(hello.HeartbeatInterval)
+		err = wsjson.Write(ctx, conn, hb)
+		if err != nil {
+			log.Panicf("%v", err)
+		}
+	}
 }
 
 // TODO: Automatically generate the following code using copygen.
@@ -214,8 +256,17 @@ func (bot *Client) handle(name string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameReady:
+		var ready *Ready
+		err := json.Unmarshal(data, ready)
+
+		if err != nil {
+			// TODO: fix goroutine error handling semantics.
+			log.Panicf("%v", err)
+		}
+
 	case FlagGatewayEventNameResumed:
 	case FlagGatewayEventNameReconnect:
 	case FlagGatewayEventNameInvalidSession:
+
 	}
 }
