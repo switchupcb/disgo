@@ -44,3 +44,8 @@ func JSONCodeError(status int) error {
 const (
 	ErrEventUnmarshal = "an error occurred while unmarshalling a %v Event:\n%w"
 )
+
+// Event Handler Code Messages.
+const (
+	ErrLogEventUnmarshal = "an error occurred while unmarshalling a %v Event:\n%v"
+)

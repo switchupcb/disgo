@@ -64,7 +64,7 @@ func (bot *Client) Connect(s *Session) error {
 	s.Connected = true
 
 	// handle the incoming Hello event (JSON) upon connecting to the Gateway.
-	// TODO: Replace with bot.onEvent()
+	// TODO: Replace with bot.onPayload()
 	var hello Hello
 	err = wsjson.Read(ctx, conn, &hello)
 	if err != nil {
@@ -94,7 +94,7 @@ func (bot *Client) Connect(s *Session) error {
 	wsjson.Write(ctx, conn, event)
 
 	// handle the incoming Ready event upon identification with the socket.
-	// TODO: Replace with bot.onEvent()
+	// TODO: Replace with bot.onPayload()
 	var ready Ready
 	err = wsjson.Read(ctx, conn, &ready)
 	if err != nil {
@@ -132,15 +132,15 @@ func (s *Session) reconnect() error {
 	}
 
 	// read in the Resumed event to access its SessionID.
-	// TODO: handle all of the events in order using bot.onEvent
-	// TODO: handle opcode 9 using bot.onEvent
+	// TODO: handle all of the events in order using bot.onPayload
+	// TODO: handle opcode 9 using bot.onPayload
 	var resumed Resumed
 	err = wsjson.Read(ctx, conn, &resumed)
 	if err != nil {
 		return fmt.Errorf(ErrEventUnmarshal, "Resumed", err)
 	}
 
-	// TODO: determine if this check is necessary given bot.onEvent
+	// TODO: determine if this check is necessary given bot.onPayload
 	if resumed.Op != FlagGatewayOpcodeReconnect {
 		return fmt.Errorf(ErrEventUnmarshal, "Ready", err)
 	}
@@ -157,8 +157,8 @@ func (s *Session) Disconnect(c *websocket.Conn) error {
 	return nil
 }
 
-// onEvent handles an event using its JSON data.
-func (bot *Client) onEvent(s *Session, data []byte) error {
+// onPayload handles an Discord Gateway Payload.
+func (bot *Client) onPayload(s *Session, data []byte) error {
 	var event GatewayPayload
 	err := json.Unmarshal(data, &event)
 	if err != nil {
@@ -227,46 +227,5 @@ func (bot *Client) heartbeat(s *Session, data json.RawMessage) {
 		if err != nil {
 			log.Panicf("%v", err)
 		}
-	}
-}
-
-// TODO: Automatically generate the following code using copygen.
-// Handlers represents a bot's event handlers.
-type Handlers struct {
-	Hello          []func(*Hello)
-	Ready          []func(*Ready)
-	Resumed        []func(*Resumed)
-	Reconnect      []func(*Reconnect)
-	InvalidSession []func(*InvalidSession)
-}
-
-// handle handles an event using its name and JSON data.
-func (bot *Client) handle(name string, data json.RawMessage) {
-	switch name {
-	case FlagGatewayEventNameHello:
-		var event *Hello
-		err := json.Unmarshal(data, event)
-		if err != nil {
-			// TODO: fix goroutine error handling semantics.
-			log.Panicf("%v", err)
-		}
-
-		for _, handler := range bot.Handlers.Hello {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameReady:
-		var ready *Ready
-		err := json.Unmarshal(data, ready)
-
-		if err != nil {
-			// TODO: fix goroutine error handling semantics.
-			log.Panicf("%v", err)
-		}
-
-	case FlagGatewayEventNameResumed:
-	case FlagGatewayEventNameReconnect:
-	case FlagGatewayEventNameInvalidSession:
-
 	}
 }

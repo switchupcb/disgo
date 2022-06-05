@@ -87,16 +87,10 @@ if err != nil {
 Create an **event handler** and add it to the **bot**.
 
 ```go
-// Define an event handler.
-handler := disgo.EventHandler{
-    Event: disgo.EventInteractionCreate,
-    Call: func (i disgo.ResourceInteraction) {
-        log.Printf("main called by %s", i.User.Username)
-    },
-}
-
-// Add the event handler to the bot.
-bot.Add(handler)
+// Add an event handler to the bot.
+bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i disgo.InteractionCreate) {
+	log.Printf("main called by %s", i.User.Username)
+})
 ```
 
 ### Output
