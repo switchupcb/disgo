@@ -2,7 +2,7 @@
 
 **This repository is currently a PROOF OF CONCEPT. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).** 
 
-Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching and shard management. Use the only Go module to provide a 100% one-to-one implementation of the Discord API.
+Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching and shard management. Use the only Go module that provides a 100% one-to-one implementation of the Discord API.
 
 | Topic                           | Categories                                                                                                                                          |
 | :------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -13,17 +13,17 @@ Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/d
 
 ## Using the API
 
-This breakdown provides you with a **full understanding** on how to use the API. 
+This breakdown provides you with a **full understanding** on how to use the API.
 
 | Abstraction  | Usecase                                                                                                                                                            | Example                                                             |
 | :----------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
 | **Resource** | A [Discord API Resource](https://discord.com/developers/docs/resources/application).                                                                               | Guild Object. User Object.                                          |
 | **Event**    | A [Discord API Event](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events).                                                      | A message is created. A user joins a channel.                       |
 | **Client**   | The Discord Bot [Application](https://discord.com/developers/docs/resources/application) that you program. One Bot = One Client.                                   | Configure the bot settings. Set the token.                          |
-| **Request**  | Uses the Discord HTTPS/REST API to make one-time requests for information _(i.e resources)_. Provides create, read, update, delete, patch endpoints.               | Create a command. Request Guild Info.                               |
+| **Request**  | Uses the Discord HTTP REST API to make one-time requests for information _(i.e resources)_. Provides create, read, update, delete, patch endpoints.                | Create a command. Request Guild Info.                               |
 | **Session**  | Uses Discord WebSockets [(Gateways)](https://discord.com/developers/docs/topics/gateway) to receive ongoing **events** that contain information _(i.e resources)_. | Send a message when a command used or a user joins a voice channel. |
 
-You create a **Client** that calls for **Resources** using **Requests** and handles **Events** using **Sessions**.
+You create a **Client** that calls for **Resources** using **Requests** and handles **Events** from **Sessions** using event handlers. For more information, please read [What is a Request?](/_contribution/concepts/REQUESTS.md) and [What is an Event?](/_contribution/concepts/EVENTS.md)
 
 ### Flags
 
@@ -60,6 +60,7 @@ bot := disgo.Client{
     Authentication: disgo.BotToken("TOKEN"),
     Authorization: &disgo.Authorization{ ... },
     Config: disgo.DefaultConfig(),
+    Handlers: &Handler{},
 }
 ```
 
@@ -68,13 +69,13 @@ bot := disgo.Client{
 Create an application command **request** to add an application command.
 
 ```go
-// Create a global command request.
+// Create a create global application command request.
 request := disgo.CreateGlobalApplicationCommand{
     Name: "main",
     Description: "A basic command",
 } 
 
-// Register the global command by sending the request to Discord using the bot.
+// Register the global application command by sending the request to Discord using the bot.
 // returns a disgo.ResourceApplicationCommand
 newCommand, err := request.Send(bot)
 if err != nil {
@@ -115,30 +116,30 @@ main called by SCB
 
 ```go
 // Use resources to represent Discord objects.
-disgo.Resource<API Resource>
+disgo.<API Resource>
 
 // Use events to represent Discord events.
-disgo.Event<API Event>
+disgo.<API Event>
 
 // Use flags to specify Discord options.
 disgo.Flag<Option><Name>
 
-// Use requests to exchange data with Discord's REST API.
-disgo.Request<Endpoint>
-disgo.Response<Endpoint>
-
-// Use the client to manage the bot's settings.
-disgo.Client.Config.<Settings>
-disgo.Client.Authentication.<Settings>
-disgo.Client.Authorization.<Settings>
+// Use requests and responses to exchange data with Discord's REST API.
+disgo.<Request>
+disgo.<Response>
 
 // Use the client to manage the bot's sessions and event handlers manually.
 disgo.Client.Sessions
 disgo.Client.Handlers.<Event>
 
-// Use client functions to manage event handlers automatically.
+// Use client functions to manage the bot's event handlers automatically.
 disgo.Client.Handle(event, handler)
 disgo.Client.Handlers.Remove(event, index)
+
+// Use the client to manage the bot's settings.
+disgo.Client.Config.<Settings>
+disgo.Client.Authentication.<Settings>
+disgo.Client.Authorization.<Settings>
 
 // Use the client to manage the optional cache.
 disgo.Client.Cache.<Settings>
