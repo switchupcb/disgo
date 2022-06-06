@@ -69,12 +69,12 @@ Create an application command **request** to add an application command.
 
 ```go
 // Create a global command request.
-request := disgo.RequestCreateApplicationCommand{
+request := disgo.CreateGlobalApplicationCommand{
     Name: "main",
     Description: "A basic command",
 } 
 
-// Register the global command by sending the request to Discord.
+// Register the global command by sending the request to Discord using the bot.
 // returns a disgo.ResourceApplicationCommand
 newCommand, err := request.Send(bot)
 if err != nil {
@@ -98,17 +98,14 @@ bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i disgo.Interaction
 Open a WebSocket **Session** to receive events.
 
 ```go
-// Add a session.
-bot.Sessions = append(bot.Sessions, disgo.Session{})
-
-// Open the session.
-session, err := bot.Sessions[0].Open()
+// Connect to the Discord Gateway using a new session.
+err := bot.Connect(&disgo.Session{})
 if err != nil {
     log.Println("error: can't open websocket session to Discord")
 }
 ```
 
-A user creates an [`InteractionCreate`](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events) event by using `/main` in a direct message with the bot.
+The following message will be logged when a user creates an [`InteractionCreate`](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events) event by using `/main` in a Direct Message with the bot on Discord.
 
 ```
 main called by SCB
@@ -117,25 +114,31 @@ main called by SCB
 ### Summary
 
 ```go
-// Use resources to represent Discord objects in your application.
-disgo.Resource<API Resources>
+// Use resources to represent Discord objects.
+disgo.Resource<API Resource>
 
-// Use events to represent Discord events in your application.
-disgo.Event<API Events>
+// Use events to represent Discord events.
+disgo.Event<API Event>
+
+// Use flags to specify Discord options.
+disgo.Flag<Option><Name>
+
+// Use requests to exchange data with Discord's REST API.
+disgo.Request<Endpoint>
+disgo.Response<Endpoint>
 
 // Use the client to manage the bot's settings.
 disgo.Client.Config.<Settings>
+disgo.Client.Authentication.<Settings>
+disgo.Client.Authorization.<Settings>
 
-// Use requests to exchange data with Discord's REST API.
-disgo.Request<Endpoints>
-disgo.Response<Endpoints>
+// Use the client to manage the bot's sessions and event handlers manually.
+disgo.Client.Sessions
+disgo.Client.Handlers.<Event>
 
-// Use sessions to handle events from Discord's WebSocket Sessions (Gateways).
-disgo.Client.Session.Handlers.Add(<handler>)
-disgo.Client.Session.Handlers.Remove(<handler>)
-
-// Use flags to specify options.
-disgo.Flag<Option><Name>
+// Use client functions to manage event handlers automatically.
+disgo.Client.Handle(event, handler)
+disgo.Client.Handlers.Remove(event, index)
 
 // Use the client to manage the optional cache.
 disgo.Client.Cache.<Settings>
