@@ -8,17 +8,17 @@ import (
 // Gateway Opcodes
 // https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
 const (
-	FlagGatewayOpcodeDispatch  = 0
-	FlagGatewayOpcodeHeartbeat = 1
-	FlagGatewayOpcodeIdentify  = 2
-	FlagGatewayOpcodePresence  = 3
-	FlagGatewayOpcodeVoice     = 4
-	FlagGatewayOpcodeResume    = 6
-	FlagGatewayOpcodeReconnect = 7
-	FlagGatewayOpcodeRequest   = 8
-	FlagGatewayOpcodeInvalid   = 9
-	FlagGatewayOpcodeHello     = 10
-	FlagGatewayOpcodeAck       = 11
+	FlagGatewayOpcodeDispatch            = 0
+	FlagGatewayOpcodeHeartbeat           = 1
+	FlagGatewayOpcodeIdentify            = 2
+	FlagGatewayOpcodePresenceUpdate      = 3
+	FlagGatewayOpcodeVoiceStateUpdate    = 4
+	FlagGatewayOpcodeResume              = 6
+	FlagGatewayOpcodeReconnect           = 7
+	FlagGatewayOpcodeRequestGuildMembers = 8
+	FlagGatewayOpcodeInvalidSession      = 9
+	FlagGatewayOpcodeHello               = 10
+	FlagGatewayOpcodeHeartbeatACK        = 11
 )
 
 // Gateway Close Event Codes
@@ -261,7 +261,7 @@ var (
 
 // HTTP Response Codes
 // https://discord.com/developers/docs/topics/opcodes-and-status-codes#http-http-response-codes
-var (
+const (
 	FlagHTTPResponseCodeOK                 = 200
 	FlagHTTPResponseCodeCREATED            = 201
 	FlagHTTPResponseCodeNOCONTENT          = 204
@@ -274,7 +274,9 @@ var (
 	FlagHTTPResponseCodeTOOMANYREQUESTS    = 429
 	FlagHTTPResponseCodeGATEWAYUNAVAILABLE = 502
 	FlagHTTPResponseCodeSERVERERROR        = 500 // 5xx (500 Not Guaranteed)
+)
 
+var (
 	HTTPResponseCodes = map[int]string{
 		FlagHTTPResponseCodeOK:                 "The request completed successfully.",
 		FlagHTTPResponseCodeCREATED:            "The entity was created successfully.",
@@ -496,6 +498,70 @@ type CodeFlag uint16
 // Gateway Events
 // https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events
 type Event interface{}
+
+// Gateway Event Names
+// https://discord.com/developers/docs/topics/gateway#event-names
+const (
+	FlagGatewayEventNameHello                               = "HELLO"
+	FlagGatewayEventNameReady                               = "READY"
+	FlagGatewayEventNameResumed                             = "RESUMED"
+	FlagGatewayEventNameReconnect                           = "RECONNECT"
+	FlagGatewayEventNameInvalidSession                      = "INVALID_SESSION"
+	FlagGatewayEventNameApplicationCommandPermissionsUpdate = "APPLICATION_COMMAND_PERMISSIONS_UPDATE"
+	FlagGatewayEventNameChannelCreate                       = "CHANNEL_CREATE"
+	FlagGatewayEventNameChannelUpdate                       = "CHANNEL_UPDATE"
+	FlagGatewayEventNameChannelDelete                       = "CHANNEL_DELETE"
+	FlagGatewayEventNameChannelPinsUpdate                   = "CHANNEL_PINS_UPDATE"
+	FlagGatewayEventNameThreadCreate                        = "THREAD_CREATE"
+	FlagGatewayEventNameThreadUpdate                        = "THREAD_UPDATE"
+	FlagGatewayEventNameThreadDelete                        = "THREAD_DELETE"
+	FlagGatewayEventNameThreadListSync                      = "THREAD_LIST_SYNC"
+	FlagGatewayEventNameThreadMemberUpdate                  = "THREAD_MEMBER_UPDATE"
+	FlagGatewayEventNameThreadMembersUpdate                 = "THREAD_MEMBERS_UPDATE"
+	FlagGatewayEventNameGuildCreate                         = "GUILD_CREATE"
+	FlagGatewayEventNameGuildUpdate                         = "GUILD_UPDATE"
+	FlagGatewayEventNameGuildDelete                         = "GUILD_DELETE"
+	FlagGatewayEventNameGuildBanAdd                         = "GUILD_BAN_ADD"
+	FlagGatewayEventNameGuildBanRemove                      = "GUILD_BAN_REMOVE"
+	FlagGatewayEventNameGuildEmojisUpdate                   = "GUILD_EMOJIS_UPDATE"
+	FlagGatewayEventNameGuildStickersUpdate                 = "GUILD_STICKERS_UPDATE"
+	FlagGatewayEventNameGuildIntegrationsUpdate             = "GUILD_INTEGRATIONS_UPDATE"
+	FlagGatewayEventNameGuildMemberAdd                      = "GUILD_MEMBER_ADD"
+	FlagGatewayEventNameGuildMemberRemove                   = "GUILD_MEMBER_REMOVE"
+	FlagGatewayEventNameGuildMemberUpdate                   = "GUILD_MEMBER_UPDATE"
+	FlagGatewayEventNameGuildMembersChunk                   = "GUILD_MEMBERS_CHUNK"
+	FlagGatewayEventNameGuildRoleCreate                     = "GUILD_ROLE_CREATE"
+	FlagGatewayEventNameGuildRoleUpdate                     = "GUILD_ROLE_UPDATE"
+	FlagGatewayEventNameGuildRoleDelete                     = "GUILD_ROLE_DELETE"
+	FlagGatewayEventNameGuildScheduledEventCreate           = "GUILD_SCHEDULED_EVENT_CREATE"
+	FlagGatewayEventNameGuildScheduledEventUpdate           = "GUILD_SCHEDULED_EVENT_UPDATE"
+	FlagGatewayEventNameGuildScheduledEventDelete           = "GUILD_SCHEDULED_EVENT_DELETE"
+	FlagGatewayEventNameGuildScheduledEventUserAdd          = "GUILD_SCHEDULED_EVENT_USER_ADD"
+	FlagGatewayEventNameGuildScheduledEventUserRemove       = "GUILD_SCHEDULED_EVENT_USER_REMOVE"
+	FlagGatewayEventNameIntegrationCreate                   = "INTEGRATION_CREATE"
+	FlagGatewayEventNameIntegrationUpdate                   = "INTEGRATION_UPDATE"
+	FlagGatewayEventNameIntegrationDelete                   = "INTEGRATION_DELETE"
+	FlagGatewayEventNameInteractionCreate                   = "INTERACTION_CREATE"
+	FlagGatewayEventNameInviteCreate                        = "INVITE_CREATE"
+	FlagGatewayEventNameInviteDelete                        = "INVITE_DELETE"
+	FlagGatewayEventNameMessageCreate                       = "MESSAGE_CREATE"
+	FlagGatewayEventNameMessageUpdate                       = "MESSAGE_UPDATE"
+	FlagGatewayEventNameMessageDelete                       = "MESSAGE_DELETE"
+	FlagGatewayEventNameMessageDeleteBulk                   = "MESSAGE_DELETE_BULK"
+	FlagGatewayEventNameMessageReactionAdd                  = "MESSAGE_REACTION_ADD"
+	FlagGatewayEventNameMessageReactionRemove               = "MESSAGE_REACTION_REMOVE"
+	FlagGatewayEventNameMessageReactionRemoveAll            = "MESSAGE_REACTION_REMOVE_ALL"
+	FlagGatewayEventNameMessageReactionRemoveEmoji          = "MESSAGE_REACTION_REMOVE_EMOJI"
+	FlagGatewayEventNamePresenceUpdate                      = "PRESENCE_UPDATE"
+	FlagGatewayEventNameStageInstanceCreate                 = "STAGE_INSTANCE_CREATE"
+	FlagGatewayEventNameStageInstanceDelete                 = "STAGE_INSTANCE_DELETE"
+	FlagGatewayEventNameStageInstanceUpdate                 = "STAGE_INSTANCE_UPDATE"
+	FlagGatewayEventNameTypingStart                         = "TYPING_START"
+	FlagGatewayEventNameUserUpdate                          = "USER_UPDATE"
+	FlagGatewayEventNameVoiceStateUpdate                    = "VOICE_STATE_UPDATE"
+	FlagGatewayEventNameVoiceServerUpdate                   = "VOICE_SERVER_UPDATE"
+	FlagGatewayEventNameWebhooksUpdate                      = "WEBHOOKS_UPDATE"
+)
 
 // Hello Structure
 // https://discord.com/developers/docs/topics/gateway#hello-hello-structure
@@ -1135,6 +1201,60 @@ const (
 	FlagStatusTypeAFK          = "idle"
 	FlagStatusTypeInvisible    = "invisible"
 	FlagStatusTypeOffline      = "offline"
+)
+
+// Rate Limit Headers
+// https://discord.com/developers/docs/topics/rate-limits#header-format-rate-limit-header-examples
+const (
+	FlagRateLimitHeaderLimit      = "X-RateLimit-Limit"
+	FlagRateLimitHeaderRemaining  = "X-RateLimit-Remaining"
+	FlagRateLimitHeaderReset      = "X-RateLimit-Reset"
+	FlagRateLimitHeaderResetAfter = "X-RateLimit-Reset-After"
+	FlagRateLimitHeaderBucket     = "X-RateLimit-Bucket"
+	FlagRateLimitHeaderGlobal     = "X-RateLimit-Global"
+	FlagRateLimitHeaderScope      = "X-RateLimit-Scope"
+)
+
+// Rate Limit Header
+// https://discord.com/developers/docs/topics/rate-limits#header-format
+type RateLimitHeader struct {
+	Limit      int     `http:"X-RateLimit-Limit,omitempty"`
+	Remaining  int     `http:"X-RateLimit-Remaining,omitempty"`
+	Reset      int64   `http:"X-RateLimit-Reset,omitempty"`
+	ResetAfter float64 `http:"X-RateLimit-Reset-After,omitempty"`
+	Bucket     string  `http:"X-RateLimit-Bucket,omitempty"`
+	Global     bool    `http:"X-RateLimit-Global,omitempty"`
+	Scope      string  `http:"X-RateLimit-Scope,omitempty"`
+}
+
+// Rate Limit Response Structure
+// https://discord.com/developers/docs/topics/rate-limits#exceeding-a-rate-limit-rate-limit-response-structure
+type RateLimitResponse struct {
+	Message    string  `json:"message"`
+	RetryAfter float64 `json:"retry_after"`
+	Global     bool    `json:"global"`
+}
+
+// Global Rate Limit
+// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
+const (
+	// 50 requests per second.
+	FlagGlobalRequestRateLimit = 50
+)
+
+// Invalid Request Limit (CloudFlare Bans)
+// https://discord.com/developers/docs/topics/rate-limits#invalid-request-limit-aka-cloudflare-bans
+const (
+	// 10,000 requests per 10 minutes.
+	FlagInvalidRequestRateLimit = 10000
+)
+
+var (
+	InvalidRateLimitRequests = map[int]string{
+		FlagHTTPResponseCodeUNAUTHORIZED:    HTTPResponseCodes[FlagHTTPResponseCodeUNAUTHORIZED],
+		FlagHTTPResponseCodeFORBIDDEN:       HTTPResponseCodes[FlagHTTPResponseCodeFORBIDDEN],
+		FlagHTTPResponseCodeTOOMANYREQUESTS: HTTPResponseCodes[FlagHTTPResponseCodeTOOMANYREQUESTS],
+	}
 )
 
 // Version
