@@ -24,17 +24,17 @@ High quality code merits easy development. Disgo uses developer operations to st
 
 ## Using the API
 
-This breakdown provides you with a **full understanding** on how to use the API. 
+This breakdown provides you with a **full understanding** on how to use the API.
 
 | Abstraction  | Usecase                                                                                                                                                            | Example                                                             |
 | :----------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
 | **Resource** | A [Discord API Resource](https://discord.com/developers/docs/resources/application).                                                                               | Guild Object. User Object.                                          |
 | **Event**    | A [Discord API Event](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events).                                                      | A message is created. A user joins a channel.                       |
 | **Client**   | The Discord Bot [Application](https://discord.com/developers/docs/resources/application) that you program. One Bot = One Client.                                   | Configure the bot settings. Set the token.                          |
-| **Request**  | Uses the Discord HTTPS/REST API to make one-time requests for information _(i.e resources)_. Provides create, read, update, delete, patch endpoints.               | Create a command. Request Guild Info.                               |
+| **Request**  | Uses the Discord HTTP REST API to make one-time requests for information _(i.e resources)_. Provides create, read, update, delete, patch endpoints.                | Create a command. Request Guild Info.                               |
 | **Session**  | Uses Discord WebSockets [(Gateways)](https://discord.com/developers/docs/topics/gateway) to receive ongoing **events** that contain information _(i.e resources)_. | Send a message when a command used or a user joins a voice channel. |
 
-You create a **Client** that calls for **Resources** using **Requests** and handles **Events** using **Sessions**.
+You create a **Client** that calls for **Resources** using **Requests** and handles **Events** from **Sessions** using event handlers. For more information, please read [What is a Request?](/_contribution/concepts/REQUESTS.md) and [What is an Event?](/_contribution/concepts/EVENTS.md)
 
 ### Flags
 
@@ -81,13 +81,13 @@ bot := disgo.Client{
 Create an application command **request** to add an application command.
 
 ```go
-// Create a global command request.
+// Create a Create Global Application Command request.
 request := disgo.CreateGlobalApplicationCommand{
     Name: "main",
     Description: "A basic command",
 } 
 
-// Register the global command by sending the request to Discord using the bot.
+// Register the new command by sending the request to Discord using the bot.
 // returns a disgo.ApplicationCommand
 newCommand, err := request.Send(bot)
 if err != nil {
