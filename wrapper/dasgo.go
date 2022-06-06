@@ -1158,8 +1158,8 @@ type Resume struct {
 // Heartbeat
 // https://discord.com/developers/docs/topics/gateway#heartbeat
 type Heartbeat struct {
-	Op   int   `json:"op,omitempty"`
-	Data int64 `json:"d,omitempty"`
+	Op   int `json:"op,omitempty"`
+	Data int `json:"d,omitempty"`
 }
 
 // Guild Request Members Structure
