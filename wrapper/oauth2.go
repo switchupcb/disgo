@@ -16,7 +16,6 @@ const (
 	grantTypeClientCredentials      = "client_credentials"
 	amountAuthURLParams             = 6
 	amountAuthURLParamsBot          = 3
-	base10                          = 10
 )
 
 // GenerateAuthorizationURL generates an authorization URL from a given client and response type.

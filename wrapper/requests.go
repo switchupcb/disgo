@@ -9,22 +9,28 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// HTTP header variables.
+// HTTP Header variables.
 var (
-	// contentTypeURL represents an HTTP header indicating a payload with an encoded URL Query String.
+	// contentTypeURL represents an HTTP Header indicating a payload with an encoded URL Query String.
 	contentTypeURL = []byte("application/x-www-form-urlencoded")
 
-	// contentTypeJSON represents an HTTP header that indicates a payload with a JSON body.
+	// contentTypeJSON represents an HTTP Header that indicates a payload with a JSON body.
 	contentTypeJSON = []byte("application/json")
 
-	// contentTypeMulti represents an HTTP header that indicates a payload with a multi-part (file) body.
+	// contentTypeMulti represents an HTTP Header that indicates a payload with a multi-part (file) body.
 	contentTypeMulti = []byte("multipart/form-data")
 
-	// headerLocation represents a byte representation of "Location" for HTTP header functionality.
+	// headerLocation represents a byte representation of "Location" for HTTP Header functionality.
 	headerLocation = []byte("Location")
 
-	// headerAuthorizationKey represents the key for an "Authorization" HTTP header.
+	// headerAuthorizationKey represents the key for an "Authorization" HTTP Header.
 	headerAuthorizationKey = "Authorization"
+)
+
+// Conversion Constants.
+const (
+	base10 = 10
+	bit64  = 64
 )
 
 // SendRequest sends a fasthttp.Request using the given URI, HTTP method, content type and body,
