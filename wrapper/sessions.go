@@ -15,12 +15,15 @@ import (
 // TODO: figure out when to use Mutex
 // TODO: fix error messages
 // TODO: fix opcode include in json.
+// TODO: ensure ticker semantics are correct.
 
 const (
 	module                    = "github.com/switchupcb/disgo"
 	gatewayEncoding           = "json"
 	maxIdentifyLargeThreshold = 250
 	invalidSessionWaitTime    = 3 * time.Second
+	allowedFailedHeartbeats   = 2
+	gatewayDisconnectCode     = 1000
 	gatewayDisconnectMsg      = "Disconnected Session %s from the Discord Gateway with code %d"
 )
 
@@ -49,11 +52,14 @@ type Session struct {
 	// Conn represents a connection to the Discord Gateway.
 	Conn *websocket.Conn
 
+	// Ticker is a timer used to time the interval between each Heartbeat Payload.
+	Ticker *time.Ticker
+
 	// HeartbeatInterval represents the interval of time between each Heartbeat Payload.
 	HeartbeatInterval time.Duration
 
-	// Ticker is a timer used to time the interval between each Heartbeat Payload.
-	Ticker *time.Ticker
+	// FailedHeartbeatInterval represents the interval of time that indicates a disconnection.
+	FailedHeartbeatInterval time.Duration
 
 	// LastHeartbeatACK represents the time when the last HeartbeatACK was received.
 	LastHeartbeatACK time.Time
@@ -113,6 +119,9 @@ func (bot *Client) Connect(s *Session) error {
 	s.Connected = make(chan bool)
 
 	// begin sending heartbeat payloads every heartbeat_interval ms.
+	s.HeartbeatInterval = hello.HeartbeatInterval * time.Millisecond
+	s.FailedHeartbeatInterval = hello.HeartbeatInterval * time.Millisecond * allowedFailedHeartbeats
+	s.LastHeartbeatACK = time.Now().UTC()
 	go bot.heartbeat(s)
 
 	// begin listening for events.
@@ -126,7 +135,7 @@ func (bot *Client) Connect(s *Session) error {
 	if len(bot.Handlers.Ready) == 0 {
 		bot.Handle(FlagGatewayEventNameReady, func(r *Ready) {
 			s.ID = r.SessionID
-			// TODO: set shard information.
+			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = r.Application.ID
 		})
 	}
@@ -141,7 +150,7 @@ func (bot *Client) Connect(s *Session) error {
 		},
 		Compress:       true, // TODO: account for compression
 		LargeThreshold: maxIdentifyLargeThreshold,
-		Shard:          nil, // TODO: sharding
+		Shard:          nil, // SHARD: set shard information using s.Shard.
 		Presence:       *bot.Config.GatewayPresenceUpdate,
 		Intents:        bot.Config.Intents,
 	}
@@ -190,19 +199,34 @@ func (s *Session) Disconnect(code int) error {
 
 // heartbeat sends the payload to the Discord Gateway to verify the connection is alive.
 func (bot *Client) heartbeat(s *Session) {
+	s.Ticker = time.NewTicker(s.HeartbeatInterval)
+
 	var hb Heartbeat
 	hb.Op = FlagGatewayOpcodeHeartbeat
 
-	s.Ticker = time.NewTicker(s.HeartbeatInterval * time.Millisecond)
-
-	// send Opcode 1 Heartbeat Payloads.
 	for {
-		hb.Data = s.Seq
+		// close the connection if the last two heartbeats were NOT acknowledged.
+		if time.Now().UTC().Sub(s.LastHeartbeatACK) > s.FailedHeartbeatInterval {
+			log.Printf("attempting to reconnect session %s", s.ID)
 
+			// close the active connection with a non-1000 and non-1001 close code.
+			s.Disconnect(FlagGatewayCloseEventCodeSessionTimed.Code)
+
+			// reconnect to the new Discord Gateway Server.
+			err := bot.Connect(s)
+			if err != nil {
+				log.Printf("could not reconnect to session %s due to error: %v", s.ID, err)
+			}
+
+			return
+		}
+
+		// send an Opcode 1 Heartbeat Payload.
+		hb.Data = s.Seq
 		err := wsjson.Write(*s.Context, s.Conn, hb)
 		if err != nil {
-
-			log.Printf("%v", err)
+			log.Printf("an error occurred writing a heartbeat: %v\nclosing the connection...", err)
+			s.Disconnect(gatewayDisconnectCode)
 			return
 		}
 
@@ -264,11 +288,10 @@ func (bot *Client) onPayload(s *Session, data []byte) error {
 			log.Printf("%v", err)
 		}
 
-		s.Ticker.Reset(s.HeartbeatInterval * time.Millisecond)
+		s.Ticker.Reset(s.HeartbeatInterval)
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
-		// TODO: deal with not receiving ACK after first heartbeat
 		s.LastHeartbeatACK = time.Now().UTC()
 
 	// occurs when the maximum concurrency limit has been reached while connecting,
