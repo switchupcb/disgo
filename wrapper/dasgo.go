@@ -1152,14 +1152,14 @@ type IdentifyConnectionProperties struct {
 type Resume struct {
 	Token     string `json:"token,omitempty"`
 	SessionID string `json:"session_id,omitempty"`
-	Seq       uint32 `json:"seq,omitempty"`
+	Seq       int    `json:"seq,omitempty"`
 }
 
 // Heartbeat
 // https://discord.com/developers/docs/topics/gateway#heartbeat
 type Heartbeat struct {
-	Op   int `json:"op,omitempty"`
-	Data int `json:"d,omitempty"`
+	Op   int  `json:"op,omitempty"`
+	Data *int `json:"d,omitempty"`
 }
 
 // Guild Request Members Structure

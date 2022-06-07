@@ -42,7 +42,9 @@ func JSONCodeError(status int) error {
 
 // Gateway Error Code Messages.
 const (
-	ErrEventUnmarshal = "an error occurred while unmarshalling a %v Event:\n%w"
+	ErrEventRead     = "an error occurred while reading a %v Event:\n%w"
+	ErrEventWrite    = "an error occurred while writing a %v Event:\n%w"
+	ErrDisconnecting = "an error occurred disconnecting the session %s from the Discord Gateway"
 )
 
 // Event Handler Code Messages.
