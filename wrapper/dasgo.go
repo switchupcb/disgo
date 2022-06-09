@@ -1006,7 +1006,7 @@ type WebhooksUpdate struct {
 type GatewayPayload struct {
 	Op             *int            `json:"op,omitempty"`
 	Data           json.RawMessage `json:"d,omitempty"`
-	SequenceNumber int             `json:"s,omitempty"`
+	SequenceNumber int64           `json:"s,omitempty"`
 	EventName      string          `json:"t,omitempty"`
 }
 
@@ -1152,14 +1152,14 @@ type IdentifyConnectionProperties struct {
 type Resume struct {
 	Token     string `json:"token,omitempty"`
 	SessionID string `json:"session_id,omitempty"`
-	Seq       int    `json:"seq,omitempty"`
+	Seq       int64  `json:"seq,omitempty"`
 }
 
 // Heartbeat
 // https://discord.com/developers/docs/topics/gateway#heartbeat
 type Heartbeat struct {
-	Op   int  `json:"op,omitempty"`
-	Data *int `json:"d,omitempty"`
+	Op   int    `json:"op,omitempty"`
+	Data *int64 `json:"d,omitempty"`
 }
 
 // Guild Request Members Structure

@@ -6,6 +6,7 @@ package wrapper
 import (
 	"encoding/json"
 	"log"
+	"sync"
 )
 
 // Handlers represents a bot's event handlers.
@@ -69,10 +70,14 @@ type Handlers struct {
 	VoiceServerUpdate                   []func(*VoiceServerUpdate)
 	VoiceStateUpdate                    []func(*VoiceStateUpdate)
 	WebhooksUpdate                      []func(*WebhooksUpdate)
+	mu sync.RWMutex
 }
 
 // Handle adds an event handler for the given event to the bot.
 func (bot *Client) Handle(eventname string, function interface{}) {
+	bot.Handlers.mu.Lock()
+	defer bot.Handlers.mu.Unlock()
+
 	switch eventname {
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		if f, ok := function.(func(*ApplicationCommandPermissionsUpdate)); ok {
@@ -434,6 +439,9 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 // handle handles an event using its name and data.
 func (bot *Client) handle(eventname string, data json.RawMessage) {
+	bot.Handlers.mu.RLock()
+	defer bot.Handlers.mu.RUnlock()
+
 	switch eventname {
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		var event *ApplicationCommandPermissionsUpdate
