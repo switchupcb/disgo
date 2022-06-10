@@ -17,7 +17,7 @@ import (
 // TODO: fix error messages
 // TODO: fix opcode include in json.
 // TODO: ensure context is correct with regards to Mutex and Resource Contention.
-// TODO: change heartbeat thread algorithm to use channels instead of mutex.
+// TODO: place connects on own thread to simplify connect mutex?
 
 const (
 	module                    = "github.com/switchupcb/disgo"
@@ -25,18 +25,7 @@ const (
 	maxIdentifyLargeThreshold = 250
 	gatewayDisconnectCode     = 1000
 	gatewayDisconnectMsg      = "Disconnected Session %s from the Discord Gateway with code %d"
-
-	// allowedFailedHeartbeats represents the allowed amount of failed heartbeats before a connection
-	// is considered disconnected.
-	//
-	// Discord documentation advises clients to sent Opcode 1 Heartbeat Payloads AFTER the HeartbeatInterval * [0,1],
-	// AFTER receiving the Opcode 10 Hello. Disgo sends the HeartbeatInterval as soon as possible once Hello has been
-	// received (limit of HeartbeatInterval * 0), and once every HeartbeatInterval after.
-	//
-	// As a result, time.Now() - LastHeartbeatACK (which represents the duration since the last HeartbeatACK)
-	// should always be less than or equal to (<=) a single HeartbeatInterval.
-	allowedFailedHeartbeats = 2
-	invalidSessionWaitTime  = 3 * time.Second
+	invalidSessionWaitTime    = 3 * time.Second
 )
 
 // Session represents a Discord Gateway WebSocket Session.
@@ -64,25 +53,38 @@ type Session struct {
 	// Conn represents a connection to the Discord Gateway.
 	Conn *websocket.Conn
 
-	// Ticker is a timer used to time the interval between each Heartbeat Payload.
-	Ticker *time.Ticker
-
-	// HeartbeatInterval represents the interval of time between each Heartbeat Payload.
-	HeartbeatInterval time.Duration
-
-	// FailedHeartbeatInterval represents the duration of time before the Session is considered
-	// disconnected due to a lack of HeartbeatACK Payloads (prompted by Heartbeat Payloads).
-	FailedHeartbeatInterval time.Duration
-
-	// LastHeartbeatACK represents the time when the last HeartbeatACK was received.
-	LastHeartbeatACK time.Time
+	// heartbeat contains the fields required to implement the heartbeat mechanism.
+	heartbeat *heartbeat
 
 	// mu represents the session mutex of this session.
 	mu *sessionMutex
 }
 
-// sessionMutex represents a Session's mutexes used to prevent race conditions while
-// reading and writing from a Session's fields.
+// heartbeat represents the heartbeat mechanism for a session.
+type heartbeat struct {
+	// ticker is a timer used to time the interval between each Heartbeat Payload.
+	ticker *time.Ticker
+
+	// interval represents the interval of time between each Heartbeat Payload.
+	interval time.Duration
+
+	// send represents a channel of heartbeats that will be sent to the Discord Gateway.
+	send chan Heartbeat
+
+	// respond represents a channel of heartbeats in response to an Opcode 1 Heartbeat
+	// that will be sent to the Discord Gateway.
+	//
+	// respond prevents a theoretical race condition where the ticker queues a Heartbeat,
+	// while the listen thread (onPayload) queues a Heartbeat (in response to the Discord Gateway),
+	// resulting in two Heartbeat Payloads being sent to the Discord Gateway consecutively within nanoseconds,
+	// while the first Heartbeat Payload is outdated.
+	respond chan Heartbeat
+
+	// ack represents a channel of times a HeartbeatACK was received.
+	ack chan time.Time
+}
+
+// sessionMutex represents a Session's mutexes used to prevent race conditions.
 type sessionMutex struct {
 	// connect ensures that the Connect() function is only running on one goroutine per Session.
 	//
@@ -102,15 +104,6 @@ type sessionMutex struct {
 	// However, it imports gorilla/websocket which states
 	// "All methods may be called concurrently except for Reader and Read."
 	conn sync.RWMutex
-
-	// heartbeat ensures that an Opcode 1 Heartbeat is only being sent once per Heartbeat Interval.
-	//
-	// Prevents a theoretical race condition where a heartbeat thread is scheduled to send a Heartbeat (via Ticker),
-	// while a listen thread (onPayload) responds to Discord sending an Opcode 1 Heartbeat to the client,
-	// resulting in the session writing two Heartbeat Payloads to the Discord Gateway at the same time.
-	//
-	// It is currently still possible for two heartbeats to be sent consecutively within nanoseconds.
-	heartbeat sync.RWMutex
 }
 
 // isConnected returns whether the session is connected.
@@ -166,22 +159,9 @@ func (bot *Client) Connect(s *Session) error {
 		return fmt.Errorf(ErrEventRead, FlagGatewayEventNameHello, err)
 	}
 
-	// mark the connection as connected.
-	s.Connected = make(chan bool)
-
-	// begin sending heartbeat payloads every heartbeat_interval ms.
-	s.Ticker = time.NewTicker(s.HeartbeatInterval)
-	s.HeartbeatInterval = hello.HeartbeatInterval * time.Millisecond
-	s.FailedHeartbeatInterval = hello.HeartbeatInterval * time.Millisecond * allowedFailedHeartbeats
-	s.LastHeartbeatACK = time.Now().UTC()
-	go bot.heartbeat(s)
-
-	// begin listening for events.
-	go bot.listen(s)
-
 	// Sending a valid Identify Payload triggers the initial handshake with the Discord Gateway.
 	// This will result in the Gateway responding with a Ready event.
-	// Add a Ready event handler to the bot prior to sending the Identify Payload.
+	// Add a Ready event handler to the bot prior to sending a Heartbeat and Identify Payload.
 	//
 	// do NOT add multiple Ready event handlers to the bot.
 	if len(bot.Handlers.Ready) == 0 {
@@ -192,8 +172,28 @@ func (bot *Client) Connect(s *Session) error {
 		})
 	}
 
+	// mark the connection as connected.
+	s.Connected = make(chan bool)
+
+	// begin listening for payloads.
+	//
+	// This is done BEFORE sending the first Heartbeat to ensure that
+	// the incoming HeartbeatACK is guaranteed to be is handled.
+	go bot.listen(s)
+
+	// begin sending heartbeat payloads every heartbeat_interval ms.
+	ms := hello.HeartbeatInterval * time.Millisecond
+	s.heartbeat = &heartbeat{
+		ticker:   time.NewTicker(ms),
+		interval: ms,
+		send:     make(chan Heartbeat),
+		respond:  make(chan Heartbeat),
+		ack:      make(chan time.Time, 1),
+	}
+	go bot.heartbeat(s)
+
 	// send an Opcode 2 Identify to the Discord Gateway.
-	identify := Identify{
+	if err = wsjson.Write(*s.Context, s.Conn, Identify{
 		Token: bot.Authentication.Token,
 		Properties: IdentifyConnectionProperties{
 			OS:      runtime.GOOS,
@@ -205,10 +205,7 @@ func (bot *Client) Connect(s *Session) error {
 		Shard:          nil, // SHARD: set shard information using s.Shard.
 		Presence:       *bot.Config.GatewayPresenceUpdate,
 		Intents:        bot.Config.Intents,
-	}
-
-	err = wsjson.Write(*s.Context, s.Conn, identify)
-	if err != nil {
+	}); err != nil {
 		s.Disconnect(gatewayDisconnectCode)
 		return fmt.Errorf(ErrEventWrite, "Identify", err)
 	}
@@ -255,43 +252,65 @@ func (s *Session) Disconnect(code int) error {
 
 // heartbeat continuously sends Opcode 1 Heartbeats to the Discord Gateway to verify the connection is alive.
 func (bot *Client) heartbeat(s *Session) {
-	var hb Heartbeat
-	hb.Op = FlagGatewayOpcodeHeartbeat
-
 	for {
-		// close the connection if the last two heartbeats were NOT acknowledged.
-		if time.Now().UTC().Sub(s.LastHeartbeatACK) > s.FailedHeartbeatInterval {
-
-			// close the active connection with a non-1000 and non-1001 close code.
-			s.mu.connect.Lock()
-			log.Printf("attempting to reconnect session %s", s.ID)
-			s.Disconnect(FlagGatewayCloseEventCodeSessionTimed.Code)
-			s.mu.connect.Unlock()
-
-			// reconnect to the new Discord Gateway Server.
-			err := bot.Connect(s)
+		select {
+		case hb := <-s.heartbeat.respond:
+			err := wsjson.Write(*s.Context, s.Conn, hb)
 			if err != nil {
-				log.Printf("could not reconnect to session %s due to error: %v", s.ID, err)
+				s.mu.connect.Lock()
+				log.Printf("an error occurred writing a heartbeat: %v\nclosing the connection...", err)
+				s.Disconnect(gatewayDisconnectCode)
+				s.mu.connect.Unlock()
+				return
 			}
 
-			return
-		}
+			// reset the ticker (and empty existing ticks).
+			s.heartbeat.ticker.Reset(s.heartbeat.interval)
+			for len(s.heartbeat.ticker.C) > 0 {
+				<-s.heartbeat.ticker.C
+			}
 
-		// send an Opcode 1 Heartbeat Payload.
-		s.mu.heartbeat.Lock()
-		*hb.Data = atomic.LoadInt64(&s.Seq)
-		err := wsjson.Write(*s.Context, s.Conn, hb)
-		s.mu.heartbeat.Unlock()
-		if err != nil {
-			s.mu.connect.Lock()
-			log.Printf("an error occurred writing a heartbeat: %v\nclosing the connection...", err)
-			s.Disconnect(gatewayDisconnectCode)
-			s.mu.connect.Unlock()
-			return
-		}
+			continue
 
-		select {
-		case <-s.Ticker.C:
+		case hb := <-s.heartbeat.send:
+			err := wsjson.Write(*s.Context, s.Conn, hb)
+			if err != nil {
+				s.mu.connect.Lock()
+				log.Printf("an error occurred writing a heartbeat: %v\nclosing the connection...", err)
+				s.Disconnect(gatewayDisconnectCode)
+				s.mu.connect.Unlock()
+				return
+			}
+
+			continue
+
+		// every Heartbeat Interval...
+		case <-s.heartbeat.ticker.C:
+			// close the connection if the last Heartbeat never received a HeartbeatACK.
+			if len(s.heartbeat.ack) == 0 {
+				// close the active connection with a non-1000 and non-1001 close code.
+				s.mu.connect.Lock()
+				log.Printf("attempting to reconnect session %s", s.ID)
+				s.Disconnect(FlagGatewayCloseEventCodeSessionTimed.Code)
+				s.mu.connect.Unlock()
+
+				// reconnect to the new Discord Gateway Server.
+				err := bot.Connect(s)
+				if err != nil {
+					log.Printf("could not reconnect to session %s due to error: %v", s.ID, err)
+				}
+
+				return
+			}
+
+			// otherwise, queue a heartbeat.
+			s.heartbeat.send <- Heartbeat{
+				Op:   FlagGatewayOpcodeHeartbeat,
+				Data: &s.Seq,
+			}
+
+			continue
+
 		case <-s.Connected:
 			return
 		}
@@ -335,27 +354,18 @@ func (bot *Client) onPayload(s *Session, data []byte) error {
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
-		s.mu.heartbeat.Lock()
-		defer s.mu.heartbeat.Unlock()
-
 		var heartbeat Heartbeat
 		err := json.Unmarshal(event.Data, &heartbeat)
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}
 
-		// send the heartbeat back.
 		heartbeat.Op = FlagGatewayOpcodeHeartbeat
-		err = wsjson.Write(*s.Context, s.Conn, heartbeat)
-		if err != nil {
-			log.Printf("%v", err)
-		}
-
-		s.Ticker.Reset(s.HeartbeatInterval)
+		s.heartbeat.respond <- heartbeat
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
-		s.LastHeartbeatACK = time.Now().UTC()
+		s.heartbeat.ack <- time.Now().UTC()
 
 	// occurs when the maximum concurrency limit has been reached while connecting,
 	// or when the session does NOT reconnect in time.
