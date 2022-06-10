@@ -14,10 +14,10 @@ import (
 	"nhooyr.io/websocket/wsjson"
 )
 
-// TODO: fix error messages
-// TODO: fix opcode include in json.
+// TODO: fix opcode include in json (dasgo update).
+// TODO: fix mutex generation code.
+// TODO: add automatic intent calculation.
 // TODO: ensure context is correct with regards to Mutex and Resource Contention.
-// TODO: place connects on own thread to simplify connect mutex?
 
 const (
 	module                    = "github.com/switchupcb/disgo"
@@ -268,6 +268,11 @@ func (bot *Client) heartbeat(s *Session) {
 			s.heartbeat.ticker.Reset(s.heartbeat.interval)
 			for len(s.heartbeat.ticker.C) > 0 {
 				<-s.heartbeat.ticker.C
+			}
+
+			// clear queued (outdated) send heartbeats.
+			for len(s.heartbeat.send) > 0 {
+				<-s.heartbeat.send
 			}
 
 			continue
