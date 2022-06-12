@@ -15,7 +15,6 @@ import (
 )
 
 // TODO: fix opcode include in json (dasgo update).
-// TODO: listen optimization
 // TODO: add automatic intent calculation.
 // TODO: ensure context is correct with regards to Mutex and Resource Contention.
 
@@ -356,6 +355,7 @@ func (bot *Client) listen(s *Session) {
 	var payload []byte
 
 	for {
+		// TODO: do we need to check if len(data) == 0 {return nil}
 		err := wsjson.Read(*s.Context, s.Conn, payload)
 		if err != nil {
 			log.Printf("%v", err)
