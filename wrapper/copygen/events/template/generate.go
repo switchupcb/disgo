@@ -42,6 +42,9 @@ func generateHandlers(functions []*models.Function) string {
 		strct.WriteString(function.Name + " []func(*" + function.Name + ")\n")
 	}
 
+	// add manual fields.
+	strct.WriteString("mu sync.RWMutex\n")
+
 	strct.WriteString("}\n")
 	return strct.String()
 }
@@ -55,6 +58,9 @@ func generateHandle(functions []*models.Function) string {
 	var fn strings.Builder
 	fn.WriteString("// Handle adds an event handler for the given event to the bot.\n")
 	fn.WriteString("func (bot *Client) Handle(eventname string, function interface{}) {\n")
+	fn.WriteString("bot.Handlers.mu.Lock()\n")
+	fn.WriteString("defer bot.Handlers.mu.Unlock()\n")
+	fn.WriteString("\n")
 	fn.WriteString("switch eventname {\n")
 
 	// write cases.
@@ -86,6 +92,9 @@ func generatehandle(functions []*models.Function) string {
 	var fn strings.Builder
 	fn.WriteString("// handle handles an event using its name and data.\n")
 	fn.WriteString("func (bot *Client) handle(eventname string, data json.RawMessage) {\n")
+	fn.WriteString("bot.Handlers.mu.RLock()\n")
+	fn.WriteString("defer bot.Handlers.mu.RUnlock()\n")
+	fn.WriteString("\n")
 	fn.WriteString("switch eventname {\n")
 
 	// write cases.

@@ -70,7 +70,7 @@ type Handlers struct {
 	VoiceServerUpdate                   []func(*VoiceServerUpdate)
 	VoiceStateUpdate                    []func(*VoiceStateUpdate)
 	WebhooksUpdate                      []func(*WebhooksUpdate)
-	mu sync.RWMutex
+	mu                                  sync.RWMutex
 }
 
 // Handle adds an event handler for the given event to the bot.
