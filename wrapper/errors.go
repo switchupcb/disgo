@@ -44,7 +44,7 @@ func JSONCodeError(status int) error {
 const (
 	ErrEventRead              = "an error occurred while reading a %v Event:\n%w"
 	ErrEventWrite             = "an error occurred while writing a %v Event:\n%w"
-	ErrEventMarshal           = "an error occurred  while marshalling a %v Event:\n%w"
+	ErrEventMarshal           = "an error occurred while marshalling a %v Event:\n%w"
 	ErrEventMarshalDisconnect = "an error occurred while disconnecting because of an error that occurred " +
 		"while marshalling an event: %v\n%w"
 	ErrEventWriteDisconnect = "an error occurred while disconnecting because of an error that occurred " +

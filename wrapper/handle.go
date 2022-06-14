@@ -1161,7 +1161,6 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 		bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate[:index], bot.Handlers.WebhooksUpdate[index+1:]...)
 		return nil
-
 	}
 
 	return fmt.Errorf("event handler for %s at index %d was not removed.", eventname, index)

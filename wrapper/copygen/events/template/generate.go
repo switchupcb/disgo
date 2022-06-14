@@ -155,7 +155,7 @@ func generateRemoveCase(eventname string) string {
 	// remove the event handler.
 	c.WriteString("bot.Handlers." + eventname + " = " +
 		"append(bot.Handlers." + eventname + "[:index], bot.Handlers." + eventname + "[index+1:]...)\n")
-	c.WriteString("return nil\n\n")
+	c.WriteString("return nil\n")
 	return c.String()
 }
 
