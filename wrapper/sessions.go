@@ -162,11 +162,18 @@ func (bot *Client) Connect(s *Session) error {
 	//
 	// do NOT add multiple Ready event handlers to the bot.
 	if len(bot.Handlers.Ready) == 0 {
-		bot.Handle(FlagGatewayEventNameReady, func(r *Ready) {
+		if err := bot.Handle(FlagGatewayEventNameReady, func(r *Ready) {
 			s.ID = r.SessionID
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = r.Application.ID
-		})
+		}); err != nil {
+			if errDisconnect := s.Disconnect(FlagClientCloseEventCodeAway); errDisconnect != nil {
+				return fmt.Errorf("an error occurred while disconnecting because of an error that occurred: %v\n%v",
+					errDisconnect, fmt.Errorf("an error occurred adding a handler to the bot: %v", err))
+			}
+
+			return fmt.Errorf("an error occurred adding a handler to the bot: %v", err)
+		}
 	}
 
 	// mark the connection as connected.

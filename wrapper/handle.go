@@ -5,6 +5,7 @@ package wrapper
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"sync"
 )
@@ -74,7 +75,7 @@ type Handlers struct {
 }
 
 // Handle adds an event handler for the given event to the bot.
-func (bot *Client) Handle(eventname string, function interface{}) {
+func (bot *Client) Handle(eventname string, function interface{}) error {
 	bot.Handlers.mu.Lock()
 	defer bot.Handlers.mu.Unlock()
 
@@ -82,61 +83,61 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		if f, ok := function.(func(*ApplicationCommandPermissionsUpdate)); ok {
 			bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameChannelCreate:
 		if f, ok := function.(func(*ChannelCreate)); ok {
 			bot.Handlers.ChannelCreate = append(bot.Handlers.ChannelCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameChannelDelete:
 		if f, ok := function.(func(*ChannelDelete)); ok {
 			bot.Handlers.ChannelDelete = append(bot.Handlers.ChannelDelete, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameChannelPinsUpdate:
 		if f, ok := function.(func(*ChannelPinsUpdate)); ok {
 			bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameChannelUpdate:
 		if f, ok := function.(func(*ChannelUpdate)); ok {
 			bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildBanAdd:
 		if f, ok := function.(func(*GuildBanAdd)); ok {
 			bot.Handlers.GuildBanAdd = append(bot.Handlers.GuildBanAdd, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildBanRemove:
 		if f, ok := function.(func(*GuildBanRemove)); ok {
 			bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildCreate:
 		if f, ok := function.(func(*GuildCreate)); ok {
 			bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildDelete:
 		if f, ok := function.(func(*GuildDelete)); ok {
 			bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildEmojisUpdate:
 		if f, ok := function.(func(*GuildEmojisUpdate)); ok {
 			bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildIntegrationsUpdate:
@@ -147,7 +148,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildIntegrationsUpdate)); ok {
 			bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildMemberAdd:
@@ -158,7 +159,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildMemberAdd)); ok {
 			bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildMemberRemove:
@@ -169,7 +170,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildMemberRemove)); ok {
 			bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildMemberUpdate:
@@ -180,7 +181,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildMemberUpdate)); ok {
 			bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildMembersChunk:
@@ -191,7 +192,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildMembersChunk)); ok {
 			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildRoleCreate:
@@ -202,7 +203,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildRoleCreate)); ok {
 			bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildRoleDelete:
@@ -213,7 +214,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildRoleDelete)); ok {
 			bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildRoleUpdate:
@@ -224,7 +225,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildRoleUpdate)); ok {
 			bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventCreate:
@@ -235,7 +236,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildScheduledEventCreate)); ok {
 			bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventDelete:
@@ -246,7 +247,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildScheduledEventDelete)); ok {
 			bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUpdate:
@@ -257,7 +258,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildScheduledEventUpdate)); ok {
 			bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserAdd:
@@ -268,7 +269,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildScheduledEventUserAdd)); ok {
 			bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserRemove:
@@ -279,7 +280,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildScheduledEventUserRemove)); ok {
 			bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildStickersUpdate:
@@ -290,7 +291,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildStickersUpdate)); ok {
 			bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameGuildUpdate:
@@ -301,7 +302,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*GuildUpdate)); ok {
 			bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameHello:
@@ -312,7 +313,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*Hello)); ok {
 			bot.Handlers.Hello = append(bot.Handlers.Hello, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameIntegrationCreate:
@@ -323,7 +324,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*IntegrationCreate)); ok {
 			bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameIntegrationDelete:
@@ -334,7 +335,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*IntegrationDelete)); ok {
 			bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameIntegrationUpdate:
@@ -345,7 +346,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*IntegrationUpdate)); ok {
 			bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameInteractionCreate:
@@ -356,7 +357,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*InteractionCreate)); ok {
 			bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameInvalidSession:
@@ -367,7 +368,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*InvalidSession)); ok {
 			bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameInviteCreate:
@@ -378,7 +379,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*InviteCreate)); ok {
 			bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameInviteDelete:
@@ -389,7 +390,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*InviteDelete)); ok {
 			bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameMessageCreate:
@@ -400,7 +401,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*MessageCreate)); ok {
 			bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameMessageDelete:
@@ -411,7 +412,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*MessageDelete)); ok {
 			bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameMessageDeleteBulk:
@@ -422,7 +423,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*MessageDeleteBulk)); ok {
 			bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameMessageReactionAdd:
@@ -433,7 +434,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*MessageReactionAdd)); ok {
 			bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameMessageReactionRemove:
@@ -444,7 +445,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*MessageReactionRemove)); ok {
 			bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveAll:
@@ -455,7 +456,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*MessageReactionRemoveAll)); ok {
 			bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveEmoji:
@@ -466,7 +467,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*MessageReactionRemoveEmoji)); ok {
 			bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameMessageUpdate:
@@ -477,7 +478,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*MessageUpdate)); ok {
 			bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNamePresenceUpdate:
@@ -488,7 +489,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*PresenceUpdate)); ok {
 			bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameReady:
@@ -499,7 +500,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*Ready)); ok {
 			bot.Handlers.Ready = append(bot.Handlers.Ready, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameReconnect:
@@ -510,7 +511,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*Reconnect)); ok {
 			bot.Handlers.Reconnect = append(bot.Handlers.Reconnect, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameResumed:
@@ -521,7 +522,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*Resumed)); ok {
 			bot.Handlers.Resumed = append(bot.Handlers.Resumed, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameStageInstanceCreate:
@@ -532,7 +533,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*StageInstanceCreate)); ok {
 			bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameStageInstanceDelete:
@@ -543,7 +544,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*StageInstanceDelete)); ok {
 			bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameStageInstanceUpdate:
@@ -554,7 +555,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*StageInstanceUpdate)); ok {
 			bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameThreadCreate:
@@ -565,7 +566,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*ThreadCreate)); ok {
 			bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameThreadDelete:
@@ -576,7 +577,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*ThreadDelete)); ok {
 			bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameThreadListSync:
@@ -587,7 +588,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*ThreadListSync)); ok {
 			bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameThreadMemberUpdate:
@@ -598,7 +599,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*ThreadMemberUpdate)); ok {
 			bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameThreadMembersUpdate:
@@ -609,7 +610,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*ThreadMembersUpdate)); ok {
 			bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameThreadUpdate:
@@ -620,7 +621,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*ThreadUpdate)); ok {
 			bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameTypingStart:
@@ -631,7 +632,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*TypingStart)); ok {
 			bot.Handlers.TypingStart = append(bot.Handlers.TypingStart, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameUserUpdate:
@@ -642,7 +643,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*UserUpdate)); ok {
 			bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameVoiceServerUpdate:
@@ -653,7 +654,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*VoiceServerUpdate)); ok {
 			bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameVoiceStateUpdate:
@@ -664,7 +665,7 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*VoiceStateUpdate)); ok {
 			bot.Handlers.VoiceStateUpdate = append(bot.Handlers.VoiceStateUpdate, f)
-			return
+			return nil
 		}
 
 	case FlagGatewayEventNameWebhooksUpdate:
@@ -675,11 +676,495 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 
 		if f, ok := function.(func(*WebhooksUpdate)); ok {
 			bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate, f)
-			return
+			return nil
 		}
 	}
 
-	log.Printf("Event Handler for %s was not added.", eventname)
+	return fmt.Errorf("event handler for %s was not added.", eventname)
+}
+
+// Remove removes the event handler at the given index from the bot.
+// This function does NOT remove intents automatically.
+func (bot *Client) Remove(eventname string, index int) error {
+	bot.Handlers.mu.Lock()
+	defer bot.Handlers.mu.Unlock()
+
+	switch eventname {
+	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
+		if len(bot.Handlers.ApplicationCommandPermissionsUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate[:index], bot.Handlers.ApplicationCommandPermissionsUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameChannelCreate:
+		if len(bot.Handlers.ChannelCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ChannelCreate = append(bot.Handlers.ChannelCreate[:index], bot.Handlers.ChannelCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameChannelDelete:
+		if len(bot.Handlers.ChannelDelete) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ChannelDelete = append(bot.Handlers.ChannelDelete[:index], bot.Handlers.ChannelDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameChannelPinsUpdate:
+		if len(bot.Handlers.ChannelPinsUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate[:index], bot.Handlers.ChannelPinsUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameChannelUpdate:
+		if len(bot.Handlers.ChannelUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate[:index], bot.Handlers.ChannelUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildBanAdd:
+		if len(bot.Handlers.GuildBanAdd) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildBanAdd = append(bot.Handlers.GuildBanAdd[:index], bot.Handlers.GuildBanAdd[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildBanRemove:
+		if len(bot.Handlers.GuildBanRemove) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove[:index], bot.Handlers.GuildBanRemove[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildCreate:
+		if len(bot.Handlers.GuildCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate[:index], bot.Handlers.GuildCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildDelete:
+		if len(bot.Handlers.GuildDelete) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete[:index], bot.Handlers.GuildDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildEmojisUpdate:
+		if len(bot.Handlers.GuildEmojisUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate[:index], bot.Handlers.GuildEmojisUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildIntegrationsUpdate:
+		if len(bot.Handlers.GuildIntegrationsUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate[:index], bot.Handlers.GuildIntegrationsUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildMemberAdd:
+		if len(bot.Handlers.GuildMemberAdd) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd[:index], bot.Handlers.GuildMemberAdd[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildMemberRemove:
+		if len(bot.Handlers.GuildMemberRemove) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove[:index], bot.Handlers.GuildMemberRemove[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildMemberUpdate:
+		if len(bot.Handlers.GuildMemberUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate[:index], bot.Handlers.GuildMemberUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildMembersChunk:
+		if len(bot.Handlers.GuildMembersChunk) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk[:index], bot.Handlers.GuildMembersChunk[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildRoleCreate:
+		if len(bot.Handlers.GuildRoleCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate[:index], bot.Handlers.GuildRoleCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildRoleDelete:
+		if len(bot.Handlers.GuildRoleDelete) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete[:index], bot.Handlers.GuildRoleDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildRoleUpdate:
+		if len(bot.Handlers.GuildRoleUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate[:index], bot.Handlers.GuildRoleUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildScheduledEventCreate:
+		if len(bot.Handlers.GuildScheduledEventCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate[:index], bot.Handlers.GuildScheduledEventCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildScheduledEventDelete:
+		if len(bot.Handlers.GuildScheduledEventDelete) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete[:index], bot.Handlers.GuildScheduledEventDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildScheduledEventUpdate:
+		if len(bot.Handlers.GuildScheduledEventUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate[:index], bot.Handlers.GuildScheduledEventUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildScheduledEventUserAdd:
+		if len(bot.Handlers.GuildScheduledEventUserAdd) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd[:index], bot.Handlers.GuildScheduledEventUserAdd[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildScheduledEventUserRemove:
+		if len(bot.Handlers.GuildScheduledEventUserRemove) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove[:index], bot.Handlers.GuildScheduledEventUserRemove[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildStickersUpdate:
+		if len(bot.Handlers.GuildStickersUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate[:index], bot.Handlers.GuildStickersUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildUpdate:
+		if len(bot.Handlers.GuildUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate[:index], bot.Handlers.GuildUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameHello:
+		if len(bot.Handlers.Hello) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.Hello = append(bot.Handlers.Hello[:index], bot.Handlers.Hello[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameIntegrationCreate:
+		if len(bot.Handlers.IntegrationCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate[:index], bot.Handlers.IntegrationCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameIntegrationDelete:
+		if len(bot.Handlers.IntegrationDelete) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete[:index], bot.Handlers.IntegrationDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameIntegrationUpdate:
+		if len(bot.Handlers.IntegrationUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate[:index], bot.Handlers.IntegrationUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameInteractionCreate:
+		if len(bot.Handlers.InteractionCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate[:index], bot.Handlers.InteractionCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameInvalidSession:
+		if len(bot.Handlers.InvalidSession) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession[:index], bot.Handlers.InvalidSession[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameInviteCreate:
+		if len(bot.Handlers.InviteCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate[:index], bot.Handlers.InviteCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameInviteDelete:
+		if len(bot.Handlers.InviteDelete) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete[:index], bot.Handlers.InviteDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameMessageCreate:
+		if len(bot.Handlers.MessageCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate[:index], bot.Handlers.MessageCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameMessageDelete:
+		if len(bot.Handlers.MessageDelete) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete[:index], bot.Handlers.MessageDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameMessageDeleteBulk:
+		if len(bot.Handlers.MessageDeleteBulk) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk[:index], bot.Handlers.MessageDeleteBulk[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameMessageReactionAdd:
+		if len(bot.Handlers.MessageReactionAdd) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd[:index], bot.Handlers.MessageReactionAdd[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameMessageReactionRemove:
+		if len(bot.Handlers.MessageReactionRemove) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove[:index], bot.Handlers.MessageReactionRemove[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameMessageReactionRemoveAll:
+		if len(bot.Handlers.MessageReactionRemoveAll) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll[:index], bot.Handlers.MessageReactionRemoveAll[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameMessageReactionRemoveEmoji:
+		if len(bot.Handlers.MessageReactionRemoveEmoji) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji[:index], bot.Handlers.MessageReactionRemoveEmoji[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameMessageUpdate:
+		if len(bot.Handlers.MessageUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate[:index], bot.Handlers.MessageUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNamePresenceUpdate:
+		if len(bot.Handlers.PresenceUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate[:index], bot.Handlers.PresenceUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameReady:
+		if len(bot.Handlers.Ready) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.Ready = append(bot.Handlers.Ready[:index], bot.Handlers.Ready[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameReconnect:
+		if len(bot.Handlers.Reconnect) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.Reconnect = append(bot.Handlers.Reconnect[:index], bot.Handlers.Reconnect[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameResumed:
+		if len(bot.Handlers.Resumed) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.Resumed = append(bot.Handlers.Resumed[:index], bot.Handlers.Resumed[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameStageInstanceCreate:
+		if len(bot.Handlers.StageInstanceCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate[:index], bot.Handlers.StageInstanceCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameStageInstanceDelete:
+		if len(bot.Handlers.StageInstanceDelete) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete[:index], bot.Handlers.StageInstanceDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameStageInstanceUpdate:
+		if len(bot.Handlers.StageInstanceUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate[:index], bot.Handlers.StageInstanceUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadCreate:
+		if len(bot.Handlers.ThreadCreate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate[:index], bot.Handlers.ThreadCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadDelete:
+		if len(bot.Handlers.ThreadDelete) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete[:index], bot.Handlers.ThreadDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadListSync:
+		if len(bot.Handlers.ThreadListSync) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync[:index], bot.Handlers.ThreadListSync[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadMemberUpdate:
+		if len(bot.Handlers.ThreadMemberUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate[:index], bot.Handlers.ThreadMemberUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadMembersUpdate:
+		if len(bot.Handlers.ThreadMembersUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate[:index], bot.Handlers.ThreadMembersUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadUpdate:
+		if len(bot.Handlers.ThreadUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate[:index], bot.Handlers.ThreadUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameTypingStart:
+		if len(bot.Handlers.TypingStart) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.TypingStart = append(bot.Handlers.TypingStart[:index], bot.Handlers.TypingStart[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameUserUpdate:
+		if len(bot.Handlers.UserUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate[:index], bot.Handlers.UserUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameVoiceServerUpdate:
+		if len(bot.Handlers.VoiceServerUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate[:index], bot.Handlers.VoiceServerUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameVoiceStateUpdate:
+		if len(bot.Handlers.VoiceStateUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.VoiceStateUpdate = append(bot.Handlers.VoiceStateUpdate[:index], bot.Handlers.VoiceStateUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameWebhooksUpdate:
+		if len(bot.Handlers.WebhooksUpdate) <= index {
+			return fmt.Errorf("cannot remove event handler for %s since there is no event handler at index %d", eventname, index)
+		}
+
+		bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate[:index], bot.Handlers.WebhooksUpdate[index+1:]...)
+		return nil
+
+	}
+
+	return fmt.Errorf("event handler for %s at index %d was not removed.", eventname, index)
 }
 
 // handle handles an event using its name and data.
