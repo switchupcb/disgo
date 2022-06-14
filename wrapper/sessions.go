@@ -2,6 +2,7 @@ package wrapper
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -14,14 +15,12 @@ import (
 	"nhooyr.io/websocket/wsjson"
 )
 
-// TODO: fix opcode include in json (dasgo update).
-// TODO: ensure context is correct with regards to Mutex and Resource Contention.
+// TODO: ensure conn, write, read is correct with regards to concurrency.
 
 const (
 	module                    = "github.com/switchupcb/disgo"
 	gatewayEncoding           = "json"
 	maxIdentifyLargeThreshold = 250
-	gatewayDisconnectCode     = 1000
 	gatewayDisconnectMsg      = "Disconnected Session %s from the Discord Gateway with code %d"
 	invalidSessionWaitTime    = 3 * time.Second
 )
@@ -67,7 +66,7 @@ type heartbeat struct {
 	interval time.Duration
 
 	// send represents a channel of heartbeats that will be sent to the Discord Gateway.
-	send chan Heartbeat
+	send chan GatewayPayload
 
 	// respond represents a channel of heartbeats in response to an Opcode 1 Heartbeat
 	// that will be sent to the Discord Gateway.
@@ -76,7 +75,7 @@ type heartbeat struct {
 	// while the listen thread (onPayload) queues a Heartbeat (in response to the Discord Gateway),
 	// resulting in two Heartbeat Payloads being sent to the Discord Gateway consecutively within nanoseconds,
 	// while the first Heartbeat Payload is outdated.
-	respond chan Heartbeat
+	respond chan GatewayPayload
 
 	// ack represents a channel of times a HeartbeatACK was received.
 	ack chan time.Time
@@ -180,18 +179,18 @@ func (bot *Client) Connect(s *Session) error {
 	go bot.listen(s)
 
 	// begin sending heartbeat payloads every heartbeat_interval ms.
-	ms := hello.HeartbeatInterval * time.Millisecond
+	ms := time.Millisecond * time.Duration(hello.HeartbeatInterval)
 	s.heartbeat = &heartbeat{
 		ticker:   time.NewTicker(ms),
 		interval: ms,
-		send:     make(chan Heartbeat),
-		respond:  make(chan Heartbeat),
+		send:     make(chan GatewayPayload),
+		respond:  make(chan GatewayPayload),
 		ack:      make(chan time.Time, 1),
 	}
 	go bot.heartbeat(s)
 
 	// send an Opcode 2 Identify to the Discord Gateway.
-	if err = wsjson.Write(*s.Context, s.Conn, Identify{
+	identify, err := json.Marshal(Identify{
 		Token: bot.Authentication.Token,
 		Properties: IdentifyConnectionProperties{
 			OS:      runtime.GOOS,
@@ -203,8 +202,20 @@ func (bot *Client) Connect(s *Session) error {
 		Shard:          nil, // SHARD: set shard information using s.Shard.
 		Presence:       *bot.Config.GatewayPresenceUpdate,
 		Intents:        bot.Config.Intents,
+	})
+	if err != nil {
+		if errDisconnect := s.Disconnect(FlagClientCloseEventCodeAway); errDisconnect != nil {
+			return fmt.Errorf(ErrEventMarshalDisconnect, errDisconnect, fmt.Errorf(ErrEventMarshal, "Identify", err))
+		}
+
+		return fmt.Errorf(ErrEventMarshal, "Identify", err)
+	}
+
+	if err = wsjson.Write(*s.Context, s.Conn, GatewayPayload{
+		Op:   FlagGatewayOpcodeIdentify,
+		Data: identify,
 	}); err != nil {
-		if errDisconnect := s.Disconnect(gatewayDisconnectCode); errDisconnect != nil {
+		if errDisconnect := s.Disconnect(FlagClientCloseEventCodeAway); errDisconnect != nil {
 			return fmt.Errorf(ErrEventWriteDisconnect, errDisconnect, fmt.Errorf(ErrEventWrite, "Identify", err))
 		}
 
@@ -213,15 +224,24 @@ func (bot *Client) Connect(s *Session) error {
 
 	// send an Opcode 6 Resume to the Discord Gateway to reconnect the session.
 	if reconnect {
-		resume := Resume{
+		resume, err := json.Marshal(Resume{
 			Token:     bot.Authentication.Token,
 			SessionID: reconnectID,
 			Seq:       reconnectSeq,
+		})
+		if err != nil {
+			if errDisconnect := s.Disconnect(FlagClientCloseEventCodeAway); errDisconnect != nil {
+				return fmt.Errorf(ErrEventMarshalDisconnect, errDisconnect, fmt.Errorf(ErrEventMarshal, "Resume", err))
+			}
+
+			return fmt.Errorf(ErrEventMarshal, "Resume", err)
 		}
 
-		err = wsjson.Write(*s.Context, s.Conn, resume)
-		if err != nil {
-			if errDisconnect := s.Disconnect(gatewayDisconnectCode); errDisconnect != nil {
+		if err = wsjson.Write(*s.Context, s.Conn, GatewayPayload{
+			Op:   FlagGatewayOpcodeIdentify,
+			Data: resume,
+		}); err != nil {
+			if errDisconnect := s.Disconnect(FlagClientCloseEventCodeAway); errDisconnect != nil {
 				return fmt.Errorf(ErrEventWriteDisconnect, errDisconnect, fmt.Errorf(ErrEventWrite, "Resume", err))
 			}
 
@@ -264,12 +284,11 @@ func (bot *Client) heartbeat(s *Session) {
 	for {
 		select {
 		case hb := <-s.heartbeat.respond:
-			err := wsjson.Write(*s.Context, s.Conn, hb)
-			if err != nil {
+			if err := wsjson.Write(*s.Context, s.Conn, hb); err != nil {
 				s.mu.connect.Lock()
 				defer s.mu.connect.Unlock()
 				log.Printf("an error occurred writing a heartbeat: %v\nclosing the connection...", err)
-				if err := s.Disconnect(gatewayDisconnectCode); err != nil {
+				if err := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
 					log.Printf("an error occurred while disconnecting: %v", err)
 				}
 
@@ -290,13 +309,12 @@ func (bot *Client) heartbeat(s *Session) {
 			continue
 
 		case hb := <-s.heartbeat.send:
-			err := wsjson.Write(*s.Context, s.Conn, hb)
-			if err != nil {
+			if err := wsjson.Write(*s.Context, s.Conn, hb); err != nil {
 				s.mu.connect.Lock()
-				defer s.mu.conn.Unlock()
+				defer s.mu.connect.Unlock()
 				log.Printf("an error occurred writing a heartbeat: %v\nclosing the connection...", err)
-				if err := s.Disconnect(gatewayDisconnectCode); err != nil {
-					log.Printf("an error occurred while disconnecting from session %v: %v", s.ID, err)
+				if err := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
+					log.Printf("an error occurred while disconnecting: %v", err)
 				}
 
 				return
@@ -313,7 +331,7 @@ func (bot *Client) heartbeat(s *Session) {
 				// close the active connection with a non-1000 and non-1001 close code.
 				s.mu.connect.Lock()
 				log.Printf("attempting to reconnect session %s", s.ID)
-				if err := s.Disconnect(gatewayDisconnectCode); err != nil {
+				if err := s.Disconnect(FlagClientCloseEventCodeReconnect); err != nil {
 					log.Printf("an error occurred while disconnecting from session %v: %v", s.ID, err)
 					s.mu.connect.Unlock()
 
@@ -336,9 +354,12 @@ func (bot *Client) heartbeat(s *Session) {
 			}
 
 			// otherwise, queue a heartbeat.
-			s.heartbeat.send <- Heartbeat{
+			seq := make([]byte, 8)
+			binary.LittleEndian.PutUint64(seq, uint64(atomic.LoadInt64(&s.Seq)))
+
+			s.heartbeat.send <- GatewayPayload{
 				Op:   FlagGatewayOpcodeHeartbeat,
-				Data: &s.Seq,
+				Data: seq,
 			}
 
 			continue
@@ -380,12 +401,12 @@ func (bot *Client) onPayload(s *Session, data []byte) error {
 	}
 
 	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
-	switch *event.Op {
+	switch event.Op {
 
 	// run the bot's event handlers.
 	case FlagGatewayOpcodeDispatch:
-		atomic.StoreInt64(&s.Seq, event.SequenceNumber)
-		go bot.handle(event.EventName, event.Data)
+		atomic.StoreInt64(&s.Seq, *event.SequenceNumber)
+		go bot.handle(*event.EventName, event.Data)
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
@@ -394,9 +415,9 @@ func (bot *Client) onPayload(s *Session, data []byte) error {
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}
+		atomic.StoreInt64(&s.Seq, heartbeat.Data)
 
-		heartbeat.Op = FlagGatewayOpcodeHeartbeat
-		s.heartbeat.respond <- heartbeat
+		s.heartbeat.respond <- event
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
