@@ -108,6 +108,12 @@ type Config struct {
 	//
 	// https://discord.com/developers/docs/topics/gateway#gateway-intents
 	Intents BitFlag
+
+	// IntentSet represents a set of Discord Gateway Intents, that a bot needs
+	// to gain access to Events (and specific Event Information).
+	//
+	// IntentSet is used for automatic intent calculation when a user adds an event handler.
+	IntentSet map[BitFlag]bool
 }
 
 // Default Configuration Values.

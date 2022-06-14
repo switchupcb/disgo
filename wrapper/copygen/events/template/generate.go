@@ -66,11 +66,7 @@ func generateHandle(functions []*models.Function) string {
 	// write cases.
 	cases := len(functions)
 	for i, function := range functions {
-		fn.WriteString("case FlagGatewayEventName" + function.Name + ":\n")
-		fn.WriteString("if f, ok := function.(func(*" + function.Name + ")); ok {\n")
-		fn.WriteString("bot.Handlers." + function.Name + " = append(bot.Handlers." + function.Name + ", f)\n")
-		fn.WriteString("return\n")
-		fn.WriteString("}\n")
+		fn.WriteString(generateHandleCase(function.Name, generateIntentFlag(function.Options)))
 
 		if i+1 != cases {
 			fn.WriteString("\n")
@@ -81,6 +77,37 @@ func generateHandle(functions []*models.Function) string {
 	fn.WriteString("\nlog.Printf(\"Event Handler for %s was not added.\", eventname)\n")
 	fn.WriteString("}\n")
 	return fn.String()
+}
+
+// generateHandleCase generates the switch case statement for the Handle function.
+func generateHandleCase(eventname string, flag string) string {
+	var c strings.Builder
+	c.WriteString("case FlagGatewayEventName" + eventname + ":\n")
+
+	// add automatic intent calculation.
+	if flag != "" {
+		c.WriteString("if !bot.Config.IntentSet[" + flag + "] {\n")
+		c.WriteString("bot.Config.IntentSet[" + flag + "] = true\n")
+		c.WriteString("bot.Config.Intents |= " + flag + "\n")
+		c.WriteString("}\n\n")
+	}
+
+	// add the event handler.
+	c.WriteString("if f, ok := function.(func(*" + eventname + ")); ok {\n")
+	c.WriteString("bot.Handlers." + eventname + " = append(bot.Handlers." + eventname + ", f)\n")
+	c.WriteString("return\n")
+	c.WriteString("}\n")
+	return c.String()
+}
+
+// generateIntentFlag generates the Intent Flag string for automatic intent calculation.
+func generateIntentFlag(options models.FunctionOptions) string {
+	if v, ok := options.Custom["intents"]; ok {
+		intents := v[0]
+		return strings.ReplaceAll(intents, " ", " | ")
+	}
+
+	return ""
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -100,7 +127,7 @@ func generatehandle(functions []*models.Function) string {
 	// write cases.
 	cases := len(functions)
 	for i, function := range functions {
-		fn.WriteString(generateCase(function.Name))
+		fn.WriteString(generatehandleCase(function.Name))
 
 		if i+1 != cases {
 			fn.WriteString("\n")
@@ -112,8 +139,8 @@ func generatehandle(functions []*models.Function) string {
 	return fn.String()
 }
 
-// generateCase generates the switch case statement for the handle function.
-func generateCase(eventname string) string {
+// generatehandleCase generates the switch case statement for the handle function.
+func generatehandleCase(eventname string) string {
 	var c strings.Builder
 	c.WriteString("case FlagGatewayEventName" + eventname + ":\n")
 	c.WriteString("var event *" + eventname + "\n")

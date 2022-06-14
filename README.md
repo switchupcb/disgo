@@ -93,6 +93,8 @@ bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i disgo.Interaction
 })
 ```
 
+_Disgo provides automatic intent calculation._
+
 ### Output
 
 Open a WebSocket **Session** to receive events.

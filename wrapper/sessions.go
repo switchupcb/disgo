@@ -15,7 +15,6 @@ import (
 )
 
 // TODO: fix opcode include in json (dasgo update).
-// TODO: add automatic intent calculation.
 // TODO: ensure context is correct with regards to Mutex and Resource Contention.
 
 const (

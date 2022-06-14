@@ -140,294 +140,539 @@ func (bot *Client) Handle(eventname string, function interface{}) {
 		}
 
 	case FlagGatewayEventNameGuildIntegrationsUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildIntegrationsUpdate)); ok {
 			bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildMemberAdd:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildMemberAdd)); ok {
 			bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildMemberRemove:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildMemberRemove)); ok {
 			bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildMemberUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Intents |= FlagIntentGUILDS | FlagIntentDIRECT_MESSAGES
+		}
+
 		if f, ok := function.(func(*GuildMemberUpdate)); ok {
 			bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildMembersChunk:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildMembersChunk)); ok {
 			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildRoleCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildRoleCreate)); ok {
 			bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildRoleDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildRoleDelete)); ok {
 			bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildRoleUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildRoleUpdate)); ok {
 			bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildScheduledEventCreate)); ok {
 			bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] {
+			bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Intents |= FlagIntentGUILDS | FlagIntentGUILD_MEMBERS
+		}
+
 		if f, ok := function.(func(*GuildScheduledEventDelete)); ok {
 			bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildScheduledEventUpdate)); ok {
 			bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserAdd:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildScheduledEventUserAdd)); ok {
 			bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserRemove:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*GuildScheduledEventUserRemove)); ok {
 			bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildStickersUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_BANS] {
+			bot.Config.IntentSet[FlagIntentGUILD_BANS] = true
+			bot.Config.Intents |= FlagIntentGUILD_BANS
+		}
+
 		if f, ok := function.(func(*GuildStickersUpdate)); ok {
 			bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameGuildUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_BANS] {
+			bot.Config.IntentSet[FlagIntentGUILD_BANS] = true
+			bot.Config.Intents |= FlagIntentGUILD_BANS
+		}
+
 		if f, ok := function.(func(*GuildUpdate)); ok {
 			bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameHello:
+		if !bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
+		}
+
 		if f, ok := function.(func(*Hello)); ok {
 			bot.Handlers.Hello = append(bot.Handlers.Hello, f)
 			return
 		}
 
 	case FlagGatewayEventNameIntegrationCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
+		}
+
 		if f, ok := function.(func(*IntegrationCreate)); ok {
 			bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate, f)
 			return
 		}
 
 	case FlagGatewayEventNameIntegrationDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
 		if f, ok := function.(func(*IntegrationDelete)); ok {
 			bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete, f)
 			return
 		}
 
 	case FlagGatewayEventNameIntegrationUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
 		if f, ok := function.(func(*IntegrationUpdate)); ok {
 			bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameInteractionCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
 		if f, ok := function.(func(*InteractionCreate)); ok {
 			bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate, f)
 			return
 		}
 
 	case FlagGatewayEventNameInvalidSession:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
 		if f, ok := function.(func(*InvalidSession)); ok {
 			bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession, f)
 			return
 		}
 
 	case FlagGatewayEventNameInviteCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*InviteCreate)); ok {
 			bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate, f)
 			return
 		}
 
 	case FlagGatewayEventNameInviteDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*InviteDelete)); ok {
 			bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete, f)
 			return
 		}
 
 	case FlagGatewayEventNameMessageCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*MessageCreate)); ok {
 			bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate, f)
 			return
 		}
 
 	case FlagGatewayEventNameMessageDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
 		if f, ok := function.(func(*MessageDelete)); ok {
 			bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete, f)
 			return
 		}
 
 	case FlagGatewayEventNameMessageDeleteBulk:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
 		if f, ok := function.(func(*MessageDeleteBulk)); ok {
 			bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk, f)
 			return
 		}
 
 	case FlagGatewayEventNameMessageReactionAdd:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
 		if f, ok := function.(func(*MessageReactionAdd)); ok {
 			bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd, f)
 			return
 		}
 
 	case FlagGatewayEventNameMessageReactionRemove:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
 		if f, ok := function.(func(*MessageReactionRemove)); ok {
 			bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove, f)
 			return
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveAll:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
 		if f, ok := function.(func(*MessageReactionRemoveAll)); ok {
 			bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll, f)
 			return
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveEmoji:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
 		if f, ok := function.(func(*MessageReactionRemoveEmoji)); ok {
 			bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji, f)
 			return
 		}
 
 	case FlagGatewayEventNameMessageUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
 		if f, ok := function.(func(*MessageUpdate)); ok {
 			bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNamePresenceUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
 		if f, ok := function.(func(*PresenceUpdate)); ok {
 			bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameReady:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INVITES] {
+			bot.Config.IntentSet[FlagIntentGUILD_INVITES] = true
+			bot.Config.Intents |= FlagIntentGUILD_INVITES
+		}
+
 		if f, ok := function.(func(*Ready)); ok {
 			bot.Handlers.Ready = append(bot.Handlers.Ready, f)
 			return
 		}
 
 	case FlagGatewayEventNameReconnect:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INVITES] {
+			bot.Config.IntentSet[FlagIntentGUILD_INVITES] = true
+			bot.Config.Intents |= FlagIntentGUILD_INVITES
+		}
+
 		if f, ok := function.(func(*Reconnect)); ok {
 			bot.Handlers.Reconnect = append(bot.Handlers.Reconnect, f)
 			return
 		}
 
 	case FlagGatewayEventNameResumed:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
+		}
+
 		if f, ok := function.(func(*Resumed)); ok {
 			bot.Handlers.Resumed = append(bot.Handlers.Resumed, f)
 			return
 		}
 
 	case FlagGatewayEventNameStageInstanceCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
+		}
+
 		if f, ok := function.(func(*StageInstanceCreate)); ok {
 			bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate, f)
 			return
 		}
 
 	case FlagGatewayEventNameStageInstanceDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
+		}
+
 		if f, ok := function.(func(*StageInstanceDelete)); ok {
 			bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete, f)
 			return
 		}
 
 	case FlagGatewayEventNameStageInstanceUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGES
+		}
+
 		if f, ok := function.(func(*StageInstanceUpdate)); ok {
 			bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameThreadCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
 		if f, ok := function.(func(*ThreadCreate)); ok {
 			bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate, f)
 			return
 		}
 
 	case FlagGatewayEventNameThreadDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
 		if f, ok := function.(func(*ThreadDelete)); ok {
 			bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete, f)
 			return
 		}
 
 	case FlagGatewayEventNameThreadListSync:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
 		if f, ok := function.(func(*ThreadListSync)); ok {
 			bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync, f)
 			return
 		}
 
 	case FlagGatewayEventNameThreadMemberUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
 		if f, ok := function.(func(*ThreadMemberUpdate)); ok {
 			bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameThreadMembersUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_PRESENCES] {
+			bot.Config.IntentSet[FlagIntentGUILD_PRESENCES] = true
+			bot.Config.Intents |= FlagIntentGUILD_PRESENCES
+		}
+
 		if f, ok := function.(func(*ThreadMembersUpdate)); ok {
 			bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameThreadUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*ThreadUpdate)); ok {
 			bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameTypingStart:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*TypingStart)); ok {
 			bot.Handlers.TypingStart = append(bot.Handlers.TypingStart, f)
 			return
 		}
 
 	case FlagGatewayEventNameUserUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*UserUpdate)); ok {
 			bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameVoiceServerUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_TYPING] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_TYPING] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_TYPING
+		}
+
 		if f, ok := function.(func(*VoiceServerUpdate)); ok {
 			bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameVoiceStateUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_VOICE_STATES] {
+			bot.Config.IntentSet[FlagIntentGUILD_VOICE_STATES] = true
+			bot.Config.Intents |= FlagIntentGUILD_VOICE_STATES
+		}
+
 		if f, ok := function.(func(*VoiceStateUpdate)); ok {
 			bot.Handlers.VoiceStateUpdate = append(bot.Handlers.VoiceStateUpdate, f)
 			return
 		}
 
 	case FlagGatewayEventNameWebhooksUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_WEBHOOKS] {
+			bot.Config.IntentSet[FlagIntentGUILD_WEBHOOKS] = true
+			bot.Config.Intents |= FlagIntentGUILD_WEBHOOKS
+		}
+
 		if f, ok := function.(func(*WebhooksUpdate)); ok {
 			bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate, f)
 			return
