@@ -128,6 +128,7 @@ func DefaultConfig() *Config {
 	c.Client.Name = defaultUserAgent
 	c.Timeout = defaultRequestTimeout
 	c.Retries = 1
+	c.IntentSet = make(map[BitFlag]bool)
 
 	return c
 }
