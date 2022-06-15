@@ -1,6 +1,9 @@
 package wrapper
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // Send Error Messages.
 const (
@@ -40,19 +43,87 @@ func JSONCodeError(status int) error {
 	return fmt.Errorf(ErrJSONErrorUnknown, status)
 }
 
-// Gateway Error Code Messages.
+/// Gateway Errors
 const (
-	ErrEventRead              = "an error occurred while reading a %v Event:\n%w"
-	ErrEventWrite             = "an error occurred while writing a %v Event:\n%w"
-	ErrEventMarshal           = "an error occurred while marshalling a %v Event:\n%w"
-	ErrEventMarshalDisconnect = "an error occurred while disconnecting because of an error that occurred " +
-		"while marshalling an event: %v\n%w"
-	ErrEventWriteDisconnect = "an error occurred while disconnecting because of an error that occurred " +
-		"while writing an event: %v\n%w"
-	ErrDisconnecting = "an error occurred disconnecting the session %s from the Discord Gateway"
+	errRemoveInvalidEventHandler = "cannot remove event handler for %s since there is no event handler at index %d"
 )
 
-// Event Handler Code Messages.
+var (
+	errOpcodeReconnect = errors.New("Opcode Reconnect")
+)
+
+// ErrorDisconnect represents a WebSocket disconnection error that occurs when
+// a WebSocket attempt to gracefully disconnect fails.
+type ErrorDisconnect struct {
+	// SessionID represents the ID of the Session that is disconnecting.
+	SessionID string
+
+	// Err represents the error that occurred while disconnecting.
+	Err error
+
+	// Action represents the error that prompted the disconnection (if applicable).
+	Action error
+}
+
+func (e ErrorDisconnect) Error() string {
+	return fmt.Sprintf("an error occurred disconnecting the session %s from the Discord Gateway\n"+
+		"\tDisconnect(): %v\n"+
+		"\treason: %v\n",
+		e.SessionID, e.Err, e.Action)
+}
+
+// ErrorEvent represents a WebSocket error that occurs when
+// a WebSocket attempt to {action} an event fails.
+type ErrorEvent struct {
+	// Event represents the name of the event involved in this error.
+	Event string
+
+	// Err represents the error that occurred while performing the action.
+	Err error
+
+	// Action represents the action that prompted the error.
+	//
+	// ErrorEventAction's can be one of four values:
+	// ErrorEventActionUnmarshal: an error occurred while unmarshalling the Event from a JSON.
+	// ErrorEventActionMarshal:   an error occurred while marshalling the Event to a JSON.
+	// ErrorEventActionRead:      an error occurred while reading the Event from a Websocket Connection.
+	// ErrorEventActionWrite:     an error occurred while writing the Event to a Websocket Connection.
+	Action string
+}
+
+func (e ErrorEvent) Error() string {
+	return fmt.Sprintf("an error occurred while %s a %v Event\n\t%v", e.Action, e.Event, e.Err)
+}
+
 const (
-	ErrLogEventUnmarshal = "an error occurred while unmarshalling a %v Event:\n%v"
+	ErrorEventActionUnmarshal = "unmarshalling"
+	ErrorEventActionMarshal   = "marshalling"
+	ErrorEventActionRead      = "reading"
+	ErrorEventActionWrite     = "writing"
+)
+
+// ErrorEventHandler represents an Event Handler error that occurs when
+// an attempt to {action} an event handler fails.
+type ErrorEventHandler struct {
+	// Event represents the name of the event handler involved in this error.
+	Event string
+
+	// Err represents the error that occurred while performing the action.
+	Err error
+
+	// Action represents the action that prompted the error.
+	//
+	// ErrorEventHandlerAction can be four values:
+	// ErrorEventHandlerAdd:       an error occurred while adding an event handler.
+	// ErrorEventHandlerRemove:    an error occurred while removing an event handler.
+	Action string
+}
+
+func (e ErrorEventHandler) Error() string {
+	return fmt.Sprintf("an error occurred while %s a %s event handler\n\t%v", e.Action, e.Event, e.Err)
+}
+
+const (
+	ErrorEventHandlerAdd    = "adding"
+	ErrorEventHandlerRemove = "removing"
 )

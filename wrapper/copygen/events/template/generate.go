@@ -149,7 +149,7 @@ func generateRemoveCase(eventname string) string {
 
 	// check the bounds of the handlers.
 	c.WriteString("if len(bot.Handlers." + eventname + ") <= index {\n")
-	c.WriteString("return fmt.Errorf(\"cannot remove event handler for %s since there is no event handler at index %d\", eventname, index)\n")
+	c.WriteString("return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)\n")
 	c.WriteString("}\n\n")
 
 	// remove the event handler.
@@ -194,7 +194,7 @@ func generatehandleCase(eventname string) string {
 	c.WriteString("case FlagGatewayEventName" + eventname + ":\n")
 	c.WriteString("var event *" + eventname + "\n")
 	c.WriteString("if err := json.Unmarshal(data, event); err != nil {\n")
-	c.WriteString("log.Printf(ErrLogEventUnmarshal, eventname, err)\n")
+	c.WriteString("log.Println(ErrorEvent{Event: FlagGatewayEventName" + eventname + ", Err: err, Action: ErrorEventActionUnmarshal}.Error())\n")
 	c.WriteString("return\n")
 	c.WriteString("}\n\n")
 
