@@ -1,0 +1,57 @@
+name: "API Wrapper"
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "_contribution"
+      - "_gen/**"
+      - "cache/**"
+      - "shard/**"
+
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - "_contribution"
+      - "_gen/**"
+      - "cache/**"
+      - "shard/**"
+
+jobs:
+  sca-lint:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.46
+          args: ./wrapper
+
+  test-unit:
+    needs: sca-lint
+    name: Unit Tests
+    runs-on: '${{ matrix.os }}'
+    strategy:
+      matrix:
+        os:
+          - windows-latest
+          - macos-latest
+          - ubuntu-latest
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Run Unit Tests
+        run: go test ./wrapper
