@@ -51,14 +51,16 @@ Comments follow [Effective Go](https://golang.org/doc/effective_go#commentary) a
 
 #### Static Code Analysis
 
-Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0`. If you receive a `diff` error _(while running)_, you must add a `diff` tool in your PATH. There is one located in the `Git` bin.
+Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`. If you receive a `diff` error _(while running)_, you must add a `diff` tool in your PATH. There is one located in the `Git` bin.
 
 If you receive `File is not ... with -...`, use `golangci-lint run --disable-all --no-config -Egofmt --fix`.
 
- | Directory | Command                       | Description                                      |
- | :-------- | :---------------------------- | :----------------------------------------------- |
- | `disgo`   | `golangci-lint run ./wrapper` | Perform static code analysis on the API Wrapper. |
- | `_gen`    | `golangci-lint run`           | Perform static code analysis on the generator.   |
+ | Directory | Command                       | Description                                        |
+ | :-------- | :---------------------------- | :------------------------------------------------- |
+ | `disgo`   | `golangci-lint run ./wrapper` | Perform static code analysis on the API Wrapper.   |
+ | `_gen`    | `golangci-lint run`           | Perform static code analysis on the generator.     |
+ | `cache`   | `golangci-lint run`           | Perform static code analysis on the Disgo Cache.   |
+ | `shard`   | `golangci-lint run`           | Perform static code analysis on the Shard Manager. |
 
 #### Fieldalignment
 
@@ -73,6 +75,10 @@ Unit tests are used to test logic.
 #### Integration Tests
 
 Integration tests are used to ensure functionality between the API and Discord.
+
+#### Running Tests
+
+Use `go test` to run the tests in the current directory.
 
 # Roadmap
 
