@@ -1,7 +1,6 @@
 package wrapper
 
 import (
-	"context"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -115,9 +114,10 @@ func SendRequest(bot *Client, method, uri string, content, body []byte, dst any)
 	// check the ratelimit of the request.
 	ratelimit := bot.Config.RateLimiter.GetBucket("bucket???")
 	if ratelimit != nil {
-		if err := ratelimit.Wait(context.Background()); err != nil {
-			// when the burst size (which should be >= 1) is 0.
-			return fmt.Errorf("%w", err)
+		// when no requests remain in the rate limit bucket,
+		// wait until the bucket resets to send a request.
+		if ratelimit.Remaining == 0 {
+			<-time.After(time.Until(ratelimit.Expiry))
 		}
 	}
 
@@ -144,21 +144,19 @@ SEND:
 	switch response.StatusCode() {
 	case fasthttp.StatusOK:
 		// process the ratelimit.
-		if ratelimit == nil || time.Now().After(bot.Config.RateLimiter.GetBucketExpiry("bucket???")) {
+		if ratelimit == nil || time.Now().After(ratelimit.Expiry) {
 			header, err := peekHeaderRateLimit(response)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
 
-			// create a new rate limiter that allows "Remaining" requests to be made
-			// from now until the bucket expires.
-			newRateLimit := rate.NewLimiter(
-				rate.Limit((float64(time.Second)*header.ResetAfter)/float64(header.Remaining)),
-				1,
-			)
-
-			bot.Config.RateLimiter.SetBucket(header.Bucket, newRateLimit)
-			bot.Config.RateLimiter.SetBucketExpiry(header.Bucket, time.Unix(header.Reset, 0))
+			bot.Config.RateLimiter.SetBucket(header.Bucket, &Bucket{
+				Limit:     header.Limit,
+				Remaining: header.Remaining,
+				Expiry:    time.Unix(header.Reset, 0),
+			})
+		} else {
+			ratelimit.Remaining--
 		}
 
 		// parse the response data.
@@ -170,6 +168,7 @@ SEND:
 
 	// process the ratelimit.
 	case fasthttp.StatusTooManyRequests:
+		// peek the header to ensure the encountered rate limit is NOT global.
 		header, err := peekHeaderRateLimit(response)
 		if err != nil {
 			return fmt.Errorf("%w", err)
@@ -182,8 +181,7 @@ SEND:
 
 		// expire the current ratelimit immediately (unless it's global).
 		if !header.Global {
-			bot.Config.RateLimiter.SetBucket(header.Bucket, nil)
-			bot.Config.RateLimiter.SetBucketExpiry(header.Bucket, time.Now())
+			ratelimit = nil
 		} else {
 			// TODO: Handle Global Rate Limit Trigger.
 		}
