@@ -105,6 +105,9 @@ type Config struct {
 	// Retries represents the amount of time a request will retry a bad gateway.
 	Retries int
 
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
+
 	// Gateway holds configuration variables that pertain to the Discord Gateway.
 	Gateway Gateway
 }
@@ -117,6 +120,8 @@ func DefaultConfig() *Config {
 	c.Timeout = defaultRequestTimeout
 	c.Retries = 1
 	c.Gateway = DefaultGateway(false)
+
+	c.RateLimiter = RateLimit{}
 
 	return c
 }

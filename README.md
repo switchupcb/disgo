@@ -52,11 +52,12 @@ Read [What is a Discord Shard](/_contribution/concepts/SHARD.md) for a simple ye
 
 Each example has a **README**.
 
-| Example                    | Description                      |
-| :------------------------- | :------------------------------- |
-| [main](/_examples/main/)   | The default example.             |
-| [shard](/_examples/shard/) | Uses the shard manager manually. |
-| [cache](/_examples/shard/) | Uses the cache manually.         |
+| Example                           | Description                      |
+| :-------------------------------- | :------------------------------- |
+| [main](/_examples/main/)          | The default example.             |
+| [shard](/_examples/shard/)        | Uses the shard manager manually. |
+| [cache](/_examples/shard/)        | Uses the cache manually.         |
+| [ratelimit](/_examples/ratelimit) | Uses a custom rate limiter.      |
 
 The following [example](/_examples/main) creates a bot that creates an application command and handles it.
 

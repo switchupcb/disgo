@@ -14,4 +14,5 @@ require (
 	github.com/klauspost/compress v1.15.8 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
+	golang.org/x/time v0.0.0-20220609170525-579cf78fd858
 )
