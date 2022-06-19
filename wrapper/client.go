@@ -78,6 +78,9 @@ type Config struct {
 
 	// Retries represents the amount of time a request will retry a bad gateway.
 	Retries int
+
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
 }
 
 // Default Configuration Values.
@@ -92,6 +95,7 @@ func DefaultConfig() *Config {
 	c.Client.Name = defaultUserAgent
 	c.Timeout = defaultRequestTimeout
 	c.Retries = 1
-
+	c.RateLimiter = RateLimit{}
+	
 	return c
 }
