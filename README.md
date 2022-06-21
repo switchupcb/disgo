@@ -60,6 +60,7 @@ bot := disgo.Client{
     Authentication: disgo.BotToken("TOKEN"),
     Authorization: &disgo.Authorization{ ... },
     Config: disgo.DefaultConfig(),
+    Handlers: new(disgo.Handlers),
 }
 ```
 
