@@ -1,15 +1,16 @@
 package wrapper
 
 import (
+	"os"
 	"testing"
-)
 
-const key = "OTg4NjA5NTMwMzc0MDA0NzU3.GreAn5.KayNltB_tollJDOj19t69sW51e9C6C_M5ES5mY"
+	_ "github.com/joho/godotenv/autoload"
+)
 
 func TestDataRace(t *testing.T) {
 	bot := &Client{
 		// Set the Authentication Header using BotToken() or BearerToken().
-		Authentication: BotToken(key),
+		Authentication: BotToken(os.Getenv("TOKEN")),
 		Authorization:  &Authorization{},
 		Config:         DefaultConfig(),
 		Handlers:       &Handlers{},
