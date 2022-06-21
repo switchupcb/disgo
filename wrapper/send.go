@@ -1017,8 +1017,8 @@ func (r *GetFollowupMessage) Send(bot *Client) (*Message, error) {
 
 // Send sends a GetGateway request to Discord and returns a GetGatewayBotResponse.
 func (r *GetGateway) Send(bot *Client) (*GetGatewayBotResponse, error) {
-	var result *GetGatewayBotResponse
-	err := SendRequest(bot, fasthttp.MethodPatch, EndpointGetGateway(), nil, nil, result)
+	result := new(GetGatewayBotResponse)
+	err := SendRequest(bot, fasthttp.MethodGet, EndpointGetGateway(), nil, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetGateway", err)
 	}

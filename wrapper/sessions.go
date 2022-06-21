@@ -154,13 +154,18 @@ func (bot *Client) Connect(s *Session) error {
 	defer s.Conn.Close(websocket.StatusInternalError, "StatusInternalError")
 
 	// handle the incoming Hello event upon connecting to the Gateway.
-	var hello Hello
-	if err = wsjson.Read(ctx, s.Conn, &hello); err != nil {
+	var payload GatewayPayload
+	if err = wsjson.Read(*s.Context, s.Conn, &payload); err != nil {
 		return ErrorEvent{
 			Event:  FlagGatewayEventNameHello,
 			Err:    err,
 			Action: ErrorEventActionRead,
 		}
+	}
+
+	var hello Hello
+	if err := json.Unmarshal(payload.Data, &hello); err != nil {
+		return fmt.Errorf("%v", err)
 	}
 
 	// Sending a valid Identify Payload triggers the initial handshake with the Discord Gateway.
@@ -193,6 +198,7 @@ func (bot *Client) Connect(s *Session) error {
 
 	// begin sending heartbeat payloads every heartbeat_interval ms.
 	ms := time.Millisecond * time.Duration(hello.HeartbeatInterval)
+	fmt.Println(ms)
 	s.heartbeat = &heartbeat{
 		ticker:   time.NewTicker(ms),
 		interval: ms,

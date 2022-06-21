@@ -130,6 +130,7 @@ func DefaultConfig() *Config {
 	c.Timeout = defaultRequestTimeout
 	c.Retries = 1
 	c.IntentSet = make(map[BitFlag]bool)
+	c.GatewayPresenceUpdate = new(GatewayPresenceUpdate)
 
 	return c
 }
