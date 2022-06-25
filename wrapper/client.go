@@ -68,7 +68,10 @@ type Authorization struct {
 	// Scopes represents a list of OAuth2 scopes.
 	Scopes []string
 
-	// RedirectURI represents the registered url-encoded URL of the application.
+	// RedirectURI represents the registered URL of the application.
+	//
+	// The URL should be non-url-encoded (i.e "https://localhost"),
+	// NOT url-encoded (i.e "https%3A%2F%2Flocalhost").
 	RedirectURI string
 
 	// state represents the state parameter used to prevent CSRF and Clickjacking.

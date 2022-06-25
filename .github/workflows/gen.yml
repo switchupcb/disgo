@@ -1,0 +1,33 @@
+name: "Generator"
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "_gen/**"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "_gen/**"
+
+jobs:
+  sca-lint:
+    name: Static Code Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Change directory
+        run: cd _gen
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          version: v1.46.2
+          args: ./

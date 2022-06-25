@@ -524,6 +524,10 @@ const (
 	FlagGatewayEventNameReconnect                           = "RECONNECT"
 	FlagGatewayEventNameInvalidSession                      = "INVALID_SESSION"
 	FlagGatewayEventNameApplicationCommandPermissionsUpdate = "APPLICATION_COMMAND_PERMISSIONS_UPDATE"
+	FlagGatewayEventNameAutoModerationRuleCreate            = "AUTO_MODERATION_RULE_CREATE"
+	FlagGatewayEventNameAutoModerationRuleUpdate            = "AUTO_MODERATION_RULE_UPDATE"
+	FlagGatewayEventNameAutoModerationRuleDelete            = "AUTO_MODERATION_RULE_DELETE"
+	FlagGatewayEventNameAutoModerationActionExecution       = "AUTO_MODERATION_ACTION_EXECUTION"
 	FlagGatewayEventNameChannelCreate                       = "CHANNEL_CREATE"
 	FlagGatewayEventNameChannelUpdate                       = "CHANNEL_UPDATE"
 	FlagGatewayEventNameChannelDelete                       = "CHANNEL_DELETE"
@@ -614,6 +618,40 @@ type InvalidSession struct {
 // https://discord.com/developers/docs/topics/gateway#application-command-permissions-update
 type ApplicationCommandPermissionsUpdate struct {
 	*GuildApplicationCommandPermissions
+}
+
+// Auto Moderation Rule Create
+// https://discord.com/developers/docs/topics/gateway#auto-moderation-rule-create
+type AutoModerationRuleCreate struct {
+	*AutoModerationRule
+}
+
+// Auto Moderation Rule Update
+// https://discord.com/developers/docs/topics/gateway#auto-moderation-rule-update
+type AutoModerationRuleUpdate struct {
+	*AutoModerationRule
+}
+
+// Auto Moderation Rule Delete
+// https://discord.com/developers/docs/topics/gateway#auto-moderation-rule-delete
+type AutoModerationRuleDelete struct {
+	*AutoModerationRule
+}
+
+// Auto Moderation Action Execution
+// https://discord.com/developers/docs/topics/gateway#auto-moderation-action-execution
+type AutoModerationActionExecution struct {
+	GuildID              string               `json:"guild_id"`
+	Action               AutoModerationAction `json:"action"`
+	RuleID               string               `json:"rule_id"`
+	RuleTriggerType      Flag                 `json:"rule_trigger_type"`
+	UserID               string               `json:"user_id"`
+	ChannelID            string               `json:"channel_id"`
+	MessageID            string               `json:"message_id"`
+	AlertSystemMessageID string               `json:"alert_system_message_id"`
+	Content              string               `json:"content"`
+	MatchedKeyword       *string              `json:"matched_keyword"`
+	MatchedContent       *string              `json:"matched_content"`
 }
 
 // Channel Create
@@ -1124,17 +1162,38 @@ const (
 	// MESSAGE_REACTION_REMOVE_EMOJI
 	FlagIntentDIRECT_MESSAGE_REACTIONS = 1 << 13
 
+	FlagIntentMESSAGE_CONTENT = 1 << 15
+
 	// GUILD_SCHEDULED_EVENT_CREATE
 	// GUILD_SCHEDULED_EVENT_UPDATE
 	// GUILD_SCHEDULED_EVENT_DELETE
 	// GUILD_SCHEDULED_EVENT_USER_ADD
 	// GUILD_SCHEDULED_EVENT_USER_REMOVE
 	FlagIntentGUILD_SCHEDULED_EVENTS = 1 << 16
+
+	// AUTO_MODERATION_RULE_CREATE
+	// AUTO_MODERATION_RULE_UPDATE
+	// AUTO_MODERATION_RULE_DELETE
+	AUTO_MODERATION_CONFIGURATION = 1 << 20
+
+	// AUTO_MODERATION_ACTION_EXECUTION
+	AUTO_MODERATION_EXECUTION = 1 << 21
 )
 
 // Gateway Commands
-// https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-commands
+// https://discord.com/developers/docs/topics/gateway#commands-and-events
 type Command interface{}
+
+// Gateway Command Names
+// https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-commands
+const (
+	FlagGatewayCommandNameIdentify            = "Identify"
+	FlagGatewayCommandNameResume              = "Resume"
+	FlagGatewayCommandNameHeartbeat           = "Heartbeat"
+	FlagGatewayCommandNameRequestGuildMembers = "RequestGuildMembers"
+	FlagGatewayCommandNameUpdateVoiceState    = "UpdateVoiceState"
+	FlagGatewayCommandNameUpdatePresence      = "UpdatePresence"
+)
 
 // Identify Structure
 // https://discord.com/developers/docs/topics/gateway#identify-identify-structure
@@ -1151,9 +1210,9 @@ type Identify struct {
 // Identify Connection Properties
 // https://discord.com/developers/docs/topics/gateway#identify-identify-connection-properties
 type IdentifyConnectionProperties struct {
-	OS      string `json:"$os"`
-	Browser string `json:"$browser"`
-	Device  string `json:"$device"`
+	OS      string `json:"os"`
+	Browser string `json:"browser"`
+	Device  string `json:"device"`
 }
 
 // Resume Structure
@@ -1219,6 +1278,7 @@ const (
 	FlagRateLimitHeaderBucket     = "X-RateLimit-Bucket"
 	FlagRateLimitHeaderGlobal     = "X-RateLimit-Global"
 	FlagRateLimitHeaderScope      = "X-RateLimit-Scope"
+	FlagRateLimitHeaderRetryAfter = "RetryAfter"
 )
 
 // Rate Limit Header
@@ -1232,6 +1292,14 @@ type RateLimitHeader struct {
 	Global     bool    `http:"X-RateLimit-Global,omitempty"`
 	Scope      string  `http:"X-RateLimit-Scope,omitempty"`
 }
+
+// Rate Limit Scope Values
+// https://discord.com/developers/docs/topics/rate-limits#header-format-rate-limit-header-examples
+const (
+	RateLimitScopeValueUser   = "user"
+	RateLimitScopeValueGlobal = "global"
+	RateLimitScopeValueShared = "shared"
+)
 
 // Rate Limit Response Structure
 // https://discord.com/developers/docs/topics/rate-limits#exceeding-a-rate-limit-rate-limit-response-structure
@@ -1529,6 +1597,60 @@ type GetGuildAuditLog struct {
 	ActionType Flag   `url:"action_type"`
 	Before     string `url:"before"`
 	Limit      int    `url:"limit"`
+}
+
+// List Auto Moderation Rules for Guild
+// GET /guilds/{guild.id}/auto-moderation/rules
+// https://discord.com/developers/docs/resources/auto-moderation#list-auto-moderation-rules-for-guild
+type ListAutoModerationRulesForGuild struct {
+	GuildID string
+}
+
+// Get Auto Moderation Rule
+// GET /guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}
+// https://discord.com/developers/docs/resources/auto-moderation#get-auto-moderation-rule
+type GetAutoModerationRule struct {
+	GuildID              string
+	AutoModerationRuleID string
+}
+
+// Create Auto Moderation Rule
+// POST /guilds/{guild.id}/auto-moderation/rules
+// https://discord.com/developers/docs/resources/auto-moderation#create-auto-moderation-rule
+type CreateAutoModerationRule struct {
+	GuildID         string
+	Name            string                  `json:"name"`
+	EventType       Flag                    `json:"event_type"`
+	TriggerType     Flag                    `json:"trigger_type"`
+	TriggerMetadata TriggerMetadata         `json:"trigger_metadata"`
+	Actions         []*AutoModerationAction `json:"actions"`
+	Enabled         bool                    `json:"enabled"`
+	ExemptRoles     []string                `json:"exempt_roles,omitempty"`
+	ExemptChannels  []string                `json:"exempt_channels,omitempty"`
+}
+
+// Modify Auto Moderation Rule
+// PATCH /guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}
+// https://discord.com/developers/docs/resources/auto-moderation#modify-auto-moderation-rule
+type ModifyAutoModerationRule struct {
+	GuildID              string
+	AutoModerationRuleID string
+	Name                 string                  `json:"name"`
+	EventType            Flag                    `json:"event_type"`
+	TriggerType          Flag                    `json:"trigger_type"`
+	TriggerMetadata      TriggerMetadata         `json:"trigger_metadata"`
+	Actions              []*AutoModerationAction `json:"actions"`
+	Enabled              bool                    `json:"enabled"`
+	ExemptRoles          []string                `json:"exempt_roles"`
+	ExemptChannels       []string                `json:"exempt_channels"`
+}
+
+// Delete Auto Moderation Rule
+// DELETE /guilds/{guild.id}/auto-moderation/rules/{auto_moderation_rule.id}
+// https://discord.com/developers/docs/resources/auto-moderation#delete-auto-moderation-rule
+type DeleteAutoModerationRule struct {
+	GuildID              string
+	AutoModerationRuleID string
 }
 
 // Get Channel
@@ -3077,7 +3199,6 @@ type ActionsRow struct {
 }
 
 // Button Object
-
 // https://discord.com/developers/docs/interactions/message-components#button-object
 type Button struct {
 	Style    Flag    `json:"style"`
@@ -3103,7 +3224,6 @@ const (
 )
 
 // Select Menu Structure
-
 // https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-menu-structure
 type SelectMenu struct {
 	CustomID    string             `json:"custom_id"`
@@ -3421,6 +3541,75 @@ type AuditLogChange struct {
 
 // Audit Log Change Exceptions
 // https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-exceptions
+
+// Auto Moderation Rule Structure
+// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-auto-moderation-rule-structure
+type AutoModerationRule struct {
+	ID              string                  `json:"id"`
+	GuildID         string                  `json:"guild_id"`
+	Name            string                  `json:"name"`
+	CreatorID       string                  `json:"creator_id"`
+	EventType       Flag                    `json:"event_type"`
+	TriggerType     Flag                    `json:"trigger_type"`
+	TriggerMetadata TriggerMetadata         `json:"trigger_metadata"`
+	Actions         []*AutoModerationAction `json:"actions"`
+	Enabled         bool                    `json:"enabled"`
+	ExemptRoles     []string                `json:"exempt_roles"`
+	ExemptChannels  []string                `json:"exempt_channels"`
+}
+
+// Trigger Types
+// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-trigger-types
+const (
+	FlagTriggerTypeKEYWORD        = 1
+	FlagTriggerTypeHARMFUL_LINK   = 2
+	FlagTriggerTypeSPAM           = 3
+	FlagTriggerTypeKEYWORD_PRESET = 4
+)
+
+// Trigger Metadata
+// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-trigger-metadata
+type TriggerMetadata struct {
+	// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-keyword-matching-strategies
+	KeywordFilter []string `json:"keyword_filter"`
+	Presets       []Flag   `json:"presets"`
+}
+
+// Keyword Preset Types
+// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-keyword-preset-types
+const (
+	FlagKeywordPresetTypePROFANITY      = 1
+	FlagKeywordPresetTypeSEXUAL_CONTENT = 2
+	FlagKeywordPresetTypeSLURS          = 3
+)
+
+// Event Types
+// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-event-types
+const (
+	FlagEventTypeMESSAGE_SEND = 1
+)
+
+// Auto Moderation Action Structure
+// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-action-object
+type AutoModerationAction struct {
+	Type     Flag            `json:"type"`
+	Metadata *ActionMetadata `json:"metadata,omitempty"`
+}
+
+// Action Types
+// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-action-object-action-types
+const (
+	FlagActionTypeBLOCK_MESSAGE      = 1
+	FlagActionTypeSEND_ALERT_MESSAGE = 2
+	FlagActionTypeTIMEOUT            = 3
+)
+
+// Action Metadata
+// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-action-object-action-metadata
+type ActionMetadata struct {
+	ChannelID       string `json:"channel_id"`
+	DurationSeconds int    `json:"duration_seconds"`
+}
 
 // Channel Object
 // https://discord.com/developers/docs/resources/channel

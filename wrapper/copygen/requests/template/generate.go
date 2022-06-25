@@ -70,13 +70,15 @@ func generateResultParameters(function *models.Function) string {
 func generateBody(function *models.Function) string {
 	request := function.From[0].Field
 	requestName := request.FullDefinitionWithoutPointer()
-	uniquetags := uniqueTags(request)
-	response := function.To[0].Field.FullDefinition()
+	response := function.To[0].Field
+
+	// write the function body.
+	var body strings.Builder
 	errDecl := ":="
 
-	var body strings.Builder
-
+	// marshal the request.
 	httpbody := "nil"
+	uniquetags := uniqueTags(request)
 	if uniquetags["json"] != 0 {
 		body.WriteString("body, err " + errDecl + " json.Marshal(r)\n")
 		body.WriteString("if err != nil {\n")
@@ -87,6 +89,7 @@ func generateBody(function *models.Function) string {
 		errDecl = "="
 	}
 
+	// call the endpoint's function.
 	endpoint := generateEndpointCall(function.From[0].Field)
 	if uniquetags["url"] != 0 {
 		body.WriteString("query, err := EndpointQueryString(r)\n")
@@ -98,9 +101,21 @@ func generateBody(function *models.Function) string {
 		errDecl = "="
 	}
 
-	body.WriteString("var result " + response + "\n")
+	// declare result.
+	result := "result"
+
+	switch {
+	case response.FullDefinition() == "error":
+		result = "nil"
+	case response.IsSlice():
+		body.WriteString("var result " + response.FullDefinition() + "\n")
+	default:
+		body.WriteString("result := new(" + response.FullDefinitionWithoutPointer() + ")\n")
+	}
+
+	// send the request.
 	body.WriteString("err " + errDecl + " SendRequest(bot, " + generateHTTPMethod(function) + ", " +
-		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", result)\n")
+		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", " + result + ")\n")
 	body.WriteString("if err != nil {\n")
 	body.WriteString(generateSendRequestErrReturn(function, requestName))
 	body.WriteString("}\n")
