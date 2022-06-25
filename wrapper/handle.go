@@ -12,63 +12,63 @@ import (
 
 // Handlers represents a bot's event handlers.
 type Handlers struct {
+	Hello                               []func(*Hello)
+	Ready                               []func(*Ready)
+	Resumed                             []func(*Resumed)
+	Reconnect                           []func(*Reconnect)
+	InvalidSession                      []func(*InvalidSession)
 	ApplicationCommandPermissionsUpdate []func(*ApplicationCommandPermissionsUpdate)
+	InteractionCreate                   []func(*InteractionCreate)
+	VoiceServerUpdate                   []func(*VoiceServerUpdate)
+	GuildMembersChunk                   []func(*GuildMembersChunk)
+	UserUpdate                          []func(*UserUpdate)
 	ChannelCreate                       []func(*ChannelCreate)
+	ChannelUpdate                       []func(*ChannelUpdate)
 	ChannelDelete                       []func(*ChannelDelete)
 	ChannelPinsUpdate                   []func(*ChannelPinsUpdate)
-	ChannelUpdate                       []func(*ChannelUpdate)
+	ThreadCreate                        []func(*ThreadCreate)
+	ThreadUpdate                        []func(*ThreadUpdate)
+	ThreadDelete                        []func(*ThreadDelete)
+	ThreadListSync                      []func(*ThreadListSync)
+	ThreadMemberUpdate                  []func(*ThreadMemberUpdate)
+	ThreadMembersUpdate                 []func(*ThreadMembersUpdate)
+	GuildCreate                         []func(*GuildCreate)
+	GuildUpdate                         []func(*GuildUpdate)
+	GuildDelete                         []func(*GuildDelete)
 	GuildBanAdd                         []func(*GuildBanAdd)
 	GuildBanRemove                      []func(*GuildBanRemove)
-	GuildCreate                         []func(*GuildCreate)
-	GuildDelete                         []func(*GuildDelete)
 	GuildEmojisUpdate                   []func(*GuildEmojisUpdate)
+	GuildStickersUpdate                 []func(*GuildStickersUpdate)
 	GuildIntegrationsUpdate             []func(*GuildIntegrationsUpdate)
 	GuildMemberAdd                      []func(*GuildMemberAdd)
 	GuildMemberRemove                   []func(*GuildMemberRemove)
 	GuildMemberUpdate                   []func(*GuildMemberUpdate)
-	GuildMembersChunk                   []func(*GuildMembersChunk)
 	GuildRoleCreate                     []func(*GuildRoleCreate)
-	GuildRoleDelete                     []func(*GuildRoleDelete)
 	GuildRoleUpdate                     []func(*GuildRoleUpdate)
+	GuildRoleDelete                     []func(*GuildRoleDelete)
 	GuildScheduledEventCreate           []func(*GuildScheduledEventCreate)
-	GuildScheduledEventDelete           []func(*GuildScheduledEventDelete)
 	GuildScheduledEventUpdate           []func(*GuildScheduledEventUpdate)
+	GuildScheduledEventDelete           []func(*GuildScheduledEventDelete)
 	GuildScheduledEventUserAdd          []func(*GuildScheduledEventUserAdd)
 	GuildScheduledEventUserRemove       []func(*GuildScheduledEventUserRemove)
-	GuildStickersUpdate                 []func(*GuildStickersUpdate)
-	GuildUpdate                         []func(*GuildUpdate)
-	Hello                               []func(*Hello)
 	IntegrationCreate                   []func(*IntegrationCreate)
-	IntegrationDelete                   []func(*IntegrationDelete)
 	IntegrationUpdate                   []func(*IntegrationUpdate)
-	InteractionCreate                   []func(*InteractionCreate)
-	InvalidSession                      []func(*InvalidSession)
+	IntegrationDelete                   []func(*IntegrationDelete)
 	InviteCreate                        []func(*InviteCreate)
 	InviteDelete                        []func(*InviteDelete)
 	MessageCreate                       []func(*MessageCreate)
+	MessageUpdate                       []func(*MessageUpdate)
 	MessageDelete                       []func(*MessageDelete)
 	MessageDeleteBulk                   []func(*MessageDeleteBulk)
 	MessageReactionAdd                  []func(*MessageReactionAdd)
 	MessageReactionRemove               []func(*MessageReactionRemove)
 	MessageReactionRemoveAll            []func(*MessageReactionRemoveAll)
 	MessageReactionRemoveEmoji          []func(*MessageReactionRemoveEmoji)
-	MessageUpdate                       []func(*MessageUpdate)
 	PresenceUpdate                      []func(*PresenceUpdate)
-	Ready                               []func(*Ready)
-	Reconnect                           []func(*Reconnect)
-	Resumed                             []func(*Resumed)
 	StageInstanceCreate                 []func(*StageInstanceCreate)
 	StageInstanceDelete                 []func(*StageInstanceDelete)
 	StageInstanceUpdate                 []func(*StageInstanceUpdate)
-	ThreadCreate                        []func(*ThreadCreate)
-	ThreadDelete                        []func(*ThreadDelete)
-	ThreadListSync                      []func(*ThreadListSync)
-	ThreadMemberUpdate                  []func(*ThreadMemberUpdate)
-	ThreadMembersUpdate                 []func(*ThreadMembersUpdate)
-	ThreadUpdate                        []func(*ThreadUpdate)
 	TypingStart                         []func(*TypingStart)
-	UserUpdate                          []func(*UserUpdate)
-	VoiceServerUpdate                   []func(*VoiceServerUpdate)
 	VoiceStateUpdate                    []func(*VoiceStateUpdate)
 	WebhooksUpdate                      []func(*WebhooksUpdate)
 	mu                                  sync.RWMutex
@@ -80,536 +80,118 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 	defer bot.Handlers.mu.Unlock()
 
 	switch eventname {
+	case FlagGatewayEventNameHello:
+		if f, ok := function.(func(*Hello)); ok {
+			bot.Handlers.Hello = append(bot.Handlers.Hello, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameReady:
+		if f, ok := function.(func(*Ready)); ok {
+			bot.Handlers.Ready = append(bot.Handlers.Ready, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameResumed:
+		if f, ok := function.(func(*Resumed)); ok {
+			bot.Handlers.Resumed = append(bot.Handlers.Resumed, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameReconnect:
+		if f, ok := function.(func(*Reconnect)); ok {
+			bot.Handlers.Reconnect = append(bot.Handlers.Reconnect, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameInvalidSession:
+		if f, ok := function.(func(*InvalidSession)); ok {
+			bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession, f)
+			return nil
+		}
+
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		if f, ok := function.(func(*ApplicationCommandPermissionsUpdate)); ok {
 			bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate, f)
 			return nil
 		}
 
+	case FlagGatewayEventNameInteractionCreate:
+		if f, ok := function.(func(*InteractionCreate)); ok {
+			bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameVoiceServerUpdate:
+		if f, ok := function.(func(*VoiceServerUpdate)); ok {
+			bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildMembersChunk:
+		if f, ok := function.(func(*GuildMembersChunk)); ok {
+			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameUserUpdate:
+		if f, ok := function.(func(*UserUpdate)); ok {
+			bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate, f)
+			return nil
+		}
+
 	case FlagGatewayEventNameChannelCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*ChannelCreate)); ok {
 			bot.Handlers.ChannelCreate = append(bot.Handlers.ChannelCreate, f)
 			return nil
 		}
 
+	case FlagGatewayEventNameChannelUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ChannelUpdate)); ok {
+			bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate, f)
+			return nil
+		}
+
 	case FlagGatewayEventNameChannelDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
 		if f, ok := function.(func(*ChannelDelete)); ok {
 			bot.Handlers.ChannelDelete = append(bot.Handlers.ChannelDelete, f)
 			return nil
 		}
 
 	case FlagGatewayEventNameChannelPinsUpdate:
-		if f, ok := function.(func(*ChannelPinsUpdate)); ok {
-			bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameChannelUpdate:
-		if f, ok := function.(func(*ChannelUpdate)); ok {
-			bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildBanAdd:
-		if f, ok := function.(func(*GuildBanAdd)); ok {
-			bot.Handlers.GuildBanAdd = append(bot.Handlers.GuildBanAdd, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildBanRemove:
-		if f, ok := function.(func(*GuildBanRemove)); ok {
-			bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildCreate:
-		if f, ok := function.(func(*GuildCreate)); ok {
-			bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildDelete:
-		if f, ok := function.(func(*GuildDelete)); ok {
-			bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildEmojisUpdate:
-		if f, ok := function.(func(*GuildEmojisUpdate)); ok {
-			bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildIntegrationsUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildIntegrationsUpdate)); ok {
-			bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildMemberAdd:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildMemberAdd)); ok {
-			bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildMemberRemove:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildMemberRemove)); ok {
-			bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildMemberUpdate:
 		if !bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentDIRECT_MESSAGES] {
 			bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentDIRECT_MESSAGES] = true
 			bot.Config.Intents |= FlagIntentGUILDS | FlagIntentDIRECT_MESSAGES
 		}
 
-		if f, ok := function.(func(*GuildMemberUpdate)); ok {
-			bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildMembersChunk:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildMembersChunk)); ok {
-			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildRoleCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildRoleCreate)); ok {
-			bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildRoleDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildRoleDelete)); ok {
-			bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildRoleUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildRoleUpdate)); ok {
-			bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventCreate)); ok {
-			bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] {
-			bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Intents |= FlagIntentGUILDS | FlagIntentGUILD_MEMBERS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventDelete)); ok {
-			bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventUpdate)); ok {
-			bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventUserAdd:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventUserAdd)); ok {
-			bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventUserRemove:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventUserRemove)); ok {
-			bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildStickersUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_BANS] {
-			bot.Config.IntentSet[FlagIntentGUILD_BANS] = true
-			bot.Config.Intents |= FlagIntentGUILD_BANS
-		}
-
-		if f, ok := function.(func(*GuildStickersUpdate)); ok {
-			bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_BANS] {
-			bot.Config.IntentSet[FlagIntentGUILD_BANS] = true
-			bot.Config.Intents |= FlagIntentGUILD_BANS
-		}
-
-		if f, ok := function.(func(*GuildUpdate)); ok {
-			bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameHello:
-		if !bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
-		}
-
-		if f, ok := function.(func(*Hello)); ok {
-			bot.Handlers.Hello = append(bot.Handlers.Hello, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameIntegrationCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
-		}
-
-		if f, ok := function.(func(*IntegrationCreate)); ok {
-			bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameIntegrationDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
-		}
-
-		if f, ok := function.(func(*IntegrationDelete)); ok {
-			bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameIntegrationUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
-		}
-
-		if f, ok := function.(func(*IntegrationUpdate)); ok {
-			bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameInteractionCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
-		}
-
-		if f, ok := function.(func(*InteractionCreate)); ok {
-			bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameInvalidSession:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
-		}
-
-		if f, ok := function.(func(*InvalidSession)); ok {
-			bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameInviteCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*InviteCreate)); ok {
-			bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameInviteDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*InviteDelete)); ok {
-			bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*MessageCreate)); ok {
-			bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*MessageDelete)); ok {
-			bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageDeleteBulk:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*MessageDeleteBulk)); ok {
-			bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageReactionAdd:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*MessageReactionAdd)); ok {
-			bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageReactionRemove:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*MessageReactionRemove)); ok {
-			bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageReactionRemoveAll:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*MessageReactionRemoveAll)); ok {
-			bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageReactionRemoveEmoji:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
-		}
-
-		if f, ok := function.(func(*MessageReactionRemoveEmoji)); ok {
-			bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
-		}
-
-		if f, ok := function.(func(*MessageUpdate)); ok {
-			bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNamePresenceUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
-		}
-
-		if f, ok := function.(func(*PresenceUpdate)); ok {
-			bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameReady:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INVITES] {
-			bot.Config.IntentSet[FlagIntentGUILD_INVITES] = true
-			bot.Config.Intents |= FlagIntentGUILD_INVITES
-		}
-
-		if f, ok := function.(func(*Ready)); ok {
-			bot.Handlers.Ready = append(bot.Handlers.Ready, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameReconnect:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INVITES] {
-			bot.Config.IntentSet[FlagIntentGUILD_INVITES] = true
-			bot.Config.Intents |= FlagIntentGUILD_INVITES
-		}
-
-		if f, ok := function.(func(*Reconnect)); ok {
-			bot.Handlers.Reconnect = append(bot.Handlers.Reconnect, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameResumed:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
-		}
-
-		if f, ok := function.(func(*Resumed)); ok {
-			bot.Handlers.Resumed = append(bot.Handlers.Resumed, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameStageInstanceCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
-		}
-
-		if f, ok := function.(func(*StageInstanceCreate)); ok {
-			bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameStageInstanceDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
-		}
-
-		if f, ok := function.(func(*StageInstanceDelete)); ok {
-			bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameStageInstanceUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGES
-		}
-
-		if f, ok := function.(func(*StageInstanceUpdate)); ok {
-			bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate, f)
+		if f, ok := function.(func(*ChannelPinsUpdate)); ok {
+			bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate, f)
 			return nil
 		}
 
 	case FlagGatewayEventNameThreadCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*ThreadCreate)); ok {
 			bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
-		}
-
-		if f, ok := function.(func(*ThreadDelete)); ok {
-			bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadListSync:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
-		}
-
-		if f, ok := function.(func(*ThreadListSync)); ok {
-			bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadMemberUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
-		}
-
-		if f, ok := function.(func(*ThreadMemberUpdate)); ok {
-			bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadMembersUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_PRESENCES] {
-			bot.Config.IntentSet[FlagIntentGUILD_PRESENCES] = true
-			bot.Config.Intents |= FlagIntentGUILD_PRESENCES
-		}
-
-		if f, ok := function.(func(*ThreadMembersUpdate)); ok {
-			bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate, f)
 			return nil
 		}
 
@@ -624,36 +206,454 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 			return nil
 		}
 
+	case FlagGatewayEventNameThreadDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ThreadDelete)); ok {
+			bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameThreadListSync:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ThreadListSync)); ok {
+			bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameThreadMemberUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ThreadMemberUpdate)); ok {
+			bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameThreadMembersUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] {
+			bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Intents |= FlagIntentGUILDS | FlagIntentGUILD_MEMBERS
+		}
+
+		if f, ok := function.(func(*ThreadMembersUpdate)); ok {
+			bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildCreate)); ok {
+			bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildUpdate)); ok {
+			bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildDelete)); ok {
+			bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildBanAdd:
+		if !bot.Config.IntentSet[FlagIntentGUILD_BANS] {
+			bot.Config.IntentSet[FlagIntentGUILD_BANS] = true
+			bot.Config.Intents |= FlagIntentGUILD_BANS
+		}
+
+		if f, ok := function.(func(*GuildBanAdd)); ok {
+			bot.Handlers.GuildBanAdd = append(bot.Handlers.GuildBanAdd, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildBanRemove:
+		if !bot.Config.IntentSet[FlagIntentGUILD_BANS] {
+			bot.Config.IntentSet[FlagIntentGUILD_BANS] = true
+			bot.Config.Intents |= FlagIntentGUILD_BANS
+		}
+
+		if f, ok := function.(func(*GuildBanRemove)); ok {
+			bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildEmojisUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
+		}
+
+		if f, ok := function.(func(*GuildEmojisUpdate)); ok {
+			bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildStickersUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
+		}
+
+		if f, ok := function.(func(*GuildStickersUpdate)); ok {
+			bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildIntegrationsUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
+		if f, ok := function.(func(*GuildIntegrationsUpdate)); ok {
+			bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildMemberAdd:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if f, ok := function.(func(*GuildMemberAdd)); ok {
+			bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildMemberRemove:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if f, ok := function.(func(*GuildMemberRemove)); ok {
+			bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildMemberUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if f, ok := function.(func(*GuildMemberUpdate)); ok {
+			bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildRoleCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildRoleCreate)); ok {
+			bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildRoleUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildRoleUpdate)); ok {
+			bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildRoleDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildRoleDelete)); ok {
+			bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventCreate)); ok {
+			bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventUpdate)); ok {
+			bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventDelete)); ok {
+			bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventUserAdd:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventUserAdd)); ok {
+			bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventUserRemove:
+		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventUserRemove)); ok {
+			bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameIntegrationCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
+		if f, ok := function.(func(*IntegrationCreate)); ok {
+			bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameIntegrationUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
+		if f, ok := function.(func(*IntegrationUpdate)); ok {
+			bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameIntegrationDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
+		if f, ok := function.(func(*IntegrationDelete)); ok {
+			bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameInviteCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INVITES] {
+			bot.Config.IntentSet[FlagIntentGUILD_INVITES] = true
+			bot.Config.Intents |= FlagIntentGUILD_INVITES
+		}
+
+		if f, ok := function.(func(*InviteCreate)); ok {
+			bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameInviteDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILD_INVITES] {
+			bot.Config.IntentSet[FlagIntentGUILD_INVITES] = true
+			bot.Config.Intents |= FlagIntentGUILD_INVITES
+		}
+
+		if f, ok := function.(func(*InviteDelete)); ok {
+			bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
+		}
+
+		if f, ok := function.(func(*MessageCreate)); ok {
+			bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
+		}
+
+		if f, ok := function.(func(*MessageUpdate)); ok {
+			bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
+		}
+
+		if f, ok := function.(func(*MessageDelete)); ok {
+			bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageDeleteBulk:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGES
+		}
+
+		if f, ok := function.(func(*MessageDeleteBulk)); ok {
+			bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageReactionAdd:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
+		if f, ok := function.(func(*MessageReactionAdd)); ok {
+			bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageReactionRemove:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
+		if f, ok := function.(func(*MessageReactionRemove)); ok {
+			bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageReactionRemoveAll:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
+		if f, ok := function.(func(*MessageReactionRemoveAll)); ok {
+			bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageReactionRemoveEmoji:
+		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
+		if f, ok := function.(func(*MessageReactionRemoveEmoji)); ok {
+			bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji, f)
+			return nil
+		}
+
+	case FlagGatewayEventNamePresenceUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILD_PRESENCES] {
+			bot.Config.IntentSet[FlagIntentGUILD_PRESENCES] = true
+			bot.Config.Intents |= FlagIntentGUILD_PRESENCES
+		}
+
+		if f, ok := function.(func(*PresenceUpdate)); ok {
+			bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameStageInstanceCreate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*StageInstanceCreate)); ok {
+			bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameStageInstanceDelete:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*StageInstanceDelete)); ok {
+			bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameStageInstanceUpdate:
+		if !bot.Config.IntentSet[FlagIntentGUILDS] {
+			bot.Config.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*StageInstanceUpdate)); ok {
+			bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate, f)
+			return nil
+		}
+
 	case FlagGatewayEventNameTypingStart:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*TypingStart)); ok {
-			bot.Handlers.TypingStart = append(bot.Handlers.TypingStart, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameUserUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*UserUpdate)); ok {
-			bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate, f)
-			return nil
-		}
-
-	case FlagGatewayEventNameVoiceServerUpdate:
 		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_TYPING] {
 			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_TYPING] = true
 			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_TYPING
 		}
 
-		if f, ok := function.(func(*VoiceServerUpdate)); ok {
-			bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate, f)
+		if f, ok := function.(func(*TypingStart)); ok {
+			bot.Handlers.TypingStart = append(bot.Handlers.TypingStart, f)
 			return nil
 		}
 
@@ -690,6 +690,46 @@ func (bot *Client) Remove(eventname string, index int) error {
 	defer bot.Handlers.mu.Unlock()
 
 	switch eventname {
+	case FlagGatewayEventNameHello:
+		if len(bot.Handlers.Hello) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.Hello = append(bot.Handlers.Hello[:index], bot.Handlers.Hello[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameReady:
+		if len(bot.Handlers.Ready) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.Ready = append(bot.Handlers.Ready[:index], bot.Handlers.Ready[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameResumed:
+		if len(bot.Handlers.Resumed) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.Resumed = append(bot.Handlers.Resumed[:index], bot.Handlers.Resumed[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameReconnect:
+		if len(bot.Handlers.Reconnect) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.Reconnect = append(bot.Handlers.Reconnect[:index], bot.Handlers.Reconnect[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameInvalidSession:
+		if len(bot.Handlers.InvalidSession) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession[:index], bot.Handlers.InvalidSession[index+1:]...)
+		return nil
+
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		if len(bot.Handlers.ApplicationCommandPermissionsUpdate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
@@ -698,12 +738,52 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate[:index], bot.Handlers.ApplicationCommandPermissionsUpdate[index+1:]...)
 		return nil
 
+	case FlagGatewayEventNameInteractionCreate:
+		if len(bot.Handlers.InteractionCreate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate[:index], bot.Handlers.InteractionCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameVoiceServerUpdate:
+		if len(bot.Handlers.VoiceServerUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate[:index], bot.Handlers.VoiceServerUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildMembersChunk:
+		if len(bot.Handlers.GuildMembersChunk) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk[:index], bot.Handlers.GuildMembersChunk[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameUserUpdate:
+		if len(bot.Handlers.UserUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate[:index], bot.Handlers.UserUpdate[index+1:]...)
+		return nil
+
 	case FlagGatewayEventNameChannelCreate:
 		if len(bot.Handlers.ChannelCreate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
 		}
 
 		bot.Handlers.ChannelCreate = append(bot.Handlers.ChannelCreate[:index], bot.Handlers.ChannelCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameChannelUpdate:
+		if len(bot.Handlers.ChannelUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate[:index], bot.Handlers.ChannelUpdate[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameChannelDelete:
@@ -722,12 +802,76 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate[:index], bot.Handlers.ChannelPinsUpdate[index+1:]...)
 		return nil
 
-	case FlagGatewayEventNameChannelUpdate:
-		if len(bot.Handlers.ChannelUpdate) <= index {
+	case FlagGatewayEventNameThreadCreate:
+		if len(bot.Handlers.ThreadCreate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
 		}
 
-		bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate[:index], bot.Handlers.ChannelUpdate[index+1:]...)
+		bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate[:index], bot.Handlers.ThreadCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadUpdate:
+		if len(bot.Handlers.ThreadUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate[:index], bot.Handlers.ThreadUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadDelete:
+		if len(bot.Handlers.ThreadDelete) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete[:index], bot.Handlers.ThreadDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadListSync:
+		if len(bot.Handlers.ThreadListSync) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync[:index], bot.Handlers.ThreadListSync[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadMemberUpdate:
+		if len(bot.Handlers.ThreadMemberUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate[:index], bot.Handlers.ThreadMemberUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameThreadMembersUpdate:
+		if len(bot.Handlers.ThreadMembersUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate[:index], bot.Handlers.ThreadMembersUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildCreate:
+		if len(bot.Handlers.GuildCreate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate[:index], bot.Handlers.GuildCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildUpdate:
+		if len(bot.Handlers.GuildUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate[:index], bot.Handlers.GuildUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildDelete:
+		if len(bot.Handlers.GuildDelete) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete[:index], bot.Handlers.GuildDelete[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameGuildBanAdd:
@@ -746,28 +890,20 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove[:index], bot.Handlers.GuildBanRemove[index+1:]...)
 		return nil
 
-	case FlagGatewayEventNameGuildCreate:
-		if len(bot.Handlers.GuildCreate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate[:index], bot.Handlers.GuildCreate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameGuildDelete:
-		if len(bot.Handlers.GuildDelete) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete[:index], bot.Handlers.GuildDelete[index+1:]...)
-		return nil
-
 	case FlagGatewayEventNameGuildEmojisUpdate:
 		if len(bot.Handlers.GuildEmojisUpdate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
 		}
 
 		bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate[:index], bot.Handlers.GuildEmojisUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildStickersUpdate:
+		if len(bot.Handlers.GuildStickersUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate[:index], bot.Handlers.GuildStickersUpdate[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameGuildIntegrationsUpdate:
@@ -802,28 +938,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate[:index], bot.Handlers.GuildMemberUpdate[index+1:]...)
 		return nil
 
-	case FlagGatewayEventNameGuildMembersChunk:
-		if len(bot.Handlers.GuildMembersChunk) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk[:index], bot.Handlers.GuildMembersChunk[index+1:]...)
-		return nil
-
 	case FlagGatewayEventNameGuildRoleCreate:
 		if len(bot.Handlers.GuildRoleCreate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
 		}
 
 		bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate[:index], bot.Handlers.GuildRoleCreate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameGuildRoleDelete:
-		if len(bot.Handlers.GuildRoleDelete) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete[:index], bot.Handlers.GuildRoleDelete[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameGuildRoleUpdate:
@@ -834,6 +954,14 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate[:index], bot.Handlers.GuildRoleUpdate[index+1:]...)
 		return nil
 
+	case FlagGatewayEventNameGuildRoleDelete:
+		if len(bot.Handlers.GuildRoleDelete) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete[:index], bot.Handlers.GuildRoleDelete[index+1:]...)
+		return nil
+
 	case FlagGatewayEventNameGuildScheduledEventCreate:
 		if len(bot.Handlers.GuildScheduledEventCreate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
@@ -842,20 +970,20 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate[:index], bot.Handlers.GuildScheduledEventCreate[index+1:]...)
 		return nil
 
-	case FlagGatewayEventNameGuildScheduledEventDelete:
-		if len(bot.Handlers.GuildScheduledEventDelete) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete[:index], bot.Handlers.GuildScheduledEventDelete[index+1:]...)
-		return nil
-
 	case FlagGatewayEventNameGuildScheduledEventUpdate:
 		if len(bot.Handlers.GuildScheduledEventUpdate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
 		}
 
 		bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate[:index], bot.Handlers.GuildScheduledEventUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameGuildScheduledEventDelete:
+		if len(bot.Handlers.GuildScheduledEventDelete) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete[:index], bot.Handlers.GuildScheduledEventDelete[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameGuildScheduledEventUserAdd:
@@ -874,44 +1002,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove[:index], bot.Handlers.GuildScheduledEventUserRemove[index+1:]...)
 		return nil
 
-	case FlagGatewayEventNameGuildStickersUpdate:
-		if len(bot.Handlers.GuildStickersUpdate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate[:index], bot.Handlers.GuildStickersUpdate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameGuildUpdate:
-		if len(bot.Handlers.GuildUpdate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate[:index], bot.Handlers.GuildUpdate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameHello:
-		if len(bot.Handlers.Hello) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.Hello = append(bot.Handlers.Hello[:index], bot.Handlers.Hello[index+1:]...)
-		return nil
-
 	case FlagGatewayEventNameIntegrationCreate:
 		if len(bot.Handlers.IntegrationCreate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
 		}
 
 		bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate[:index], bot.Handlers.IntegrationCreate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameIntegrationDelete:
-		if len(bot.Handlers.IntegrationDelete) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete[:index], bot.Handlers.IntegrationDelete[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameIntegrationUpdate:
@@ -922,20 +1018,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate[:index], bot.Handlers.IntegrationUpdate[index+1:]...)
 		return nil
 
-	case FlagGatewayEventNameInteractionCreate:
-		if len(bot.Handlers.InteractionCreate) <= index {
+	case FlagGatewayEventNameIntegrationDelete:
+		if len(bot.Handlers.IntegrationDelete) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
 		}
 
-		bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate[:index], bot.Handlers.InteractionCreate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameInvalidSession:
-		if len(bot.Handlers.InvalidSession) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession[:index], bot.Handlers.InvalidSession[index+1:]...)
+		bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete[:index], bot.Handlers.IntegrationDelete[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameInviteCreate:
@@ -960,6 +1048,14 @@ func (bot *Client) Remove(eventname string, index int) error {
 		}
 
 		bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate[:index], bot.Handlers.MessageCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameMessageUpdate:
+		if len(bot.Handlers.MessageUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate[:index], bot.Handlers.MessageUpdate[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameMessageDelete:
@@ -1010,44 +1106,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji[:index], bot.Handlers.MessageReactionRemoveEmoji[index+1:]...)
 		return nil
 
-	case FlagGatewayEventNameMessageUpdate:
-		if len(bot.Handlers.MessageUpdate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate[:index], bot.Handlers.MessageUpdate[index+1:]...)
-		return nil
-
 	case FlagGatewayEventNamePresenceUpdate:
 		if len(bot.Handlers.PresenceUpdate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
 		}
 
 		bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate[:index], bot.Handlers.PresenceUpdate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameReady:
-		if len(bot.Handlers.Ready) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.Ready = append(bot.Handlers.Ready[:index], bot.Handlers.Ready[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameReconnect:
-		if len(bot.Handlers.Reconnect) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.Reconnect = append(bot.Handlers.Reconnect[:index], bot.Handlers.Reconnect[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameResumed:
-		if len(bot.Handlers.Resumed) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.Resumed = append(bot.Handlers.Resumed[:index], bot.Handlers.Resumed[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameStageInstanceCreate:
@@ -1074,76 +1138,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate[:index], bot.Handlers.StageInstanceUpdate[index+1:]...)
 		return nil
 
-	case FlagGatewayEventNameThreadCreate:
-		if len(bot.Handlers.ThreadCreate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate[:index], bot.Handlers.ThreadCreate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameThreadDelete:
-		if len(bot.Handlers.ThreadDelete) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete[:index], bot.Handlers.ThreadDelete[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameThreadListSync:
-		if len(bot.Handlers.ThreadListSync) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync[:index], bot.Handlers.ThreadListSync[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameThreadMemberUpdate:
-		if len(bot.Handlers.ThreadMemberUpdate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate[:index], bot.Handlers.ThreadMemberUpdate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameThreadMembersUpdate:
-		if len(bot.Handlers.ThreadMembersUpdate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate[:index], bot.Handlers.ThreadMembersUpdate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameThreadUpdate:
-		if len(bot.Handlers.ThreadUpdate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate[:index], bot.Handlers.ThreadUpdate[index+1:]...)
-		return nil
-
 	case FlagGatewayEventNameTypingStart:
 		if len(bot.Handlers.TypingStart) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
 		}
 
 		bot.Handlers.TypingStart = append(bot.Handlers.TypingStart[:index], bot.Handlers.TypingStart[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameUserUpdate:
-		if len(bot.Handlers.UserUpdate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate[:index], bot.Handlers.UserUpdate[index+1:]...)
-		return nil
-
-	case FlagGatewayEventNameVoiceServerUpdate:
-		if len(bot.Handlers.VoiceServerUpdate) <= index {
-			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
-		}
-
-		bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate[:index], bot.Handlers.VoiceServerUpdate[index+1:]...)
 		return nil
 
 	case FlagGatewayEventNameVoiceStateUpdate:
@@ -1172,6 +1172,61 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	defer bot.Handlers.mu.RUnlock()
 
 	switch eventname {
+	case FlagGatewayEventNameHello:
+		var event *Hello
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameHello, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.Hello {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameReady:
+		var event *Ready
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameReady, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.Ready {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameResumed:
+		var event *Resumed
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameResumed, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.Resumed {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameReconnect:
+		var event *Reconnect
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameReconnect, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.Reconnect {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameInvalidSession:
+		var event *InvalidSession
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameInvalidSession, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.InvalidSession {
+			go handler(event)
+		}
+
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		var event *ApplicationCommandPermissionsUpdate
 		if err := json.Unmarshal(data, event); err != nil {
@@ -1183,6 +1238,50 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
+	case FlagGatewayEventNameInteractionCreate:
+		var event *InteractionCreate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.InteractionCreate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameVoiceServerUpdate:
+		var event *VoiceServerUpdate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.VoiceServerUpdate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameGuildMembersChunk:
+		var event *GuildMembersChunk
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.GuildMembersChunk {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameUserUpdate:
+		var event *UserUpdate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.UserUpdate {
+			go handler(event)
+		}
+
 	case FlagGatewayEventNameChannelCreate:
 		var event *ChannelCreate
 		if err := json.Unmarshal(data, event); err != nil {
@@ -1191,6 +1290,17 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 		for _, handler := range bot.Handlers.ChannelCreate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameChannelUpdate:
+		var event *ChannelUpdate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameChannelUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.ChannelUpdate {
 			go handler(event)
 		}
 
@@ -1216,14 +1326,102 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
-	case FlagGatewayEventNameChannelUpdate:
-		var event *ChannelUpdate
+	case FlagGatewayEventNameThreadCreate:
+		var event *ThreadCreate
 		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameChannelUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
 		}
 
-		for _, handler := range bot.Handlers.ChannelUpdate {
+		for _, handler := range bot.Handlers.ThreadCreate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameThreadUpdate:
+		var event *ThreadUpdate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.ThreadUpdate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameThreadDelete:
+		var event *ThreadDelete
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.ThreadDelete {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameThreadListSync:
+		var event *ThreadListSync
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadListSync, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.ThreadListSync {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameThreadMemberUpdate:
+		var event *ThreadMemberUpdate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.ThreadMemberUpdate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameThreadMembersUpdate:
+		var event *ThreadMembersUpdate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadMembersUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.ThreadMembersUpdate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameGuildCreate:
+		var event *GuildCreate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.GuildCreate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameGuildUpdate:
+		var event *GuildUpdate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.GuildUpdate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameGuildDelete:
+		var event *GuildDelete
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.GuildDelete {
 			go handler(event)
 		}
 
@@ -1249,28 +1447,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
-	case FlagGatewayEventNameGuildCreate:
-		var event *GuildCreate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.GuildCreate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameGuildDelete:
-		var event *GuildDelete
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.GuildDelete {
-			go handler(event)
-		}
-
 	case FlagGatewayEventNameGuildEmojisUpdate:
 		var event *GuildEmojisUpdate
 		if err := json.Unmarshal(data, event); err != nil {
@@ -1279,6 +1455,17 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 		for _, handler := range bot.Handlers.GuildEmojisUpdate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameGuildStickersUpdate:
+		var event *GuildStickersUpdate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildStickersUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.GuildStickersUpdate {
 			go handler(event)
 		}
 
@@ -1326,17 +1513,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
-	case FlagGatewayEventNameGuildMembersChunk:
-		var event *GuildMembersChunk
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.GuildMembersChunk {
-			go handler(event)
-		}
-
 	case FlagGatewayEventNameGuildRoleCreate:
 		var event *GuildRoleCreate
 		if err := json.Unmarshal(data, event); err != nil {
@@ -1345,17 +1521,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 		for _, handler := range bot.Handlers.GuildRoleCreate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameGuildRoleDelete:
-		var event *GuildRoleDelete
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildRoleDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.GuildRoleDelete {
 			go handler(event)
 		}
 
@@ -1370,6 +1535,17 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
+	case FlagGatewayEventNameGuildRoleDelete:
+		var event *GuildRoleDelete
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildRoleDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.GuildRoleDelete {
+			go handler(event)
+		}
+
 	case FlagGatewayEventNameGuildScheduledEventCreate:
 		var event *GuildScheduledEventCreate
 		if err := json.Unmarshal(data, event); err != nil {
@@ -1381,17 +1557,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
-	case FlagGatewayEventNameGuildScheduledEventDelete:
-		var event *GuildScheduledEventDelete
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.GuildScheduledEventDelete {
-			go handler(event)
-		}
-
 	case FlagGatewayEventNameGuildScheduledEventUpdate:
 		var event *GuildScheduledEventUpdate
 		if err := json.Unmarshal(data, event); err != nil {
@@ -1400,6 +1565,17 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 		for _, handler := range bot.Handlers.GuildScheduledEventUpdate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventDelete:
+		var event *GuildScheduledEventDelete
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.GuildScheduledEventDelete {
 			go handler(event)
 		}
 
@@ -1425,39 +1601,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
-	case FlagGatewayEventNameGuildStickersUpdate:
-		var event *GuildStickersUpdate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildStickersUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.GuildStickersUpdate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameGuildUpdate:
-		var event *GuildUpdate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.GuildUpdate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameHello:
-		var event *Hello
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameHello, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.Hello {
-			go handler(event)
-		}
-
 	case FlagGatewayEventNameIntegrationCreate:
 		var event *IntegrationCreate
 		if err := json.Unmarshal(data, event); err != nil {
@@ -1466,17 +1609,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 		for _, handler := range bot.Handlers.IntegrationCreate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameIntegrationDelete:
-		var event *IntegrationDelete
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameIntegrationDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.IntegrationDelete {
 			go handler(event)
 		}
 
@@ -1491,25 +1623,14 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
-	case FlagGatewayEventNameInteractionCreate:
-		var event *InteractionCreate
+	case FlagGatewayEventNameIntegrationDelete:
+		var event *IntegrationDelete
 		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameIntegrationDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
 		}
 
-		for _, handler := range bot.Handlers.InteractionCreate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameInvalidSession:
-		var event *InvalidSession
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameInvalidSession, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.InvalidSession {
+		for _, handler := range bot.Handlers.IntegrationDelete {
 			go handler(event)
 		}
 
@@ -1543,6 +1664,17 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 		for _, handler := range bot.Handlers.MessageCreate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameMessageUpdate:
+		var event *MessageUpdate
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.MessageUpdate {
 			go handler(event)
 		}
 
@@ -1612,17 +1744,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
-	case FlagGatewayEventNameMessageUpdate:
-		var event *MessageUpdate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.MessageUpdate {
-			go handler(event)
-		}
-
 	case FlagGatewayEventNamePresenceUpdate:
 		var event *PresenceUpdate
 		if err := json.Unmarshal(data, event); err != nil {
@@ -1631,39 +1752,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 		for _, handler := range bot.Handlers.PresenceUpdate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameReady:
-		var event *Ready
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameReady, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.Ready {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameReconnect:
-		var event *Reconnect
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameReconnect, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.Reconnect {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameResumed:
-		var event *Resumed
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameResumed, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.Resumed {
 			go handler(event)
 		}
 
@@ -1700,72 +1788,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
-	case FlagGatewayEventNameThreadCreate:
-		var event *ThreadCreate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.ThreadCreate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameThreadDelete:
-		var event *ThreadDelete
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.ThreadDelete {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameThreadListSync:
-		var event *ThreadListSync
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadListSync, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.ThreadListSync {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameThreadMemberUpdate:
-		var event *ThreadMemberUpdate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.ThreadMemberUpdate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameThreadMembersUpdate:
-		var event *ThreadMembersUpdate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadMembersUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.ThreadMembersUpdate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameThreadUpdate:
-		var event *ThreadUpdate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.ThreadUpdate {
-			go handler(event)
-		}
-
 	case FlagGatewayEventNameTypingStart:
 		var event *TypingStart
 		if err := json.Unmarshal(data, event); err != nil {
@@ -1774,28 +1796,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 		for _, handler := range bot.Handlers.TypingStart {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameUserUpdate:
-		var event *UserUpdate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.UserUpdate {
-			go handler(event)
-		}
-
-	case FlagGatewayEventNameVoiceServerUpdate:
-		var event *VoiceServerUpdate
-		if err := json.Unmarshal(data, event); err != nil {
-			log.Println(ErrorEvent{Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
-			return
-		}
-
-		for _, handler := range bot.Handlers.VoiceServerUpdate {
 			go handler(event)
 		}
 
