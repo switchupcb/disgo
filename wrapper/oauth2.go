@@ -3,6 +3,7 @@ package wrapper
 import (
 	"encoding/base64"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -37,7 +38,7 @@ func GenerateAuthorizationURL(bot *Client, response string) string {
 
 	// redirect_uri is the URL registered while creating the application.
 	if bot.Authorization.RedirectURI != "" {
-		params = append(params, "redirect_uri="+bot.Authorization.RedirectURI)
+		params = append(params, "redirect_uri="+url.QueryEscape(bot.Authorization.RedirectURI))
 	}
 
 	// state is the unique string mentioned in State and Security.
@@ -93,7 +94,7 @@ func GenerateBotAuthorizationURL(p BotAuthParams) string {
 	// other than the guild_id.
 	params = append(params, "disable_guild_select="+strconv.FormatBool(p.DisableGuildSelect))
 
-	return GenerateAuthorizationURL(p.Bot, p.ResponseType) + strings.Join(params, "&")
+	return GenerateAuthorizationURL(p.Bot, p.ResponseType) + "&" + strings.Join(params, "&")
 }
 
 // AuthorizationCodeGrant performs an OAuth2 authorization code grant.

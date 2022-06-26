@@ -48,7 +48,7 @@ Each example has a **README**.
 | [cache](/_examples/shard/)        | Uses the cache manually.         |
 | [ratelimit](/_examples/ratelimit) | Uses a custom rate limiter.      |
 
-This [example](/_examples/main) creates a bot that creates an application command and handles it.
+The following [example](/_examples/main) creates a bot that creates an application command and handles it.
 
 ## Configuration
 
@@ -88,16 +88,10 @@ if err != nil {
 Create an **event handler** and add it to the **bot**.
 
 ```go
-// Define an event handler.
-handler := disgo.EventHandler{
-    Event: disgo.EventInteractionCreate,
-    Call: func (i disgo.ResourceInteraction) {
-        log.Printf("main called by %s", i.User.Username)
-    },
-}
-
-// Add the event handler to the bot.
-bot.Add(handler)
+// Add an event handler to the bot.
+bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i disgo.InteractionCreate) {
+	log.Printf("main called by %s", i.User.Username)
+})
 ```
 
 ### Output
@@ -179,8 +173,8 @@ Disgo is the easiest Discord Go API for developers to use and contribute to. You
 
 | Library   | Contribution                                                                                                                                                                                                                              | Lines of Code to Maintain |
 | :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
-| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 1K/10K                    |
-| DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | 10K/10K                   |
+| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 3K/11K                    |
+| DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | 11K/11K                   |
 | Disgord   | Contribution Guidelines, No Linter, ORM, Not Feature Complete                                                                                                                                                                             | ?/30K                     |
 
 ## Ecosystem
@@ -194,7 +188,7 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 | Library                                          | Description                                             |
 | :----------------------------------------------- | :------------------------------------------------------ |
 | [Copygen](https://github.com/switchupcb/copygen) | Generate custom type-based code.                        |
-| [Dasgo](https://github.com/switchupcb/dasgo)     | Go Struct Type Definitions for Discord.                 |
+| [Dasgo](https://github.com/switchupcb/dasgo)     | Go Type Definitions for the Discord API.                |
 | Disgo Template                                   | Get started on a Discord Bot with this Disgo Framework. |
 
 ### Credits
@@ -203,5 +197,6 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 | :---------------------------------------- | :------------------------------------ |
 | [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Dasgo, Requests |
 | [Thomas Rogers](https://github.com/t-rog) | Dasgo                                 |
+| [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                 |
 
 _Earn a credit! [Contribute Now](_contribution/CONTRIBUTING.md)._

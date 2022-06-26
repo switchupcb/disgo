@@ -3,66 +3,69 @@ package wrapper
 // Discord API Endpoints
 const (
 	EndpointBaseURL = "https://discord.com/api/v9/"
-	typing          = "typing"
-	members         = "members"
-	recipients      = "recipients"
+	commands        = "commands"
+	permissions     = "permissions"
 	prune           = "prune"
-	github          = "github"
-	guilds          = "guilds"
-	public          = "public"
-	reactions       = "reactions"
-	integrations    = "integrations"
-	messages        = "messages"
-	followers       = "followers"
-	active          = "active"
-	member          = "member"
-	applications    = "applications"
-	me              = "@me"
-	threadmembers   = "thread-members"
-	nick            = "nick"
-	widgetjson      = "widget.json"
-	welcomescreen   = "welcome-screen"
-	gateway         = "gateway"
-	authorize       = "authorize"
-	threads         = "threads"
-	archived        = "archived"
-	search          = "search"
-	slack           = "slack"
-	slash           = "/"
-	emojis          = "emojis"
+	auditlogs       = "audit-logs"
 	stageinstances  = "stage-instances"
-	connections     = "connections"
-	token           = "token"
-	channels        = "channels"
-	private         = "private"
+	gateway         = "gateway"
+	applications    = "applications"
+	automoderation  = "auto-moderation"
+	threads         = "threads"
+	active          = "active"
+	bulkdelete      = "bulk-delete"
+	public          = "public"
 	preview         = "preview"
-	widgetpng       = "widget.png"
-	stickerpacks    = "sticker-packs"
-	crosspost       = "crosspost"
-	invites         = "invites"
+	member          = "member"
+	private         = "private"
+	emojis          = "emojis"
+	scheduledevents = "scheduled-events"
+	messages        = "messages"
+	reactions       = "reactions"
+	bans            = "bans"
+	authorize       = "authorize"
+	pins            = "pins"
+	search          = "search"
+	roles           = "roles"
 	vanityurl       = "vanity-url"
 	voice           = "voice"
-	revoke          = "revoke"
-	commands        = "commands"
-	original        = "@original"
-	pins            = "pins"
-	bans            = "bans"
-	regions         = "regions"
 	widget          = "widget"
-	interactions    = "interactions"
-	roles           = "roles"
-	voicestates     = "voice-states"
-	oauth           = "oauth2"
+	widgetpng       = "widget.png"
 	stickers        = "stickers"
-	permissions     = "permissions"
-	callback        = "callback"
-	webhooks        = "webhooks"
-	auditlogs       = "audit-logs"
-	bulkdelete      = "bulk-delete"
+	rules           = "rules"
 	templates       = "templates"
-	users           = "users"
-	scheduledevents = "scheduled-events"
 	bot             = "bot"
+	token           = "token"
+	typing          = "typing"
+	threadmembers   = "thread-members"
+	archived        = "archived"
+	widgetjson      = "widget.json"
+	github          = "github"
+	guilds          = "guilds"
+	interactions    = "interactions"
+	connections     = "connections"
+	slack           = "slack"
+	me              = "@me"
+	members         = "members"
+	mfa             = "mfa"
+	integrations    = "integrations"
+	stickerpacks    = "sticker-packs"
+	webhooks        = "webhooks"
+	channels        = "channels"
+	voicestates     = "voice-states"
+	revoke          = "revoke"
+	slash           = "/"
+	callback        = "callback"
+	crosspost       = "crosspost"
+	invites         = "invites"
+	regions         = "regions"
+	welcomescreen   = "welcome-screen"
+	oauth           = "oauth2"
+	original        = "@original"
+	followers       = "followers"
+	recipients      = "recipients"
+	users           = "users"
+	nick            = "nick"
 )
 
 // EndpointGetGlobalApplicationCommands builds a query for an HTTP request.
@@ -188,6 +191,31 @@ func EndpointDeleteFollowupMessage(applicationid, interactiontoken, messageid st
 // EndpointGetGuildAuditLog builds a query for an HTTP request.
 func EndpointGetGuildAuditLog(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + auditlogs
+}
+
+// EndpointListAutoModerationRulesForGuild builds a query for an HTTP request.
+func EndpointListAutoModerationRulesForGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + automoderation + slash + rules
+}
+
+// EndpointGetAutoModerationRule builds a query for an HTTP request.
+func EndpointGetAutoModerationRule(guildid, automoderationruleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + automoderation + slash + rules + slash + automoderationruleid
+}
+
+// EndpointCreateAutoModerationRule builds a query for an HTTP request.
+func EndpointCreateAutoModerationRule(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + automoderation + slash + rules
+}
+
+// EndpointModifyAutoModerationRule builds a query for an HTTP request.
+func EndpointModifyAutoModerationRule(guildid, automoderationruleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + automoderation + slash + rules + slash + automoderationruleid
+}
+
+// EndpointDeleteAutoModerationRule builds a query for an HTTP request.
+func EndpointDeleteAutoModerationRule(guildid, automoderationruleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + automoderation + slash + rules + slash + automoderationruleid
 }
 
 // EndpointGetChannel builds a query for an HTTP request.
@@ -608,6 +636,11 @@ func EndpointModifyGuildRolePositions(guildid string) string {
 // EndpointModifyGuildRole builds a query for an HTTP request.
 func EndpointModifyGuildRole(guildid, roleid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + roles + slash + roleid
+}
+
+// EndpointModifyGuildMFALevel builds a query for an HTTP request.
+func EndpointModifyGuildMFALevel(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + mfa
 }
 
 // EndpointDeleteGuildRole builds a query for an HTTP request.
