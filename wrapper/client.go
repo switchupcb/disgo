@@ -95,10 +95,11 @@ const (
 // DefaultConfig returns a default client configuration.
 func DefaultConfig() *Config {
 	c := new(Config)
+	c.Client = new(fasthttp.Client)
 	c.Client.Name = defaultUserAgent
 	c.Timeout = defaultRequestTimeout
-	c.Retries = 1
+	c.Retries = 0
 	c.RateLimiter = RateLimit{}
-	
+
 	return c
 }

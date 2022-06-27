@@ -17,3 +17,6 @@ _gen/input*
 !_gen/tools/*
 !_gen/gen.exe
 
+# Environment Variables
+.env
+

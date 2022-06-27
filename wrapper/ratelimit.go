@@ -31,7 +31,7 @@ type Bucket struct {
 // RateLimit provides concurrency-safe rate limit functionality by implementing the RateLimiter interface.
 type RateLimit struct {
 	// buckets represents a synchronized map of buckets to rate limiters (map[string]*Bucket).
-	buckets *sync.Map
+	buckets sync.Map
 }
 
 func (r RateLimit) GetBucket(id string) *Bucket {

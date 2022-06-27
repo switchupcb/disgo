@@ -8,6 +8,8 @@ require (
 	github.com/valyala/fasthttp v1.35.0
 )
 
+require github.com/joho/godotenv v1.4.0 // indirect
+
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/klauspost/compress v1.15.1 // indirect
