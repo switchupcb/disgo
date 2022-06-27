@@ -9,7 +9,6 @@ import (
 	json "github.com/goccy/go-json"
 	"github.com/gorilla/schema"
 	"github.com/valyala/fasthttp"
-	"golang.org/x/time/rate"
 )
 
 // Conversion Constants.
@@ -65,10 +64,10 @@ var (
 
 var (
 	// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
-	// TODO: requires clarification on whether Discord uses:
-	// 	A. rolling rate limit which allows 50 burst then a request every 1/50th second.
-	// 	B. bucket rate limit which allows one burst request every 1/50th second.
-	GlobalRateLimit = rate.NewLimiter(rate.Limit(FlagGlobalRequestRateLimit), FlagGlobalRequestRateLimit)
+	GlobalRateLimit = &Bucket{
+		Limit:     50,
+		Remaining: 50,
+	}
 )
 
 var (
@@ -144,7 +143,7 @@ SEND:
 	switch response.StatusCode() {
 	case fasthttp.StatusOK:
 		// process the ratelimit.
-		if ratelimit == nil || time.Now().After(ratelimit.Expiry) {
+		if len(request.Header.PeekBytes(headerRateLimit)) != 0 && (ratelimit == nil || time.Now().After(ratelimit.Expiry)) {
 			header, err := peekHeaderRateLimit(response)
 			if err != nil {
 				return fmt.Errorf("%w", err)
@@ -156,7 +155,9 @@ SEND:
 				Expiry:    time.Unix(header.Reset, 0),
 			})
 		} else {
-			ratelimit.Remaining--
+			if ratelimit != nil {
+				ratelimit.Remaining--
+			}
 		}
 
 		// parse the response data.
@@ -179,6 +180,7 @@ SEND:
 			return fmt.Errorf("%w", err)
 		}
 
+		fmt.Println("429 PARSED HEADER", header, "PARSED RETRY AFTER", retryafter)
 		// expire the current ratelimit immediately (unless it's global).
 		if !header.Global {
 			ratelimit = nil
@@ -215,32 +217,32 @@ SEND:
 
 // peekHeaderRateLimit peeks an HTTP Header for Rate Limit Header values.
 func peekHeaderRateLimit(r *fasthttp.Response) (*RateLimitHeader, error) {
-	// TODO: Ensure correct []byte to int, int64, float64, bool conversion.
+	// TODO: Fix Discord Failure to send certain headers.
 	fmt.Println(r.Header.String())
 
 	limit, err := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimit)))
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred converting a rate limit header to an int:\n%w", err)
+		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimit), err)
 	}
 
 	remaining, err := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimitRemaining)))
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred converting a rate limit header to an int:\n%w", err)
+		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimitRemaining), err)
 	}
 
 	reset, err := strconv.ParseInt(string(r.Header.PeekBytes(headerRateLimitReset)), base10, bit64)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred converting a rate limit header to an int64:\n%w", err)
+		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimitReset), err)
 	}
 
 	resetafter, err := strconv.ParseFloat(string(r.Header.PeekBytes(headerRateLimitResetAfter)), bit64)
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred converting a rate limit header to a float64:\n%w", err)
+		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimitResetAfter), err)
 	}
 
 	global, err := strconv.ParseBool(string(r.Header.PeekBytes(headerRateLimitGlobal)))
 	if err != nil {
-		return nil, fmt.Errorf("an error occurred converting a rate limit header to a bool:\n%w", err)
+		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimitGlobal), err)
 	}
 
 	ratelimit := &RateLimitHeader{
@@ -260,7 +262,7 @@ func peekHeaderRateLimit(r *fasthttp.Response) (*RateLimitHeader, error) {
 func peekHeader429(r *fasthttp.Response) (int64, error) {
 	retryafter, err := strconv.ParseInt(string(r.Header.PeekBytes(headerRateLimitRetryAfter)), base10, bit64)
 	if err != nil {
-		return 0, fmt.Errorf("an error occurred converting a rate limit header to an int64:\n%w", err)
+		return 0, fmt.Errorf(ErrRateLimit, string(headerRateLimitRetryAfter), err)
 	}
 
 	return retryafter, nil
