@@ -36,6 +36,7 @@ linters:
     - interfacer # Deprecated
     - scopelint # Deprecated
     - maligned # Deprecated
+    - exhaustivestruct # Deprecated
 
 linters-settings:
   revive:

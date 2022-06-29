@@ -2,6 +2,7 @@ package wrapper
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 	"strconv"
 	"time"
@@ -65,9 +66,12 @@ var (
 var (
 	// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
 	GlobalRateLimit = &Bucket{
-		Limit:     50,
-		Remaining: 50,
+		Limit:     FlagGlobalRequestRateLimit,
+		Remaining: FlagGlobalRequestRateLimit,
 	}
+
+	// second is a temporary variable representing a second accounted for estimated latency.
+	second = time.Second + time.Second/50*5
 )
 
 var (
@@ -95,6 +99,7 @@ func EndpointQueryString(dst any) (string, error) {
 // SendRequest sends a fasthttp.Request using the given URI, HTTP method, content type and body,
 // then parses the response into dst.
 func SendRequest(bot *Client, method, uri string, content, body []byte, dst any) error {
+	retries := 0
 	request := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(request)
 	request.Header.SetMethod(method)
@@ -102,29 +107,112 @@ func SendRequest(bot *Client, method, uri string, content, body []byte, dst any)
 	request.Header.Set(headerAuthorizationKey, bot.Authentication.Header)
 	request.SetRequestURI(uri)
 	request.SetBodyRaw(body)
-
-	// receive the response from the request.
 	response := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(response)
 
-	// send the request.
-	retries := 0
+RATELIMIT:
+	// check the global rate limit prior to sending the request.
+	bot.Config.GlobalRateLimit.mu.Lock()
 
-	// check the ratelimit of the request.
-	ratelimit := bot.Config.RateLimiter.GetBucket("bucket???")
-	if ratelimit != nil {
-		// when no requests remain in the rate limit bucket,
-		// wait until the bucket resets to send a request.
-		if ratelimit.Remaining == 0 {
-			<-time.After(time.Until(ratelimit.Expiry))
-		}
+	// when priority is set to true, it indicates that
+	// a pending request is waiting to be sent first.
+	if bot.Config.GlobalRateLimit.Priority > 0 {
+		// unlock and re-lock this request's mutex to give the pending request priority
+		// by sending this request (and subsequent requests) after that pending request.
+		bot.Config.GlobalRateLimit.mu.Unlock()
+
+		goto RATELIMIT
 	}
 
-	// TODO: Handle Global Rate Limit.
+	// when no requests remain in the global rate limit bucket,
+	// wait until the bucket resets to send a request.
+	if bot.Config.GlobalRateLimit.Remaining == 0 {
+		// expiry is zero when the bot has NEVER received a response from Discord.
+		if bot.Config.GlobalRateLimit.Expiry.IsZero() {
+			// a rate limit bucket with a limit of 0 indicates that
+			// the bot has NEVER sent a response to Discord.
+			if bot.Config.GlobalRateLimit.Limit == 0 {
+				bot.Config.GlobalRateLimit.mu.Unlock()
+				return fmt.Errorf("cannot use a global rate limit bucket with a Limit of zero")
+			}
+
+			// wait until Discord receives the first response of a request.
+			log.Println("This loop only works with a print statement.")
+			for {
+				if !bot.Config.GlobalRateLimit.Expiry.IsZero() {
+					// wait until the current bucket expires, then reset it.
+					<-time.After(time.Until(bot.Config.GlobalRateLimit.Expiry))
+					bot.Config.GlobalRateLimit.Expiry = bot.Config.GlobalRateLimit.Expiry.Add(second)
+					bot.Config.GlobalRateLimit.Remaining = bot.Config.GlobalRateLimit.Limit - 1
+					bot.Config.GlobalRateLimit.mu.Unlock()
+
+					goto SEND
+
+				}
+			}
+		} else {
+			// when the expiry time is known, the request will be sent in a specific order.
+			<-time.After(time.Until(bot.Config.GlobalRateLimit.Expiry))
+			bot.Config.GlobalRateLimit.Expiry = bot.Config.GlobalRateLimit.Expiry.Add(second)
+			bot.Config.GlobalRateLimit.Remaining = bot.Config.GlobalRateLimit.Limit
+
+			// if the request was blocked due to regular bucket expiry, send it.
+			if bot.Config.GlobalRateLimit.Priority == 0 {
+				bot.Config.GlobalRateLimit.Remaining--
+				bot.Config.GlobalRateLimit.mu.Unlock()
+
+				goto SEND
+			}
+
+			// if the request was blocked due to a 429 rate limit, re-queue it.
+			bot.Config.GlobalRateLimit.mu.Unlock()
+
+			goto RATELIMIT
+		}
+	} else if !bot.Config.GlobalRateLimit.Expiry.IsZero() && time.Now().After(bot.Config.GlobalRateLimit.Expiry) {
+		// reset the global rate limit bucket when the current time has passed its expiry.
+		bot.Config.GlobalRateLimit.Expiry = bot.Config.GlobalRateLimit.Expiry.Add(second)
+		bot.Config.GlobalRateLimit.Remaining = bot.Config.GlobalRateLimit.Limit - 1
+		bot.Config.GlobalRateLimit.mu.Unlock()
+
+		goto SEND
+	}
+
+	bot.Config.GlobalRateLimit.Remaining--
+	bot.Config.GlobalRateLimit.mu.Unlock()
+
+	goto SEND
+
+PRIORITY:
+	// ensure that the first request to read a 429 header is sent first,
+	// and followed by subsequent requests.
+	bot.Config.GlobalRateLimit.mu.Lock()
+
+	// ensure that the first request is sent after "Retry-After" seconds,
+	// if there were no subsequent requests queued.
+	<-time.After(time.Until(bot.Config.GlobalRateLimit.Expiry))
+	if bot.Config.GlobalRateLimit.Remaining == 0 {
+		bot.Config.GlobalRateLimit.Expiry = bot.Config.GlobalRateLimit.Expiry.Add(second)
+		bot.Config.GlobalRateLimit.Remaining = bot.Config.GlobalRateLimit.Limit
+	}
+
+	bot.Config.GlobalRateLimit.Priority--
+	bot.Config.GlobalRateLimit.Remaining--
+	bot.Config.GlobalRateLimit.mu.Unlock()
 
 SEND:
+	// send the request.
 	if err := bot.Config.Client.DoTimeout(request, response, bot.Config.Timeout); err != nil {
 		return fmt.Errorf("%w", err)
+	}
+
+	// Set the expiry when the bot has received its FIRST response from Discord.
+	//
+	// Expiry will ONLY be set (multiple times) within the FIRST BUCKET of responses,
+	// which may result in the FIRST BUCKET expiring late. However, this is fine since
+	// subsequent buckets will be consistent with the exact rate limit.
+	if bot.Config.GlobalRateLimit.Expiry.IsZero() {
+		bot.Config.GlobalRateLimit.Expiry = time.Now().Add(second)
 	}
 
 	// follow redirects.
@@ -142,24 +230,6 @@ SEND:
 	// handle the response.
 	switch response.StatusCode() {
 	case fasthttp.StatusOK:
-		// process the ratelimit.
-		if len(request.Header.PeekBytes(headerRateLimit)) != 0 && (ratelimit == nil || time.Now().After(ratelimit.Expiry)) {
-			header, err := peekHeaderRateLimit(response)
-			if err != nil {
-				return fmt.Errorf("%w", err)
-			}
-
-			bot.Config.RateLimiter.SetBucket(header.Bucket, &Bucket{
-				Limit:     header.Limit,
-				Remaining: header.Remaining,
-				Expiry:    time.Unix(header.Reset, 0),
-			})
-		} else {
-			if ratelimit != nil {
-				ratelimit.Remaining--
-			}
-		}
-
 		// parse the response data.
 		if err := json.Unmarshal(response.Body(), dst); err != nil {
 			return fmt.Errorf("%w", err)
@@ -167,35 +237,37 @@ SEND:
 
 		return nil
 
-	// process the ratelimit.
+	// process the rate limit.
 	case fasthttp.StatusTooManyRequests:
-		// peek the header to ensure the encountered rate limit is NOT global.
-		header, err := peekHeaderRateLimit(response)
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
 		retryafter, err := peekHeader429(response)
 		if err != nil {
 			return fmt.Errorf("%w", err)
 		}
-
+		header := peekHeaderRateLimit(response)
+		timeAt429 := time.Now()
 		fmt.Println("429 PARSED HEADER", header, "PARSED RETRY AFTER", retryafter)
-		// expire the current ratelimit immediately (unless it's global).
-		if !header.Global {
-			ratelimit = nil
-		} else {
-			// TODO: Handle Global Rate Limit Trigger.
-		}
 
-		// wait until the "Retry-After" header to retry the request.
-		<-time.After(time.Second * time.Duration(retryafter))
+		retry := retries < bot.Config.Retries
+		retries++
 
-		// send another request (which sets a valid rate limit bucket).
-		if retries < bot.Config.Retries {
-			retries++
+		// expire the current rate limit immediately.
+		if header.Global {
+			bot.Config.GlobalRateLimit.mu.Lock()
+			bot.Config.GlobalRateLimit.Remaining = 0
 
-			goto SEND
+			// set the global rate limit expiry such that the next request
+			// will be sent after "Retry-After" seconds.
+			bot.Config.GlobalRateLimit.Expiry = timeAt429.Add(time.Second * time.Duration(retryafter))
+
+			if retry {
+				// set priority to indicate that this request has priority when the bucket resets.
+				bot.Config.GlobalRateLimit.Priority++
+				bot.Config.GlobalRateLimit.mu.Unlock()
+
+				goto PRIORITY
+			}
+
+			bot.Config.GlobalRateLimit.mu.Unlock()
 		}
 
 		return StatusCodeError(fasthttp.StatusTooManyRequests)
@@ -205,7 +277,7 @@ SEND:
 		if retries < bot.Config.Retries {
 			retries++
 
-			goto SEND
+			goto RATELIMIT
 		}
 
 		return StatusCodeError(fasthttp.StatusBadGateway)
@@ -216,36 +288,14 @@ SEND:
 }
 
 // peekHeaderRateLimit peeks an HTTP Header for Rate Limit Header values.
-func peekHeaderRateLimit(r *fasthttp.Response) (*RateLimitHeader, error) {
-	// TODO: Fix Discord Failure to send certain headers.
-	fmt.Println(r.Header.String())
+func peekHeaderRateLimit(r *fasthttp.Response) *RateLimitHeader {
+	limit, _ := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimit)))
+	remaining, _ := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimitRemaining)))
+	reset, _ := strconv.ParseInt(string(r.Header.PeekBytes(headerRateLimitReset)), base10, bit64)
+	resetafter, _ := strconv.ParseFloat(string(r.Header.PeekBytes(headerRateLimitResetAfter)), bit64)
+	global, _ := strconv.ParseBool(string(r.Header.PeekBytes(headerRateLimitGlobal)))
 
-	limit, err := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimit)))
-	if err != nil {
-		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimit), err)
-	}
-
-	remaining, err := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimitRemaining)))
-	if err != nil {
-		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimitRemaining), err)
-	}
-
-	reset, err := strconv.ParseInt(string(r.Header.PeekBytes(headerRateLimitReset)), base10, bit64)
-	if err != nil {
-		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimitReset), err)
-	}
-
-	resetafter, err := strconv.ParseFloat(string(r.Header.PeekBytes(headerRateLimitResetAfter)), bit64)
-	if err != nil {
-		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimitResetAfter), err)
-	}
-
-	global, err := strconv.ParseBool(string(r.Header.PeekBytes(headerRateLimitGlobal)))
-	if err != nil {
-		return nil, fmt.Errorf(ErrRateLimit, string(headerRateLimitGlobal), err)
-	}
-
-	ratelimit := &RateLimitHeader{
+	return &RateLimitHeader{
 		Limit:      limit,
 		Remaining:  remaining,
 		Reset:      reset,
@@ -254,8 +304,6 @@ func peekHeaderRateLimit(r *fasthttp.Response) (*RateLimitHeader, error) {
 		Global:     global,
 		Scope:      string(r.Header.PeekBytes(headerRateLimitScope)),
 	}
-
-	return ratelimit, nil
 }
 
 // peekHeader429 peeks an HTTP Header with a 429 Status Code for the Rate Limit Header "RetryAfter".

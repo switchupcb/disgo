@@ -25,7 +25,9 @@ type RateLimiter interface {
 type Bucket struct {
 	Limit     int
 	Remaining int
+	Priority  int
 	Expiry    time.Time
+	mu        sync.Mutex
 }
 
 // RateLimit provides concurrency-safe rate limit functionality by implementing the RateLimiter interface.
@@ -34,14 +36,14 @@ type RateLimit struct {
 	buckets sync.Map
 }
 
-func (r RateLimit) GetBucket(id string) *Bucket {
+func (r *RateLimit) GetBucket(id string) *Bucket {
 	if v, ok := r.buckets.Load(id); ok {
-		return v.(*Bucket)
+		return v.(*Bucket) //nolint:forcetypeassert
 	}
 
 	return nil
 }
 
-func (r RateLimit) SetBucket(id string, bucket *Bucket) {
+func (r *RateLimit) SetBucket(id string, bucket *Bucket) {
 	r.buckets.Store(id, bucket)
 }

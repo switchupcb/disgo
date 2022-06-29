@@ -10,7 +10,7 @@ import (
 const (
 	module                = "github.com/switchupcb/disgo"
 	defaultUserAgent      = "DiscordBot (https://" + module + ", v" + VersionDiscordAPI + ")"
-	defaultRequestTimeout = time.Second * 3
+	defaultRequestTimeout = time.Second
 )
 
 // Client represents a Discord Application.
@@ -110,6 +110,9 @@ type Config struct {
 
 	// Gateway holds configuration variables that pertain to the Discord Gateway.
 	Gateway Gateway
+
+	// GlobalRateLimit represents a rate limit bucket for global rate limits.
+	GlobalRateLimit *Bucket
 }
 
 // DefaultConfig returns a default client configuration.
@@ -121,7 +124,8 @@ func DefaultConfig() *Config {
 	c.Retries = 1
 	c.Gateway = DefaultGateway(false)
 
-	c.RateLimiter = RateLimit{}
+	c.RateLimiter = new(RateLimit)
+	c.GlobalRateLimit = GlobalRateLimit
 
 	return c
 }

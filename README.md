@@ -2,9 +2,9 @@
 
 _This repository is currently in DEVELOPMENT. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap)._
 
-Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
+Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
 
-**The Next Generation Of Discord API Wrappers**
+**A Next Generation Discord API Wrapper**
 
 High quality code merits easy development. Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. Code generation is used to provide a clean implementation for every request and event. Data race detection is used with _an integration test that covers nearly 100% of the Discord API_ in order to ensure that Disgo is safe for concurrent usage.
 
