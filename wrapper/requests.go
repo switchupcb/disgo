@@ -2,7 +2,6 @@ package wrapper
 
 import (
 	"fmt"
-	"log"
 	"net/url"
 	"strconv"
 	"time"
@@ -71,7 +70,7 @@ var (
 	}
 
 	// second is a temporary variable representing a second accounted for estimated latency.
-	second = time.Second + time.Second/50*5
+	second = time.Second
 )
 
 var (
@@ -112,7 +111,9 @@ func SendRequest(bot *Client, method, uri string, content, body []byte, dst any)
 
 RATELIMIT:
 	// check the global rate limit prior to sending the request.
+	fmt.Println("queued request")
 	bot.Config.GlobalRateLimit.mu.Lock()
+	fmt.Println("unlocked a request in the queue.")
 
 	// when priority is set to true, it indicates that
 	// a pending request is waiting to be sent first.
@@ -124,11 +125,22 @@ RATELIMIT:
 		goto RATELIMIT
 	}
 
+	// reset the global rate limit bucket when the current time has passed its expiry.
+	if !bot.Config.GlobalRateLimit.Expiry.IsZero() && time.Now().After(bot.Config.GlobalRateLimit.Expiry) {
+		fmt.Println("reset expired bucket.")
+		reset(bot.Config.GlobalRateLimit, second)
+	}
+
 	// when no requests remain in the global rate limit bucket,
 	// wait until the bucket resets to send a request.
-	if bot.Config.GlobalRateLimit.Remaining == 0 {
+	bot.Config.GlobalRateLimit.muRem.Lock()
+	if bot.Config.GlobalRateLimit.Remaining <= 0 {
+		bot.Config.GlobalRateLimit.muRem.Unlock()
+
+		fmt.Println("0 remaining... queued.")
 		// expiry is zero when the bot has NEVER received a response from Discord.
 		if bot.Config.GlobalRateLimit.Expiry.IsZero() {
+			fmt.Println("first queued request")
 			// a rate limit bucket with a limit of 0 indicates that
 			// the bot has NEVER sent a response to Discord.
 			if bot.Config.GlobalRateLimit.Limit == 0 {
@@ -137,48 +149,52 @@ RATELIMIT:
 			}
 
 			// wait until Discord receives the first response of a request.
-			log.Println("This loop only works with a print statement.")
+			fmt.Println("waiting for marked expiry")
 			for {
 				if !bot.Config.GlobalRateLimit.Expiry.IsZero() {
-					// wait until the current bucket expires, then reset it.
+					fmt.Println("marked expiry")
 					<-time.After(time.Until(bot.Config.GlobalRateLimit.Expiry))
-					bot.Config.GlobalRateLimit.Expiry = bot.Config.GlobalRateLimit.Expiry.Add(second)
-					bot.Config.GlobalRateLimit.Remaining = bot.Config.GlobalRateLimit.Limit - 1
-					bot.Config.GlobalRateLimit.mu.Unlock()
 
-					goto SEND
+					bot.Config.GlobalRateLimit.muRem.Lock()
+					fmt.Println(time.Now(), "finished wait", bot.Config.GlobalRateLimit.Remaining)
+					reset(bot.Config.GlobalRateLimit, second)
+					fmt.Println("reset bucket with 0 remaining.")
+					bot.Config.GlobalRateLimit.muRem.Unlock()
 
+					fmt.Println("sending first queued request")
+					break
 				}
 			}
 		} else {
-			// when the expiry time is known, the request will be sent in a specific order.
+			fmt.Println("other queued request")
+			// wait until the current bucket expires, then reset it.
 			<-time.After(time.Until(bot.Config.GlobalRateLimit.Expiry))
-			bot.Config.GlobalRateLimit.Expiry = bot.Config.GlobalRateLimit.Expiry.Add(second)
-			bot.Config.GlobalRateLimit.Remaining = bot.Config.GlobalRateLimit.Limit
+			bot.Config.GlobalRateLimit.muRem.Lock()
+			reset(bot.Config.GlobalRateLimit, second)
+			bot.Config.GlobalRateLimit.muRem.Unlock()
+		}
 
-			// if the request was blocked due to regular bucket expiry, send it.
-			if bot.Config.GlobalRateLimit.Priority == 0 {
-				bot.Config.GlobalRateLimit.Remaining--
-				bot.Config.GlobalRateLimit.mu.Unlock()
-
-				goto SEND
-			}
-
-			// if the request was blocked due to a 429 rate limit, re-queue it.
+		// if the request was blocked due to regular bucket expiry, send it.
+		if bot.Config.GlobalRateLimit.Priority == 0 {
+			bot.Config.GlobalRateLimit.muRem.Lock()
+			bot.Config.GlobalRateLimit.Remaining--
+			bot.Config.GlobalRateLimit.muRem.Unlock()
 			bot.Config.GlobalRateLimit.mu.Unlock()
 
-			goto RATELIMIT
+			goto SEND
 		}
-	} else if !bot.Config.GlobalRateLimit.Expiry.IsZero() && time.Now().After(bot.Config.GlobalRateLimit.Expiry) {
-		// reset the global rate limit bucket when the current time has passed its expiry.
-		bot.Config.GlobalRateLimit.Expiry = bot.Config.GlobalRateLimit.Expiry.Add(second)
-		bot.Config.GlobalRateLimit.Remaining = bot.Config.GlobalRateLimit.Limit - 1
+
+		// if the request was blocked due to a 429 rate limit, re-queue it.
+		bot.Config.GlobalRateLimit.muRem.Lock()
+		bot.Config.GlobalRateLimit.Remaining--
+		bot.Config.GlobalRateLimit.muRem.Unlock()
 		bot.Config.GlobalRateLimit.mu.Unlock()
 
-		goto SEND
+		goto RATELIMIT
 	}
 
 	bot.Config.GlobalRateLimit.Remaining--
+	bot.Config.GlobalRateLimit.muRem.Unlock()
 	bot.Config.GlobalRateLimit.mu.Unlock()
 
 	goto SEND
@@ -191,20 +207,20 @@ PRIORITY:
 	// ensure that the first request is sent after "Retry-After" seconds,
 	// if there were no subsequent requests queued.
 	<-time.After(time.Until(bot.Config.GlobalRateLimit.Expiry))
-	if bot.Config.GlobalRateLimit.Remaining == 0 {
-		bot.Config.GlobalRateLimit.Expiry = bot.Config.GlobalRateLimit.Expiry.Add(second)
-		bot.Config.GlobalRateLimit.Remaining = bot.Config.GlobalRateLimit.Limit
-	}
-
-	bot.Config.GlobalRateLimit.Priority--
+	bot.Config.GlobalRateLimit.muRem.Lock()
+	reset(bot.Config.GlobalRateLimit, second)
 	bot.Config.GlobalRateLimit.Remaining--
+	bot.Config.GlobalRateLimit.muRem.Unlock()
+	bot.Config.GlobalRateLimit.Priority--
 	bot.Config.GlobalRateLimit.mu.Unlock()
 
 SEND:
 	// send the request.
+	fmt.Println(time.Now(), "sent")
 	if err := bot.Config.Client.DoTimeout(request, response, bot.Config.Timeout); err != nil {
 		return fmt.Errorf("%w", err)
 	}
+	fmt.Println("received", time.Now())
 
 	// Set the expiry when the bot has received its FIRST response from Discord.
 	//
@@ -213,6 +229,16 @@ SEND:
 	// subsequent buckets will be consistent with the exact rate limit.
 	if bot.Config.GlobalRateLimit.Expiry.IsZero() {
 		bot.Config.GlobalRateLimit.Expiry = time.Now().Add(second)
+		fmt.Println("set expiry to ", bot.Config.GlobalRateLimit.Expiry)
+	}
+
+	// if a request was received AFTER the rate limit bucket expired,
+	// it occurred in the next rate limit bucket.
+	if time.Now().After(bot.Config.GlobalRateLimit.Expiry) {
+		fmt.Println("received after")
+		bot.Config.GlobalRateLimit.muRem.Lock()
+		bot.Config.GlobalRateLimit.Remaining--
+		bot.Config.GlobalRateLimit.muRem.Unlock()
 	}
 
 	// follow redirects.
@@ -253,7 +279,9 @@ SEND:
 		// expire the current rate limit immediately.
 		if header.Global {
 			bot.Config.GlobalRateLimit.mu.Lock()
+			bot.Config.GlobalRateLimit.muRem.Lock()
 			bot.Config.GlobalRateLimit.Remaining = 0
+			bot.Config.GlobalRateLimit.muRem.Unlock()
 
 			// set the global rate limit expiry such that the next request
 			// will be sent after "Retry-After" seconds.
@@ -314,4 +342,15 @@ func peekHeader429(r *fasthttp.Response) (int64, error) {
 	}
 
 	return retryafter, nil
+}
+
+func reset(bucket *Bucket, t time.Duration) {
+	fmt.Println("old expiry of reset bucket at ", bucket.Expiry)
+	bucket.Expiry = bucket.Expiry.Add(t)
+	fmt.Println("new expiry of reset bucket at ", bucket.Expiry)
+	if bucket.Remaining > 0 {
+		bucket.Remaining = bucket.Limit
+	} else {
+		bucket.Remaining += bucket.Limit
+	}
 }

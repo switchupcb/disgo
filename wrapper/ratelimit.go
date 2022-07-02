@@ -28,6 +28,7 @@ type Bucket struct {
 	Priority  int
 	Expiry    time.Time
 	mu        sync.Mutex
+	muRem     sync.RWMutex
 }
 
 // RateLimit provides concurrency-safe rate limit functionality by implementing the RateLimiter interface.
