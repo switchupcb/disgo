@@ -16,7 +16,7 @@ func TestGlobalRateLimit(t *testing.T) {
 
 	// prepare the request.
 	request := new(GetCurrentBotApplicationInformation)
-	requests := 101
+	requests := 151
 
 	// prepare the test tracking variables.
 	errs := make(chan error)
