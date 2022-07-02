@@ -23,12 +23,12 @@ type RateLimiter interface {
 
 // Bucket represents a Discord API Rate Limit Bucket.
 type Bucket struct {
-	Limit     int
-	Remaining int
+	Limit     int64
+	Remaining int64
 	Priority  int
 	Expiry    time.Time
 	mu        sync.Mutex
-	muRem     sync.RWMutex
+	muExpiry  sync.RWMutex
 }
 
 // RateLimit provides concurrency-safe rate limit functionality by implementing the RateLimiter interface.
