@@ -2,13 +2,12 @@ package wrapper
 
 import (
 	"fmt"
-	"net/url"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
 	json "github.com/goccy/go-json"
-	"github.com/gorilla/schema"
 	"github.com/valyala/fasthttp"
 )
 
@@ -61,6 +60,10 @@ var (
 
 	// headerRetryAfter represents a byte representation of "Retry-After" for HTTP Header functionality.
 	headerRateLimitRetryAfter = []byte("Retry-After")
+
+	// headerDate represents a byte representation of "Date" for HTTP Header functionality.
+	headerDate       = []byte("Date")
+	headerDateString = "Date:"
 )
 
 var (
@@ -69,264 +72,7 @@ var (
 		Limit:     FlagGlobalRequestRateLimit,
 		Remaining: FlagGlobalRequestRateLimit,
 	}
-
-	// second is a temporary variable representing a second accounted for estimated latency.
-	second = time.Second
 )
-
-var (
-	// qsEncoder is used to create URL Query Strings from objects.
-	qsEncoder = schema.NewEncoder()
-)
-
-// init runs at the start of the program.
-func init() {
-	// use `url` tags for the URL Query String encoder and decoder.
-	qsEncoder.SetAliasTag("url")
-}
-
-// EndpointQueryString returns a URL Query String from a given object.
-func EndpointQueryString(dst any) (string, error) {
-	params := url.Values{}
-	err := qsEncoder.Encode(dst, params)
-	if err != nil {
-		return "", err //nolint:wrapcheck
-	}
-
-	return params.Encode(), nil
-}
-
-// SendRequest sends a fasthttp.Request using the given URI, HTTP method, content type and body,
-// then parses the response into dst.
-func SendRequest(bot *Client, method, uri string, content, body []byte, dst any) error {
-	retries := 0
-	request := fasthttp.AcquireRequest()
-	defer fasthttp.ReleaseRequest(request)
-	request.Header.SetMethod(method)
-	request.Header.SetContentTypeBytes(content)
-	request.Header.Set(headerAuthorizationKey, bot.Authentication.Header)
-	request.SetRequestURI(uri)
-	request.SetBodyRaw(body)
-	response := fasthttp.AcquireResponse()
-	defer fasthttp.ReleaseResponse(response)
-
-RATELIMIT:
-	// check the global rate limit prior to sending the request.
-	fmt.Println("queued request")
-	bot.Config.GlobalRateLimit.mu.Lock()
-	fmt.Println("unlocked a request in the queue.")
-
-	// when priority is set to true, it indicates that
-	// a pending request is waiting to be sent first.
-	if bot.Config.GlobalRateLimit.Priority > 0 {
-		// unlock and re-lock this request's mutex to give the pending request priority
-		// by sending this request (and subsequent requests) after that pending request.
-		bot.Config.GlobalRateLimit.mu.Unlock()
-
-		goto RATELIMIT
-	}
-
-	// reset the global rate limit bucket when the current time has passed its expiry.
-	bot.Config.GlobalRateLimit.muExpiry.RLock()
-	if !bot.Config.GlobalRateLimit.Expiry.IsZero() && time.Now().After(bot.Config.GlobalRateLimit.Expiry) {
-		bot.Config.GlobalRateLimit.muExpiry.RUnlock()
-		reset(bot.Config.GlobalRateLimit, second)
-		fmt.Println("reset expired bucket.")
-	} else {
-		bot.Config.GlobalRateLimit.muExpiry.RUnlock()
-	}
-
-	// when no requests remain in the global rate limit bucket,
-	// wait until the bucket resets to send a request.
-	if atomic.LoadInt64(&bot.Config.GlobalRateLimit.Remaining) <= 0 {
-		fmt.Println("0 remaining... queued.")
-
-		// expiry is zero when the bot has NEVER received a response from Discord.
-		bot.Config.GlobalRateLimit.muExpiry.RLock()
-		if bot.Config.GlobalRateLimit.Expiry.IsZero() {
-			bot.Config.GlobalRateLimit.muExpiry.RUnlock()
-
-			fmt.Println("first queued request")
-
-			// a rate limit bucket with a limit of 0 indicates that
-			// the bot has NEVER sent a response to Discord.
-			if bot.Config.GlobalRateLimit.Limit == 0 {
-				bot.Config.GlobalRateLimit.mu.Unlock()
-				return fmt.Errorf("cannot use a global rate limit bucket with a Limit of zero")
-			}
-
-			// wait until Discord receives the first response of a request.
-			fmt.Println("waiting for marked expiry")
-			for {
-				bot.Config.GlobalRateLimit.muExpiry.RLock()
-				if !bot.Config.GlobalRateLimit.Expiry.IsZero() {
-					expiry := bot.Config.GlobalRateLimit.Expiry
-					fmt.Println("marked expiry")
-					bot.Config.GlobalRateLimit.muExpiry.RUnlock()
-
-					<-time.After(time.Until(expiry))
-					fmt.Println(time.Now(), "finished wait", atomic.LoadInt64(&bot.Config.GlobalRateLimit.Remaining))
-					reset(bot.Config.GlobalRateLimit, second)
-					fmt.Println("reset bucket with 0 remaining and sending first queued request.")
-
-					break
-				}
-				bot.Config.GlobalRateLimit.muExpiry.RUnlock()
-			}
-		} else {
-			// wait until the current bucket expires, then reset it.
-			fmt.Println("other queued request")
-			expiry := bot.Config.GlobalRateLimit.Expiry
-			bot.Config.GlobalRateLimit.muExpiry.RUnlock()
-
-			<-time.After(time.Until(expiry))
-			reset(bot.Config.GlobalRateLimit, second)
-		}
-
-		// if the request was blocked due to regular bucket expiry, send it.
-		if bot.Config.GlobalRateLimit.Priority == 0 {
-			atomic.AddInt64(&bot.Config.GlobalRateLimit.Remaining, -1)
-			bot.Config.GlobalRateLimit.mu.Unlock()
-
-			goto SEND
-		}
-
-		// if the request was blocked due to a 429 rate limit, re-queue it.
-		atomic.AddInt64(&bot.Config.GlobalRateLimit.Remaining, -1)
-		bot.Config.GlobalRateLimit.mu.Unlock()
-
-		goto RATELIMIT
-	}
-
-	atomic.AddInt64(&bot.Config.GlobalRateLimit.Remaining, -1)
-	bot.Config.GlobalRateLimit.mu.Unlock()
-
-	goto SEND
-
-PRIORITY:
-	// ensure that the first request to read a 429 header is sent first,
-	// and followed by subsequent requests.
-	bot.Config.GlobalRateLimit.mu.Lock()
-
-	// ensure that the first request is sent after "Retry-After" seconds,
-	// if there were no subsequent requests queued.
-	bot.Config.GlobalRateLimit.muExpiry.RLock()
-	if !bot.Config.GlobalRateLimit.Expiry.IsZero() {
-		expiry := bot.Config.GlobalRateLimit.Expiry
-		bot.Config.GlobalRateLimit.muExpiry.RUnlock()
-
-		<-time.After(time.Until(expiry))
-	}
-
-	reset(bot.Config.GlobalRateLimit, second)
-	atomic.AddInt64(&bot.Config.GlobalRateLimit.Remaining, -1)
-	bot.Config.GlobalRateLimit.Priority--
-	bot.Config.GlobalRateLimit.mu.Unlock()
-
-SEND:
-	// send the request.
-	fmt.Println(time.Now(), "sent")
-	if err := bot.Config.Client.DoTimeout(request, response, bot.Config.Timeout); err != nil {
-		return fmt.Errorf("%w", err)
-	}
-	fmt.Println("received", time.Now())
-
-	// Set the expiry when the bot has received its FIRST response from Discord.
-	//
-	// Expiry will ONLY be set (multiple times) within the FIRST BUCKET of responses,
-	// which may result in the FIRST BUCKET expiring late. However, this is fine since
-	// subsequent buckets will be consistent with the exact rate limit.
-	bot.Config.GlobalRateLimit.muExpiry.RLock()
-	if bot.Config.GlobalRateLimit.Expiry.IsZero() {
-		bot.Config.GlobalRateLimit.muExpiry.RUnlock()
-		bot.Config.GlobalRateLimit.muExpiry.Lock()
-		bot.Config.GlobalRateLimit.Expiry = time.Now().Add(second)
-		fmt.Println("set expiry to ", bot.Config.GlobalRateLimit.Expiry)
-		bot.Config.GlobalRateLimit.muExpiry.Unlock()
-		bot.Config.GlobalRateLimit.muExpiry.RLock()
-	}
-
-	// if a request was received AFTER the rate limit bucket expired,
-	// it occurred in the next rate limit bucket.
-	if time.Now().After(bot.Config.GlobalRateLimit.Expiry) {
-		fmt.Println("received after")
-		atomic.AddInt64(&bot.Config.GlobalRateLimit.Remaining, -1)
-	}
-	bot.Config.GlobalRateLimit.muExpiry.RUnlock()
-
-	// follow redirects.
-	if fasthttp.StatusCodeIsRedirect(response.StatusCode()) {
-		location := response.Header.PeekBytes(headerLocation)
-		if len(location) == 0 {
-			return fmt.Errorf(ErrRedirect, uri)
-		}
-
-		request.URI().UpdateBytes(location)
-
-		goto SEND
-	}
-
-	// handle the response.
-	switch response.StatusCode() {
-	case fasthttp.StatusOK:
-		// parse the response data.
-		if err := json.Unmarshal(response.Body(), dst); err != nil {
-			return fmt.Errorf("%w", err)
-		}
-
-		return nil
-
-	// process the rate limit.
-	case fasthttp.StatusTooManyRequests:
-		retryafter, err := peekHeader429(response)
-		if err != nil {
-			return fmt.Errorf("%w", err)
-		}
-		header := peekHeaderRateLimit(response)
-		timeAt429 := time.Now()
-		fmt.Println("429 PARSED HEADER", header, "PARSED RETRY AFTER", retryafter)
-
-		retry := retries < bot.Config.Retries
-		retries++
-
-		// expire the current rate limit immediately.
-		if header.Global {
-			bot.Config.GlobalRateLimit.mu.Lock()
-			atomic.StoreInt64(&bot.Config.GlobalRateLimit.Remaining, 0)
-
-			// set the global rate limit expiry such that the next request
-			// will be sent after "Retry-After" seconds.
-			bot.Config.GlobalRateLimit.muExpiry.Lock()
-			bot.Config.GlobalRateLimit.Expiry = timeAt429.Add(time.Second * time.Duration(retryafter))
-			bot.Config.GlobalRateLimit.muExpiry.Unlock()
-
-			if retry {
-				// set priority to indicate that this request has priority when the bucket resets.
-				bot.Config.GlobalRateLimit.Priority++
-				bot.Config.GlobalRateLimit.mu.Unlock()
-
-				goto PRIORITY
-			}
-
-			bot.Config.GlobalRateLimit.mu.Unlock()
-		}
-
-		return StatusCodeError(fasthttp.StatusTooManyRequests)
-
-	// retry the request on a bad gateway server error.
-	case fasthttp.StatusBadGateway:
-		if retries < bot.Config.Retries {
-			retries++
-
-			goto RATELIMIT
-		}
-
-		return StatusCodeError(fasthttp.StatusBadGateway)
-
-	default:
-		return StatusCodeError(response.StatusCode())
-	}
-}
 
 // peekHeaderRateLimit peeks an HTTP Header for Rate Limit Header values.
 func peekHeaderRateLimit(r *fasthttp.Response) *RateLimitHeader {
@@ -357,16 +103,201 @@ func peekHeader429(r *fasthttp.Response) (int64, error) {
 	return retryafter, nil
 }
 
-func reset(bucket *Bucket, t time.Duration) {
-	bucket.muExpiry.Lock()
-	fmt.Println("old expiry of reset bucket at ", bucket.Expiry)
-	bucket.Expiry = bucket.Expiry.Add(t)
-	fmt.Println("new expiry of reset bucket at ", bucket.Expiry)
-	bucket.muExpiry.Unlock()
+// peekDate peeks an HTTP Header for the Date.
+func peekDate(r *fasthttp.Response) (time.Time, error) {
+	// https://github.com/valyala/fasthttp/issues/1339
+	var d string
+	for _, line := range strings.Split(r.Header.String(), "\n") {
+		if strings.Contains(line, headerDateString) {
+			d = line[6 : len(line)-1]
+			break
+		}
+	}
 
-	if atomic.LoadInt64(&bucket.Remaining) > 0 {
-		atomic.StoreInt64(&bucket.Remaining, bucket.Limit)
+	date, err := time.Parse(time.RFC1123, d)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("error occurred parsing the \"Date\" HTTP Header: %v", err)
+	}
+
+	return date, nil
+}
+
+// SendRequest sends a fasthttp.Request using the given URI, HTTP method, content type and body,
+// then parses the response into dst.
+func SendRequest(bot *Client, method, uri string, content, body []byte, dst any) error {
+	retries := 0
+	request := fasthttp.AcquireRequest()
+	defer fasthttp.ReleaseRequest(request)
+	request.Header.SetMethod(method)
+	request.Header.SetContentTypeBytes(content)
+	request.Header.Set(headerAuthorizationKey, bot.Authentication.Header)
+	request.SetRequestURI(uri)
+	request.SetBodyRaw(body)
+	response := fasthttp.AcquireResponse()
+	defer fasthttp.ReleaseResponse(response)
+
+	fmt.Println("queued request")
+
+RATELIMIT:
+	// check the global rate limit prior to sending the request.
+	bot.Config.GlobalRateLimit.mu.Lock()
+	fmt.Println("unlocked a request in the queue.")
+
+	// reset the global rate limit bucket when the current time has passed its expiry.
+	bot.Config.GlobalRateLimit.muExpiry.RLock()
+	if time.Now().After(bot.Config.GlobalRateLimit.Expiry) || time.Now().Equal(bot.Config.GlobalRateLimit.Expiry) {
+		fmt.Println("expiry passed")
+		bot.Config.GlobalRateLimit.muExpiry.RUnlock()
+		bot.Config.GlobalRateLimit.Reset(time.Now().Truncate(time.Second).Add(time.Second))
 	} else {
-		atomic.AddInt64(&bucket.Remaining, bucket.Limit)
+		bot.Config.GlobalRateLimit.muExpiry.RUnlock()
+	}
+
+	// when there are more or equal pending requests compared to the limit.
+	if atomic.LoadInt32(&bot.Config.GlobalRateLimit.Pending) >= GlobalRateLimit.Limit {
+		fmt.Println("requeue request from pending")
+		bot.Config.GlobalRateLimit.mu.Unlock()
+
+		goto RATELIMIT
+	}
+
+	/*
+		// when priority is greater than 0, another request will be sent first.
+		if atomic.LoadInt32(&bot.Config.GlobalRateLimit.Priority) > 0 {
+			fmt.Println("requeue request from priority")
+
+			// unlock and re-lock this request's mutex to give the pending request priority
+			// by sending this request (and subsequent requests) after that pending request.
+			bot.Config.GlobalRateLimit.mu.Unlock()
+
+			goto RATELIMIT
+		}
+	*/
+
+	// when no requests remain in the global rate limit bucket,
+	// wait until the bucket resets to send a request.
+	if atomic.LoadInt32(&bot.Config.GlobalRateLimit.Remaining) <= 0 {
+		fmt.Println("no requests remain")
+
+		// wait until the current bucket expires, then reset it.
+		bot.Config.GlobalRateLimit.muExpiry.RLock()
+		expiry := bot.Config.GlobalRateLimit.Expiry
+		bot.Config.GlobalRateLimit.muExpiry.RUnlock()
+
+		fmt.Println("waiting", expiry, time.Now())
+		<-time.After(time.Until(expiry))
+		fmt.Println("finished waiting.", time.Now())
+		bot.Config.GlobalRateLimit.mu.Unlock()
+
+		goto RATELIMIT
+	}
+
+	bot.Config.GlobalRateLimit.Use(1)
+	bot.Config.GlobalRateLimit.mu.Unlock()
+
+	goto SEND
+
+PRIORITY:
+	// ensure that requests (prompted by 429s) are sent first,
+	// and followed by subsequent requests.
+	bot.Config.GlobalRateLimit.mu.Lock()
+	bot.Config.GlobalRateLimit.Use(1)
+	bot.Config.GlobalRateLimit.mu.Unlock()
+
+SEND:
+	// send the request.
+	sent := time.Now()
+	if err := bot.Config.Client.DoTimeout(request, response, bot.Config.Timeout); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	date, err := peekDate(response)
+	if err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	bot.Config.GlobalRateLimit.mu.Lock()
+	bot.Config.GlobalRateLimit.Confirm(1, date, sent)
+	bot.Config.GlobalRateLimit.mu.Unlock()
+
+	// follow redirects.
+	if fasthttp.StatusCodeIsRedirect(response.StatusCode()) {
+		location := response.Header.PeekBytes(headerLocation)
+		if len(location) == 0 {
+			return fmt.Errorf(ErrRedirect, uri)
+		}
+
+		request.URI().UpdateBytes(location)
+
+		goto SEND
+	}
+
+	// handle the response.
+	switch response.StatusCode() {
+	case fasthttp.StatusOK:
+		// parse the response data.
+		if err := json.Unmarshal(response.Body(), dst); err != nil {
+			return fmt.Errorf("%w", err)
+		}
+
+		return nil
+
+	// process the rate limit.
+	case fasthttp.StatusTooManyRequests:
+		retryafter, err := peekHeader429(response)
+		if err != nil {
+			return fmt.Errorf("%w", err)
+		}
+		header := peekHeaderRateLimit(response)
+
+		var data RateLimitResponse
+		if err := json.Unmarshal(response.Body(), &data); err != nil {
+			return fmt.Errorf("%w", err)
+		}
+
+		fmt.Println("\t429", header, "Retry-After", retryafter, "retry_after", data.RetryAfter)
+		fmt.Println("\n", response.Header.String(), string(response.Body()))
+
+		// add json unmarshal for precision
+		retry := retries < bot.Config.Retries
+		retries++
+
+		// expire the current rate limit immediately.
+		timeAt429 := time.Now()
+		if header.Global {
+			bot.Config.GlobalRateLimit.mu.Lock()
+			atomic.StoreInt32(&bot.Config.GlobalRateLimit.Remaining, 0)
+
+			// set the global rate limit expiry such that the next request
+			// will be sent after "Retry-After" seconds.
+			bot.Config.GlobalRateLimit.muExpiry.Lock()
+			bot.Config.GlobalRateLimit.Expiry = timeAt429.Add(time.Second * time.Duration(retryafter))
+			bot.Config.GlobalRateLimit.muExpiry.Unlock()
+
+			if retry {
+				// set priority to indicate that this request has priority when the bucket resets.
+				// bot.Config.GlobalRateLimit.Priority++
+				bot.Config.GlobalRateLimit.mu.Unlock()
+
+				goto PRIORITY
+			}
+
+			defer bot.Config.GlobalRateLimit.mu.Unlock()
+		}
+
+		return StatusCodeError(fasthttp.StatusTooManyRequests)
+
+	// retry the request on a bad gateway server error.
+	case fasthttp.StatusBadGateway:
+		if retries < bot.Config.Retries {
+			retries++
+
+			goto RATELIMIT
+		}
+
+		return StatusCodeError(fasthttp.StatusBadGateway)
+
+	default:
+		return StatusCodeError(response.StatusCode())
 	}
 }
