@@ -16,7 +16,7 @@ func TestGlobalRateLimit(t *testing.T) {
 
 	// prepare the request.
 	request := new(GetCurrentBotApplicationInformation)
-	requests := 151
+	requests := 51
 
 	// prepare the test tracking variables.
 	errs := make(chan error)
@@ -24,6 +24,12 @@ func TestGlobalRateLimit(t *testing.T) {
 
 	// send 51 requests concurrently.
 	for i := 1; i <= requests; i++ {
+		select {
+		case err := <-errs:
+			t.Fatalf("%v", err)
+		default:
+		}
+
 		go func(id int) {
 			t.Log("Spawned request goroutine", id)
 			app, err := request.Send(bot)
