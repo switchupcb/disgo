@@ -16,8 +16,6 @@ type Bucket struct {
 	Priority  int32
 	Date      time.Time
 	Expiry    time.Time
-	muQueue   sync.Mutex
-	muAtomic  sync.Mutex
 }
 
 // Reset resets a Discord API Rate Limit Bucket and sets its expiry.
@@ -30,8 +28,6 @@ func (b *Bucket) Reset(expiry time.Time) {
 
 // Use uses the given amount of tokens for a Discord API Rate Limit Bucket.
 func (b *Bucket) Use(amount int16) {
-	b.muAtomic.Lock()
-	defer b.muAtomic.Unlock()
 	b.Remaining -= amount
 	b.Pending += amount
 }
@@ -39,9 +35,6 @@ func (b *Bucket) Use(amount int16) {
 // Confirm confirms the usage of a given amount of tokens for a Discord API Rate Limit Bucket,
 // using the bucket's current expiry and given (Discord Header) Date time.
 func (b *Bucket) Confirm(amount int16, date time.Time) {
-	b.muAtomic.Lock()
-	defer b.muAtomic.Unlock()
-
 	b.Pending -= amount
 
 	switch {
@@ -84,20 +77,55 @@ func (b *Bucket) Confirm(amount int16, date time.Time) {
 // RateLimiter is an interface which allows developers to use multi-application architectures,
 // which run multiple applications on separate processes or servers.
 type RateLimiter interface {
-	// GetBucket gets a rate limiter using the given bucket ID.
-	GetBucket(string) *Bucket
+	// GetBucket gets a rate limit Bucket using the Route ID.
+	GetBucket(uint16) *Bucket
 
-	// SetBucket maps a bucket ID to a rate limit bucket.
-	SetBucket(string, *Bucket)
+	// SetBucket maps a rate limit Bucket to a given Route ID.
+	SetBucket(uint16, *Bucket)
+
+	// Lock locks the rate limiter.
+	//
+	// If the lock is already in use, the calling goroutine blocks until the rate limiter is available.
+	//
+	// This prevents multiple requests from being PROCESSED at once, which prevents race conditions.
+	// In other words, a single request is PROCESSED from a rate limiter when Lock is implemented and called.
+	//
+	// This does NOT prevent multiple requests from being SENT at a time.
+	Lock()
+
+	// Unlock unlocks the rate limiter.
+	//
+	// If the rate limiter holds multiple locks, unlocking will unblock another goroutine,
+	// which allows another request to be processed.
+	Unlock()
+
+	// StartTx starts a transaction with the rate limiter.
+	//
+	// If a transaction is already started, the calling goroutine blocks until the rate limiter is available.
+	//
+	// This prevents the transaction (of rate limit Bucket reads and writes) from concurrent manipulation.
+	StartTx()
+
+	// EndTx ends a transaction with the rate limiter.
+	//
+	// If the rate limiter holds multiple transactions, ending one will unblock another goroutine,
+	// which allows another transaction to start.
+	EndTx()
 }
 
 // RateLimit provides concurrency-safe rate limit functionality by implementing the RateLimiter interface.
 type RateLimit struct {
-	// buckets represents a synchronized map of buckets to rate limiters (map[string]*Bucket).
+	// buckets represents a synchronized map of Route IDs to rate limit Buckets (map[uint16]*Bucket).
 	buckets sync.Map
+
+	// muQueue represents a mutex used to process a single request a time.
+	muQueue sync.Mutex
+
+	// muTx represents a mutex used to access multiple rate limit Buckets as a transaction.
+	muTx sync.Mutex
 }
 
-func (r *RateLimit) GetBucket(id string) *Bucket {
+func (r *RateLimit) GetBucket(id uint16) *Bucket {
 	if v, ok := r.buckets.Load(id); ok {
 		return v.(*Bucket) //nolint:forcetypeassert
 	}
@@ -105,6 +133,22 @@ func (r *RateLimit) GetBucket(id string) *Bucket {
 	return nil
 }
 
-func (r *RateLimit) SetBucket(id string, bucket *Bucket) {
+func (r *RateLimit) SetBucket(id uint16, bucket *Bucket) {
 	r.buckets.Store(id, bucket)
+}
+
+func (r *RateLimit) Lock() {
+	r.muQueue.Lock()
+}
+
+func (r *RateLimit) Unlock() {
+	r.muQueue.Unlock()
+}
+
+func (r *RateLimit) StartTx() {
+	r.muTx.Lock()
+}
+
+func (r *RateLimit) EndTx() {
+	r.muTx.Unlock()
 }
