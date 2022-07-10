@@ -14,11 +14,10 @@ func TestGlobalRateLimit(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 	}
-	bot.Config.Retries = 0
 
 	// prepare the request.
 	request := new(GetCurrentBotApplicationInformation)
-	requests := 51
+	requests := 151
 
 	// prepare the test tracking variables.
 	errs := make(chan error)

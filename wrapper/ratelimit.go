@@ -24,80 +24,83 @@ type RateLimiter interface {
 
 // Bucket represents a Discord API Rate Limit Bucket.
 type Bucket struct {
-	Limit     int32
-	Remaining int32
-	Pending   int32
+	Limit     int16
+	Remaining int16
+	Pending   int16
+	Priority  int32
+	Date      time.Time
 	Expiry    time.Time
-	mu        sync.Mutex
-	muExpiry  sync.RWMutex
+	muQueue   sync.Mutex
+	muAtomic  sync.Mutex
 }
 
 // Reset resets a Discord API Rate Limit Bucket and sets its expiry.
 func (b *Bucket) Reset(expiry time.Time) {
-	b.muExpiry.Lock()
 	b.Expiry = expiry
-	b.muExpiry.Unlock()
 
 	// Remaining = Limit - (Pending + Priority Requests)
-	atomic.StoreInt32(&b.Remaining, b.Limit-(atomic.LoadInt32(&b.Pending)))
+	b.Remaining = b.Limit - (b.Pending + int16(atomic.LoadInt32(&b.Priority)))
 	fmt.Println("reset expired bucket at", time.Now(),
-		"\n\tnow", time.Now(), "remain", atomic.LoadInt32(&b.Remaining), "pending", atomic.LoadInt32(&b.Pending),
-		"\n\tto", b.Expiry, "remain", atomic.LoadInt32(&b.Remaining))
+		"\n\tto", b.Expiry, "remain", b.Remaining, "pending", b.Pending, "priority", atomic.LoadInt32(&b.Priority))
 }
 
 // Use uses the given amount of tokens for a Discord API Rate Limit Bucket.
-func (b *Bucket) Use(amount int32) {
-	atomic.AddInt32(&b.Remaining, -amount)
-	atomic.AddInt32(&b.Pending, amount)
-	fmt.Println("sent", time.Now(), atomic.LoadInt32(&b.Remaining), atomic.LoadInt32(&b.Pending))
+func (b *Bucket) Use(amount int16) {
+	b.muAtomic.Lock()
+	defer b.muAtomic.Unlock()
+	b.Remaining -= amount
+	b.Pending += amount
+	fmt.Println("sent", time.Now(), b.Remaining, b.Pending, atomic.LoadInt32(&b.Priority))
 }
 
 // Confirm confirms the usage of a given amount of tokens for a Discord API Rate Limit Bucket,
 // using the bucket's current expiry and given (Discord Header) Date time.
-func (b *Bucket) Confirm(amount int32, date time.Time, temp time.Time) {
+func (b *Bucket) Confirm(amount int16, date time.Time, temp time.Time) {
+	b.muAtomic.Lock()
+	defer b.muAtomic.Unlock()
 	fmt.Println("received", date,
 		"\n\tfrom", temp,
-		"\n\tat", time.Now(), atomic.LoadInt32(&b.Remaining), atomic.LoadInt32(&b.Pending))
-	atomic.AddInt32(&b.Pending, -amount)
+		"\n\tat", time.Now(), b.Remaining, b.Pending, atomic.LoadInt32(&b.Priority))
+	b.Pending -= amount
 
-	// NOTE: The following edge cases are currently optimized for global rate limits.
-	b.muExpiry.RLock()
+	switch {
+	// Date is zero when a request has never been sent to Discord.
+	//
+	// set the Date of the current Bucket to the date of the current Discord Bucket.
+	case b.Date.IsZero():
+		b.Date = date
+		b.Expiry = time.Now().Add(time.Second)
 
-	// when a request was received by Discord AFTER or ON the current rate limit bucket expiry,
-	// account for it the NEXT rate limit bucket.
-	//
-	// i.e Request received by Discord at 4s, Confirmation at 4s, Bucket.Reset() at 4.01s.
-	//
-	// The received pending request (date = 4s) is deducted from the expiring bucket (with expiry = 4s).
-	// As a result, the bucket resets without a pending request at 4.01s which results in one more
-	// remaining request being allocated than allowed in the new bucket (with expiry = 5s).
-	if date.Equal(b.Expiry) {
-		atomic.AddInt32(&b.Remaining, -amount)
-		fmt.Println("\taccount next", date,
-			"\n\t\tnow", time.Now(), atomic.LoadInt32(&b.Remaining), atomic.LoadInt32(&b.Pending),
+	// Date is EQUAL to the Discord Bucket's Date when the request applies to the current Bucket.
+	case b.Date.Equal(date):
+
+	// Date occurs AFTER a Discord Bucket's Date when the request applied to a previous Bucket.
+	case b.Date.After(date):
+		b.Remaining += amount
+		fmt.Println("\taccount prior\n\tDate", b.Date, "Discord Date", date,
+			"\n\t\tnow", time.Now(), b.Remaining, b.Pending, atomic.LoadInt32(&b.Priority),
 			"\n\t\texp", b.Expiry)
-		b.muExpiry.RUnlock()
-		return
-	}
 
-	// when a request was received by Discord BEFORE a rate limit bucket reset,
-	// but not known at time of reset, account for its confirmation in hindsight.
+	// Date occurs BEFORE a Discord Bucket's Date when the request applies to the next Bucket.
 	//
-	// i.e Request received by Discord at 3.9s, Bucket.Reset() at 4s, Confirmation at 4.1s.
-	//
-	// The bucket resets with a pending request at 4s which results in one less remaining request.
-	// However, this pending request was received (date = 3s) in a - now expired - bucket (with expiry = 4s)
-	// so the new bucket (with expiry = 5s) can send one more request than it allocated.
-	if date.Equal(b.Expiry.Add((-time.Second * 2))) {
-		atomic.AddInt32(&b.Remaining, amount)
-		fmt.Println("\taccount prior\n\tdate", date,
-			"\n\t\tnow", time.Now(), atomic.LoadInt32(&b.Remaining), atomic.LoadInt32(&b.Pending),
+	// set the current Bucket to the next Bucket using Date (and reset the new Bucket).
+	case b.Date.Before(date):
+		b.Date = date
+
+		// The EXACT reset period of Discord's Global Rate Limit Bucket will always occur
+		// BEFORE the current Bucket resets (due to this implementation).
+		//
+		// reset the current Bucket with an expiry that occurs a minimum of one second
+		// AFTER the Discord Global Rate Limit Bucket was reset.
+		//
+		// This results in a Bucket's expiry that is eventually consistent with
+		// Discord's Bucket expiry over time (and determined between requests).
+		b.Reset(time.Now().Add(time.Second))
+		b.Remaining -= amount
+		fmt.Println("\taccount next\n\tDate", b.Date, "Discord Date", date,
+			"\n\t\tnow", time.Now(), b.Remaining, b.Pending, atomic.LoadInt32(&b.Priority),
 			"\n\t\texp", b.Expiry)
-		b.muExpiry.RUnlock()
-		return
 	}
-
-	b.muExpiry.RUnlock()
 }
 
 // RateLimit provides concurrency-safe rate limit functionality by implementing the RateLimiter interface.
