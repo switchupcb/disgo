@@ -145,6 +145,16 @@ RATELIMIT:
 
 	for {
 		bot.Config.GlobalRateLimit.muAtomic.Lock()
+
+		// when priority is greater than 0, another request will be sent first.
+		if atomic.LoadInt32(&bot.Config.GlobalRateLimit.Priority) > 0 {
+			bot.Config.GlobalRateLimit.muAtomic.Unlock()
+			bot.Config.GlobalRateLimit.muQueue.Unlock()
+			fmt.Println("requeued request due to priority.")
+
+			goto RATELIMIT
+		}
+
 		// when no requests remain in the global rate limit bucket,
 		// wait until the bucket resets to send a request.
 		if bot.Config.GlobalRateLimit.Remaining > 0 {
@@ -156,17 +166,34 @@ RATELIMIT:
 		// reset the global rate limit bucket when the current Bucket has passed its expiry.
 		if !bot.Config.GlobalRateLimit.Expiry.IsZero() &&
 			time.Now().After(bot.Config.GlobalRateLimit.Expiry) {
-			fmt.Println("expiry passed")
+			fmt.Println("expiry passed in reg")
 			bot.Config.GlobalRateLimit.Reset(time.Now().Add(time.Second))
 		}
 		bot.Config.GlobalRateLimit.muAtomic.Unlock()
 	}
 
+	goto SEND
+
 PRIORITY:
+	for {
+		bot.Config.GlobalRateLimit.muAtomic.Lock()
+		if bot.Config.GlobalRateLimit.Remaining > 0 {
+			bot.Config.GlobalRateLimit.muAtomic.Unlock()
+
+			break
+		}
+
+		if time.Now().After(bot.Config.GlobalRateLimit.Expiry) {
+			fmt.Println("expiry passed in priority")
+			bot.Config.GlobalRateLimit.Reset(time.Now().Add(time.Second))
+		}
+		bot.Config.GlobalRateLimit.muAtomic.Unlock()
+	}
+
+SEND:
 	bot.Config.GlobalRateLimit.Use(1)
 	bot.Config.GlobalRateLimit.muQueue.Unlock()
 
-SEND:
 	// send the request.
 	sent := time.Now()
 	if err := bot.Config.Client.DoTimeout(request, response, bot.Config.Timeout); err != nil {
@@ -204,7 +231,7 @@ SEND:
 
 	// process the rate limit.
 	case fasthttp.StatusTooManyRequests:
-		// increment priority to prevent requests in the queue from being sent.
+		// increment priority to prevent other requests in the queue from being sent.
 		atomic.AddInt32(&bot.Config.GlobalRateLimit.Priority, 1)
 
 		// parse the rate limit header.
@@ -230,13 +257,14 @@ SEND:
 		reset := time.Now().Add(time.Millisecond * time.Duration(data.RetryAfter*1000))
 		if header.Global {
 			bot.Config.GlobalRateLimit.muQueue.Lock()
-			fmt.Println("unlocked 429 from queue at", time.Now(), "\n\treset", reset)
-			if !time.Now().After(reset) {
-				fmt.Println("waiting", data.RetryAfter*1000, "ms due to 429")
-				<-time.After(time.Until(reset))
-				fmt.Println("finished wait due to 429")
-				bot.Config.GlobalRateLimit.Reset(time.Now().Add(time.Second))
+			fmt.Println("processing 429 from queue at", time.Now(), "\n\treset", reset)
+
+			// when the current time is BEFORE the reset time,
+			// the 429 must wait, then reset the Bucket.
+			if time.Now().Before(reset) {
+				bot.Config.GlobalRateLimit.Expiry = reset.Add(time.Second + 1)
 			}
+
 			atomic.AddInt32(&bot.Config.GlobalRateLimit.Priority, -1)
 
 			if retry {
@@ -261,4 +289,8 @@ SEND:
 	default:
 		return StatusCodeError(response.StatusCode())
 	}
+}
+
+// wait waits for a request in a Bucket to be valid for sending.
+func wait(b *Bucket, priority bool) {
 }

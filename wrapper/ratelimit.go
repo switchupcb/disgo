@@ -38,9 +38,10 @@ type Bucket struct {
 func (b *Bucket) Reset(expiry time.Time) {
 	b.Expiry = expiry
 
-	// Remaining = Limit - (Pending + Priority Requests)
-	b.Remaining = b.Limit - (b.Pending + int16(atomic.LoadInt32(&b.Priority)))
+	// Remaining = Limit - Pending
+	b.Remaining = b.Limit - b.Pending
 	fmt.Println("reset expired bucket at", time.Now(),
+		"\n\tdate", b.Date,
 		"\n\tto", b.Expiry, "remain", b.Remaining, "pending", b.Pending, "priority", atomic.LoadInt32(&b.Priority))
 }
 
@@ -69,17 +70,19 @@ func (b *Bucket) Confirm(amount int16, date time.Time, temp time.Time) {
 	// set the Date of the current Bucket to the date of the current Discord Bucket.
 	case b.Date.IsZero():
 		b.Date = date
+
+		// The EXACT reset period of Discord's Global Rate Limit Bucket will always occur
+		// BEFORE the current Bucket resets (due to this implementation).
+		//
+		// reset the current Bucket with an expiry that occurs a minimum of one second
+		// AFTER the Discord Global Rate Limit Bucket will be reset.
+		//
+		// This results in a Bucket's expiry that is eventually consistent with
+		// Discord's Bucket expiry over time (and determined between requests).
 		b.Expiry = time.Now().Add(time.Second)
 
 	// Date is EQUAL to the Discord Bucket's Date when the request applies to the current Bucket.
 	case b.Date.Equal(date):
-
-	// Date occurs AFTER a Discord Bucket's Date when the request applied to a previous Bucket.
-	case b.Date.After(date):
-		b.Remaining += amount
-		fmt.Println("\taccount prior\n\tDate", b.Date, "Discord Date", date,
-			"\n\t\tnow", time.Now(), b.Remaining, b.Pending, atomic.LoadInt32(&b.Priority),
-			"\n\t\texp", b.Expiry)
 
 	// Date occurs BEFORE a Discord Bucket's Date when the request applies to the next Bucket.
 	//
@@ -87,17 +90,17 @@ func (b *Bucket) Confirm(amount int16, date time.Time, temp time.Time) {
 	case b.Date.Before(date):
 		b.Date = date
 
-		// The EXACT reset period of Discord's Global Rate Limit Bucket will always occur
-		// BEFORE the current Bucket resets (due to this implementation).
-		//
-		// reset the current Bucket with an expiry that occurs a minimum of one second
-		// AFTER the Discord Global Rate Limit Bucket was reset.
-		//
-		// This results in a Bucket's expiry that is eventually consistent with
-		// Discord's Bucket expiry over time (and determined between requests).
-		b.Reset(time.Now().Add(time.Second))
-		b.Remaining -= amount
-		fmt.Println("\taccount next\n\tDate", b.Date, "Discord Date", date,
+		// align the current Bucket's expiry to Discord's Bucket expiry.
+		b.Expiry = time.Now().Add(time.Second)
+
+		fmt.Println("\tupdate expired bucket\n\tDate", b.Date, "Discord Date", date,
+			"\n\t\tnow", time.Now(), b.Remaining, b.Pending, atomic.LoadInt32(&b.Priority),
+			"\n\t\texp", b.Expiry)
+
+	// Date occurs AFTER a Discord Bucket's Date when the request applied to a previous Bucket.
+	case b.Date.After(date):
+		b.Remaining += amount
+		fmt.Println("\taccount prior\n\tDate", b.Date, "Discord Date", date,
 			"\n\t\tnow", time.Now(), b.Remaining, b.Pending, atomic.LoadInt32(&b.Priority),
 			"\n\t\texp", b.Expiry)
 	}
