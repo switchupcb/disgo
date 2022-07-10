@@ -140,17 +140,17 @@ func SendRequest(bot *Client, method, uri string, content, body []byte, dst any)
 	defer fasthttp.ReleaseResponse(response)
 
 RATELIMIT:
-	// check the global rate limit prior to sending the request.
-	bot.Config.GlobalRateLimit.muQueue.Lock()
+	// a single request is PROCESSED from a queue at any point in time.
+	bot.Config.RateLimiter.Lock()
 
-	// wait until the request is ready to be sent.
+	// check global and route rate limit Buckets prior to sending the current request.
 	for {
-		bot.Config.GlobalRateLimit.muAtomic.Lock()
+		bot.Config.RateLimiter.StartTx()
 
 		// when priority is greater than 0, another request will be sent first.
 		if atomic.LoadInt32(&bot.Config.GlobalRateLimit.Priority) > 0 {
-			bot.Config.GlobalRateLimit.muAtomic.Unlock()
-			bot.Config.GlobalRateLimit.muQueue.Unlock()
+			bot.Config.RateLimiter.EndTx()
+			bot.Config.RateLimiter.Unlock()
 
 			goto RATELIMIT
 		}
@@ -158,7 +158,7 @@ RATELIMIT:
 		// when no requests remain in the global rate limit bucket,
 		// wait until the bucket resets to send a request.
 		if isEmpty(bot.Config.GlobalRateLimit) {
-			bot.Config.GlobalRateLimit.muAtomic.Unlock()
+			bot.Config.RateLimiter.EndTx()
 
 			break
 		}
@@ -168,17 +168,21 @@ RATELIMIT:
 			bot.Config.GlobalRateLimit.Reset(time.Now().Add(time.Second))
 		}
 
-		bot.Config.GlobalRateLimit.muAtomic.Unlock()
+		bot.Config.RateLimiter.EndTx()
 	}
 
 	goto SEND
 
 PRIORITY:
-	priorityWait(bot.Config.GlobalRateLimit)
+	// priorityWait contains the same functionality as the above for loop,
+	// but without a priority counter check.
+	priorityWait(bot.Config.RateLimiter, bot.Config.GlobalRateLimit)
 
 SEND:
+	bot.Config.RateLimiter.StartTx()
 	bot.Config.GlobalRateLimit.Use(1)
-	bot.Config.GlobalRateLimit.muQueue.Unlock()
+	bot.Config.RateLimiter.EndTx()
+	bot.Config.RateLimiter.Unlock()
 
 	// send the request.
 	if err := bot.Config.Client.DoTimeout(request, response, bot.Config.Timeout); err != nil {
@@ -190,7 +194,9 @@ SEND:
 		return fmt.Errorf("%w", err)
 	}
 
+	bot.Config.RateLimiter.StartTx()
 	bot.Config.GlobalRateLimit.Confirm(1, date)
+	bot.Config.RateLimiter.EndTx()
 
 	// follow redirects.
 	if fasthttp.StatusCodeIsRedirect(response.StatusCode()) {
@@ -236,15 +242,16 @@ SEND:
 		retry := retries < bot.Config.Retries
 		retries++
 
-		bot.Config.GlobalRateLimit.muQueue.Lock()
+		// a single request is PROCESSED from a mutex queue at any point in time.
+		bot.Config.RateLimiter.Lock()
 		if header.Global {
 			// when the current time is BEFORE the reset time,
 			// all requests must wait until the 429 expires.
 			if time.Now().Before(reset) {
-				bot.Config.GlobalRateLimit.muAtomic.Lock()
+				bot.Config.RateLimiter.StartTx()
 				bot.Config.GlobalRateLimit.Remaining = 0
 				bot.Config.GlobalRateLimit.Expiry = reset.Add(time.Second + 1)
-				bot.Config.GlobalRateLimit.muAtomic.Unlock()
+				bot.Config.RateLimiter.EndTx()
 			}
 		}
 
@@ -254,7 +261,7 @@ SEND:
 			goto PRIORITY
 		}
 
-		bot.Config.GlobalRateLimit.muQueue.Unlock()
+		bot.Config.RateLimiter.Unlock()
 
 		return StatusCodeError(fasthttp.StatusTooManyRequests)
 
@@ -274,11 +281,11 @@ SEND:
 }
 
 // priorityWait waits until a priority request is ready to be sent.
-func priorityWait(b *Bucket) {
+func priorityWait(r RateLimiter, b *Bucket) {
 	for {
-		b.muAtomic.Lock()
+		r.StartTx()
 		if isEmpty(b) {
-			b.muAtomic.Unlock()
+			r.EndTx()
 
 			break
 		}
@@ -287,7 +294,7 @@ func priorityWait(b *Bucket) {
 			b.Reset(time.Now().Add(time.Second))
 		}
 
-		b.muAtomic.Unlock()
+		r.EndTx()
 	}
 }
 
