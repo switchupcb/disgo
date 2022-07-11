@@ -18,6 +18,10 @@ type Handlers struct {
 	Reconnect                           []func(*Reconnect)
 	InvalidSession                      []func(*InvalidSession)
 	ApplicationCommandPermissionsUpdate []func(*ApplicationCommandPermissionsUpdate)
+	AutoModerationRuleCreate            []func(*AutoModerationRuleCreate)
+	AutoModerationRuleUpdate            []func(*AutoModerationRuleUpdate)
+	AutoModerationRuleDelete            []func(*AutoModerationRuleDelete)
+	AutoModerationActionExecution       []func(*AutoModerationActionExecution)
 	InteractionCreate                   []func(*InteractionCreate)
 	VoiceServerUpdate                   []func(*VoiceServerUpdate)
 	GuildMembersChunk                   []func(*GuildMembersChunk)
@@ -113,6 +117,50 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		if f, ok := function.(func(*ApplicationCommandPermissionsUpdate)); ok {
 			bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleCreate:
+		if !bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
+			bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+			bot.Config.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
+		}
+
+		if f, ok := function.(func(*AutoModerationRuleCreate)); ok {
+			bot.Handlers.AutoModerationRuleCreate = append(bot.Handlers.AutoModerationRuleCreate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleUpdate:
+		if !bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
+			bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+			bot.Config.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
+		}
+
+		if f, ok := function.(func(*AutoModerationRuleUpdate)); ok {
+			bot.Handlers.AutoModerationRuleUpdate = append(bot.Handlers.AutoModerationRuleUpdate, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleDelete:
+		if !bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
+			bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+			bot.Config.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
+		}
+
+		if f, ok := function.(func(*AutoModerationRuleDelete)); ok {
+			bot.Handlers.AutoModerationRuleDelete = append(bot.Handlers.AutoModerationRuleDelete, f)
+			return nil
+		}
+
+	case FlagGatewayEventNameAutoModerationActionExecution:
+		if !bot.Config.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] {
+			bot.Config.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] = true
+			bot.Config.Intents |= FlagIntentAUTO_MODERATION_EXECUTION
+		}
+
+		if f, ok := function.(func(*AutoModerationActionExecution)); ok {
+			bot.Handlers.AutoModerationActionExecution = append(bot.Handlers.AutoModerationActionExecution, f)
 			return nil
 		}
 
@@ -738,6 +786,38 @@ func (bot *Client) Remove(eventname string, index int) error {
 		bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate[:index], bot.Handlers.ApplicationCommandPermissionsUpdate[index+1:]...)
 		return nil
 
+	case FlagGatewayEventNameAutoModerationRuleCreate:
+		if len(bot.Handlers.AutoModerationRuleCreate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.AutoModerationRuleCreate = append(bot.Handlers.AutoModerationRuleCreate[:index], bot.Handlers.AutoModerationRuleCreate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameAutoModerationRuleUpdate:
+		if len(bot.Handlers.AutoModerationRuleUpdate) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.AutoModerationRuleUpdate = append(bot.Handlers.AutoModerationRuleUpdate[:index], bot.Handlers.AutoModerationRuleUpdate[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameAutoModerationRuleDelete:
+		if len(bot.Handlers.AutoModerationRuleDelete) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.AutoModerationRuleDelete = append(bot.Handlers.AutoModerationRuleDelete[:index], bot.Handlers.AutoModerationRuleDelete[index+1:]...)
+		return nil
+
+	case FlagGatewayEventNameAutoModerationActionExecution:
+		if len(bot.Handlers.AutoModerationActionExecution) <= index {
+			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
+		}
+
+		bot.Handlers.AutoModerationActionExecution = append(bot.Handlers.AutoModerationActionExecution[:index], bot.Handlers.AutoModerationActionExecution[index+1:]...)
+		return nil
+
 	case FlagGatewayEventNameInteractionCreate:
 		if len(bot.Handlers.InteractionCreate) <= index {
 			return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)
@@ -1173,7 +1253,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 
 	switch eventname {
 	case FlagGatewayEventNameHello:
-		var event *Hello
+		event := new(Hello)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameHello, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1195,7 +1275,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameResumed:
-		var event *Resumed
+		event := new(Resumed)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameResumed, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1206,7 +1286,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameReconnect:
-		var event *Reconnect
+		event := new(Reconnect)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameReconnect, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1217,7 +1297,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameInvalidSession:
-		var event *InvalidSession
+		event := new(InvalidSession)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameInvalidSession, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1228,7 +1308,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
-		var event *ApplicationCommandPermissionsUpdate
+		event := new(ApplicationCommandPermissionsUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameApplicationCommandPermissionsUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1238,8 +1318,52 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			go handler(event)
 		}
 
+	case FlagGatewayEventNameAutoModerationRuleCreate:
+		event := new(AutoModerationRuleCreate)
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameAutoModerationRuleCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.AutoModerationRuleCreate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleUpdate:
+		event := new(AutoModerationRuleUpdate)
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameAutoModerationRuleUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.AutoModerationRuleUpdate {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleDelete:
+		event := new(AutoModerationRuleDelete)
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameAutoModerationRuleDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.AutoModerationRuleDelete {
+			go handler(event)
+		}
+
+	case FlagGatewayEventNameAutoModerationActionExecution:
+		event := new(AutoModerationActionExecution)
+		if err := json.Unmarshal(data, event); err != nil {
+			log.Println(ErrorEvent{Event: FlagGatewayEventNameAutoModerationActionExecution, Err: err, Action: ErrorEventActionUnmarshal}.Error())
+			return
+		}
+
+		for _, handler := range bot.Handlers.AutoModerationActionExecution {
+			go handler(event)
+		}
+
 	case FlagGatewayEventNameInteractionCreate:
-		var event *InteractionCreate
+		event := new(InteractionCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1250,7 +1374,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameVoiceServerUpdate:
-		var event *VoiceServerUpdate
+		event := new(VoiceServerUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1261,7 +1385,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildMembersChunk:
-		var event *GuildMembersChunk
+		event := new(GuildMembersChunk)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1272,7 +1396,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameUserUpdate:
-		var event *UserUpdate
+		event := new(UserUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1283,7 +1407,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameChannelCreate:
-		var event *ChannelCreate
+		event := new(ChannelCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameChannelCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1294,7 +1418,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameChannelUpdate:
-		var event *ChannelUpdate
+		event := new(ChannelUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameChannelUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1305,7 +1429,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameChannelDelete:
-		var event *ChannelDelete
+		event := new(ChannelDelete)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameChannelDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1316,7 +1440,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameChannelPinsUpdate:
-		var event *ChannelPinsUpdate
+		event := new(ChannelPinsUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameChannelPinsUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1327,7 +1451,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameThreadCreate:
-		var event *ThreadCreate
+		event := new(ThreadCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1338,7 +1462,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameThreadUpdate:
-		var event *ThreadUpdate
+		event := new(ThreadUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1349,7 +1473,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameThreadDelete:
-		var event *ThreadDelete
+		event := new(ThreadDelete)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1360,7 +1484,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameThreadListSync:
-		var event *ThreadListSync
+		event := new(ThreadListSync)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadListSync, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1371,7 +1495,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameThreadMemberUpdate:
-		var event *ThreadMemberUpdate
+		event := new(ThreadMemberUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1382,7 +1506,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameThreadMembersUpdate:
-		var event *ThreadMembersUpdate
+		event := new(ThreadMembersUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameThreadMembersUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1393,7 +1517,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildCreate:
-		var event *GuildCreate
+		event := new(GuildCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1404,7 +1528,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildUpdate:
-		var event *GuildUpdate
+		event := new(GuildUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1415,7 +1539,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildDelete:
-		var event *GuildDelete
+		event := new(GuildDelete)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1426,7 +1550,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildBanAdd:
-		var event *GuildBanAdd
+		event := new(GuildBanAdd)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildBanAdd, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1437,7 +1561,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildBanRemove:
-		var event *GuildBanRemove
+		event := new(GuildBanRemove)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildBanRemove, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1448,7 +1572,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildEmojisUpdate:
-		var event *GuildEmojisUpdate
+		event := new(GuildEmojisUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildEmojisUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1459,7 +1583,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildStickersUpdate:
-		var event *GuildStickersUpdate
+		event := new(GuildStickersUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildStickersUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1470,7 +1594,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildIntegrationsUpdate:
-		var event *GuildIntegrationsUpdate
+		event := new(GuildIntegrationsUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildIntegrationsUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1481,7 +1605,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildMemberAdd:
-		var event *GuildMemberAdd
+		event := new(GuildMemberAdd)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildMemberAdd, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1492,7 +1616,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildMemberRemove:
-		var event *GuildMemberRemove
+		event := new(GuildMemberRemove)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildMemberRemove, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1503,7 +1627,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildMemberUpdate:
-		var event *GuildMemberUpdate
+		event := new(GuildMemberUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1514,7 +1638,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildRoleCreate:
-		var event *GuildRoleCreate
+		event := new(GuildRoleCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildRoleCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1525,7 +1649,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildRoleUpdate:
-		var event *GuildRoleUpdate
+		event := new(GuildRoleUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildRoleUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1536,7 +1660,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildRoleDelete:
-		var event *GuildRoleDelete
+		event := new(GuildRoleDelete)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildRoleDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1547,7 +1671,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventCreate:
-		var event *GuildScheduledEventCreate
+		event := new(GuildScheduledEventCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1558,7 +1682,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUpdate:
-		var event *GuildScheduledEventUpdate
+		event := new(GuildScheduledEventUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1569,7 +1693,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventDelete:
-		var event *GuildScheduledEventDelete
+		event := new(GuildScheduledEventDelete)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1580,7 +1704,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserAdd:
-		var event *GuildScheduledEventUserAdd
+		event := new(GuildScheduledEventUserAdd)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventUserAdd, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1591,7 +1715,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserRemove:
-		var event *GuildScheduledEventUserRemove
+		event := new(GuildScheduledEventUserRemove)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventUserRemove, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1602,7 +1726,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameIntegrationCreate:
-		var event *IntegrationCreate
+		event := new(IntegrationCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameIntegrationCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1613,7 +1737,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameIntegrationUpdate:
-		var event *IntegrationUpdate
+		event := new(IntegrationUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameIntegrationUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1624,7 +1748,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameIntegrationDelete:
-		var event *IntegrationDelete
+		event := new(IntegrationDelete)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameIntegrationDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1635,7 +1759,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameInviteCreate:
-		var event *InviteCreate
+		event := new(InviteCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameInviteCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1646,7 +1770,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameInviteDelete:
-		var event *InviteDelete
+		event := new(InviteDelete)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameInviteDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1657,7 +1781,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameMessageCreate:
-		var event *MessageCreate
+		event := new(MessageCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1668,7 +1792,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameMessageUpdate:
-		var event *MessageUpdate
+		event := new(MessageUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1679,7 +1803,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameMessageDelete:
-		var event *MessageDelete
+		event := new(MessageDelete)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1690,7 +1814,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameMessageDeleteBulk:
-		var event *MessageDeleteBulk
+		event := new(MessageDeleteBulk)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageDeleteBulk, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1701,7 +1825,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameMessageReactionAdd:
-		var event *MessageReactionAdd
+		event := new(MessageReactionAdd)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageReactionAdd, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1712,7 +1836,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameMessageReactionRemove:
-		var event *MessageReactionRemove
+		event := new(MessageReactionRemove)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageReactionRemove, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1723,7 +1847,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveAll:
-		var event *MessageReactionRemoveAll
+		event := new(MessageReactionRemoveAll)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageReactionRemoveAll, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1734,7 +1858,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveEmoji:
-		var event *MessageReactionRemoveEmoji
+		event := new(MessageReactionRemoveEmoji)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameMessageReactionRemoveEmoji, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1745,7 +1869,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNamePresenceUpdate:
-		var event *PresenceUpdate
+		event := new(PresenceUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNamePresenceUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1756,7 +1880,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameStageInstanceCreate:
-		var event *StageInstanceCreate
+		event := new(StageInstanceCreate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameStageInstanceCreate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1767,7 +1891,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameStageInstanceDelete:
-		var event *StageInstanceDelete
+		event := new(StageInstanceDelete)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameStageInstanceDelete, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1778,7 +1902,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameStageInstanceUpdate:
-		var event *StageInstanceUpdate
+		event := new(StageInstanceUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameStageInstanceUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1789,7 +1913,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameTypingStart:
-		var event *TypingStart
+		event := new(TypingStart)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameTypingStart, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1800,7 +1924,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameVoiceStateUpdate:
-		var event *VoiceStateUpdate
+		event := new(VoiceStateUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameVoiceStateUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
@@ -1811,7 +1935,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameWebhooksUpdate:
-		var event *WebhooksUpdate
+		event := new(WebhooksUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameWebhooksUpdate, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return

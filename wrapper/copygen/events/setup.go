@@ -12,6 +12,14 @@ type Copygen interface {
 	Reconnect(*disgo.Reconnect)
 	InvalidSession(*disgo.InvalidSession)
 	ApplicationCommandPermissionsUpdate(*disgo.ApplicationCommandPermissionsUpdate)
+	// intents FlagIntentAUTO_MODERATION_CONFIGURATION
+	AutoModerationRuleCreate(*disgo.AutoModerationRuleCreate)
+	// intents FlagIntentAUTO_MODERATION_CONFIGURATION
+	AutoModerationRuleUpdate(*disgo.AutoModerationRuleUpdate)
+	// intents FlagIntentAUTO_MODERATION_CONFIGURATION
+	AutoModerationRuleDelete(*disgo.AutoModerationRuleDelete)
+	// intents FlagIntentAUTO_MODERATION_EXECUTION
+	AutoModerationActionExecution(*disgo.AutoModerationActionExecution)
 	InteractionCreate(*disgo.InteractionCreate)
 	VoiceServerUpdate(*disgo.VoiceServerUpdate)
 	GuildMembersChunk(*disgo.GuildMembersChunk)

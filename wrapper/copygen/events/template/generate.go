@@ -192,7 +192,7 @@ func generatehandle(functions []*models.Function) string {
 func generatehandleCase(eventname string) string {
 	var c strings.Builder
 	c.WriteString("case FlagGatewayEventName" + eventname + ":\n")
-	c.WriteString("var event *" + eventname + "\n")
+	c.WriteString("event := new(" + eventname + ")\n")
 	c.WriteString("if err := json.Unmarshal(data, event); err != nil {\n")
 	c.WriteString("log.Println(ErrorEvent{Event: FlagGatewayEventName" + eventname + ", Err: err, Action: ErrorEventActionUnmarshal}.Error())\n")
 	c.WriteString("return\n")
