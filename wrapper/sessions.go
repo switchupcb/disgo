@@ -1,10 +1,13 @@
 package wrapper
 
 import (
+	"bytes"
+	"compress/zlib"
 	"context"
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"runtime"
 	"sync"
@@ -16,6 +19,9 @@ import (
 )
 
 // TODO: ensure disconnections upon unrecoverable errors.
+// TODO: simplify code (make it more readeable and easier to understand and follow)
+// TODO: fix data races
+// TODO: handle generation
 // TODO: ensure conn, write, read is correct with regards to concurrency.
 
 const (
@@ -24,9 +30,6 @@ const (
 	gatewayEncoding           = "json"
 	invalidSessionWaitTime    = 3 * time.Second
 	maxIdentifyLargeThreshold = 250
-	commandIdentify           = "Identify"
-	commandResume             = "Resume"
-	commandHeartbeat          = "Heartbeat"
 )
 
 // Session represents a Discord Gateway WebSocket Session.
@@ -59,6 +62,8 @@ type Session struct {
 
 	// mu represents the session mutex of this session.
 	mu *sessionMutex
+
+	cancel context.CancelFunc
 }
 
 // heartbeat represents the heartbeat mechanism for a session.
@@ -143,7 +148,9 @@ func (bot *Client) Connect(s *Session) error {
 
 	// connect to the Discord Gateway Websocket.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	defer cancel()
+
+	s.cancel = cancel
+	//defer cancel()
 
 	s.Context = &ctx
 	s.Conn, _, err = websocket.Dial(*s.Context, s.Endpoint, nil)
@@ -151,7 +158,7 @@ func (bot *Client) Connect(s *Session) error {
 		return fmt.Errorf("an error occurred while connecting to the Discord Gateway\n%w", err)
 	}
 
-	defer s.Conn.Close(websocket.StatusInternalError, "StatusInternalError")
+	//defer s.Conn.Close(websocket.StatusInternalError, "StatusInternalError")
 
 	// handle the incoming Hello event upon connecting to the Gateway.
 	var payload GatewayPayload
@@ -179,6 +186,7 @@ func (bot *Client) Connect(s *Session) error {
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = r.Application.ID
 		}); err != nil {
+			fmt.Println("disconnecting from bot.Handlers.Ready == 0 : line 176")
 			return s.disconnectFromConnect(ErrorEventHandler{
 				Event:  FlagGatewayEventNameReady,
 				Err:    err,
@@ -216,7 +224,7 @@ func (bot *Client) Connect(s *Session) error {
 			Browser: module,
 			Device:  module,
 		},
-		Compress:       true, // TODO: account for compression
+		Compress:       true,
 		LargeThreshold: maxIdentifyLargeThreshold,
 		Shard:          nil, // SHARD: set shard information using s.Shard.
 		Presence:       *bot.Config.GatewayPresenceUpdate,
@@ -224,19 +232,22 @@ func (bot *Client) Connect(s *Session) error {
 	})
 
 	if err != nil {
+		fmt.Println("disconnecting from sending Identify : line 213")
 		return s.disconnectFromConnect(ErrorEvent{
-			Event:  commandIdentify,
+			Event:  FlagGatewayCommandNameIdentify,
 			Err:    err,
 			Action: ErrorEventActionMarshal,
 		})
 	}
+
+	fmt.Println(string(identify))
 
 	if err = wsjson.Write(*s.Context, s.Conn, GatewayPayload{
 		Op:   FlagGatewayOpcodeIdentify,
 		Data: identify,
 	}); err != nil {
 		return s.disconnectFromConnect(ErrorEvent{
-			Event:  commandIdentify,
+			Event:  FlagGatewayCommandNameIdentify,
 			Err:    err,
 			Action: ErrorEventActionWrite,
 		})
@@ -250,9 +261,12 @@ func (bot *Client) Connect(s *Session) error {
 			Seq:       reconnectSeq,
 		})
 
+		fmt.Println(string(resume))
+
 		if err != nil {
+			fmt.Println("disconnecting from reconnect : line 249")
 			return s.disconnectFromConnect(ErrorEvent{
-				Event:  commandResume,
+				Event:  FlagGatewayCommandNameResume,
 				Err:    err,
 				Action: ErrorEventActionMarshal,
 			})
@@ -263,7 +277,7 @@ func (bot *Client) Connect(s *Session) error {
 			Data: resume,
 		}); err != nil {
 			return s.disconnectFromConnect(ErrorEvent{
-				Event:  commandResume,
+				Event:  FlagGatewayCommandNameResume,
 				Err:    err,
 				Action: ErrorEventActionWrite,
 			})
@@ -287,6 +301,8 @@ func (s *Session) Disconnect(code int) error {
 		s.Connected = nil
 	}()
 
+	log.Println("DISCONNECT")
+
 	if err := s.Conn.Close(websocket.StatusCode(code), fmt.Sprintf(gatewayDisconnectMsg, s.ID, code)); err != nil {
 		return ErrorDisconnect{
 			SessionID: s.ID,
@@ -295,6 +311,7 @@ func (s *Session) Disconnect(code int) error {
 		}
 	}
 
+	s.cancel()
 	return nil
 }
 
@@ -317,7 +334,7 @@ func (bot *Client) heartbeat(s *Session) {
 					log.Println(ErrorDisconnect{
 						SessionID: s.ID,
 						Err:       disconnectErr,
-						Action:    ErrorEvent{Event: commandHeartbeat, Err: err, Action: ErrorEventActionWrite},
+						Action:    ErrorEvent{Event: FlagGatewayCommandNameHeartbeat, Err: err, Action: ErrorEventActionWrite},
 					})
 				}
 
@@ -347,7 +364,7 @@ func (bot *Client) heartbeat(s *Session) {
 					log.Println(ErrorDisconnect{
 						SessionID: s.ID,
 						Err:       disconnectErr,
-						Action:    ErrorEvent{Event: commandHeartbeat, Err: err, Action: ErrorEventActionWrite},
+						Action:    ErrorEvent{Event: FlagGatewayCommandNameHeartbeat, Err: err, Action: ErrorEventActionWrite},
 					})
 				}
 
@@ -412,57 +429,129 @@ func (bot *Client) heartbeat(s *Session) {
 
 // listen listens to the connection for payloads from the Discord Gateway.
 func (bot *Client) listen(s *Session) {
-	var payload []byte
 
 	for {
-		// TODO: do we need to check if len(data) == 0 {return nil}
-		if err := wsjson.Read(*s.Context, s.Conn, payload); err != nil {
-			log.Printf("%v", err)
+		messageType, message, err := s.Conn.Read(*s.Context)
+
+		if err != nil {
+			s.mu.connect.Lock()
+			defer s.mu.connect.Unlock()
+
+			eventError := ErrorEvent{
+				Event:  "Payload",
+				Err:    err,
+				Action: ErrorEventActionRead,
+			}
+
+			log.Println(eventError)
+			log.Println("Closing the connection due to a read error...")
+
+			if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
+				log.Println(ErrorDisconnect{
+					SessionID: s.ID,
+					Err:       disconnectErr,
+					Action:    eventError,
+				})
+			}
+		}
+
+		if !(len(message) == 0) {
+			var reader io.Reader
+			reader = bytes.NewBuffer(message)
+
+			if messageType == websocket.MessageBinary {
+				readCloser, uncompressErr := zlib.NewReader(reader)
+				if uncompressErr != nil {
+					log.Println("Error occurred when uncompressing websocket message", uncompressErr)
+					if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
+						log.Println(ErrorDisconnect{
+							SessionID: s.ID,
+							Err:       disconnectErr,
+							Action:    uncompressErr,
+						})
+					}
+					return
+				}
+
+				defer func() {
+					zlibCloseErr := readCloser.Close()
+
+					if zlibCloseErr != nil {
+						log.Println("Error occured when closing zlib", zlibCloseErr)
+						if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
+							log.Println(ErrorDisconnect{
+								SessionID: s.ID,
+								Err:       disconnectErr,
+								Action:    zlibCloseErr,
+							})
+						}
+					}
+				}()
+
+				reader = readCloser
+
+			}
+
+			var payload GatewayPayload
+			decoder := json.NewDecoder(reader)
+
+			if err = decoder.Decode(&payload); err != nil {
+				log.Println("error decoding websocket message", err)
+				s.mu.connect.Lock()
+				defer s.mu.connect.Unlock()
+
+				eventError := ErrorEvent{
+					Event:  "Payload",
+					Err:    err,
+					Action: ErrorEventActionRead,
+				}
+
+				log.Println(eventError)
+				log.Println("Closing the connection due to a read error...")
+
+				if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
+					log.Println(ErrorDisconnect{
+						SessionID: s.ID,
+						Err:       disconnectErr,
+						Action:    eventError,
+					})
+				}
+				return
+			}
+
+			log.Println("\tPAYLOAD:", payload)
+			bot.onPayload(s, payload)
 			return
 		}
 
-		select {
-		case <-s.Connected:
-			return
-		default:
-			bot.onPayload(s, payload)
-			payload = []byte{}
-		}
 	}
 }
 
 // onPayload handles an Discord Gateway Payload.
-func (bot *Client) onPayload(s *Session, data []byte) error {
-	var event GatewayPayload
-	if err := json.Unmarshal(data, &event); err != nil {
-		return ErrorEvent{
-			Event:  *event.EventName,
-			Err:    err,
-			Action: ErrorEventActionUnmarshal,
-		}
-	}
+func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
 
+	fmt.Println("HERE ONPAYLOAD")
 	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
-	switch event.Op {
+	switch payload.Op {
 
 	// run the bot's event handlers.
 	case FlagGatewayOpcodeDispatch:
-		atomic.StoreInt64(&s.Seq, *event.SequenceNumber)
-		go bot.handle(*event.EventName, event.Data)
+		atomic.StoreInt64(&s.Seq, *payload.SequenceNumber)
+		go bot.handle(*payload.EventName, payload.Data)
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
 		var heartbeat Heartbeat
-		if err := json.Unmarshal(event.Data, &heartbeat); err != nil {
+		if err := json.Unmarshal(payload.Data, &heartbeat); err != nil {
 			return ErrorEvent{
-				Event:  commandHeartbeat,
+				Event:  FlagGatewayCommandNameHeartbeat,
 				Err:    err,
 				Action: ErrorEventActionUnmarshal,
 			}
 		}
 		atomic.StoreInt64(&s.Seq, heartbeat.Data)
 
-		s.heartbeat.respond <- event
+		s.heartbeat.respond <- payload
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:

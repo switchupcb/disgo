@@ -3,6 +3,7 @@ package wrapper
 import (
 	"os"
 	"testing"
+	"time"
 
 	_ "github.com/joho/godotenv/autoload"
 )
@@ -16,8 +17,41 @@ func TestDataRace(t *testing.T) {
 		Handlers:       &Handlers{},
 	}
 
-	err := bot.Connect(&Session{mu: new(sessionMutex)})
-	if err != nil {
-		t.Errorf("%v", err)
+	s := &Session{
+		mu: new(sessionMutex),
 	}
+
+	bot.Sessions = []*Session{s}
+	err := bot.Connect(bot.Sessions[0])
+	if err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	const heartbeats = 1
+
+	for {
+
+		if s.Connected == nil {
+			t.Fatalf("disconnected before calling disconnect")
+		}
+
+		if s.ID != "" {
+			// Waiting x amount of heartbeat interval duration to test heartbeat functionality
+			stop := time.Now().Add(heartbeats * s.heartbeat.interval)
+			for time.Now().Before(stop) {
+				if s.Connected == nil {
+					t.Fatalf("Session disconnected while waiting for heartbeat")
+				}
+			}
+			err = bot.Sessions[0].Disconnect(1000)
+
+			if err != nil {
+				t.Fatalf("%v", err)
+			}
+
+			return
+		}
+
+	}
+
 }

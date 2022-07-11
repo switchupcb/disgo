@@ -1184,7 +1184,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 		}
 
 	case FlagGatewayEventNameReady:
-		var event *Ready
+		event := new(Ready)
 		if err := json.Unmarshal(data, event); err != nil {
 			log.Println(ErrorEvent{Event: FlagGatewayEventNameReady, Err: err, Action: ErrorEventActionUnmarshal}.Error())
 			return
