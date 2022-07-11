@@ -28,7 +28,6 @@ func TestDataRace(t *testing.T) {
 	}
 
 	const heartbeats = 1
-
 	for {
 
 		if s.Connected == nil {
@@ -36,15 +35,15 @@ func TestDataRace(t *testing.T) {
 		}
 
 		if s.ID != "" {
-			// Waiting x amount of heartbeat interval duration to test heartbeat functionality
+			// wait for a heartbeat to test heartbeat functionality.
 			stop := time.Now().Add(heartbeats * s.heartbeat.interval)
 			for time.Now().Before(stop) {
 				if s.Connected == nil {
 					t.Fatalf("Session disconnected while waiting for heartbeat")
 				}
 			}
-			err = bot.Sessions[0].Disconnect(1000)
 
+			err = bot.Sessions[0].Disconnect(1000)
 			if err != nil {
 				t.Fatalf("%v", err)
 			}

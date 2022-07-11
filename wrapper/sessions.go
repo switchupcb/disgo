@@ -19,9 +19,7 @@ import (
 )
 
 // TODO: ensure disconnections upon unrecoverable errors.
-// TODO: simplify code (make it more readeable and easier to understand and follow)
 // TODO: fix data races
-// TODO: handle generation
 // TODO: ensure conn, write, read is correct with regards to concurrency.
 
 const (
@@ -63,6 +61,7 @@ type Session struct {
 	// mu represents the session mutex of this session.
 	mu *sessionMutex
 
+	// cancel is used to immediately end the operation it is called on.
 	cancel context.CancelFunc
 }
 
@@ -150,15 +149,12 @@ func (bot *Client) Connect(s *Session) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 
 	s.cancel = cancel
-	//defer cancel()
 
 	s.Context = &ctx
 	s.Conn, _, err = websocket.Dial(*s.Context, s.Endpoint, nil)
 	if err != nil {
 		return fmt.Errorf("an error occurred while connecting to the Discord Gateway\n%w", err)
 	}
-
-	//defer s.Conn.Close(websocket.StatusInternalError, "StatusInternalError")
 
 	// handle the incoming Hello event upon connecting to the Gateway.
 	var payload GatewayPayload
@@ -182,11 +178,12 @@ func (bot *Client) Connect(s *Session) error {
 	// do NOT add multiple Ready event handlers to the bot.
 	if len(bot.Handlers.Ready) == 0 {
 		if err := bot.Handle(FlagGatewayEventNameReady, func(r *Ready) {
+			s.mu.connect.Lock()
 			s.ID = r.SessionID
+			s.mu.connect.Unlock()
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = r.Application.ID
 		}); err != nil {
-			fmt.Println("disconnecting from bot.Handlers.Ready == 0 : line 176")
 			return s.disconnectFromConnect(ErrorEventHandler{
 				Event:  FlagGatewayEventNameReady,
 				Err:    err,
@@ -232,15 +229,12 @@ func (bot *Client) Connect(s *Session) error {
 	})
 
 	if err != nil {
-		fmt.Println("disconnecting from sending Identify : line 213")
 		return s.disconnectFromConnect(ErrorEvent{
 			Event:  FlagGatewayCommandNameIdentify,
 			Err:    err,
 			Action: ErrorEventActionMarshal,
 		})
 	}
-
-	fmt.Println(string(identify))
 
 	if err = wsjson.Write(*s.Context, s.Conn, GatewayPayload{
 		Op:   FlagGatewayOpcodeIdentify,
@@ -261,10 +255,7 @@ func (bot *Client) Connect(s *Session) error {
 			Seq:       reconnectSeq,
 		})
 
-		fmt.Println(string(resume))
-
 		if err != nil {
-			fmt.Println("disconnecting from reconnect : line 249")
 			return s.disconnectFromConnect(ErrorEvent{
 				Event:  FlagGatewayCommandNameResume,
 				Err:    err,
@@ -301,8 +292,6 @@ func (s *Session) Disconnect(code int) error {
 		s.Connected = nil
 	}()
 
-	log.Println("DISCONNECT")
-
 	if err := s.Conn.Close(websocket.StatusCode(code), fmt.Sprintf(gatewayDisconnectMsg, s.ID, code)); err != nil {
 		return ErrorDisconnect{
 			SessionID: s.ID,
@@ -310,7 +299,6 @@ func (s *Session) Disconnect(code int) error {
 			Action:    nil,
 		}
 	}
-
 	s.cancel()
 	return nil
 }
@@ -470,12 +458,12 @@ func (bot *Client) listen(s *Session) {
 							Action:    uncompressErr,
 						})
 					}
+
 					return
 				}
 
 				defer func() {
 					zlibCloseErr := readCloser.Close()
-
 					if zlibCloseErr != nil {
 						log.Println("Error occured when closing zlib", zlibCloseErr)
 						if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
@@ -487,14 +475,12 @@ func (bot *Client) listen(s *Session) {
 						}
 					}
 				}()
-
 				reader = readCloser
 
 			}
 
 			var payload GatewayPayload
 			decoder := json.NewDecoder(reader)
-
 			if err = decoder.Decode(&payload); err != nil {
 				log.Println("error decoding websocket message", err)
 				s.mu.connect.Lock()
@@ -516,11 +502,12 @@ func (bot *Client) listen(s *Session) {
 						Action:    eventError,
 					})
 				}
+
 				return
 			}
 
-			log.Println("\tPAYLOAD:", payload)
 			bot.onPayload(s, payload)
+
 			return
 		}
 
@@ -530,7 +517,6 @@ func (bot *Client) listen(s *Session) {
 // onPayload handles an Discord Gateway Payload.
 func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
 
-	fmt.Println("HERE ONPAYLOAD")
 	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
 	switch payload.Op {
 
