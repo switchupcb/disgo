@@ -4,6 +4,7 @@
 package template
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/switchupcb/copygen/cli/models"
@@ -66,6 +67,12 @@ func generateResultParameters(function *models.Function) string {
 // Body
 ////////////////////////////////////////////////////////////////////////////////
 
+// routeid represents the internal rate limit bucket ID of a route (endpoint + HTTP Method).
+//
+// Global Rate Limit reserves 0.
+// OAuth reserves 1.
+var routeid = 1
+
 // generateBody generates the body of a function.
 func generateBody(function *models.Function) string {
 	request := function.From[0].Field
@@ -114,8 +121,11 @@ func generateBody(function *models.Function) string {
 	}
 
 	// send the request.
-	body.WriteString("err " + errDecl + " SendRequest(bot, " + generateHTTPMethod(function) + ", " +
-		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", " + result + ")\n")
+	routeid++
+	body.WriteString("err " + errDecl +
+		" SendRequest(bot, " + strconv.Itoa(routeid) + ", " + generateHTTPMethod(function) + ", " +
+		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", " + result + ")\n",
+	)
 	body.WriteString("if err != nil {\n")
 	body.WriteString(generateSendRequestErrReturn(function, requestName))
 	body.WriteString("}\n")

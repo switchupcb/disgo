@@ -14,6 +14,8 @@ func TestGlobalRateLimit(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 	}
+	bot.Config.Retries = 0
+	DefaultRouteBucket.Limit = FlagGlobalRequestRateLimit
 
 	// prepare the request.
 	request := new(GetCurrentBotApplicationInformation)

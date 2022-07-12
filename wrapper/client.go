@@ -84,26 +84,38 @@ type Config struct {
 
 	// RateLimiter represents an object that provides rate limit functionality.
 	RateLimiter RateLimiter
-
-	// GlobalRateLimit represents a rate limit bucket for global rate limits.
-	GlobalRateLimit *Bucket
 }
 
 // Default Configuration Values.
 const (
 	defaultUserAgent      = "DiscordBot (https://github.com/switchupcb/disgo, " + "v" + VersionDiscordAPI + ")"
 	defaultRequestTimeout = time.Second * 3
+	rateLimitCapacity     = 175 // 174 routes + 1 global
 )
 
 // DefaultConfig returns a default client configuration.
 func DefaultConfig() *Config {
 	c := new(Config)
+
+	// configure request variables.
 	c.Client = new(fasthttp.Client)
 	c.Client.Name = defaultUserAgent
 	c.Timeout = defaultRequestTimeout
 	c.Retries = 1
-	c.RateLimiter = new(RateLimit)
-	c.GlobalRateLimit = GlobalRateLimit
+
+	// configure the rate limiter.
+	c.RateLimiter = &RateLimit{ //nolint:exhaustruct
+		ids:     make(map[uint16]string, rateLimitCapacity),
+		buckets: make(map[string]*Bucket, rateLimitCapacity),
+	}
+
+	// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
+	c.RateLimiter.SetBucket(
+		0, &Bucket{ //nolint:exhaustruct
+			Limit:     FlagGlobalRequestRateLimit,
+			Remaining: FlagGlobalRequestRateLimit,
+		},
+	)
 
 	return c
 }

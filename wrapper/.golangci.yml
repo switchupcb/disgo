@@ -15,13 +15,12 @@ linters:
     - godot # Dasgo comments.
     - gochecknoinits # Required by gorilla/schema to parse URL Query Strings correctly.
 
+    - nestif
     - gofumpt
     - varnamelen
     - wsl
     - goerr113
     - forbidigo
-    - bodyclose # go1.18 version in development
-    - contextcheck # go1.18 version in development
     - stylecheck # Underscores in flags currently defined by Discord.
 
     - golint # Deprecated
