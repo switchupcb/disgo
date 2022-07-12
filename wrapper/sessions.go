@@ -18,7 +18,6 @@ import (
 	"nhooyr.io/websocket/wsjson"
 )
 
-// TODO: ensure disconnections upon unrecoverable errors.
 // TODO: fix data races
 // TODO: ensure conn, write, read is correct with regards to concurrency.
 
@@ -109,6 +108,9 @@ type sessionMutex struct {
 	// However, it imports gorilla/websocket which states
 	// "All methods may be called concurrently except for Reader and Read."
 	conn sync.RWMutex
+
+	// resource
+	resource sync.RWMutex
 }
 
 // isConnected returns whether the session is connected.
@@ -178,9 +180,9 @@ func (bot *Client) Connect(s *Session) error {
 	// do NOT add multiple Ready event handlers to the bot.
 	if len(bot.Handlers.Ready) == 0 {
 		if err := bot.Handle(FlagGatewayEventNameReady, func(r *Ready) {
-			s.mu.connect.Lock()
+			s.mu.resource.Lock()
 			s.ID = r.SessionID
-			s.mu.connect.Unlock()
+			s.mu.resource.Unlock()
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = r.Application.ID
 		}); err != nil {
@@ -375,7 +377,7 @@ func (bot *Client) heartbeat(s *Session) {
 					log.Println(ErrorDisconnect{
 						SessionID: s.ID,
 						Err:       disconnectErr,
-						Action:    fmt.Errorf("No HeartbeatACK"),
+						Action:    fmt.Errorf("no HeartbeatACK"),
 					})
 
 					s.mu.connect.Unlock()

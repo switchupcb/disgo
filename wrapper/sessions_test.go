@@ -34,7 +34,9 @@ func TestDataRace(t *testing.T) {
 			t.Fatalf("disconnected before calling disconnect")
 		}
 
+		s.mu.resource.Lock()
 		if s.ID != "" {
+			s.mu.resource.Unlock()
 			// wait for a heartbeat to test heartbeat functionality.
 			stop := time.Now().Add(heartbeats * s.heartbeat.interval)
 			for time.Now().Before(stop) {
@@ -50,6 +52,7 @@ func TestDataRace(t *testing.T) {
 
 			return
 		}
+		s.mu.resource.Unlock()
 
 	}
 
