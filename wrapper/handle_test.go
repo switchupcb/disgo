@@ -12,6 +12,13 @@ func TestHandle(t *testing.T) {
 		Handlers: new(Handlers),
 	}
 
+	// do not use the default gateway configuration.
+	bot.Config.Gateway = Gateway{
+		Intents:               0,
+		IntentSet:             make(map[BitFlag]bool),
+		GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+	}
+
 	// add event correctly.
 	err := bot.Handle(FlagGatewayEventNameReady, func(r *Ready) {})
 	if err != nil || len(bot.Handlers.Ready) != 1 {

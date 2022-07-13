@@ -144,11 +144,21 @@ type Gateway struct {
 	GatewayPresenceUpdate *GatewayPresenceUpdate
 }
 
+const (
+	// totalIntents represents the total amount of Discord Intents.
+	totalIntents = 19
+)
+
 // DefaultGateway returns a default Gateway configuration.
 func DefaultGateway() Gateway {
+	// MESSAGE_CONTENT is required to receive message content fields
+	// (content, attachments, embeds, and components).
+	is := make(map[BitFlag]bool, totalIntents)
+	is[FlagIntentMESSAGE_CONTENT] = true
+
 	return Gateway{
-		Intents:               0,
-		IntentSet:             make(map[BitFlag]bool),
+		Intents:               FlagIntentMESSAGE_CONTENT,
+		IntentSet:             is,
 		GatewayPresenceUpdate: new(GatewayPresenceUpdate),
 	}
 }
