@@ -6,6 +6,13 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// Default Configuration Values.
+const (
+	module                = "github.com/switchupcb/disgo"
+	defaultUserAgent      = "DiscordBot (https://" + module + ", v" + VersionDiscordAPI + ")"
+	defaultRequestTimeout = time.Second * 3
+)
+
 // Client represents a Discord Application.
 type Client struct {
 	ApplicationID string
@@ -98,13 +105,24 @@ type Config struct {
 	// Retries represents the amount of time a request will retry a bad gateway.
 	Retries int
 
-	// GatewayPresenceUpdate represents the presence or status update of a bot.
-	//
-	// GatewayPresenceUpdate is used when the bot connects to a session.
-	//
-	// https://discord.com/developers/docs/topics/gateway#update-presence
-	GatewayPresenceUpdate *GatewayPresenceUpdate
+	// Gateway holds configuration variables that pertain to the Discord Gateway.
+	Gateway Gateway
+}
 
+// DefaultConfig returns a default client configuration.
+func DefaultConfig() *Config {
+	c := new(Config)
+	c.Client = new(fasthttp.Client)
+	c.Client.Name = defaultUserAgent
+	c.Timeout = defaultRequestTimeout
+	c.Retries = 1
+	c.Gateway = DefaultGateway()
+
+	return c
+}
+
+// Gateway represents Discord Gateway parameters used to perform various actions by the client.
+type Gateway struct {
 	// Intents represents a Discord Gateway Intent.
 	//
 	// You must specify a Gateway Intent in order to gain access to Events.
@@ -117,23 +135,20 @@ type Config struct {
 	//
 	// IntentSet is used for automatic intent calculation when a user adds an event handler.
 	IntentSet map[BitFlag]bool
+
+	// GatewayPresenceUpdate represents the presence or status update of a bot.
+	//
+	// GatewayPresenceUpdate is used when the bot connects to a session.
+	//
+	// https://discord.com/developers/docs/topics/gateway#update-presence
+	GatewayPresenceUpdate *GatewayPresenceUpdate
 }
 
-// Default Configuration Values.
-const (
-	defaultUserAgent      = "DiscordBot (https://" + module + ", v" + VersionDiscordAPI + ")"
-	defaultRequestTimeout = time.Second * 3
-)
-
-// DefaultConfig returns a default client configuration.
-func DefaultConfig() *Config {
-	c := new(Config)
-	c.Client = new(fasthttp.Client)
-	c.Client.Name = defaultUserAgent
-	c.Timeout = defaultRequestTimeout
-	c.Retries = 1
-	c.IntentSet = make(map[BitFlag]bool)
-	c.GatewayPresenceUpdate = new(GatewayPresenceUpdate)
-
-	return c
+// DefaultGateway returns a default Gateway configuration.
+func DefaultGateway() Gateway {
+	return Gateway{
+		Intents:               0,
+		IntentSet:             make(map[BitFlag]bool),
+		GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+	}
 }

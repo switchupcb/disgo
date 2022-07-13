@@ -19,8 +19,8 @@ func TestHandle(t *testing.T) {
 	}
 
 	// test for automatic intent calculation.
-	if bot.Config.Intents != 0 {
-		t.Fatalf("(automatic intent calculation): got %v, wanted %v", bot.Config.Intents, 0)
+	if bot.Config.Gateway.Intents != 0 {
+		t.Fatalf("(automatic intent calculation): got %v, wanted %v", bot.Config.Gateway.Intents, 0)
 	}
 
 	// add event incorrectly.
@@ -30,8 +30,8 @@ func TestHandle(t *testing.T) {
 	}
 
 	// test for automatic intent calculation.
-	if bot.Config.Intents != 0 {
-		t.Fatalf("(automatic intent calculation): got %v, wanted %v", bot.Config.Intents, 0)
+	if bot.Config.Gateway.Intents != 0 {
+		t.Fatalf("(automatic intent calculation): got %v, wanted %v", bot.Config.Gateway.Intents, 0)
 	}
 
 	// add event correctly.
@@ -41,8 +41,8 @@ func TestHandle(t *testing.T) {
 	}
 
 	// test for automatic intent calculation.
-	if bot.Config.Intents != FlagIntentGUILDS {
-		t.Fatalf("(automatic intent calculation): got %v, wanted %v", bot.Config.Intents, FlagIntentGUILDS)
+	if bot.Config.Gateway.Intents != FlagIntentGUILDS {
+		t.Fatalf("(automatic intent calculation): got %v, wanted %v", bot.Config.Gateway.Intents, FlagIntentGUILDS)
 	}
 
 	// add similar event correctly.
@@ -52,8 +52,8 @@ func TestHandle(t *testing.T) {
 	}
 
 	// test for automatic intent calculation.
-	if bot.Config.Intents != FlagIntentGUILDS {
-		t.Fatalf("(automatic intent calculation): got %v, wanted %v", bot.Config.Intents, FlagIntentGUILDS)
+	if bot.Config.Gateway.Intents != FlagIntentGUILDS {
+		t.Fatalf("(automatic intent calculation): got %v, wanted %v", bot.Config.Gateway.Intents, FlagIntentGUILDS)
 	}
 
 	// remove event correctly.

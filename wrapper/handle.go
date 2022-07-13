@@ -121,9 +121,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameAutoModerationRuleCreate:
-		if !bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
-			bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
-			bot.Config.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
+		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
 		}
 
 		if f, ok := function.(func(*AutoModerationRuleCreate)); ok {
@@ -132,9 +132,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameAutoModerationRuleUpdate:
-		if !bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
-			bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
-			bot.Config.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
+		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
 		}
 
 		if f, ok := function.(func(*AutoModerationRuleUpdate)); ok {
@@ -143,9 +143,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameAutoModerationRuleDelete:
-		if !bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
-			bot.Config.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
-			bot.Config.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
+		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
 		}
 
 		if f, ok := function.(func(*AutoModerationRuleDelete)); ok {
@@ -154,9 +154,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameAutoModerationActionExecution:
-		if !bot.Config.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] {
-			bot.Config.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] = true
-			bot.Config.Intents |= FlagIntentAUTO_MODERATION_EXECUTION
+		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] {
+			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] = true
+			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_EXECUTION
 		}
 
 		if f, ok := function.(func(*AutoModerationActionExecution)); ok {
@@ -189,9 +189,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameChannelCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*ChannelCreate)); ok {
@@ -200,9 +200,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameChannelUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*ChannelUpdate)); ok {
@@ -211,9 +211,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameChannelDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*ChannelDelete)); ok {
@@ -222,9 +222,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameChannelPinsUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentDIRECT_MESSAGES] {
-			bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Intents |= FlagIntentGUILDS | FlagIntentDIRECT_MESSAGES
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS | FlagIntentDIRECT_MESSAGES
 		}
 
 		if f, ok := function.(func(*ChannelPinsUpdate)); ok {
@@ -233,9 +233,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameThreadCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*ThreadCreate)); ok {
@@ -244,9 +244,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameThreadUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*ThreadUpdate)); ok {
@@ -255,9 +255,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameThreadDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*ThreadDelete)); ok {
@@ -266,9 +266,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameThreadListSync:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*ThreadListSync)); ok {
@@ -277,9 +277,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameThreadMemberUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*ThreadMemberUpdate)); ok {
@@ -288,9 +288,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameThreadMembersUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] {
-			bot.Config.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Intents |= FlagIntentGUILDS | FlagIntentGUILD_MEMBERS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS|FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS | FlagIntentGUILD_MEMBERS
 		}
 
 		if f, ok := function.(func(*ThreadMembersUpdate)); ok {
@@ -299,9 +299,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*GuildCreate)); ok {
@@ -310,9 +310,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*GuildUpdate)); ok {
@@ -321,9 +321,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*GuildDelete)); ok {
@@ -332,9 +332,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildBanAdd:
-		if !bot.Config.IntentSet[FlagIntentGUILD_BANS] {
-			bot.Config.IntentSet[FlagIntentGUILD_BANS] = true
-			bot.Config.Intents |= FlagIntentGUILD_BANS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_BANS
 		}
 
 		if f, ok := function.(func(*GuildBanAdd)); ok {
@@ -343,9 +343,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildBanRemove:
-		if !bot.Config.IntentSet[FlagIntentGUILD_BANS] {
-			bot.Config.IntentSet[FlagIntentGUILD_BANS] = true
-			bot.Config.Intents |= FlagIntentGUILD_BANS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_BANS
 		}
 
 		if f, ok := function.(func(*GuildBanRemove)); ok {
@@ -354,9 +354,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildEmojisUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
 		}
 
 		if f, ok := function.(func(*GuildEmojisUpdate)); ok {
@@ -365,9 +365,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildStickersUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
 		}
 
 		if f, ok := function.(func(*GuildStickersUpdate)); ok {
@@ -376,9 +376,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildIntegrationsUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
 		}
 
 		if f, ok := function.(func(*GuildIntegrationsUpdate)); ok {
@@ -387,9 +387,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildMemberAdd:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
 		}
 
 		if f, ok := function.(func(*GuildMemberAdd)); ok {
@@ -398,9 +398,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildMemberRemove:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
 		}
 
 		if f, ok := function.(func(*GuildMemberRemove)); ok {
@@ -409,9 +409,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildMemberUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MEMBERS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
 		}
 
 		if f, ok := function.(func(*GuildMemberUpdate)); ok {
@@ -420,9 +420,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildRoleCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*GuildRoleCreate)); ok {
@@ -431,9 +431,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildRoleUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*GuildRoleUpdate)); ok {
@@ -442,9 +442,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildRoleDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*GuildRoleDelete)); ok {
@@ -453,9 +453,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
 		}
 
 		if f, ok := function.(func(*GuildScheduledEventCreate)); ok {
@@ -464,9 +464,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
 		}
 
 		if f, ok := function.(func(*GuildScheduledEventUpdate)); ok {
@@ -475,9 +475,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
 		}
 
 		if f, ok := function.(func(*GuildScheduledEventDelete)); ok {
@@ -486,9 +486,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserAdd:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
 		}
 
 		if f, ok := function.(func(*GuildScheduledEventUserAdd)); ok {
@@ -497,9 +497,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserRemove:
-		if !bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
 		}
 
 		if f, ok := function.(func(*GuildScheduledEventUserRemove)); ok {
@@ -508,9 +508,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameIntegrationCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
 		}
 
 		if f, ok := function.(func(*IntegrationCreate)); ok {
@@ -519,9 +519,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameIntegrationUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
 		}
 
 		if f, ok := function.(func(*IntegrationUpdate)); ok {
@@ -530,9 +530,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameIntegrationDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_INTEGRATIONS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
 		}
 
 		if f, ok := function.(func(*IntegrationDelete)); ok {
@@ -541,9 +541,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameInviteCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INVITES] {
-			bot.Config.IntentSet[FlagIntentGUILD_INVITES] = true
-			bot.Config.Intents |= FlagIntentGUILD_INVITES
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INVITES
 		}
 
 		if f, ok := function.(func(*InviteCreate)); ok {
@@ -552,9 +552,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameInviteDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILD_INVITES] {
-			bot.Config.IntentSet[FlagIntentGUILD_INVITES] = true
-			bot.Config.Intents |= FlagIntentGUILD_INVITES
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INVITES
 		}
 
 		if f, ok := function.(func(*InviteDelete)); ok {
@@ -563,9 +563,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameMessageCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
 		}
 
 		if f, ok := function.(func(*MessageCreate)); ok {
@@ -574,9 +574,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameMessageUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
 		}
 
 		if f, ok := function.(func(*MessageUpdate)); ok {
@@ -585,9 +585,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameMessageDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES|FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES | FlagIntentDIRECT_MESSAGES
 		}
 
 		if f, ok := function.(func(*MessageDelete)); ok {
@@ -596,9 +596,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameMessageDeleteBulk:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGES] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGES] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGES
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES
 		}
 
 		if f, ok := function.(func(*MessageDeleteBulk)); ok {
@@ -607,9 +607,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameMessageReactionAdd:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
 		}
 
 		if f, ok := function.(func(*MessageReactionAdd)); ok {
@@ -618,9 +618,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameMessageReactionRemove:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
 		}
 
 		if f, ok := function.(func(*MessageReactionRemove)); ok {
@@ -629,9 +629,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveAll:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
 		}
 
 		if f, ok := function.(func(*MessageReactionRemoveAll)); ok {
@@ -640,9 +640,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveEmoji:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_REACTIONS
 		}
 
 		if f, ok := function.(func(*MessageReactionRemoveEmoji)); ok {
@@ -651,9 +651,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNamePresenceUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_PRESENCES] {
-			bot.Config.IntentSet[FlagIntentGUILD_PRESENCES] = true
-			bot.Config.Intents |= FlagIntentGUILD_PRESENCES
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_PRESENCES
 		}
 
 		if f, ok := function.(func(*PresenceUpdate)); ok {
@@ -662,9 +662,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameStageInstanceCreate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*StageInstanceCreate)); ok {
@@ -673,9 +673,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameStageInstanceDelete:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*StageInstanceDelete)); ok {
@@ -684,9 +684,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameStageInstanceUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILDS] {
-			bot.Config.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Intents |= FlagIntentGUILDS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
 		}
 
 		if f, ok := function.(func(*StageInstanceUpdate)); ok {
@@ -695,9 +695,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameTypingStart:
-		if !bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_TYPING] {
-			bot.Config.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_TYPING] = true
-			bot.Config.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_TYPING
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_TYPING] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS|FlagIntentDIRECT_MESSAGE_TYPING] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS | FlagIntentDIRECT_MESSAGE_TYPING
 		}
 
 		if f, ok := function.(func(*TypingStart)); ok {
@@ -706,9 +706,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameVoiceStateUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_VOICE_STATES] {
-			bot.Config.IntentSet[FlagIntentGUILD_VOICE_STATES] = true
-			bot.Config.Intents |= FlagIntentGUILD_VOICE_STATES
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_VOICE_STATES
 		}
 
 		if f, ok := function.(func(*VoiceStateUpdate)); ok {
@@ -717,9 +717,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameWebhooksUpdate:
-		if !bot.Config.IntentSet[FlagIntentGUILD_WEBHOOKS] {
-			bot.Config.IntentSet[FlagIntentGUILD_WEBHOOKS] = true
-			bot.Config.Intents |= FlagIntentGUILD_WEBHOOKS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_WEBHOOKS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_WEBHOOKS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_WEBHOOKS
 		}
 
 		if f, ok := function.(func(*WebhooksUpdate)); ok {

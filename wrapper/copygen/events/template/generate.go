@@ -87,9 +87,9 @@ func generateHandleCase(eventname string, flag string) string {
 
 	// add automatic intent calculation.
 	if flag != "" {
-		c.WriteString("if !bot.Config.IntentSet[" + flag + "] {\n")
-		c.WriteString("bot.Config.IntentSet[" + flag + "] = true\n")
-		c.WriteString("bot.Config.Intents |= " + flag + "\n")
+		c.WriteString("if !bot.Config.Gateway.IntentSet[" + flag + "] {\n")
+		c.WriteString("bot.Config.Gateway.IntentSet[" + flag + "] = true\n")
+		c.WriteString("bot.Config.Gateway.Intents |= " + flag + "\n")
 		c.WriteString("}\n\n")
 	}
 

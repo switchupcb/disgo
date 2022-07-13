@@ -1,30 +1,23 @@
 package wrapper
 
 import (
-	"bytes"
-	"compress/zlib"
 	"context"
-	"encoding/binary"
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"runtime"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/goccy/go-json"
+	"github.com/switchupcb/disgo/wrapper/internal/socket"
+
 	"nhooyr.io/websocket"
-	"nhooyr.io/websocket/wsjson"
 )
 
-// TODO: fix data races
-// TODO: ensure conn, write, read is correct with regards to concurrency.
-
 const (
-	module                    = "github.com/switchupcb/disgo"
+	gatewayEndpointParams     = "?v=" + VersionDiscordAPI + "&encoding=json"
 	gatewayDisconnectMsg      = "Disconnected Session %s from the Discord Gateway with code %d"
-	gatewayEncoding           = "json"
 	invalidSessionWaitTime    = 3 * time.Second
 	maxIdentifyLargeThreshold = 250
 )
@@ -49,7 +42,7 @@ type Session struct {
 	Connected chan bool
 
 	// Context carries request-scoped data for the Discord Gateway Connection.
-	Context *context.Context
+	Context context.Context
 
 	// Conn represents a connection to the Discord Gateway.
 	Conn *websocket.Conn
@@ -59,9 +52,6 @@ type Session struct {
 
 	// mu represents the session mutex of this session.
 	mu *sessionMutex
-
-	// cancel is used to immediately end the operation it is called on.
-	cancel context.CancelFunc
 }
 
 // heartbeat represents the heartbeat mechanism for a session.
@@ -73,7 +63,7 @@ type heartbeat struct {
 	interval time.Duration
 
 	// send represents a channel of heartbeats that will be sent to the Discord Gateway.
-	send chan GatewayPayload
+	send chan Heartbeat
 
 	// respond represents a channel of heartbeats in response to an Opcode 1 Heartbeat
 	// that will be sent to the Discord Gateway.
@@ -82,7 +72,7 @@ type heartbeat struct {
 	// while the listen thread (onPayload) queues a Heartbeat (in response to the Discord Gateway),
 	// resulting in two Heartbeat Payloads being sent to the Discord Gateway consecutively within nanoseconds,
 	// while the first Heartbeat Payload is outdated.
-	respond chan GatewayPayload
+	respond chan Heartbeat
 
 	// ack represents a channel of times a HeartbeatACK was received.
 	ack chan time.Time
@@ -101,16 +91,15 @@ type sessionMutex struct {
 	// to the Discord Gateway.
 	connect sync.Mutex
 
-	// conn represents the mutex for connections and contexts.
-	//
-	// TODO: It is unclear whether this needs to be used,
-	// as the websocket library Disgo currently uses states concurrent features.
-	// However, it imports gorilla/websocket which states
-	// "All methods may be called concurrently except for Reader and Read."
-	conn sync.RWMutex
-
-	// resource
+	// resource represents the mutex for session resources.
 	resource sync.RWMutex
+
+	// heartbeat represents the mutex for heartbeat functionality.
+	//
+	// Prevents race conditions where a HeartbeatACK is written while a HeartbeatACK is being read or cleared.
+	//
+	// Used to process heartbeat operations as a transaction.
+	heartbeat sync.Mutex
 }
 
 // isConnected returns whether the session is connected.
@@ -144,33 +133,18 @@ func (bot *Client) Connect(s *Session) error {
 		return fmt.Errorf("an error occurred getting the Gateway API Endpoint\n%w", err)
 	}
 
-	// TODO: zlib compression
-	s.Endpoint = response.URL + "?v=" + VersionDiscordAPI + "&encoding=" + gatewayEncoding
+	s.Endpoint = response.URL + gatewayEndpointParams
 
 	// connect to the Discord Gateway Websocket.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-
-	s.cancel = cancel
-
-	s.Context = &ctx
-	s.Conn, _, err = websocket.Dial(*s.Context, s.Endpoint, nil)
-	if err != nil {
+	s.Context = context.Background()
+	if s.Conn, _, err = websocket.Dial(s.Context, s.Endpoint, nil); err != nil {
 		return fmt.Errorf("an error occurred while connecting to the Discord Gateway\n%w", err)
 	}
 
 	// handle the incoming Hello event upon connecting to the Gateway.
-	var payload GatewayPayload
-	if err = wsjson.Read(*s.Context, s.Conn, &payload); err != nil {
-		return ErrorEvent{
-			Event:  FlagGatewayEventNameHello,
-			Err:    err,
-			Action: ErrorEventActionRead,
-		}
-	}
-
 	var hello Hello
-	if err := json.Unmarshal(payload.Data, &hello); err != nil {
-		return fmt.Errorf("%v", err)
+	if err := readEvent(s, FlagGatewayEventNameHello, &hello); err != nil {
+		return s.disconnectFromConnect(err)
 	}
 
 	// Sending a valid Identify Payload triggers the initial handshake with the Discord Gateway.
@@ -200,80 +174,49 @@ func (bot *Client) Connect(s *Session) error {
 	// begin listening for payloads.
 	//
 	// This is done BEFORE sending the first Heartbeat to ensure that
-	// the incoming HeartbeatACK is guaranteed to be is handled.
+	// the any incoming HeartbeatACK is guaranteed to be is handled.
 	go bot.listen(s)
 
 	// begin sending heartbeat payloads every heartbeat_interval ms.
 	ms := time.Millisecond * time.Duration(hello.HeartbeatInterval)
-	fmt.Println(ms)
+	s.mu.heartbeat.Lock()
 	s.heartbeat = &heartbeat{
 		ticker:   time.NewTicker(ms),
 		interval: ms,
-		send:     make(chan GatewayPayload),
-		respond:  make(chan GatewayPayload),
+		send:     make(chan Heartbeat, 1),
+		respond:  make(chan Heartbeat, 1),
 		ack:      make(chan time.Time, 1),
 	}
+	s.mu.heartbeat.Unlock()
 	go bot.heartbeat(s)
 
 	// send an Opcode 2 Identify to the Discord Gateway.
-	identify, err := json.Marshal(Identify{
-		Token: bot.Authentication.Token,
-		Properties: IdentifyConnectionProperties{
-			OS:      runtime.GOOS,
-			Browser: module,
-			Device:  module,
-		},
-		Compress:       true,
-		LargeThreshold: maxIdentifyLargeThreshold,
-		Shard:          nil, // SHARD: set shard information using s.Shard.
-		Presence:       *bot.Config.GatewayPresenceUpdate,
-		Intents:        bot.Config.Intents,
-	})
-
-	if err != nil {
-		return s.disconnectFromConnect(ErrorEvent{
-			Event:  FlagGatewayCommandNameIdentify,
-			Err:    err,
-			Action: ErrorEventActionMarshal,
-		})
-	}
-
-	if err = wsjson.Write(*s.Context, s.Conn, GatewayPayload{
-		Op:   FlagGatewayOpcodeIdentify,
-		Data: identify,
-	}); err != nil {
-		return s.disconnectFromConnect(ErrorEvent{
-			Event:  FlagGatewayCommandNameIdentify,
-			Err:    err,
-			Action: ErrorEventActionWrite,
-		})
+	if err := writeEvent(s, FlagGatewayOpcodeIdentify, FlagGatewayCommandNameIdentify,
+		Identify{
+			Token: bot.Authentication.Token,
+			Properties: IdentifyConnectionProperties{
+				OS:      runtime.GOOS,
+				Browser: module,
+				Device:  module,
+			},
+			Compress:       true,
+			LargeThreshold: maxIdentifyLargeThreshold,
+			Shard:          nil, // SHARD: set shard information using s.Shard.
+			Presence:       *bot.Config.Gateway.GatewayPresenceUpdate,
+			Intents:        bot.Config.Gateway.Intents,
+		}); err != nil {
+		return s.disconnectFromConnect(err)
 	}
 
 	// send an Opcode 6 Resume to the Discord Gateway to reconnect the session.
 	if reconnect {
-		resume, err := json.Marshal(Resume{
-			Token:     bot.Authentication.Token,
-			SessionID: reconnectID,
-			Seq:       reconnectSeq,
-		})
-
-		if err != nil {
-			return s.disconnectFromConnect(ErrorEvent{
-				Event:  FlagGatewayCommandNameResume,
-				Err:    err,
-				Action: ErrorEventActionMarshal,
-			})
-		}
-
-		if err = wsjson.Write(*s.Context, s.Conn, GatewayPayload{
-			Op:   FlagGatewayOpcodeIdentify,
-			Data: resume,
-		}); err != nil {
-			return s.disconnectFromConnect(ErrorEvent{
-				Event:  FlagGatewayCommandNameResume,
-				Err:    err,
-				Action: ErrorEventActionWrite,
-			})
+		if err := writeEvent(s, FlagGatewayOpcodeResume, FlagGatewayCommandNameResume,
+			Resume{
+				Token:     bot.Authentication.Token,
+				SessionID: reconnectID,
+				Seq:       reconnectSeq,
+			}); err != nil {
+			return s.disconnectFromConnect(err)
 		}
 
 		// When a reconnection is successful, the Discord Gateway will respond
@@ -291,7 +234,7 @@ func (s *Session) Disconnect(code int) error {
 	}
 
 	defer func() {
-		s.Connected = nil
+		close(s.Connected)
 	}()
 
 	if err := s.Conn.Close(websocket.StatusCode(code), fmt.Sprintf(gatewayDisconnectMsg, s.ID, code)); err != nil {
@@ -301,7 +244,7 @@ func (s *Session) Disconnect(code int) error {
 			Action:    nil,
 		}
 	}
-	s.cancel()
+
 	return nil
 }
 
@@ -313,20 +256,15 @@ func (bot *Client) heartbeat(s *Session) {
 	s.heartbeat.ack <- time.Now().UTC()
 
 	for {
-		select {
-		case hb := <-s.heartbeat.respond:
-			if err := wsjson.Write(*s.Context, s.Conn, hb); err != nil {
-				s.mu.connect.Lock()
-				defer s.mu.connect.Unlock()
+		s.mu.heartbeat.Lock()
 
-				log.Println("Closing the connection due to a write error...")
-				if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
-					log.Println(ErrorDisconnect{
-						SessionID: s.ID,
-						Err:       disconnectErr,
-						Action:    ErrorEvent{Event: FlagGatewayCommandNameHeartbeat, Err: err, Action: ErrorEventActionWrite},
-					})
-				}
+		select {
+		default:
+			s.mu.heartbeat.Unlock()
+
+		case hb := <-s.heartbeat.respond:
+			if err := writeEvent(s, FlagGatewayOpcodeHeartbeat, FlagGatewayCommandNameHeartbeat, hb); err != nil {
+				s.disconnectFromRoutine("Closing the connection due to a write error...", err)
 
 				return
 			}
@@ -342,24 +280,22 @@ func (bot *Client) heartbeat(s *Session) {
 				<-s.heartbeat.send
 			}
 
+			log.Println("responded to heartbeat")
+
+			s.mu.heartbeat.Unlock()
+
 			continue
 
 		case hb := <-s.heartbeat.send:
-			if err := wsjson.Write(*s.Context, s.Conn, hb); err != nil {
-				s.mu.connect.Lock()
-				defer s.mu.connect.Unlock()
-
-				log.Println("Closing the connection due to a write error...")
-				if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
-					log.Println(ErrorDisconnect{
-						SessionID: s.ID,
-						Err:       disconnectErr,
-						Action:    ErrorEvent{Event: FlagGatewayCommandNameHeartbeat, Err: err, Action: ErrorEventActionWrite},
-					})
-				}
+			if err := writeEvent(s, FlagGatewayOpcodeHeartbeat, FlagGatewayCommandNameHeartbeat, hb); err != nil {
+				s.disconnectFromRoutine("Closing the connection due to a write error...", err)
 
 				return
 			}
+
+			log.Println("sent heartbeat")
+
+			s.mu.heartbeat.Unlock()
 
 			continue
 
@@ -372,7 +308,7 @@ func (bot *Client) heartbeat(s *Session) {
 				// close the active connection with a non-1000 and non-1001 close code.
 				s.mu.connect.Lock()
 
-				log.Printf("attempting to reconnect session %s due to no HeartbeatACK\n", s.ID)
+				log.Printf("attempting to reconnect session %s due to no HeartbeatACK", s.ID)
 				if disconnectErr := s.Disconnect(FlagClientCloseEventCodeReconnect); disconnectErr != nil {
 					log.Println(ErrorDisconnect{
 						SessionID: s.ID,
@@ -380,16 +316,18 @@ func (bot *Client) heartbeat(s *Session) {
 						Action:    fmt.Errorf("no HeartbeatACK"),
 					})
 
+					s.mu.heartbeat.Unlock()
 					s.mu.connect.Unlock()
 
 					return
 				}
+
+				s.mu.heartbeat.Unlock()
 				s.mu.connect.Unlock()
 
 				// reconnect to the new Discord Gateway Server.
-				err := bot.Connect(s)
-				if err != nil {
-					log.Printf("could not reconnect to session %s due to error: %v\n", s.ID, err)
+				if err := bot.Connect(s); err != nil {
+					log.Printf("could not reconnect to session %s due to error: %v", s.ID, err)
 				}
 
 				return
@@ -400,18 +338,16 @@ func (bot *Client) heartbeat(s *Session) {
 				<-s.heartbeat.ack
 			}
 
-			// otherwise, queue a heartbeat.
-			seq := make([]byte, 8)
-			binary.LittleEndian.PutUint64(seq, uint64(atomic.LoadInt64(&s.Seq)))
+			// queue a heartbeat.
+			s.heartbeat.send <- Heartbeat{Data: s.Seq}
 
-			s.heartbeat.send <- GatewayPayload{
-				Op:   FlagGatewayOpcodeHeartbeat,
-				Data: seq,
-			}
+			s.mu.heartbeat.Unlock()
 
 			continue
 
 		case <-s.Connected:
+			s.mu.heartbeat.Unlock()
+
 			return
 		}
 	}
@@ -419,105 +355,33 @@ func (bot *Client) heartbeat(s *Session) {
 
 // listen listens to the connection for payloads from the Discord Gateway.
 func (bot *Client) listen(s *Session) {
-
 	for {
-		messageType, message, err := s.Conn.Read(*s.Context)
-
-		if err != nil {
-			s.mu.connect.Lock()
-			defer s.mu.connect.Unlock()
-
-			eventError := ErrorEvent{
-				Event:  "Payload",
-				Err:    err,
-				Action: ErrorEventActionRead,
-			}
-
-			log.Println(eventError)
-			log.Println("Closing the connection due to a read error...")
-
-			if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
-				log.Println(ErrorDisconnect{
-					SessionID: s.ID,
-					Err:       disconnectErr,
-					Action:    eventError,
-				})
-			}
-		}
-
-		if !(len(message) == 0) {
-			var reader io.Reader
-			reader = bytes.NewBuffer(message)
-
-			if messageType == websocket.MessageBinary {
-				readCloser, uncompressErr := zlib.NewReader(reader)
-				if uncompressErr != nil {
-					log.Println("Error occurred when uncompressing websocket message", uncompressErr)
-					if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
-						log.Println(ErrorDisconnect{
-							SessionID: s.ID,
-							Err:       disconnectErr,
-							Action:    uncompressErr,
-						})
-					}
-
-					return
-				}
-
-				defer func() {
-					zlibCloseErr := readCloser.Close()
-					if zlibCloseErr != nil {
-						log.Println("Error occured when closing zlib", zlibCloseErr)
-						if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
-							log.Println(ErrorDisconnect{
-								SessionID: s.ID,
-								Err:       disconnectErr,
-								Action:    zlibCloseErr,
-							})
-						}
-					}
-				}()
-				reader = readCloser
-
-			}
-
-			var payload GatewayPayload
-			decoder := json.NewDecoder(reader)
-			if err = decoder.Decode(&payload); err != nil {
-				log.Println("error decoding websocket message", err)
-				s.mu.connect.Lock()
-				defer s.mu.connect.Unlock()
-
+		payload := getPayload()
+		if err := socket.Read(s.Context, s.Conn, payload); err != nil {
+			select {
+			case <-s.Connected:
+				return
+			default:
 				eventError := ErrorEvent{
 					Event:  "Payload",
 					Err:    err,
 					Action: ErrorEventActionRead,
 				}
 
-				log.Println(eventError)
-				log.Println("Closing the connection due to a read error...")
-
-				if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); err != nil {
-					log.Println(ErrorDisconnect{
-						SessionID: s.ID,
-						Err:       disconnectErr,
-						Action:    eventError,
-					})
-				}
-
-				return
+				s.disconnectFromRoutine("Closing the connection due to a read error...", eventError)
 			}
-
-			bot.onPayload(s, payload)
-
-			return
 		}
 
+		fmt.Println("PAYLOAD", payload.Op, string(payload.Data))
+		if err := bot.onPayload(s, *payload); err != nil {
+			s.disconnectFromRoutine("onPayload error", err)
+		}
 	}
 }
 
 // onPayload handles an Discord Gateway Payload.
 func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
+	defer putPayload(&payload)
 
 	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
 	switch payload.Op {
@@ -529,6 +393,8 @@ func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
+		s.mu.heartbeat.Lock()
+
 		var heartbeat Heartbeat
 		if err := json.Unmarshal(payload.Data, &heartbeat); err != nil {
 			return ErrorEvent{
@@ -537,13 +403,18 @@ func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
 				Action: ErrorEventActionUnmarshal,
 			}
 		}
+
 		atomic.StoreInt64(&s.Seq, heartbeat.Data)
 
-		s.heartbeat.respond <- payload
+		s.heartbeat.respond <- heartbeat
+
+		s.mu.heartbeat.Unlock()
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
+		s.mu.heartbeat.Lock()
 		s.heartbeat.ack <- time.Now().UTC()
+		s.mu.heartbeat.Unlock()
 
 	// occurs when the maximum concurrency limit has been reached while connecting,
 	// or when the session does NOT reconnect in time.
@@ -577,11 +448,79 @@ func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
 	return nil
 }
 
+var (
+	// gpool represents a synchronized Gateway Payload pool.
+	gpool sync.Pool
+)
+
+// getPayload gets a Gateway Payload from the pool.
+func getPayload() *GatewayPayload {
+	if g := gpool.Get(); g != nil {
+		return g.(*GatewayPayload)
+	}
+
+	return new(GatewayPayload)
+}
+
+// putPayload puts a Gateway Payload into the pool.
+func putPayload(g *GatewayPayload) {
+	// reset the Gateway Payload.
+	g.Op = 0
+	g.Data = nil
+	g.SequenceNumber = nil
+	g.EventName = nil
+	gpool.Put(g)
+}
+
+// readEvent is a helper function for reading events from the websocket session.
+func readEvent(s *Session, name string, dst any) error {
+	payload := new(GatewayPayload)
+	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
+		return ErrorEvent{
+			Event:  name,
+			Err:    err,
+			Action: ErrorEventActionRead,
+		}
+	}
+
+	if err := json.Unmarshal(payload.Data, dst); err != nil {
+		return fmt.Errorf("%v", err)
+	}
+
+	return nil
+}
+
+// writeEvent is a helper function for writing events to the websocket session.
+// returns an ErrorEvent.
+func writeEvent(s *Session, op int, name string, dst any) error {
+	event, err := json.Marshal(dst)
+	if err != nil {
+		return ErrorEvent{
+			Event:  name,
+			Err:    err,
+			Action: ErrorEventActionMarshal,
+		}
+	}
+
+	if err = socket.Write(s.Context, s.Conn, websocket.MessageBinary,
+		GatewayPayload{
+			Op:   op,
+			Data: event,
+		}); err != nil {
+		return ErrorEvent{
+			Event:  name,
+			Err:    err,
+			Action: ErrorEventActionWrite,
+		}
+	}
+
+	return nil
+}
+
 // disconnectFromConnect is a helper function for disconnecting from the Connect() func,
 // which does NOT require s.mu.connect mutex calls.
 //
 // err represents the main error that returns if disconnection is SUCCESSFUL.
-// err2 represents the format string that returns with the disconnect error and main error if disconnection FAILS.
 func (s *Session) disconnectFromConnect(err error) error {
 	if disconnectErr := s.Disconnect(FlagClientCloseEventCodeAway); disconnectErr != nil {
 		return ErrorDisconnect{
@@ -592,4 +531,24 @@ func (s *Session) disconnectFromConnect(err error) error {
 	}
 
 	return err
+}
+
+// disconnectFromRoutine is a helper function for disconnecting from a non-main goroutine,
+// which does requires s.mu.connect mutex calls and logging.
+//
+// err represents the main error that returns if disconnection is SUCCESSFUL.
+func (s *Session) disconnectFromRoutine(msg string, err error) {
+	s.mu.connect.Lock()
+	defer s.mu.connect.Unlock()
+
+	log.Println(msg)
+	if disconnectErr := s.Disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
+		log.Println(ErrorDisconnect{
+			SessionID: s.ID,
+			Err:       disconnectErr,
+			Action:    err,
+		}.Error())
+	} else {
+		log.Println(err.Error())
+	}
 }
