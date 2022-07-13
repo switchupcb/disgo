@@ -116,7 +116,7 @@ func DefaultConfig() *Config {
 	c.Client.Name = defaultUserAgent
 	c.Timeout = defaultRequestTimeout
 	c.Retries = 1
-	c.Gateway = DefaultGateway()
+	c.Gateway = DefaultGateway(false)
 
 	return c
 }
@@ -150,15 +150,26 @@ const (
 )
 
 // DefaultGateway returns a default Gateway configuration.
-func DefaultGateway() Gateway {
-	// MESSAGE_CONTENT is required to receive message content fields
-	// (content, attachments, embeds, and components).
-	is := make(map[BitFlag]bool, totalIntents)
-	is[FlagIntentMESSAGE_CONTENT] = true
+//
+// When privileged intents are enabled, the MESSAGE_CONTENT intent will be included.
+//
+// MESSAGE_CONTENT is required to receive message content fields
+// (content, attachments, embeds, and components).
+func DefaultGateway(privileged bool) Gateway {
+	if privileged {
+		is := make(map[BitFlag]bool, totalIntents)
+		is[FlagIntentMESSAGE_CONTENT] = true
 
-	return Gateway{
-		Intents:               FlagIntentMESSAGE_CONTENT,
-		IntentSet:             is,
-		GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+		return Gateway{
+			Intents:               FlagIntentMESSAGE_CONTENT,
+			IntentSet:             is,
+			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+		}
+	} else {
+		return Gateway{
+			Intents:               0,
+			IntentSet:             make(map[BitFlag]bool, totalIntents),
+			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+		}
 	}
 }
