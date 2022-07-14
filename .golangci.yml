@@ -15,6 +15,7 @@ linters:
     - godot # Dasgo comments.
     - gochecknoinits # Required by gorilla/schema to parse URL Query Strings correctly.
 
+    - funlen
     - exhaustivestruct
     - containedctx
     - gofumpt

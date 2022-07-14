@@ -66,7 +66,7 @@ type ErrorDisconnect struct {
 }
 
 func (e ErrorDisconnect) Error() string {
-	return fmt.Sprintf("an error occurred disconnecting the session %s from the Discord Gateway\n"+
+	return fmt.Sprintf("an error occurred disconnecting the session %q from the Discord Gateway\n"+
 		"\tDisconnect(): %v\n"+
 		"\treason: %v\n",
 		e.SessionID, e.Err, e.Action)
