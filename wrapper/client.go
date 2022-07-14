@@ -155,6 +155,8 @@ const (
 //
 // MESSAGE_CONTENT is required to receive message content fields
 // (content, attachments, embeds, and components).
+//
+// https://discord.com/developers/docs/topics/gateway#privileged-intents
 func DefaultGateway(privileged bool) Gateway {
 	if privileged {
 		is := make(map[BitFlag]bool, totalIntents)

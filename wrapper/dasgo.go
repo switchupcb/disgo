@@ -149,10 +149,11 @@ var (
 // Client Close Event Codes
 // https://discord.com/developers/docs/topics/gateway#disconnections
 var (
-	FlagClientCloseEventCodeNormal    = 1000
-	FlagClientCloseEventCodeAway      = 1001
-	FlagClientCloseEventCodeTimeout   = 2000
-	FlagClientCloseEventCodeReconnect = FlagClientCloseEventCodeTimeout
+	FlagClientCloseEventCodeNormal = 1000
+	FlagClientCloseEventCodeAway   = 1001
+
+	//  https://www.rfc-editor.org/rfc/rfc6455#section-7.4.1
+	FlagClientCloseEventCodeReconnect = 3000
 )
 
 // Voice Opcodes

@@ -194,7 +194,7 @@ func generatehandleCase(eventname string) string {
 	c.WriteString("case FlagGatewayEventName" + eventname + ":\n")
 	c.WriteString("event := new(" + eventname + ")\n")
 	c.WriteString("if err := json.Unmarshal(data, event); err != nil {\n")
-	c.WriteString("log.Println(ErrorEvent{Event: FlagGatewayEventName" + eventname + ", Err: err, Action: ErrorEventActionUnmarshal}.Error())\n")
+	c.WriteString("log.Println(ErrorEvent{Event: FlagGatewayEventName" + eventname + ", Err: err, Action: ErrorEventActionUnmarshal})\n")
 	c.WriteString("return\n")
 	c.WriteString("}\n\n")
 

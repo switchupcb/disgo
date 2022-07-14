@@ -21,6 +21,7 @@ linters:
     - gofumpt
     - varnamelen
     - wsl
+    - errname # ErrorDescription > DesErr
     - goerr113
     - forbidigo
     - bodyclose # go1.18 version in development
