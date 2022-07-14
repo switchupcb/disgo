@@ -10,7 +10,10 @@ on:
       - "cache/**"
       - "shard/**"
 
-  pull_request:
+  pull_request_target:
+    types:
+      - opened
+      - synchronize
     branches:
       - main
     paths-ignore:
@@ -39,7 +42,8 @@ jobs:
   test-unit:
     needs: sca-lint
     name: Unit Tests
-    runs-on: '${{ matrix.os }}'
+    environment: testing
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os:
@@ -70,4 +74,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ matrix.go-version }}-
       - name: Run Unit Tests
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
         run: go test ./wrapper

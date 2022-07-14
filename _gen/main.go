@@ -163,17 +163,23 @@ func generate() error {
 		return fmt.Errorf("chdir error (send): %w", err)
 	}
 
-	sendgen := exec.Command("copygen", "-yml", "wrapper/copygen/setup/setup.yml", "-xm")
+	sendgen := exec.Command("copygen", "-yml", "wrapper/copygen/requests/setup.yml", "-xm")
 	std, err := sendgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (send): %v", string(std))
 	}
 
-	if err := os.Chdir(exeDir); err != nil {
-		return fmt.Errorf("chdir error (send): %w", err)
+	// events
+	handlegen := exec.Command("copygen", "-yml", "wrapper/copygen/events/setup.yml", "-xm")
+	std, err = handlegen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copygen error (handle): %v", string(std))
 	}
 
-	// events
+	// reset
+	if err := os.Chdir(exeDir); err != nil {
+		return fmt.Errorf("chdir error (generate): %w", err)
+	}
 
 	// clean
 	data, err := os.ReadFile(outputDasgo)
