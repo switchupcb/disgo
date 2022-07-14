@@ -6,8 +6,6 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
-
-	_ "github.com/joho/godotenv/autoload"
 )
 
 // TestConnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
