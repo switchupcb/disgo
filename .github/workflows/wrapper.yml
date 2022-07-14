@@ -39,6 +39,7 @@ jobs:
   test-unit:
     needs: sca-lint
     name: Unit Tests
+    environment: testing
     runs-on: '${{ matrix.os }}'
     strategy:
       matrix:
