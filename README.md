@@ -1,8 +1,19 @@
 # Disgo
 
-**This repository is currently a PROOF OF CONCEPT. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).** 
+_This repository is currently in DEVELOPMENT. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap)._
 
-Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching and shard management. Use the only Go module to provide a 100% one-to-one implementation of the Discord API.
+Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
+
+**The Next Generation Of Discord API Wrappers**
+
+High quality code merits easy development. Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. Code generation is used to provide a clean implementation for every request and event. Data race detection is used with _an integration test that covers nearly 100% of the Discord API_ in order to ensure that Disgo is safe for concurrent usage.
+
+**Don't Miss Out On These Exclusive Features**
+
+- Global Rate Limiting
+- Automatic Intent Calculation
+
+## Table of Contents
 
 | Topic                           | Categories                                                                                                                                          |
 | :------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -51,7 +62,7 @@ The following [example](/_examples/main) creates a bot that creates an applicati
 
 ## Configuration
 
-**You must create a Discord Application in the [Discord Developer Portal](https://discord.com/developers/applications) to receive your Bot Token.** 
+**You must create a Discord Application in the [Discord Developer Portal](https://discord.com/developers/docs/getting-started#creating-an-app) to receive your Bot Token.** 
 
 Use the client to configure the bot's settings.
 ```go
@@ -60,7 +71,8 @@ bot := disgo.Client{
     Authentication: disgo.BotToken("TOKEN"),
     Authorization: &disgo.Authorization{ ... },
     Config: disgo.DefaultConfig(),
-    Handlers: new(disgo.Handlers),
+    Handlers: new(Handlers),
+    Sessions: new(Sessions)
 }
 ```
 
@@ -101,12 +113,8 @@ _Disgo provides automatic intent calculation._
 Open a WebSocket **Session** to receive events.
 
 ```go
-// Add a session.
-bot.Sessions = append(bot.Sessions, disgo.Session{})
-
-// Open the session.
-session, err := bot.Sessions[0].Open()
-if err != nil {
+// Connect the session to the Discord Gateway (WebSocket Connection).
+if err := bot.Connect(new(Session)); err != nil {
     log.Println("error: can't open websocket session to Discord")
 }
 ```
@@ -121,21 +129,20 @@ main called by SCB
 
 ```go
 // Use resources to represent Discord objects in your application.
-disgo.Resource<API Resources>
+disgo.<API Resources>
 
 // Use events to represent Discord events in your application.
-disgo.Event<API Events>
+disgo.<API Events>
 
 // Use the client to manage the bot's settings.
 disgo.Client.Config.<Settings>
 
 // Use requests to exchange data with Discord's REST API.
-disgo.Request<Endpoints>
-disgo.Response<Endpoints>
+disgo.<Endpoint>.Send()
 
 // Use sessions to handle events from Discord's WebSocket Sessions (Gateways).
-disgo.Client.Session.Handlers.Add(<handler>)
-disgo.Client.Session.Handlers.Remove(<handler>)
+disgo.Client.Handle(<event>, <handler>)
+disgo.Client.Remove(<event>, <index>)
 
 // Use flags to specify options.
 disgo.Flag<Option><Name>
@@ -158,16 +165,19 @@ Go is a statically typed language with a garbage collector. As a result, it perf
 
 ### Comparison
 
-Disgo supports every feature in the Discord API in the Discord API and provides optional caching and shard management. **DiscordGo** is not feature-complete and **Disgord** is limiting. The word `disgo` contains 5 letters — while the others have 7+ — saving you precious keyboard strokes. Most important is Disgo's performance, which saves you money by reducing server costs. _Don't believe me?_ Check this out!
+Disgo supports every feature in the Discord API and is **the most customizable Discord API Wrapper** due to its optional caching, shard management, rate limiting, and logging. **DiscordGo** is not feature-complete and **Disgord** is limiting. Look no further than the name. The word `disgo` contains 5 letters — while the others have 7+ — saving you precious keyboard strokes. Most important is Disgo's performance, which saves you money by reducing server costs. _Don't believe me?_ Check this out!
 
 #### CPU
-Disgo places a priority on performance. For more information, view [`library decisions`](/_contribution/libraries/). Sharding is optional.
+
+Disgo places a priority on performance. For more information, view [`library decisions`](/_contribution/libraries/).
 
 ### Memory
-Every struct uses [fieldalignment](https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/fieldalignment) to reduce the memory footprint of your application. Caching is optional.
+
+Every struct uses [fieldalignment](https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/fieldalignment) to reduce the memory footprint of your application.
 
 ### Storage
-Disgo adds ~<> MB to a compiled binary.
+
+Disgo adds **3.5 MB** to a compiled binary.
 
 ### Contributing
 
@@ -175,8 +185,8 @@ Disgo is the easiest Discord Go API for developers to use and contribute to. You
 
 | Library   | Contribution                                                                                                                                                                                                                              | Lines of Code to Maintain |
 | :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
-| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 3K/11K                    |
-| DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | 11K/11K                   |
+| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 6K/15K                    |
+| DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | 12K/12K                   |
 | Disgord   | Contribution Guidelines, No Linter, ORM, Not Feature Complete                                                                                                                                                                             | ?/30K                     |
 
 ## Ecosystem
@@ -195,10 +205,10 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 
 ### Credits
 
-| Name                                      | Contributions                         |
-| :---------------------------------------- | :------------------------------------ |
-| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Dasgo, Requests |
-| [Thomas Rogers](https://github.com/t-rog) | Dasgo                                 |
-| [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                 |
+| Name                                      | Contributions                                             |
+| :---------------------------------------- | :-------------------------------------------------------- |
+| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Dasgo, Requests, WebSockets, Events |
+| [Thomas Rogers](https://github.com/t-rog) | Dasgo, WebSockets                                         |
+| [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                                     |
 
 _Earn a credit! [Contribute Now](_contribution/CONTRIBUTING.md)._
