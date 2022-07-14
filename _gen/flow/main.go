@@ -1,11 +1,14 @@
-package wrapper
+package main
+
+import "fmt"
 
 // TODO: note that Group DM requests are not being used
 
 var (
+	// endpoints represents a dependency graph of endpoints (map[endpoint][]dependencies).
 	endpoints = map[string][]string{
 		"GetGlobalApplicationCommands":           {"CreateGlobalApplicationCommand"},
-		"CreateGlobalApplicationCommand":         {"CreateGlobalApplicationCommand"},
+		"CreateGlobalApplicationCommand":         {},
 		"GetGlobalApplicationCommand":            {"CreateGlobalApplicationCommand"},
 		"EditGlobalApplicationCommand":           {"CreateGlobalApplicationCommand"},
 		"DeleteGlobalApplicationCommand":         {"CreateGlobalApplicationCommand"},
@@ -176,69 +179,70 @@ var (
 	}
 )
 
+// findOrder finds the order of endpoints with the least amount of dependencies
+// to the most amount of dependencies.
 func findOrder(endpoints map[string][]string) []string {
+	numEndpoints := len(endpoints)
 
-	var numEndpoints int = len(endpoints)
-	// pcmap represents a map of prerequisite courses to courses.
-	pcmap := make([][]string, numEndpoints)
+	// indegree represents the amount of endpoints required for an endpoint.
+	indegree := make(map[string]int, numEndpoints)
 
-	// indegree represents the amount of prerequisites required for a course.
-	indegree := make([]int, numEndpoints)
-
-	// bucket represents a [course, prerequisite] ordered pair.
-	for _, bucket := range endpoints {
-		// map prerequisites to d.
-		pcmap[bucket[1][0]] = append(pcmap[bucket[1][0]], bucket[0])
-
-		// bucket[0] represents a course (from 0 < numCourses).
-		// add to its prerequisite count.
-		indegree[bucket[0][0]]++
+	// calculate the indegrees of the endpoints.
+	for endpoint, dependencies := range endpoints {
+		indegree[endpoint] = len(dependencies)
 	}
 
 	// queue represents a first-in first-out data structure.
 	//
-	// queue can't have more entries than the number of courses,
-	// so initialize a map of length 0 with capacity = numCourses.
-	queue := make([]string, len(endpoints))
+	// queue can't have more entries than the number of endpoints,
+	// so initialize a map of length 0 with capacity = numEndpoints.
+	queue := make([]string, 0, numEndpoints)
 
-	// fill the queue with courses that have no prerequisites.
-	for course, prerequisiteCount := range indegree {
-		if prerequisiteCount == 0 {
-			queue = append(queue, course)
+	// fill the queue with endpoints that have no dependencies.
+	for endpoint, numDependencies := range indegree {
+		if numDependencies == 0 {
+			queue = append(queue, endpoint)
 		}
 	}
 
 	// output represents the returned result.
-	output := make([]string, 0, len(endpoints))
+	output := make([]string, 0, numEndpoints)
 
-	// add the courses with no prerequisites.
+	// add the endpoints with no dependencies to the output.
 	for len(queue) > 0 {
-		// select the first entry in the queue (of courses with no prereqs).
+		// select the first entry in the queue (of endpoints with no dependencies).
 		current := queue[0]
 
-		// remove the first entry out the queue (of courses with no prereqs).
+		// remove the first entry out the queue (of endpoints with no dependencies).
 		queue = queue[1:]
 
 		// add the entry to the output.
 		output = append(output, current)
 		numEndpoints--
 
-		// check courses that depend on the selected entry to the queue
-		for _, course := range pcmap[current] {
-			indegree[course]--
+		// add endpoints that no longer contain dependencies to the queue.
+		for _, dependency := range endpoints[current] {
+			indegree[dependency]--
 
-			// when the course's prerequisite count is 0,
-			// add it to the queue.
-			if indegree[course] == 0 {
-				queue = append(queue, course)
+			// when the endpoints's dependency count is 0, add it to the queue.
+			if indegree[dependency] == 0 {
+				queue = append(queue, dependency)
 			}
 		}
 	}
 
-	// numCourses is not 0 when a cycle occurs (i.e [1,0],[0,1])
+	// numEndpoints is not 0 when a cycle occurs (i.e [a: b],[b: a])
 	if numEndpoints != 0 {
+		fmt.Println("WARNING: cycle occurred")
+
 		return []string{}
 	}
 
 	return output
+}
+
+func main() {
+	for i, endpoint := range findOrder(endpoints) {
+		fmt.Printf(fmt.Sprintf("%d. %v", i, endpoint))
+	}
 }
