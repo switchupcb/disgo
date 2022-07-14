@@ -40,7 +40,9 @@ jobs:
     needs: sca-lint
     name: Unit Tests
     environment: testing
-    runs-on: '${{ matrix.os }}'
+    env:
+      TOKEN: ${{ secrets.TOKEN }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os:
