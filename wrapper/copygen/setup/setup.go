@@ -57,6 +57,16 @@ type Copygen interface {
 	// http GET
 	GetGuildAuditLog(*disgo.GetGuildAuditLog) (*disgo.AuditLog, error)
 	// http GET
+	ListAutoModerationRulesForGuild(*disgo.ListAutoModerationRulesForGuild) ([]*disgo.AutoModerationAction, error)
+	// http GET
+	GetAutoModerationRule(*disgo.GetAutoModerationRule) (*disgo.AutoModerationRule, error)
+	// http POST
+	CreateAutoModerationRule(*disgo.CreateAutoModerationRule) (*disgo.AutoModerationRule, error)
+	// http PATCH
+	ModifyAutoModerationRule(*disgo.ModifyAutoModerationRule) (*disgo.AutoModerationRule, error)
+	// http DELETE
+	DeleteAutoModerationRule(*disgo.DeleteAutoModerationRule) error
+	// http GET
 	GetChannel(*disgo.GetChannel) (*disgo.Channel, error)
 	// http PATCH
 	ModifyChannel(*disgo.ModifyChannel) (*disgo.Channel, error)
