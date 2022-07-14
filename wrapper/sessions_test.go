@@ -11,10 +11,6 @@ import (
 // TestConnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
 // in order to ensure that WebSocket functionality works.
 func TestConnect(t *testing.T) {
-	if os.Getenv("TOKEN") == "" {
-		t.Fatalf("Token is empty.")
-	}
-
 	// timeout is used to prevent this test from lasting longer than expected.
 	timeout := time.NewTimer(time.Second * 8)
 
