@@ -51,7 +51,7 @@ The following [example](/_examples/main) creates a bot that creates an applicati
 
 ## Configuration
 
-**You must create a Discord Application in the [Discord Developer Portal](https://discord.com/developers/applications) to receive your Bot Token.** 
+**You must create a Discord Application in the [Discord Developer Portal](https://discord.com/developers/docs/getting-started#creating-an-app) to receive your Bot Token.** 
 
 Use the client to configure the bot's settings.
 ```go
@@ -60,6 +60,8 @@ bot := disgo.Client{
     Authentication: disgo.BotToken("TOKEN"),
     Authorization: &disgo.Authorization{ ... },
     Config: disgo.DefaultConfig(),
+    Handlers: new(Handlers),
+    Sessions: new(Sessions)
 }
 ```
 
@@ -98,12 +100,8 @@ bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i disgo.Interaction
 Open a WebSocket **Session** to receive events.
 
 ```go
-// Add a session.
-bot.Sessions = append(bot.Sessions, disgo.Session{})
-
-// Open the session.
-session, err := bot.Sessions[0].Open()
-if err != nil {
+// Connect the session to the Discord Gateway (WebSocket Connection).
+if err := bot.Connect(new(Session)); err != nil {
     log.Println("error: can't open websocket session to Discord")
 }
 ```
@@ -118,21 +116,20 @@ main called by SCB
 
 ```go
 // Use resources to represent Discord objects in your application.
-disgo.Resource<API Resources>
+disgo.<API Resources>
 
 // Use events to represent Discord events in your application.
-disgo.Event<API Events>
+disgo.<API Events>
 
 // Use the client to manage the bot's settings.
 disgo.Client.Config.<Settings>
 
 // Use requests to exchange data with Discord's REST API.
-disgo.Request<Endpoints>
-disgo.Response<Endpoints>
+disgo.Request<Endpoint>.Send()
 
 // Use sessions to handle events from Discord's WebSocket Sessions (Gateways).
-disgo.Client.Session.Handlers.Add(<handler>)
-disgo.Client.Session.Handlers.Remove(<handler>)
+disgo.Client.Handle(<event>, <handler>)
+disgo.Client.Remove(<event>, <index>)
 
 // Use flags to specify options.
 disgo.Flag<Option><Name>
