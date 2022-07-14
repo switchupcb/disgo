@@ -5,7 +5,7 @@ import "fmt"
 // TODO: note that Group DM requests are not being used
 
 var (
-	// endpoints represents a dependency graph of endpoints (map[endpoint][]dependencies).
+	// endpoints represents a dependency graph of endpoints (map[dependency][]endpoints).
 	endpoints = map[string][]string{
 		"GetGlobalApplicationCommands":           {"CreateGlobalApplicationCommand"},
 		"CreateGlobalApplicationCommand":         {},
@@ -109,7 +109,7 @@ var (
 		"ModifyGuildRole":                        {"CreateGuildRole"},
 		"DeleteGuildRole":                        {"CreateGuildRole"},
 		"GetGuildPruneCount":                     {"CreateGuild"},
-		"BeginGuildPrune":                        {"CreateGuild", "AddGuildMember"},
+		"BeginGuildPrune":                        {"CreateGuild"},
 		"GetGuildVoiceRegions":                   {"CreateGuild"},
 		"GetGuildInvites":                        {"CreateGuild"},
 		"GetGuildIntegrations":                   {"CreateGuild"},
@@ -184,12 +184,13 @@ var (
 func findOrder(endpoints map[string][]string) []string {
 	numEndpoints := len(endpoints)
 
-	// indegree represents the amount of endpoints required for an endpoint.
-	indegree := make(map[string]int, numEndpoints)
+	// dependents represents a map of the amount of endpoints that
+	// an endpoint depends on (map[endpoint]numDependents).
+	dependents := make(map[string]int, numEndpoints)
 
-	// calculate the indegrees of the endpoints.
+	// calculate the dependents of the endpoints.
 	for endpoint, dependencies := range endpoints {
-		indegree[endpoint] = len(dependencies)
+		dependents[endpoint] = len(dependencies)
 	}
 
 	// queue represents a first-in first-out data structure.
@@ -199,7 +200,7 @@ func findOrder(endpoints map[string][]string) []string {
 	queue := make([]string, 0, numEndpoints)
 
 	// fill the queue with endpoints that have no dependencies.
-	for endpoint, numDependencies := range indegree {
+	for endpoint, numDependencies := range dependents {
 		if numDependencies == 0 {
 			queue = append(queue, endpoint)
 		}
@@ -218,15 +219,29 @@ func findOrder(endpoints map[string][]string) []string {
 
 		// add the entry to the output.
 		output = append(output, current)
+
+		// decrease the amount of endpoints remaining.
 		numEndpoints--
 
-		// add endpoints that no longer contain dependencies to the queue.
-		for _, dependency := range endpoints[current] {
-			indegree[dependency]--
+		// add endpoints that no longer depend on any other endpoints to the queue.
+		//
+		// in other words, add endpoints with no dependencies.
+		for endpoint, dependencies := range endpoints {
+			// when an endpoint depends on the current endpoint (that is now accounted for),
+			// decrement the amount of dependents the endpoint has.
+			if contains(dependencies, current) {
+				dependents[endpoint]--
 
-			// when the endpoints's dependency count is 0, add it to the queue.
-			if indegree[dependency] == 0 {
-				queue = append(queue, dependency)
+				// when the endpoint is dependent on no other endpoints, add it to the queue.
+				if dependents[endpoint] == 0 {
+					queue = append(queue, endpoint)
+
+					if numEndpoints < 0 {
+						fmt.Println("WARNING: cycle occurred")
+
+						return []string{}
+					}
+				}
 			}
 		}
 	}
@@ -241,8 +256,19 @@ func findOrder(endpoints map[string][]string) []string {
 	return output
 }
 
+// contains returns whether the slice s contains the string x.
+func contains(s []string, x string) bool {
+	for _, item := range s {
+		if x == item {
+			return true
+		}
+	}
+
+	return false
+}
+
 func main() {
 	for i, endpoint := range findOrder(endpoints) {
-		fmt.Printf(fmt.Sprintf("%d. %v", i, endpoint))
+		fmt.Println(fmt.Sprintf("%d. %v", i, endpoint))
 	}
 }
