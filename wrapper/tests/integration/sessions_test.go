@@ -1,4 +1,4 @@
-package wrapper
+package sessions_test
 
 import (
 	"log"
@@ -6,6 +6,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	. "github.com/switchupcb/disgo/wrapper"
 )
 
 // TestConnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
