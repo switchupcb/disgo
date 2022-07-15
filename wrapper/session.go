@@ -19,7 +19,6 @@ const (
 	gatewayEndpointParams     = "?v=" + VersionDiscordAPI + "&encoding=json"
 	invalidSessionWaitTime    = 1 * time.Second
 	maxIdentifyLargeThreshold = 250
-	reconnectCloseCode        = 3000
 )
 
 // Session represents a Discord Gateway WebSocket Session.
@@ -37,7 +36,7 @@ type Session struct {
 
 	// Context carries request-scoped data for the Discord Gateway Connection.
 	//
-	// Context is also used as a signal for the session's goroutines.
+	// Context is also used as a signal for the Session's goroutines.
 	Context context.Context
 
 	// Conn represents a connection to the Discord Gateway.
@@ -49,12 +48,12 @@ type Session struct {
 	// heartbeat contains the fields required to implement the heartbeat mechanism.
 	heartbeat *heartbeat
 
-	// mu represents a mutex that is used to protect the Session's variables from data races
+	// a mutex is used to protect the Session's variables from data races
 	// by providing transactional functionality.
-	mu sync.RWMutex
+	sync.RWMutex
 }
 
-// heartbeat represents the heartbeat mechanism for a session.
+// heartbeat represents the heartbeat mechanism for a Session.
 type heartbeat struct {
 	// interval represents the interval of time between each Heartbeat Payload.
 	interval time.Duration
@@ -89,19 +88,19 @@ func (s *Session) canReconnect() bool {
 }
 
 // Connect connects a session to the Discord Gateway (WebSocket Connection).
-func (bot *Client) Connect(s *Session) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *Session) Connect(bot *Client) error {
+	s.Lock()
+	defer s.Unlock()
 
-	log.Printf("connecting session %q", s.ID)
+	log.Printf("connecting Session %q", s.ID)
 
-	return bot.connect(s)
+	return s.connect(bot)
 }
 
 // connect connects a session to a WebSocket Connection.
-func (bot *Client) connect(s *Session) error {
+func (s *Session) connect(bot *Client) error {
 	if s.isConnected() {
-		return fmt.Errorf("session %q is already connected", s.ID)
+		return fmt.Errorf("Session %q is already connected", s.ID)
 	}
 
 	// request a valid Gateway URL endpoint from the Discord API.
@@ -141,7 +140,7 @@ func (bot *Client) connect(s *Session) error {
 	//
 	// This is done BEFORE sending the first Heartbeat to ensure that
 	// any incoming payloads (Ready, HeartbeatACK) are guaranteed to be handled.
-	go bot.listen(s)
+	go s.listen(bot)
 
 	// begin sending heartbeat payloads every heartbeat_interval ms.
 	ms := time.Millisecond * time.Duration(hello.HeartbeatInterval)
@@ -155,10 +154,10 @@ func (bot *Client) connect(s *Session) error {
 		// which results in an attempt to reconnect.
 		acks: 1,
 	}
-	go bot.pulse(s)
-	go bot.heartbeat(s)
+	go s.pulse()
+	go s.beat(bot)
 
-	if err := bot.initial(s); err != nil {
+	if err := s.initial(bot); err != nil {
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			return ErrorDisconnect{
 				SessionID: s.ID,
@@ -174,7 +173,7 @@ func (bot *Client) connect(s *Session) error {
 }
 
 // initial sends the initial identify or resume packet required to connect to the Gateway.
-func (bot *Client) initial(s *Session) error {
+func (s *Session) initial(bot *Client) error {
 	if !s.canReconnect() {
 		// send an Opcode 2 Identify to the Discord Gateway.
 		if err := writeEvent(s, FlagGatewayOpcodeIdentify, FlagGatewayCommandNameIdentify,
@@ -214,14 +213,14 @@ func (bot *Client) initial(s *Session) error {
 
 // Disconnect disconnects a session from the Discord Gateway using the given status code.
 func (s *Session) Disconnect() error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
 	if err := s.disconnect(FlagClientCloseEventCodeNormal); err != nil {
 		return err
 	}
 
-	log.Printf("disconnected session %q with code %d", s.ID, FlagClientCloseEventCodeNormal)
+	log.Printf("disconnected Session %q with code %d", s.ID, FlagClientCloseEventCodeNormal)
 
 	return nil
 }
@@ -229,7 +228,7 @@ func (s *Session) Disconnect() error {
 // disconnect disconnects a session from a WebSocket Connection using the given status code.
 func (s *Session) disconnect(code int) error {
 	if !s.isConnected() {
-		return fmt.Errorf("session %q is already disconnected", s.ID)
+		return fmt.Errorf("Session %q is already disconnected", s.ID)
 	}
 
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
@@ -262,19 +261,19 @@ func (s *Session) disconnectFromRoutine(reason string, err error) {
 
 // Reconnect reconnects an already connected session to the Discord Gateway
 // by disconnecting the session, then connecting again.
-func (bot *Client) Reconnect(s *Session) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+func (s *Session) Reconnect(bot *Client) error {
+	s.Lock()
+	defer s.Unlock()
 
-	log.Printf("reconnecting session %q", s.ID)
+	log.Printf("reconnecting Session %q", s.ID)
 
-	return bot.reconnect(s)
+	return s.reconnect(bot)
 }
 
 // reconnect reconnects an already connected session to a WebSocket Connection.
-func (bot *Client) reconnect(s *Session) error {
+func (s *Session) reconnect(bot *Client) error {
 	// close the active connection with a non-1000 and non-1001 close code.
-	if err := s.disconnect(reconnectCloseCode); err != nil {
+	if err := s.disconnect(FlagClientCloseEventCodeReconnect); err != nil {
 		return ErrorDisconnect{
 			SessionID: s.ID,
 			Err:       err,
@@ -282,33 +281,36 @@ func (bot *Client) reconnect(s *Session) error {
 		}
 	}
 
-	if err := bot.connect(s); err != nil {
-		return fmt.Errorf("an error occurred while reconnecting session %q: %w", s.ID, err)
+	// allow Discord to close the session.
+	<-time.After(time.Second)
+
+	// connect to the Discord Gateway again.
+	if err := s.connect(bot); err != nil {
+		return fmt.Errorf("an error occurred while reconnecting Session %q: %w", s.ID, err)
 	}
 
 	return nil
 }
 
 // listen listens to the connection for payloads from the Discord Gateway.
-func (bot *Client) listen(s *Session) {
+func (s *Session) listen(bot *Client) {
 	for {
 		payload := getPayload()
 		if err := socket.Read(s.Context, s.Conn, payload); err != nil {
-			s.mu.Lock()
-			defer s.mu.Unlock()
+			s.Lock()
+			defer s.Unlock()
 
 			select {
 			case <-s.Context.Done():
-				return
 			default:
 				closeErr := new(websocket.CloseError)
 				if errors.As(err, closeErr) {
-					if gcErr := bot.handleGatewayCloseError(s, closeErr); gcErr == nil {
+					if gcErr := s.handleGatewayCloseError(bot, closeErr); gcErr == nil {
 						return
 					}
 				}
 
-				s.disconnectFromRoutine("Closing the connection due to a read error...",
+				s.disconnectFromRoutine("listen: Closing the connection due to a read error...",
 					ErrorEvent{
 						Event:  "Payload",
 						Err:    err,
@@ -320,9 +322,9 @@ func (bot *Client) listen(s *Session) {
 		}
 
 		log.Println("PAYLOAD", payload.Op, string(payload.Data))
-		if err := bot.onPayload(s, *payload); err != nil {
-			s.mu.Lock()
-			defer s.mu.Unlock()
+		if err := s.onPayload(bot, *payload); err != nil {
+			s.Lock()
+			defer s.Unlock()
 
 			select {
 			case <-s.Context.Done():
@@ -336,7 +338,7 @@ func (bot *Client) listen(s *Session) {
 }
 
 // onPayload handles an Discord Gateway Payload.
-func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
+func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 	defer putPayload(&payload)
 
 	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
@@ -360,23 +362,24 @@ func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
 				}
 			}
 
-			s.mu.Lock()
+			s.Lock()
 			s.ID = ready.SessionID
-			log.Printf("received Ready event for session %q", s.ID)
-			s.mu.Unlock()
+			log.Printf("received Ready event for Session %q", s.ID)
+			s.Unlock()
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = ready.Application.ID
 		}
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
-		go bot.respond(s, payload.Data)
+		go s.respond(payload.Data)
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
-		s.mu.Lock()
+		s.Lock()
+		log.Println("ACK")
 		atomic.AddUint32(&s.heartbeat.acks, 1)
-		s.mu.Unlock()
+		s.Unlock()
 
 	// occurs when the maximum concurrency limit has been reached while connecting,
 	// or when the session does NOT reconnect in time.
@@ -384,12 +387,12 @@ func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
 		// wait for Discord to close the session, then complete a fresh connect.
 		<-time.NewTimer(invalidSessionWaitTime).C
 
-		s.mu.Lock()
-		defer s.mu.Unlock()
+		s.Lock()
+		defer s.Unlock()
 
 		s.ID = ""
 		s.Seq = 0
-		if err := bot.initial(s); err != nil {
+		if err := s.initial(bot); err != nil {
 			return err
 		}
 
@@ -400,32 +403,32 @@ func (bot *Client) onPayload(s *Session, payload GatewayPayload) error {
 	// occurs when the Discord Gateway is shutting down the connection,
 	// while signalling the client to reconnect.
 	case FlagGatewayOpcodeReconnect:
-		s.mu.Lock()
-		defer s.mu.Unlock()
+		s.Lock()
+		defer s.Unlock()
 
-		log.Printf("reconnecting session %q due to Opcode 7 Reconnect", s.ID)
+		log.Printf("reconnecting Session %q due to Opcode 7 Reconnect", s.ID)
 
-		return bot.reconnect(s)
+		return s.reconnect(bot)
 	}
 
 	return nil
 }
 
-// GatewayCloseEventCodes handles a Discord Gateway WebSocket CloseError.
+// handleGatewayCloseError handles a Discord Gateway WebSocket CloseError.
 //
 // returns the given closeErr if a disconnect is warranted.
-func (bot *Client) handleGatewayCloseError(s *Session, closeErr *websocket.CloseError) error {
+func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.CloseError) error {
 	code, ok := GatewayCloseEventCodes[int(closeErr.Code)]
 	switch ok {
 	// Gateway Close Event Code is known.
 	case true:
 		log.Printf(
-			"session %q received Gateway Close Event Code %d %s: %s",
+			"Session %q received Gateway Close Event Code %d %s: %s",
 			s.ID, code.Code, code.Description, code.Explanation,
 		)
 
 		if code.Reconnect {
-			if reconnectErr := bot.reconnect(s); reconnectErr != nil {
+			if reconnectErr := s.reconnect(bot); reconnectErr != nil {
 				log.Println(reconnectErr)
 
 				return closeErr
@@ -442,12 +445,12 @@ func (bot *Client) handleGatewayCloseError(s *Session, closeErr *websocket.Close
 		// when another goroutine calls disconnect(),
 		// s.Conn.Close is called before s.cancel which will result in
 		// a CloseError with the close code that Disgo uses to reconnect.
-		if closeErr.Code == reconnectCloseCode {
+		if closeErr.Code == websocket.StatusCode(FlagClientCloseEventCodeReconnect) {
 			return nil
 		}
 
 		log.Printf(
-			"session %q received unknown Gateway Close Event Code %d with reason %q",
+			"Session %q received unknown Gateway Close Event Code %d with reason %q",
 			s.ID, closeErr.Code, closeErr.Reason,
 		)
 
@@ -455,17 +458,26 @@ func (bot *Client) handleGatewayCloseError(s *Session, closeErr *websocket.Close
 	}
 }
 
-// heartbeat listens for pulses to send Opcode 1 Heartbeats to the Discord Gateway (to verify the connection is alive).
-func (bot *Client) heartbeat(s *Session) {
+// Monitor returns the current amount of HeartbeatACKs for a Session's heartbeat.
+func (s *Session) Monitor() uint32 {
+	s.Lock()
+	acks := atomic.LoadUint32(&s.heartbeat.acks)
+	s.Unlock()
+
+	return acks
+}
+
+// beat listens for pulses to send Opcode 1 Heartbeats to the Discord Gateway (to verify the connection is alive).
+func (s *Session) beat(bot *Client) {
 	for {
 		select {
 		case hb := <-s.heartbeat.send:
-			s.mu.Lock()
+			s.Lock()
 
 			// close the connection if the last sent Heartbeat never received a HeartbeatACK.
 			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
-				log.Printf("attempting to reconnect session %q due to no HeartbeatACK", s.ID)
-				if err := bot.reconnect(s); err != nil {
+				log.Printf("attempting to reconnect Session %q due to no HeartbeatACK", s.ID)
+				if err := s.reconnect(bot); err != nil {
 					log.Println(ErrorDisconnect{
 						SessionID: s.ID,
 						Err:       err,
@@ -473,7 +485,7 @@ func (bot *Client) heartbeat(s *Session) {
 					})
 				}
 
-				s.mu.Unlock()
+				s.Unlock()
 
 				return
 			}
@@ -492,9 +504,9 @@ func (bot *Client) heartbeat(s *Session) {
 
 			// send a Heartbeat to the Discord Gateway (WebSocket Connection).
 			if err := writeEvent(s, FlagGatewayOpcodeHeartbeat, FlagGatewayCommandNameHeartbeat, hb); err != nil {
-				s.disconnectFromRoutine("Closing the connection due to a write error...", err)
+				s.disconnectFromRoutine("heartbeat: Closing the connection due to a write error...", err)
 
-				s.mu.Unlock()
+				s.Unlock()
 
 				return
 			}
@@ -510,7 +522,7 @@ func (bot *Client) heartbeat(s *Session) {
 
 			log.Println("sent heartbeat")
 
-			s.mu.Unlock()
+			s.Unlock()
 
 		case <-s.Context.Done():
 			return
@@ -518,23 +530,58 @@ func (bot *Client) heartbeat(s *Session) {
 	}
 }
 
+// pulse generates Opcode 1 Heartbeats for a Session's heartbeat channel.
+func (s *Session) pulse() {
+	// send an Opcode 1 Heartbeat payload after heartbeat_interval * jitter milliseconds
+	// (where jitter is a random value between 0 and 1).
+	s.Lock()
+	s.heartbeat.send <- Heartbeat{Data: s.Seq}
+	log.Println("queued jitter heartbeat")
+	s.Unlock()
+
+	for {
+		s.Lock()
+
+		select {
+		default:
+			s.Unlock()
+
+		// every Heartbeat Interval...
+		case <-s.heartbeat.ticker.C:
+
+			// queue a heartbeat.
+			s.heartbeat.send <- Heartbeat{Data: s.Seq}
+
+			log.Println("queued heartbeat")
+
+			s.Unlock()
+
+		case <-s.Context.Done():
+			s.Unlock()
+
+			return
+		}
+	}
+}
+
 // respond responds to Opcode 1 Heartbeats from the Discord Gateway.
-func (bot *Client) respond(s *Session, data json.RawMessage) {
+func (s *Session) respond(data json.RawMessage) {
 	var heartbeat Heartbeat
 	if err := json.Unmarshal(data, &heartbeat); err != nil {
-		s.mu.Lock()
-		defer s.mu.Unlock()
+		s.Lock()
+		defer s.Unlock()
 
-		s.disconnectFromRoutine("Closing the connection due to an unmarshal error...", ErrorEvent{
-			Event:  FlagGatewayCommandNameHeartbeat,
-			Err:    err,
-			Action: ErrorEventActionUnmarshal,
-		})
+		s.disconnectFromRoutine("respond: Closing the connection due to an unmarshal error...",
+			ErrorEvent{
+				Event:  FlagGatewayCommandNameHeartbeat,
+				Err:    err,
+				Action: ErrorEventActionUnmarshal,
+			})
 	}
 
 	atomic.StoreInt64(&s.Seq, heartbeat.Data)
 
-	s.mu.Lock()
+	s.Lock()
 
 	// heartbeat() checks for the amount of HeartbeatACKs received since the last Heartbeat.
 	// There is a possibility for this value to be 0 due to latency rather than a dead connection.
@@ -549,37 +596,10 @@ func (bot *Client) respond(s *Session, data json.RawMessage) {
 
 	log.Println("responded to heartbeat")
 
-	s.mu.Unlock()
+	s.Unlock()
 }
 
-// pulse generates Opcode 1 Heartbeats for a Session's heartbeat channel.
-func (bot *Client) pulse(s *Session) {
-	for {
-		s.mu.Lock()
-
-		select {
-		default:
-			s.mu.Unlock()
-
-		// every Heartbeat Interval...
-		case <-s.heartbeat.ticker.C:
-
-			// queue a heartbeat.
-			s.heartbeat.send <- Heartbeat{Data: s.Seq}
-
-			log.Println("queued heartbeat")
-
-			s.mu.Unlock()
-
-		case <-s.Context.Done():
-			s.mu.Unlock()
-
-			return
-		}
-	}
-}
-
-// readEvent is a helper function for reading events from the websocket session.
+// readEvent is a helper function for reading events from the WebSocket Session.
 func readEvent(s *Session, name string, dst any) error {
 	payload := new(GatewayPayload)
 	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
@@ -597,7 +617,7 @@ func readEvent(s *Session, name string, dst any) error {
 	return nil
 }
 
-// writeEvent is a helper function for writing events to the websocket session.
+// writeEvent is a helper function for writing events to the WebSocket Session.
 // returns an ErrorEvent.
 func writeEvent(s *Session, op int, name string, dst any) error {
 	event, err := json.Marshal(dst)
