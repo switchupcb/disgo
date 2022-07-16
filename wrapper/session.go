@@ -51,6 +51,10 @@ type Session struct {
 	// a mutex is used to protect the Session's variables from data races
 	// by providing transactional functionality.
 	sync.RWMutex
+
+	// routines represents a goroutine counter that ensures all of the Session's goroutines
+	// are spawned prior to returning from connect().
+	routines sync.WaitGroup
 }
 
 // heartbeat represents the heartbeat mechanism for a Session.
@@ -123,8 +127,8 @@ func (s *Session) connect(bot *Client) error {
 	}
 
 	// handle the incoming Hello event upon connecting to the Gateway.
-	var hello Hello
-	if err := readEvent(s, FlagGatewayEventNameHello, &hello); err != nil {
+	hello := new(Hello)
+	if err := readEvent(s, FlagGatewayEventNameHello, hello); err != nil {
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			return ErrorDisconnect{
 				SessionID: s.ID,
@@ -136,11 +140,9 @@ func (s *Session) connect(bot *Client) error {
 		return err
 	}
 
-	// begin listening for payloads.
-	//
-	// This is done BEFORE sending the first Heartbeat to ensure that
-	// any incoming payloads (Ready, HeartbeatACK) are guaranteed to be handled.
-	go s.listen(bot)
+	for _, handler := range bot.Handlers.Hello {
+		go handler(hello)
+	}
 
 	// begin sending heartbeat payloads every heartbeat_interval ms.
 	ms := time.Millisecond * time.Duration(hello.HeartbeatInterval)
@@ -154,10 +156,13 @@ func (s *Session) connect(bot *Client) error {
 		// which results in an attempt to reconnect.
 		acks: 1,
 	}
+	s.routines.Add(1)
 	go s.pulse()
+	s.routines.Add(1)
 	go s.beat(bot)
 
-	if err := s.initial(bot); err != nil {
+	// send the initial Identify or Resumed packet.
+	if err := s.initial(bot, 0); err != nil {
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			return ErrorDisconnect{
 				SessionID: s.ID,
@@ -169,11 +174,18 @@ func (s *Session) connect(bot *Client) error {
 		return err
 	}
 
+	s.routines.Add(1)
+	go s.listen(bot)
+
+	// ensure that the Session's goroutines are spawned.
+	s.routines.Wait()
+
 	return nil
 }
 
-// initial sends the initial identify or resume packet required to connect to the Gateway.
-func (s *Session) initial(bot *Client) error {
+// initial sends the initial Identify or Resume packet required to connect to the Gateway,
+// then handles the incoming Ready or Resumed packet that indicates a successful connection.
+func (s *Session) initial(bot *Client, attempt int) error {
 	if !s.canReconnect() {
 		// send an Opcode 2 Identify to the Discord Gateway.
 		if err := writeEvent(s, FlagGatewayOpcodeIdentify, FlagGatewayCommandNameIdentify,
@@ -202,10 +214,94 @@ func (s *Session) initial(bot *Client) error {
 			}); err != nil {
 			return err
 		}
+	}
+
+	// handle the incoming Ready, Resumed or Replayed event (or Opcode 9 Invalid Session).
+	payload := new(GatewayPayload)
+	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
+		return fmt.Errorf("error occurred while reading initial payload: %w", err)
+	}
+
+	log.Println("INITIAL PAYLOAD", payload.Op, string(payload.Data))
+
+	switch payload.Op {
+	case FlagGatewayOpcodeDispatch:
+		switch {
+		// When a connection is successful, the Discord Gateway will respond with a Ready event.
+		case *payload.EventName == FlagGatewayEventNameReady:
+			ready := new(Ready)
+			if err := json.Unmarshal(payload.Data, ready); err != nil {
+				return fmt.Errorf("%w", err)
+			}
+
+			s.ID = ready.SessionID
+			s.Seq = 0
+			// SHARD: set shard information using r.Shard
+			bot.ApplicationID = ready.Application.ID
+
+			log.Printf("received Ready event for Session %q", s.ID)
+
+			for _, handler := range bot.Handlers.Ready {
+				go handler(ready)
+			}
 
 		// When a reconnection is successful, the Discord Gateway will respond
 		// by replaying all missed events in order, finalized by a Resumed event.
-		// However, Resumed events do NOT need to be handled.
+		case *payload.EventName == FlagGatewayEventNameResumed:
+			log.Printf("received Resumed event for Session %q", s.ID)
+
+			for _, handler := range bot.Handlers.Resumed {
+				go handler(&Resumed{})
+			}
+
+		// When a reconnection is successful, the Discord Gateway will respond
+		// by replaying all missed events in order, finalized by a Resumed event.
+		default:
+			// handle the initial payload(s) until a Resumed event is encountered.
+			go bot.handle(*payload.EventName, payload.Data)
+
+			for {
+				replayed := new(GatewayPayload)
+				if err := socket.Read(s.Context, s.Conn, replayed); err != nil {
+					return fmt.Errorf("error occurred while replaying events: %w", err)
+				}
+
+				if replayed.Op == FlagGatewayOpcodeDispatch && *replayed.EventName == FlagGatewayEventNameResumed {
+					log.Printf("received Resumed event for Session %q", s.ID)
+
+					for _, handler := range bot.Handlers.Resumed {
+						go handler(&Resumed{})
+					}
+
+					return nil
+				}
+
+				go bot.handle(*payload.EventName, payload.Data)
+			}
+		}
+
+	// When the maximum concurrency limit has been reached while connecting, or when
+	// the session does NOT reconnect in time, the Discord Gateway send an Opcode 9 Invalid Session.
+	case FlagGatewayOpcodeInvalidSession:
+		if attempt != 0 {
+			s.ID = ""
+			s.Seq = 0
+		}
+
+		if attempt < 1 {
+			// wait for Discord to close the session, then complete a fresh connect.
+			<-time.NewTimer(invalidSessionWaitTime).C
+
+			if err := s.initial(bot, attempt+1); err != nil {
+				return err
+			}
+
+			return nil
+		}
+
+		return fmt.Errorf("Session %q couldn't connect to the Discord Gateway or has invalidated an active session", s.ID)
+	default:
+		return fmt.Errorf("Session %q received payload %d during connection which is unexpected", s.ID, payload.Op)
 	}
 
 	return nil
@@ -294,6 +390,8 @@ func (s *Session) reconnect(bot *Client) error {
 
 // listen listens to the connection for payloads from the Discord Gateway.
 func (s *Session) listen(bot *Client) {
+	s.routines.Done()
+
 	for {
 		payload := getPayload()
 		if err := socket.Read(s.Context, s.Conn, payload); err != nil {
@@ -348,28 +446,6 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 		atomic.StoreInt64(&s.Seq, *payload.SequenceNumber)
 		go bot.handle(*payload.EventName, payload.Data)
 
-		// Sending a valid Identify Payload triggers the initial handshake with the Discord Gateway.
-		// This will result in the Gateway responding with a Ready event.
-		// The handler for this Ready event is located in the onPayload function.
-		// This allows developers to manipulate the Handlers.Ready slice without issue.
-		if *payload.EventName == FlagGatewayEventNameReady {
-			ready := new(Ready)
-			if err := json.Unmarshal(payload.Data, ready); err != nil {
-				return ErrorEvent{
-					Event:  FlagGatewayEventNameReady,
-					Err:    err,
-					Action: ErrorEventActionUnmarshal,
-				}
-			}
-
-			s.Lock()
-			s.ID = ready.SessionID
-			log.Printf("received Ready event for Session %q", s.ID)
-			s.Unlock()
-			// SHARD: set shard information using r.Shard
-			bot.ApplicationID = ready.Application.ID
-		}
-
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
 		go s.respond(payload.Data)
@@ -377,31 +453,10 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
 		s.Lock()
-		log.Println("ACK")
 		atomic.AddUint32(&s.heartbeat.acks, 1)
 		s.Unlock()
 
-	// occurs when the maximum concurrency limit has been reached while connecting,
-	// or when the session does NOT reconnect in time.
-	case FlagGatewayOpcodeInvalidSession:
-		// wait for Discord to close the session, then complete a fresh connect.
-		<-time.NewTimer(invalidSessionWaitTime).C
-
-		s.Lock()
-		defer s.Unlock()
-
-		s.ID = ""
-		s.Seq = 0
-		if err := s.initial(bot); err != nil {
-			return err
-		}
-
-		if !s.isConnected() {
-			return fmt.Errorf("Session %q couldn't connect to the Discord Gateway or has invalidated an active session", s.ID)
-		}
-
-	// occurs when the Discord Gateway is shutting down the connection,
-	// while signalling the client to reconnect.
+	// occurs when the Discord Gateway is shutting down the connection, while signalling the client to reconnect.
 	case FlagGatewayOpcodeReconnect:
 		s.Lock()
 		defer s.Unlock()
@@ -409,6 +464,18 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 		log.Printf("reconnecting Session %q due to Opcode 7 Reconnect", s.ID)
 
 		return s.reconnect(bot)
+
+	// in the context of onPayload, an Invalid Session occurs when an active session is invalidated.
+	case FlagGatewayOpcodeInvalidSession:
+		// wait for Discord to close the session, then complete a fresh connect.
+		<-time.NewTimer(invalidSessionWaitTime).C
+
+		s.Lock()
+		defer s.Unlock()
+
+		if err := s.initial(bot, 0); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -469,6 +536,8 @@ func (s *Session) Monitor() uint32 {
 
 // beat listens for pulses to send Opcode 1 Heartbeats to the Discord Gateway (to verify the connection is alive).
 func (s *Session) beat(bot *Client) {
+	s.routines.Done()
+
 	for {
 		select {
 		case hb := <-s.heartbeat.send:
@@ -532,6 +601,8 @@ func (s *Session) beat(bot *Client) {
 
 // pulse generates Opcode 1 Heartbeats for a Session's heartbeat channel.
 func (s *Session) pulse() {
+	s.routines.Done()
+
 	// send an Opcode 1 Heartbeat payload after heartbeat_interval * jitter milliseconds
 	// (where jitter is a random value between 0 and 1).
 	s.Lock()

@@ -14,6 +14,8 @@ linters:
     - lll # Types defined by Dasgo.
     - godot # Dasgo comments.
     - gochecknoinits # Required by gorilla/schema to parse URL Query Strings correctly.
+    - gocognit # Discord API is endless complexity.
+    - cyclop # Discord API is endless complexity.
 
     - funlen
     - exhaustivestruct
