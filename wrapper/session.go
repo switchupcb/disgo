@@ -2,7 +2,6 @@ package wrapper
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"runtime"
@@ -55,21 +54,14 @@ type Session struct {
 	// routines represents a goroutine counter that ensures all of the Session's goroutines
 	// are spawned prior to returning from connect().
 	routines sync.WaitGroup
-}
 
-// heartbeat represents the heartbeat mechanism for a Session.
-type heartbeat struct {
-	// interval represents the interval of time between each Heartbeat Payload.
-	interval time.Duration
-
-	// ticker is a timer used to time the interval between each Heartbeat Payload.
-	ticker *time.Ticker
-
-	// send represents a channel of heartbeats that will be sent to the Discord Gateway.
-	send chan Heartbeat
-
-	// acks represents the amount of times a HeartbeatACK was received since the last Heartbeat.
-	acks uint32
+	// manager represents a manager of a Session's goroutines.
+	//
+	// manager is used to cancel the connection signal when an error occurs in a Session's goroutines.
+	//
+	// manager ensures that all of the Session's goroutines are closed prior to returning
+	// from Disconnect().
+	manager *sync.WaitGroup
 }
 
 // isConnected returns whether the session is connected.
@@ -156,8 +148,12 @@ func (s *Session) connect(bot *Client) error {
 		// which results in an attempt to reconnect.
 		acks: 1,
 	}
+
+	// spawn the heartbeat pulse goroutine.
 	s.routines.Add(1)
 	go s.pulse()
+
+	// spawn the heartbeat beat goroutine.
 	s.routines.Add(1)
 	go s.beat(bot)
 
@@ -174,6 +170,7 @@ func (s *Session) connect(bot *Client) error {
 		return err
 	}
 
+	// spawn the event listener listen goroutine.
 	s.routines.Add(1)
 	go s.listen(bot)
 
@@ -283,15 +280,12 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	// When the maximum concurrency limit has been reached while connecting, or when
 	// the session does NOT reconnect in time, the Discord Gateway send an Opcode 9 Invalid Session.
 	case FlagGatewayOpcodeInvalidSession:
-		if attempt != 0 {
-			s.ID = ""
-			s.Seq = 0
-		}
-
 		if attempt < 1 {
 			// wait for Discord to close the session, then complete a fresh connect.
 			<-time.NewTimer(invalidSessionWaitTime).C
 
+			s.ID = ""
+			s.Seq = 0
 			if err := s.initial(bot, attempt+1); err != nil {
 				return err
 			}
@@ -386,288 +380,6 @@ func (s *Session) reconnect(bot *Client) error {
 	}
 
 	return nil
-}
-
-// listen listens to the connection for payloads from the Discord Gateway.
-func (s *Session) listen(bot *Client) {
-	s.routines.Done()
-
-	for {
-		payload := getPayload()
-		if err := socket.Read(s.Context, s.Conn, payload); err != nil {
-			s.Lock()
-			defer s.Unlock()
-
-			select {
-			case <-s.Context.Done():
-			default:
-				closeErr := new(websocket.CloseError)
-				if errors.As(err, closeErr) {
-					if gcErr := s.handleGatewayCloseError(bot, closeErr); gcErr == nil {
-						return
-					}
-				}
-
-				s.disconnectFromRoutine("listen: Closing the connection due to a read error...",
-					ErrorEvent{
-						Event:  "Payload",
-						Err:    err,
-						Action: ErrorEventActionRead,
-					})
-			}
-
-			return
-		}
-
-		log.Println("PAYLOAD", payload.Op, string(payload.Data))
-		if err := s.onPayload(bot, *payload); err != nil {
-			s.Lock()
-			defer s.Unlock()
-
-			select {
-			case <-s.Context.Done():
-			default:
-				s.disconnectFromRoutine("onPayload error", err)
-			}
-
-			return
-		}
-	}
-}
-
-// onPayload handles an Discord Gateway Payload.
-func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
-	defer putPayload(&payload)
-
-	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
-	switch payload.Op {
-	// run the bot's event handlers.
-	case FlagGatewayOpcodeDispatch:
-		atomic.StoreInt64(&s.Seq, *payload.SequenceNumber)
-		go bot.handle(*payload.EventName, payload.Data)
-
-	// send an Opcode 1 Heartbeat to the Discord Gateway.
-	case FlagGatewayOpcodeHeartbeat:
-		go s.respond(payload.Data)
-
-	// handle the successful acknowledgement of the client's last heartbeat.
-	case FlagGatewayOpcodeHeartbeatACK:
-		s.Lock()
-		atomic.AddUint32(&s.heartbeat.acks, 1)
-		s.Unlock()
-
-	// occurs when the Discord Gateway is shutting down the connection, while signalling the client to reconnect.
-	case FlagGatewayOpcodeReconnect:
-		s.Lock()
-		defer s.Unlock()
-
-		log.Printf("reconnecting Session %q due to Opcode 7 Reconnect", s.ID)
-
-		return s.reconnect(bot)
-
-	// in the context of onPayload, an Invalid Session occurs when an active session is invalidated.
-	case FlagGatewayOpcodeInvalidSession:
-		// wait for Discord to close the session, then complete a fresh connect.
-		<-time.NewTimer(invalidSessionWaitTime).C
-
-		s.Lock()
-		defer s.Unlock()
-
-		if err := s.initial(bot, 0); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// handleGatewayCloseError handles a Discord Gateway WebSocket CloseError.
-//
-// returns the given closeErr if a disconnect is warranted.
-func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.CloseError) error {
-	code, ok := GatewayCloseEventCodes[int(closeErr.Code)]
-	switch ok {
-	// Gateway Close Event Code is known.
-	case true:
-		log.Printf(
-			"Session %q received Gateway Close Event Code %d %s: %s",
-			s.ID, code.Code, code.Description, code.Explanation,
-		)
-
-		if code.Reconnect {
-			if reconnectErr := s.reconnect(bot); reconnectErr != nil {
-				log.Println(reconnectErr)
-
-				return closeErr
-			}
-
-			return nil
-		}
-
-		return closeErr
-
-	// Gateway Close Event Code is unknown.
-	default:
-
-		// when another goroutine calls disconnect(),
-		// s.Conn.Close is called before s.cancel which will result in
-		// a CloseError with the close code that Disgo uses to reconnect.
-		if closeErr.Code == websocket.StatusCode(FlagClientCloseEventCodeReconnect) {
-			return nil
-		}
-
-		log.Printf(
-			"Session %q received unknown Gateway Close Event Code %d with reason %q",
-			s.ID, closeErr.Code, closeErr.Reason,
-		)
-
-		return closeErr
-	}
-}
-
-// Monitor returns the current amount of HeartbeatACKs for a Session's heartbeat.
-func (s *Session) Monitor() uint32 {
-	s.Lock()
-	acks := atomic.LoadUint32(&s.heartbeat.acks)
-	s.Unlock()
-
-	return acks
-}
-
-// beat listens for pulses to send Opcode 1 Heartbeats to the Discord Gateway (to verify the connection is alive).
-func (s *Session) beat(bot *Client) {
-	s.routines.Done()
-
-	for {
-		select {
-		case hb := <-s.heartbeat.send:
-			s.Lock()
-
-			// close the connection if the last sent Heartbeat never received a HeartbeatACK.
-			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
-				log.Printf("attempting to reconnect Session %q due to no HeartbeatACK", s.ID)
-				if err := s.reconnect(bot); err != nil {
-					log.Println(ErrorDisconnect{
-						SessionID: s.ID,
-						Err:       err,
-						Action:    fmt.Errorf("no HeartbeatACK"),
-					})
-				}
-
-				s.Unlock()
-
-				return
-			}
-
-			// prevent two Heartbeat Payloads being sent to the Discord Gateway consecutively within nanoseconds,
-			// when the ticker queues a Heartbeat while the listen thread (onPayload) queues a Heartbeat
-			// (in response to the Discord Gateway).
-			//
-			// clear queued (outdated) heartbeats.
-			for len(s.heartbeat.send) > 0 {
-				// ensure the latest sequence is sent.
-				if h := <-s.heartbeat.send; h.Data > hb.Data {
-					hb.Data = h.Data
-				}
-			}
-
-			// send a Heartbeat to the Discord Gateway (WebSocket Connection).
-			if err := writeEvent(s, FlagGatewayOpcodeHeartbeat, FlagGatewayCommandNameHeartbeat, hb); err != nil {
-				s.disconnectFromRoutine("heartbeat: Closing the connection due to a write error...", err)
-
-				s.Unlock()
-
-				return
-			}
-
-			// reset the ticker (and empty existing ticks).
-			s.heartbeat.ticker.Reset(s.heartbeat.interval)
-			for len(s.heartbeat.ticker.C) > 0 {
-				<-s.heartbeat.ticker.C
-			}
-
-			// reset the amount of HeartbeatACKs since the last heartbeat.
-			atomic.StoreUint32(&s.heartbeat.acks, 0)
-
-			log.Println("sent heartbeat")
-
-			s.Unlock()
-
-		case <-s.Context.Done():
-			return
-		}
-	}
-}
-
-// pulse generates Opcode 1 Heartbeats for a Session's heartbeat channel.
-func (s *Session) pulse() {
-	s.routines.Done()
-
-	// send an Opcode 1 Heartbeat payload after heartbeat_interval * jitter milliseconds
-	// (where jitter is a random value between 0 and 1).
-	s.Lock()
-	s.heartbeat.send <- Heartbeat{Data: s.Seq}
-	log.Println("queued jitter heartbeat")
-	s.Unlock()
-
-	for {
-		s.Lock()
-
-		select {
-		default:
-			s.Unlock()
-
-		// every Heartbeat Interval...
-		case <-s.heartbeat.ticker.C:
-
-			// queue a heartbeat.
-			s.heartbeat.send <- Heartbeat{Data: s.Seq}
-
-			log.Println("queued heartbeat")
-
-			s.Unlock()
-
-		case <-s.Context.Done():
-			s.Unlock()
-
-			return
-		}
-	}
-}
-
-// respond responds to Opcode 1 Heartbeats from the Discord Gateway.
-func (s *Session) respond(data json.RawMessage) {
-	var heartbeat Heartbeat
-	if err := json.Unmarshal(data, &heartbeat); err != nil {
-		s.Lock()
-		defer s.Unlock()
-
-		s.disconnectFromRoutine("respond: Closing the connection due to an unmarshal error...",
-			ErrorEvent{
-				Event:  FlagGatewayCommandNameHeartbeat,
-				Err:    err,
-				Action: ErrorEventActionUnmarshal,
-			})
-	}
-
-	atomic.StoreInt64(&s.Seq, heartbeat.Data)
-
-	s.Lock()
-
-	// heartbeat() checks for the amount of HeartbeatACKs received since the last Heartbeat.
-	// There is a possibility for this value to be 0 due to latency rather than a dead connection.
-	// For example, when a Heartbeat is queued, sent, responded, and sent.
-	//
-	// Prevent this possibility by treating this response from Discord as an indication that the
-	// connection is still alive.
-	atomic.AddUint32(&s.heartbeat.acks, 1)
-
-	// send an Opcode 1 Heartbeat without waiting the remainder of the current interval.
-	s.heartbeat.send <- heartbeat
-
-	log.Println("responded to heartbeat")
-
-	s.Unlock()
 }
 
 // readEvent is a helper function for reading events from the WebSocket Session.
