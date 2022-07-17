@@ -11,6 +11,7 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/switchupcb/disgo/wrapper/internal/socket"
+	"golang.org/x/sync/errgroup"
 	"nhooyr.io/websocket"
 )
 
@@ -41,27 +42,15 @@ type Session struct {
 	// Conn represents a connection to the Discord Gateway.
 	Conn *websocket.Conn
 
-	// cancel represents the cancellation signal for context.
-	cancel context.CancelFunc
-
 	// heartbeat contains the fields required to implement the heartbeat mechanism.
 	heartbeat *heartbeat
 
-	// a mutex is used to protect the Session's variables from data races
+	// manager represents a manager of a Session's goroutines.
+	manager *manager
+
+	// RWMutex is used to protect the Session's variables from data races
 	// by providing transactional functionality.
 	sync.RWMutex
-
-	// routines represents a goroutine counter that ensures all of the Session's goroutines
-	// are spawned prior to returning from connect().
-	routines sync.WaitGroup
-
-	// manager represents a manager of a Session's goroutines.
-	//
-	// manager is used to cancel the connection signal when an error occurs in a Session's goroutines.
-	//
-	// manager ensures that all of the Session's goroutines are closed prior to returning
-	// from Disconnect().
-	manager *sync.WaitGroup
 }
 
 // isConnected returns whether the session is connected.
@@ -113,7 +102,8 @@ func (s *Session) connect(bot *Client) error {
 	var err error
 
 	// connect to the Discord Gateway Websocket.
-	s.Context, s.cancel = context.WithCancel(context.Background())
+	s.manager = new(manager)
+	s.Context, s.manager.cancel = context.WithCancel(context.Background())
 	if s.Conn, _, err = websocket.Dial(s.Context, s.Endpoint, nil); err != nil {
 		return fmt.Errorf("an error occurred while connecting to the Discord Gateway\n%w", err)
 	}
@@ -122,7 +112,7 @@ func (s *Session) connect(bot *Client) error {
 	hello := new(Hello)
 	if err := readEvent(s, FlagGatewayEventNameHello, hello); err != nil {
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
-			return ErrorDisconnect{
+			return DisconnectError{
 				SessionID: s.ID,
 				Err:       disconnectErr,
 				Action:    err,
@@ -149,18 +139,30 @@ func (s *Session) connect(bot *Client) error {
 		acks: 1,
 	}
 
+	// create a goroutine group for the Session.
+	s.manager.Group, _ = errgroup.WithContext(s.Context)
+
 	// spawn the heartbeat pulse goroutine.
-	s.routines.Add(1)
-	go s.pulse()
+	s.manager.routines.Add(1)
+	s.manager.Go(func() error {
+		s.pulse()
+		return nil
+	})
 
 	// spawn the heartbeat beat goroutine.
-	s.routines.Add(1)
-	go s.beat(bot)
+	s.manager.routines.Add(1)
+	s.manager.Go(func() error {
+		if err := s.beat(bot); err != nil {
+			return fmt.Errorf("heartbeat: %w", err)
+		}
+
+		return nil
+	})
 
 	// send the initial Identify or Resumed packet.
 	if err := s.initial(bot, 0); err != nil {
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
-			return ErrorDisconnect{
+			return DisconnectError{
 				SessionID: s.ID,
 				Err:       disconnectErr,
 				Action:    err,
@@ -171,11 +173,21 @@ func (s *Session) connect(bot *Client) error {
 	}
 
 	// spawn the event listener listen goroutine.
-	s.routines.Add(1)
-	go s.listen(bot)
+	s.manager.routines.Add(1)
+	s.manager.Go(func() error {
+		if err := s.listen(bot); err != nil {
+			return fmt.Errorf("listen: %w", err)
+		}
+
+		return nil
+	})
+
+	// spawn the manager goroutine.
+	s.manager.routines.Add(1)
+	go s.manage(bot)
 
 	// ensure that the Session's goroutines are spawned.
-	s.routines.Wait()
+	s.manager.routines.Wait()
 
 	return nil
 }
@@ -304,11 +316,18 @@ func (s *Session) initial(bot *Client, attempt int) error {
 // Disconnect disconnects a session from the Discord Gateway using the given status code.
 func (s *Session) Disconnect() error {
 	s.Lock()
-	defer s.Unlock()
 
 	if err := s.disconnect(FlagClientCloseEventCodeNormal); err != nil {
 		return err
 	}
+
+	s.Unlock()
+
+	if err := <-s.manager.err; err != nil {
+		return err
+	}
+
+	putSession(s)
 
 	log.Printf("disconnected Session %q with code %d", s.ID, FlagClientCloseEventCodeNormal)
 
@@ -321,62 +340,32 @@ func (s *Session) disconnect(code int) error {
 		return fmt.Errorf("Session %q is already disconnected", s.ID)
 	}
 
+	// cancel the context to kill the goroutines of the Session.
+	defer s.manager.cancel()
+
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
-		return ErrorDisconnect{
+		return DisconnectError{
 			SessionID: s.ID,
 			Err:       err,
 			Action:    nil,
 		}
 	}
 
-	// cancel the context to kill the goroutines of the Session.
-	s.cancel()
-
 	return nil
-}
-
-// disconnectFromRoutine is a helper function for disconnecting from a non-main goroutine.
-func (s *Session) disconnectFromRoutine(reason string, err error) {
-	log.Println(reason)
-	if disconnectErr := s.disconnect(FlagClientCloseEventCodeAway); disconnectErr != nil {
-		err = ErrorDisconnect{
-			SessionID: s.ID,
-			Err:       disconnectErr,
-			Action:    err,
-		}
-	}
-
-	log.Println(err)
 }
 
 // Reconnect reconnects an already connected session to the Discord Gateway
 // by disconnecting the session, then connecting again.
 func (s *Session) Reconnect(bot *Client) error {
-	s.Lock()
-	defer s.Unlock()
+	s.manager.Go(func() error {
+		log.Printf("reconnecting Session %q", s.ID)
+		s.Context = context.WithValue(s.Context, keySignal, signalReconnect)
 
-	log.Printf("reconnecting Session %q", s.ID)
+		return s.disconnect(FlagClientCloseEventCodeReconnect)
+	})
 
-	return s.reconnect(bot)
-}
-
-// reconnect reconnects an already connected session to a WebSocket Connection.
-func (s *Session) reconnect(bot *Client) error {
-	// close the active connection with a non-1000 and non-1001 close code.
-	if err := s.disconnect(FlagClientCloseEventCodeReconnect); err != nil {
-		return ErrorDisconnect{
-			SessionID: s.ID,
-			Err:       err,
-			Action:    errOpcodeReconnect,
-		}
-	}
-
-	// allow Discord to close the session.
-	<-time.After(time.Second)
-
-	// connect to the Discord Gateway again.
-	if err := s.connect(bot); err != nil {
-		return fmt.Errorf("an error occurred while reconnecting Session %q: %w", s.ID, err)
+	if err := <-s.manager.err; err != nil {
+		return err
 	}
 
 	return nil

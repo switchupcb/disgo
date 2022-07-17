@@ -1,6 +1,7 @@
 package wrapper
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -33,8 +34,8 @@ func (s *Session) Monitor() uint32 {
 }
 
 // beat listens for pulses to send Opcode 1 Heartbeats to the Discord Gateway (to verify the connection is alive).
-func (s *Session) beat(bot *Client) {
-	s.routines.Done()
+func (s *Session) beat(bot *Client) error {
+	s.manager.routines.Done()
 
 	for {
 		select {
@@ -43,18 +44,16 @@ func (s *Session) beat(bot *Client) {
 
 			// close the connection if the last sent Heartbeat never received a HeartbeatACK.
 			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
-				log.Printf("attempting to reconnect Session %q due to no HeartbeatACK", s.ID)
-				if err := s.reconnect(bot); err != nil {
-					log.Println(ErrorDisconnect{
-						SessionID: s.ID,
-						Err:       err,
-						Action:    fmt.Errorf("no HeartbeatACK"),
-					})
-				}
-
 				s.Unlock()
 
-				return
+				s.manager.Go(func() error {
+					log.Printf("attempting to reconnect Session %q due to no HeartbeatACK", s.ID)
+					s.Context = context.WithValue(s.Context, keySignal, signalReconnect)
+
+					return s.disconnect(FlagClientCloseEventCodeReconnect)
+				})
+
+				return nil
 			}
 
 			// prevent two Heartbeat Payloads being sent to the Discord Gateway consecutively within nanoseconds,
@@ -71,11 +70,9 @@ func (s *Session) beat(bot *Client) {
 
 			// send a Heartbeat to the Discord Gateway (WebSocket Connection).
 			if err := writeEvent(s, FlagGatewayOpcodeHeartbeat, FlagGatewayCommandNameHeartbeat, hb); err != nil {
-				s.disconnectFromRoutine("heartbeat: Closing the connection due to a write error...", err)
-
 				s.Unlock()
 
-				return
+				return err
 			}
 
 			// reset the ticker (and empty existing ticks).
@@ -92,14 +89,14 @@ func (s *Session) beat(bot *Client) {
 			s.Unlock()
 
 		case <-s.Context.Done():
-			return
+			return nil
 		}
 	}
 }
 
 // pulse generates Opcode 1 Heartbeats for a Session's heartbeat channel.
 func (s *Session) pulse() {
-	s.routines.Done()
+	s.manager.routines.Done()
 
 	// send an Opcode 1 Heartbeat payload after heartbeat_interval * jitter milliseconds
 	// (where jitter is a random value between 0 and 1).
@@ -134,18 +131,10 @@ func (s *Session) pulse() {
 }
 
 // respond responds to Opcode 1 Heartbeats from the Discord Gateway.
-func (s *Session) respond(data json.RawMessage) {
+func (s *Session) respond(data json.RawMessage) error {
 	var heartbeat Heartbeat
 	if err := json.Unmarshal(data, &heartbeat); err != nil {
-		s.Lock()
-		defer s.Unlock()
-
-		s.disconnectFromRoutine("respond: Closing the connection due to an unmarshal error...",
-			ErrorEvent{
-				Event:  FlagGatewayCommandNameHeartbeat,
-				Err:    err,
-				Action: ErrorEventActionUnmarshal,
-			})
+		return fmt.Errorf("error occurred unmarshalling incoming Heartbeat: %w", err)
 	}
 
 	atomic.StoreInt64(&s.Seq, heartbeat.Data)
@@ -166,4 +155,6 @@ func (s *Session) respond(data json.RawMessage) {
 	log.Println("responded to heartbeat")
 
 	s.Unlock()
+
+	return nil
 }

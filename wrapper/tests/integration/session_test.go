@@ -19,7 +19,7 @@ func TestConnect(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       new(Handlers),
-		Sessions:       []*Session{new(Session)},
+		Sessions:       []*Session{NewSession()},
 	}
 
 	s := bot.Sessions[0]
@@ -106,7 +106,7 @@ func TestReconnect(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       &Handlers{},
-		Sessions:       []*Session{new(Session)},
+		Sessions:       []*Session{NewSession()},
 	}
 
 	s := bot.Sessions[0]

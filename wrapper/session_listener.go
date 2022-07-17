@@ -1,7 +1,9 @@
 package wrapper
 
 import (
+	"context"
 	"errors"
+	"fmt"
 	"log"
 	"sync/atomic"
 	"time"
@@ -11,49 +13,39 @@ import (
 )
 
 // listen listens to the connection for payloads from the Discord Gateway.
-func (s *Session) listen(bot *Client) {
-	s.routines.Done()
+func (s *Session) listen(bot *Client) error {
+	s.manager.routines.Done()
+
+	var err error
 
 	for {
 		payload := getPayload()
-		if err := socket.Read(s.Context, s.Conn, payload); err != nil {
-			s.Lock()
-			defer s.Unlock()
-
-			select {
-			case <-s.Context.Done():
-			default:
-				closeErr := new(websocket.CloseError)
-				if errors.As(err, closeErr) {
-					if gcErr := s.handleGatewayCloseError(bot, closeErr); gcErr == nil {
-						return
-					}
-				}
-
-				s.disconnectFromRoutine("listen: Closing the connection due to a read error...",
-					ErrorEvent{
-						Event:  "Payload",
-						Err:    err,
-						Action: ErrorEventActionRead,
-					})
-			}
-
-			return
+		if err = socket.Read(s.Context, s.Conn, payload); err != nil {
+			break
 		}
 
 		log.Println("PAYLOAD", payload.Op, string(payload.Data))
-		if err := s.onPayload(bot, *payload); err != nil {
-			s.Lock()
-			defer s.Unlock()
-
-			select {
-			case <-s.Context.Done():
-			default:
-				s.disconnectFromRoutine("onPayload error", err)
-			}
-
-			return
+		if err = s.onPayload(bot, *payload); err != nil {
+			break
 		}
+	}
+
+	s.Lock()
+	defer s.Unlock()
+
+	select {
+	case <-s.Context.Done():
+		return nil
+
+	default:
+		closeErr := new(websocket.CloseError)
+		if errors.As(err, closeErr) {
+			if gcErr := s.handleGatewayCloseError(bot, closeErr); gcErr == nil {
+				return nil
+			}
+		}
+
+		return err
 	}
 }
 
@@ -70,7 +62,13 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
-		go s.respond(payload.Data)
+		s.manager.Go(func() error {
+			if err := s.respond(payload.Data); err != nil {
+				return fmt.Errorf("respond: %w", err)
+			}
+
+			return nil
+		})
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
@@ -80,12 +78,14 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// occurs when the Discord Gateway is shutting down the connection, while signalling the client to reconnect.
 	case FlagGatewayOpcodeReconnect:
-		s.Lock()
-		defer s.Unlock()
+		s.manager.Go(func() error {
+			log.Printf("reconnecting Session %q due to Opcode 7 Reconnect", s.ID)
+			s.Context = context.WithValue(s.Context, keySignal, signalReconnect)
 
-		log.Printf("reconnecting Session %q due to Opcode 7 Reconnect", s.ID)
+			return s.disconnect(FlagClientCloseEventCodeReconnect)
+		})
 
-		return s.reconnect(bot)
+		return nil
 
 	// in the context of onPayload, an Invalid Session occurs when an active session is invalidated.
 	case FlagGatewayOpcodeInvalidSession:
@@ -117,11 +117,12 @@ func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.Close
 		)
 
 		if code.Reconnect {
-			if reconnectErr := s.reconnect(bot); reconnectErr != nil {
-				log.Println(reconnectErr)
+			s.manager.Go(func() error {
+				log.Printf("reconnecting Session %q due to Gateway Close Event Code %d", s.ID, code.Code)
+				s.Context = context.WithValue(s.Context, keySignal, signalReconnect)
 
-				return closeErr
-			}
+				return s.disconnect(FlagClientCloseEventCodeReconnect)
+			})
 
 			return nil
 		}
