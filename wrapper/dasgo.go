@@ -149,10 +149,11 @@ var (
 // Client Close Event Codes
 // https://discord.com/developers/docs/topics/gateway#disconnections
 var (
-	FlagClientCloseEventCodeNormal    = 1000
-	FlagClientCloseEventCodeAway      = 1001
-	FlagClientCloseEventCodeTimeout   = 2000
-	FlagClientCloseEventCodeReconnect = FlagClientCloseEventCodeTimeout
+	FlagClientCloseEventCodeNormal = 1000
+	FlagClientCloseEventCodeAway   = 1001
+
+	//  https://www.rfc-editor.org/rfc/rfc6455#section-7.4.1
+	FlagClientCloseEventCodeReconnect = 3000
 )
 
 // Voice Opcodes
@@ -356,6 +357,7 @@ var (
 		20016:  "This action cannot be performed due to slowmode rate limit",
 		20018:  "Only the owner of this account can perform this action",
 		20022:  "This message cannot be edited due to announcement rate limits",
+		20024:  "The owner of this account is not old enough to join an NSFW server.",
 		20028:  "The channel you are writing has hit the write rate limit",
 		20029:  "The write action you are performing on the server has hit the write rate limit",
 		20031:  "Your Stage topic, server name, server description, or channel names contain words that are not allowed",
@@ -396,6 +398,7 @@ var (
 		40032:  "Target user is not connected to voice",
 		40033:  "This message has already been crossposted",
 		40041:  "An application command with that name already exists",
+		40043:  "Application interaction failed to send",
 		40060:  "Interaction has already been acknowledged",
 		50001:  "Missing access",
 		50002:  "Invalid account type",
@@ -1174,10 +1177,10 @@ const (
 	// AUTO_MODERATION_RULE_CREATE
 	// AUTO_MODERATION_RULE_UPDATE
 	// AUTO_MODERATION_RULE_DELETE
-	AUTO_MODERATION_CONFIGURATION = 1 << 20
+	FlagIntentAUTO_MODERATION_CONFIGURATION = 1 << 20
 
 	// AUTO_MODERATION_ACTION_EXECUTION
-	AUTO_MODERATION_EXECUTION = 1 << 21
+	FlagIntentAUTO_MODERATION_EXECUTION = 1 << 21
 )
 
 // Gateway Commands
@@ -1271,6 +1274,7 @@ const (
 // Rate Limit Headers
 // https://discord.com/developers/docs/topics/rate-limits#header-format-rate-limit-header-examples
 const (
+	FlagRateLimitHeaderDate       = "Date"
 	FlagRateLimitHeaderLimit      = "X-RateLimit-Limit"
 	FlagRateLimitHeaderRemaining  = "X-RateLimit-Remaining"
 	FlagRateLimitHeaderReset      = "X-RateLimit-Reset"
@@ -1278,7 +1282,7 @@ const (
 	FlagRateLimitHeaderBucket     = "X-RateLimit-Bucket"
 	FlagRateLimitHeaderGlobal     = "X-RateLimit-Global"
 	FlagRateLimitHeaderScope      = "X-RateLimit-Scope"
-	FlagRateLimitHeaderRetryAfter = "RetryAfter"
+	FlagRateLimitHeaderRetryAfter = "Retry-After"
 )
 
 // Rate Limit Header
@@ -1740,19 +1744,18 @@ type GetChannelMessage struct {
 // POST /channels/{channel.id}/messages
 // https://discord.com/developers/docs/resources/channel#create-message
 type CreateMessage struct {
-	ChannelID       string
-	Content         *string           `json:"content,omitempty"`
-	TTS             *bool             `json:"tts,omitempty"`
-	Embeds          []*Embed          `json:"embeds,omitempty"`
-	Embed           *Embed            `json:"embed,omitempty"`
-	AllowedMentions *AllowedMentions  `json:"allowed_mentions,omitempty"`
-	Reference       *MessageReference `json:"message_reference,omitempty"`
-	StickerID       []*string         `json:"sticker_ids,omitempty"`
-	Components      []*Component      `json:"components,omitempty"`
-	Files           []byte            `dasgo:"files,omitempty"`
-	PayloadJSON     *string           `json:"payload_json,omitempty"`
-	Attachments     []*Attachment     `json:"attachments,omitempty"`
-	Flags           *BitFlag          `json:"flags,omitempty"`
+	ChannelID        string
+	Content          *string           `json:"content,omitempty"`
+	TTS              *bool             `json:"tts,omitempty"`
+	Embeds           []*Embed          `json:"embeds,omitempty"`
+	AllowedMentions  *AllowedMentions  `json:"allowed_mentions,omitempty"`
+	MessageReference *MessageReference `json:"message_reference,omitempty"`
+	Components       []*Component      `json:"components,omitempty"`
+	StickerIDS       []*string         `json:"sticker_ids,omitempty"`
+	Files            []byte            `dasgo:"files,omitempty"`
+	PayloadJSON      *string           `json:"payload_json,omitempty"`
+	Attachments      []*Attachment     `json:"attachments,omitempty"`
+	Flags            *BitFlag          `json:"flags,omitempty"`
 }
 
 // Crosspost Message
@@ -3267,19 +3270,20 @@ const (
 // Interaction Object
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-structure
 type Interaction struct {
-	ID            string          `json:"id"`
-	ApplicationID string          `json:"application_id"`
-	Type          Flag            `json:"type"`
-	Data          InteractionData `json:"data,omitempty"`
-	GuildID       string          `json:"guild_id,omitempty"`
-	ChannelID     string          `json:"channel_id,omitempty"`
-	Member        *GuildMember    `json:"member,omitempty"`
-	User          *User           `json:"user,omitempty"`
-	Token         string          `json:"token"`
-	Version       Flag            `json:"version"`
-	Message       *Message        `json:"message,omitempty"`
-	Locale        *string         `json:"locale,omitempty"`
-	GuildLocale   *string         `json:"guild_locale,omitempty"`
+	ID             string          `json:"id"`
+	ApplicationID  string          `json:"application_id"`
+	Type           Flag            `json:"type"`
+	Data           InteractionData `json:"data,omitempty"`
+	GuildID        string          `json:"guild_id,omitempty"`
+	ChannelID      string          `json:"channel_id,omitempty"`
+	Member         *GuildMember    `json:"member,omitempty"`
+	User           *User           `json:"user,omitempty"`
+	Token          string          `json:"token"`
+	Version        Flag            `json:"version"`
+	Message        *Message        `json:"message,omitempty"`
+	AppPermissions *BitFlag        `json:"app_permissions,omitempty"`
+	Locale         *string         `json:"locale,omitempty"`
+	GuildLocale    *string         `json:"guild_locale,omitempty"`
 }
 
 // Interaction Type
@@ -3573,6 +3577,7 @@ type TriggerMetadata struct {
 	// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-keyword-matching-strategies
 	KeywordFilter []string `json:"keyword_filter"`
 	Presets       []Flag   `json:"presets"`
+	AllowList     []string `json:"allow_list"`
 }
 
 // Keyword Preset Types
@@ -3722,11 +3727,11 @@ const (
 	FlagMessageTypeCHANNEL_NAME_CHANGE                          = 4
 	FlagMessageTypeCHANNEL_ICON_CHANGE                          = 5
 	FlagMessageTypeCHANNEL_PINNED_MESSAGE                       = 6
-	FlagMessageTypeGUILD_MEMBER_JOIN                            = 7
-	FlagMessageTypeUSER_PREMIUM_GUILD_SUBSCRIPTION              = 8
-	FlagMessageTypeUSER_PREMIUM_GUILD_SUBSCRIPTION_TIER_ONE     = 9
-	FlagMessageTypeUSER_PREMIUM_GUILD_SUBSCRIPTION_TIER_TWO     = 10
-	FlagMessageTypeUSER_PREMIUM_GUILD_SUBSCRIPTION_TIER_THREE   = 11
+	FlagMessageTypeUSER_JOIN                                    = 7
+	FlagMessageTypeGUILD_BOOST                                  = 8
+	FlagMessageTypeGUILD_BOOST_TIER_1                           = 9
+	FlagMessageTypeGUILD_BOOST_TIER_2                           = 10
+	FlagMessageTypeGUILD_BOOST_TIER_3                           = 11
 	FlagMessageTypeCHANNEL_FOLLOW_ADD                           = 12
 	FlagMessageTypeGUILD_DISCOVERY_DISQUALIFIED                 = 14
 	FlagMessageTypeGUILD_DISCOVERY_REQUALIFIED                  = 15
@@ -4151,7 +4156,7 @@ type GuildMember struct {
 	Mute                       bool       `json:"mute"`
 	Pending                    *bool      `json:"pending,omitempty"`
 	Permissions                *string    `json:"permissions,omitempty"`
-	CommunicationDisabledUntil *time.Time `json:"communication_disabled_until,omitempty"`
+	CommunicationDisabledUntil time.Time  `json:"communication_disabled_until"`
 }
 
 // Integration Object

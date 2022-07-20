@@ -82,13 +82,12 @@ Use `go test` to run the tests in the current directory.
 
 # Roadmap
 
-Disgo is currently a PROOF OF CONCEPT. Here are the steps required in order to complete it:
+Disgo is currently in DEVELOPMENT. Here are the steps required in order to complete it:
 
-1. Implement Gateway (WebSocket, Events).
-2. Implement Rate Limits (HTTP, Gateway)
-3. **Implement Testing** _[usable at this stage]_.
-4. Implement Sharding.
-5. Implement Cache (which is likely where most effort lies; caching is difficult).
+1. Merge Rate Limits (HTTP, Gateway)
+2. **Implement Testing** _[usable at this stage]_.
+3. Implement Sharding.
+4. Implement Cache (which is likely where most effort lies; caching is difficult).
 
 In addition, we must make [decisions](/_contribution/libraries/) for the following:
 1. UDP connections (Voice)

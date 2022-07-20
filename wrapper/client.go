@@ -6,6 +6,13 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
+// Default Configuration Values.
+const (
+	module                = "github.com/switchupcb/disgo"
+	defaultUserAgent      = "DiscordBot (https://" + module + ", v" + VersionDiscordAPI + ")"
+	defaultRequestTimeout = time.Second * 3
+)
+
 // Client represents a Discord Application.
 type Client struct {
 	ApplicationID string
@@ -16,6 +23,12 @@ type Client struct {
 	// Authorization contains parameters required to authorize a client's access to resources.
 	Authorization *Authorization
 
+	// Sessions contains sessions a bot uses to interact with the Discord Gateway.
+	Sessions []*Session
+
+	// Handlers represents a bot's event handlers.
+	Handlers *Handlers
+
 	// Config represents parameters used to perform various actions by the client.
 	Config *Config
 }
@@ -23,21 +36,31 @@ type Client struct {
 // Authentication represents authentication parameters required to authenticate the bot.
 // https://discord.com/developers/docs/reference#authentication
 type Authentication struct {
+	// Token represents the Authentication Token used to authenticate the bot.
+	Token string
+
+	// TokenType represents the type of the Authentication Token.
+	TokenType string
+
 	// Header represents a Token Authorization Header.
 	Header string
 }
 
-// BotToken generates a Bot Token Authorization Header.
+// BotToken uses a given token to return a valid Authentication Object for a bot token type.
 func BotToken(token string) *Authentication {
 	return &Authentication{
-		Header: "Bot " + token,
+		Token:     token,
+		TokenType: "Bot",
+		Header:    "Bot " + token,
 	}
 }
 
-// BearerToken generates a Bearer Token Authorization Header.
+// BearerToken uses a given token to return a valid Authentication Object for a bearer token type.
 func BearerToken(token string) *Authentication {
 	return &Authentication{
-		"Bearer" + token,
+		Token:     token,
+		TokenType: "Bearer",
+		Header:    "Bearer" + token,
 	}
 }
 
@@ -81,20 +104,74 @@ type Config struct {
 
 	// Retries represents the amount of time a request will retry a bad gateway.
 	Retries int
-}
 
-// Default Configuration Values.
-const (
-	defaultUserAgent      = "DiscordBot (https://github.com/switchupcb/disgo, " + "v" + VersionDiscordAPI + ")"
-	defaultRequestTimeout = time.Second * 3
-)
+	// Gateway holds configuration variables that pertain to the Discord Gateway.
+	Gateway Gateway
+}
 
 // DefaultConfig returns a default client configuration.
 func DefaultConfig() *Config {
 	c := new(Config)
+	c.Client = new(fasthttp.Client)
 	c.Client.Name = defaultUserAgent
 	c.Timeout = defaultRequestTimeout
 	c.Retries = 1
+	c.Gateway = DefaultGateway(false)
 
 	return c
+}
+
+// Gateway represents Discord Gateway parameters used to perform various actions by the client.
+type Gateway struct {
+	// Intents represents a Discord Gateway Intent.
+	//
+	// You must specify a Gateway Intent in order to gain access to Events.
+	//
+	// https://discord.com/developers/docs/topics/gateway#gateway-intents
+	Intents BitFlag
+
+	// IntentSet represents a set of Discord Gateway Intents, that a bot needs
+	// to gain access to Events (and specific Event Information).
+	//
+	// IntentSet is used for automatic intent calculation when a user adds an event handler.
+	IntentSet map[BitFlag]bool
+
+	// GatewayPresenceUpdate represents the presence or status update of a bot.
+	//
+	// GatewayPresenceUpdate is used when the bot connects to a session.
+	//
+	// https://discord.com/developers/docs/topics/gateway#update-presence
+	GatewayPresenceUpdate *GatewayPresenceUpdate
+}
+
+const (
+	// totalIntents represents the total amount of Discord Intents.
+	totalIntents = 19
+)
+
+// DefaultGateway returns a default Gateway configuration.
+//
+// When privileged intents are enabled, the MESSAGE_CONTENT intent will be included.
+//
+// MESSAGE_CONTENT is required to receive message content fields
+// (content, attachments, embeds, and components).
+//
+// https://discord.com/developers/docs/topics/gateway#privileged-intents
+func DefaultGateway(privileged bool) Gateway {
+	if privileged {
+		is := make(map[BitFlag]bool, totalIntents)
+		is[FlagIntentMESSAGE_CONTENT] = true
+
+		return Gateway{
+			Intents:               FlagIntentMESSAGE_CONTENT,
+			IntentSet:             is,
+			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+		}
+	} else {
+		return Gateway{
+			Intents:               0,
+			IntentSet:             make(map[BitFlag]bool, totalIntents),
+			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+		}
+	}
 }
