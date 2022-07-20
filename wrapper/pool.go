@@ -1,6 +1,8 @@
 package wrapper
 
-import "sync"
+import (
+	"sync"
+)
 
 // spool represents a synchronized Session pool.
 var spool sync.Pool
@@ -50,5 +52,6 @@ func putPayload(g *GatewayPayload) {
 	g.Data = nil
 	g.SequenceNumber = nil
 	g.EventName = nil
+
 	gpool.Put(g)
 }

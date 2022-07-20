@@ -1,7 +1,6 @@
 package wrapper
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -37,6 +36,28 @@ func (s *Session) Monitor() uint32 {
 func (s *Session) beat(bot *Client) error {
 	s.manager.routines.Done()
 
+	// ensure that all pulse routines are closed prior to closing.
+	defer func() {
+		for {
+			select {
+			case <-s.heartbeat.send:
+			case <-s.Context.Done():
+				s.Lock()
+
+				if atomic.LoadInt32(&s.manager.pulses) != 0 {
+					s.Unlock()
+
+					break
+				}
+
+				s.logClose("heartbeat")
+				s.Unlock()
+
+				return
+			}
+		}
+	}()
+
 	for {
 		select {
 		case hb := <-s.heartbeat.send:
@@ -46,12 +67,7 @@ func (s *Session) beat(bot *Client) error {
 			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
 				s.Unlock()
 
-				s.manager.Go(func() error {
-					log.Printf("attempting to reconnect Session %q due to no HeartbeatACK", s.ID)
-					s.Context = context.WithValue(s.Context, keySignal, signalReconnect)
-
-					return s.disconnect(FlagClientCloseEventCodeReconnect)
-				})
+				s.reconnect(fmt.Sprintf("attempting to reconnect Session %q due to no HeartbeatACK", s.ID))
 
 				return nil
 			}
@@ -97,6 +113,7 @@ func (s *Session) beat(bot *Client) error {
 // pulse generates Opcode 1 Heartbeats for a Session's heartbeat channel.
 func (s *Session) pulse() {
 	s.manager.routines.Done()
+	defer s.decrementPulses()
 
 	// send an Opcode 1 Heartbeat payload after heartbeat_interval * jitter milliseconds
 	// (where jitter is a random value between 0 and 1).
@@ -106,14 +123,10 @@ func (s *Session) pulse() {
 	s.Unlock()
 
 	for {
-		s.Lock()
-
 		select {
-		default:
-			s.Unlock()
-
 		// every Heartbeat Interval...
 		case <-s.heartbeat.ticker.C:
+			s.Lock()
 
 			// queue a heartbeat.
 			s.heartbeat.send <- Heartbeat{Data: s.Seq}
@@ -123,6 +136,8 @@ func (s *Session) pulse() {
 			s.Unlock()
 
 		case <-s.Context.Done():
+			s.Lock()
+			s.logClose("pulse")
 			s.Unlock()
 
 			return
@@ -132,6 +147,8 @@ func (s *Session) pulse() {
 
 // respond responds to Opcode 1 Heartbeats from the Discord Gateway.
 func (s *Session) respond(data json.RawMessage) error {
+	defer s.decrementPulses()
+
 	var heartbeat Heartbeat
 	if err := json.Unmarshal(data, &heartbeat); err != nil {
 		return fmt.Errorf("error occurred unmarshalling incoming Heartbeat: %w", err)

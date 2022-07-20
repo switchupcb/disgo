@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/sync/errgroup"
@@ -20,10 +21,10 @@ const (
 	// keySignal represents the Context key for a manager's signals.
 	keySignal = signal("signal")
 
-	// keyReason represents the Context key for a disconnection reason.
+	// keyReason represents the Context key for a manager's reason for disconnection.
 	keyReason = signal("reason")
 
-	// signalDisconnect indicates that a Disconnection was called manually.
+	// signalDisconnect indicates that a Disconnection was called purposefully.
 	signalDisconnect = 1
 
 	// signalReconnect signals the manager to reconnect upon a successful disconnection.
@@ -32,15 +33,24 @@ const (
 
 // manager represents a manager of a Session's goroutines.
 type manager struct {
-	// cancel represents the cancellation signal for a Session's Context.
-	cancel context.CancelFunc
-
 	// routines represents a goroutine counter that ensures all of the Session's goroutines
 	// are spawned prior to returning from connect().
 	routines sync.WaitGroup
 
-	// err represents the error that this manager detected upon the closing of a Session's goroutines.e
+	// cancel represents the cancellation signal for a Session's Context.
+	cancel context.CancelFunc
+
+	// signal represents the Context Signal for a Session upon disconnection.
+	signal context.Context
+
+	// err represents the error that this manager detected upon the closing of a Session's goroutines.
 	err chan error
+
+	// pulses represents the amount of goroutines that can generate heartbeat pulses.
+	//
+	// pulses ensures that pulse goroutines always have a receiver channel for heartbeats
+	// by preventing the heartbeat goroutine from closing before other pulse goroutines.
+	pulses int32
 
 	// errgroup ensures that all of the Session's goroutines are closed prior to returning
 	// from Disconnect().
@@ -54,6 +64,7 @@ type manager struct {
 	//
 	// As a result of 3, disconnection must NEVER occur on a Session's goroutine.
 	// Otherwise, errorgroup.Wait() blocks the goroutine it's waiting on to be closed.
+	// In other words, disconnection MUST occur on another goroutine.
 	//
 	// ERRGROUP
 	// errgroup manages a Session's goroutines: listen, heartbeat, pulse, respond.
@@ -63,44 +74,90 @@ type manager struct {
 	// When a disconnection is called purposefully, s.Conn and s.Context is closed.
 	// This results in the eventual closing of a Session's goroutines.
 	// When errgroup.Wait() returns nil, it indicates a successful disconnection.
-	// Otherwise, a DisconnectErr will be returned.
+	// Otherwise, a DisconnectError will be returned.
 	//
 	// When an error occurs in a Session's goroutines, errgroup cancels the Session's context.
 	// This results in the eventual closing of a Session's goroutines.
 	// When errgroup.Wait() returns err (origin error), the state of the disconnection is managed
 	// (since s.Conn may or may not need closing).
 	// When managing the state of disconnection is successful, the manager routine returns err.
-	// Otherwise, a DisconnectErr (which includes err) will be returned.
+	// Otherwise, a DisconnectError (which includes err) will be returned.
 	//
-	// The above indicates that disconnect() manages the STATE of disconnection, rather than performing
-	// the ACTION of disconnection.
+	// The above indicates that the manager manages the STATE of disconnection, while disconnect()
+	// performs the ACTION of disconnection.
 	//
 	// This implementation allows a caller of disconnect() to use its return value to await disconnection.
 	// For example, a channel can be used to receive the value that the manager routine sends.
 	// Disconnect() is modified in this way to allow the end-user (developer) to only return from Disconnect()
-	// when disconnection is completed.
+	// when disconnection is fully completed (with goroutines closed).
 	*errgroup.Group
+}
+
+// decrementPulses safely decrements the pulses counter of a Session manager.
+func (s *Session) decrementPulses() {
+	s.Lock()
+	defer s.Unlock()
+
+	atomic.AddInt32(&s.manager.pulses, -1)
+}
+
+// logClose safely logs the close of a Session's goroutine.
+func (s *Session) logClose(routine string) {
+	log.Printf("closed %s routine for session %s", routine, s.ID)
+}
+
+// reconnect spawns a goroutine for reconnection which prompts the manager
+// to reconnect upon a disconnection.
+func (s *Session) reconnect(reason string) {
+	s.manager.Go(func() error {
+		s.Lock()
+		defer s.Unlock()
+
+		log.Println(reason)
+		s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalReconnect)
+		if err := s.disconnect(FlagClientCloseEventCodeReconnect); err != nil {
+			return fmt.Errorf("reconnect: %w", err)
+		}
+
+		return nil
+	})
 }
 
 // manage manages a Session's goroutines.
 func (s *Session) manage(bot *Client) {
 	s.manager.routines.Done()
 
-	s.Lock()
-	s.manager.err = make(chan error, 1)
-	s.Unlock()
-
 	// wait until all of a Session's goroutines are closed.
-	if err := s.manager.Wait(); err != nil {
-		if reason := s.Context.Value(keyReason); reason != nil {
-			log.Println(reason)
-		}
+	err := s.manager.Wait()
 
-		if signal := s.Context.Value(keySignal); signal == signalDisconnect || signal == signalReconnect {
-			log.Printf("Session %q purposely disconnected ungracefully", s.ID)
-		}
+	// log the reason for disconnection (if applicable).
+	if reason := s.manager.signal.Value(keyReason); reason != nil {
+		log.Println(reason)
+	}
 
-		// when an error caused goroutines to close, manage the state of disconnection.
+	// when a signal is provided, it indicates that the disconnection was purposeful.
+	signal := s.manager.signal.Value(keySignal)
+	switch signal {
+	case signalDisconnect:
+		log.Printf("successfully disconnected Session %q", s.ID)
+
+		s.manager.err <- nil
+
+		return
+
+	case signalReconnect:
+		log.Printf("successfully disconnected Session %q (while reconnecting)", s.ID)
+
+		// allow Discord to close the session.
+		<-time.After(time.Second)
+
+		s.manager.err <- nil
+
+		return
+	}
+
+	// when an error caused goroutines to close, manage the state of disconnection.
+	if err != nil {
 		disconnectErr := new(DisconnectError)
 		closeErr := new(websocket.CloseError)
 		switch {
@@ -110,11 +167,7 @@ func (s *Session) manage(bot *Client) {
 
 		// when an error occurs from a WebSocket Close Error.
 		case errors.As(err, closeErr):
-			s.manager.err <- DisconnectError{
-				SessionID: s.ID,
-				Err:       err,
-				Action:    nil,
-			}
+			s.manager.err <- s.handleGatewayCloseError(bot, closeErr)
 
 		default:
 			if cErr := s.Conn.Close(websocket.StatusCode(FlagClientCloseEventCodeAway), ""); cErr != nil {
@@ -133,35 +186,43 @@ func (s *Session) manage(bot *Client) {
 		return
 	}
 
-	// When a disconnection is called purposefully and is successful.
-	if reason := s.Context.Value(keyReason); reason != nil {
-		log.Println(reason)
-	}
+	s.manager.err <- nil
+}
 
-	signal := s.Context.Value(keySignal)
-	switch signal {
-	case signalDisconnect:
-		log.Printf("successfully disconnected Session %q", s.ID)
+// handleGatewayCloseError handles a WebSocket CloseError.
+func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.CloseError) error {
+	code, ok := GatewayCloseEventCodes[int(closeErr.Code)]
+	switch ok {
+	// Gateway Close Event Code is known.
+	case true:
+		log.Printf(
+			"Session %q received Gateway Close Event Code %d %s: %s",
+			s.ID, code.Code, code.Description, code.Explanation,
+		)
 
-	case signalReconnect:
-		log.Printf("successfully disconnected Session %q (while reconnecting)", s.ID)
+		if code.Reconnect {
+			s.reconnect(fmt.Sprintf("reconnecting Session %q due to Gateway Close Event Code %d", s.ID, code.Code))
 
-		// allow Discord to close the session.
-		<-time.After(time.Second)
-
-		s.Lock()
-
-		// connect to the Discord Gateway again.
-		if err := s.connect(bot); err != nil {
-			s.manager.err <- fmt.Errorf("an error occurred while reconnecting Session %q: %w", s.ID, err)
-
-			return
+			return nil
 		}
 
-		s.Unlock()
+		return closeErr
 
+	// Gateway Close Event Code is unknown.
 	default:
-	}
 
-	s.manager.err <- nil
+		// when another goroutine calls disconnect(),
+		// s.Conn.Close is called before s.cancel which will result in
+		// a CloseError with the close code that Disgo uses to reconnect.
+		if closeErr.Code == websocket.StatusCode(FlagClientCloseEventCodeReconnect) {
+			return nil
+		}
+
+		log.Printf(
+			"Session %q received unknown Gateway Close Event Code %d with reason %q",
+			s.ID, closeErr.Code, closeErr.Reason,
+		)
+
+		return closeErr
+	}
 }

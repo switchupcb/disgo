@@ -1,15 +1,12 @@
 package wrapper
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"log"
 	"sync/atomic"
 	"time"
 
 	"github.com/switchupcb/disgo/wrapper/internal/socket"
-	"nhooyr.io/websocket"
 )
 
 // listen listens to the connection for payloads from the Discord Gateway.
@@ -32,19 +29,13 @@ func (s *Session) listen(bot *Client) error {
 
 	s.Lock()
 	defer s.Unlock()
+	defer s.logClose("listen")
 
 	select {
 	case <-s.Context.Done():
 		return nil
 
 	default:
-		closeErr := new(websocket.CloseError)
-		if errors.As(err, closeErr) {
-			if gcErr := s.handleGatewayCloseError(bot, closeErr); gcErr == nil {
-				return nil
-			}
-		}
-
 		return err
 	}
 }
@@ -62,6 +53,10 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
+		s.Lock()
+		atomic.AddInt32(&s.manager.pulses, 1)
+		s.Unlock()
+
 		s.manager.Go(func() error {
 			if err := s.respond(payload.Data); err != nil {
 				return fmt.Errorf("respond: %w", err)
@@ -78,12 +73,7 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// occurs when the Discord Gateway is shutting down the connection, while signalling the client to reconnect.
 	case FlagGatewayOpcodeReconnect:
-		s.manager.Go(func() error {
-			log.Printf("reconnecting Session %q due to Opcode 7 Reconnect", s.ID)
-			s.Context = context.WithValue(s.Context, keySignal, signalReconnect)
-
-			return s.disconnect(FlagClientCloseEventCodeReconnect)
-		})
+		s.reconnect(fmt.Sprintf("reconnecting Session %q due to Opcode 7 Reconnect", s.ID))
 
 		return nil
 
@@ -101,49 +91,4 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 	}
 
 	return nil
-}
-
-// handleGatewayCloseError handles a Discord Gateway WebSocket CloseError.
-//
-// returns the given closeErr if a disconnect is warranted.
-func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.CloseError) error {
-	code, ok := GatewayCloseEventCodes[int(closeErr.Code)]
-	switch ok {
-	// Gateway Close Event Code is known.
-	case true:
-		log.Printf(
-			"Session %q received Gateway Close Event Code %d %s: %s",
-			s.ID, code.Code, code.Description, code.Explanation,
-		)
-
-		if code.Reconnect {
-			s.manager.Go(func() error {
-				log.Printf("reconnecting Session %q due to Gateway Close Event Code %d", s.ID, code.Code)
-				s.Context = context.WithValue(s.Context, keySignal, signalReconnect)
-
-				return s.disconnect(FlagClientCloseEventCodeReconnect)
-			})
-
-			return nil
-		}
-
-		return closeErr
-
-	// Gateway Close Event Code is unknown.
-	default:
-
-		// when another goroutine calls disconnect(),
-		// s.Conn.Close is called before s.cancel which will result in
-		// a CloseError with the close code that Disgo uses to reconnect.
-		if closeErr.Code == websocket.StatusCode(FlagClientCloseEventCodeReconnect) {
-			return nil
-		}
-
-		log.Printf(
-			"Session %q received unknown Gateway Close Event Code %d with reason %q",
-			s.ID, closeErr.Code, closeErr.Reason,
-		)
-
-		return closeErr
-	}
 }

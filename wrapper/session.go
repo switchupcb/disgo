@@ -140,10 +140,12 @@ func (s *Session) connect(bot *Client) error {
 	}
 
 	// create a goroutine group for the Session.
-	s.manager.Group, _ = errgroup.WithContext(s.Context)
+	s.manager.Group, s.manager.signal = errgroup.WithContext(s.Context)
+	s.manager.err = make(chan error, 1)
 
 	// spawn the heartbeat pulse goroutine.
 	s.manager.routines.Add(1)
+	atomic.AddInt32(&s.manager.pulses, 1)
 	s.manager.Go(func() error {
 		s.pulse()
 		return nil
@@ -317,7 +319,20 @@ func (s *Session) initial(bot *Client, attempt int) error {
 func (s *Session) Disconnect() error {
 	s.Lock()
 
+	if !s.isConnected() {
+		s.Unlock()
+
+		return fmt.Errorf("Session %q is already disconnected", s.ID)
+	}
+
+	id := s.ID
+	log.Printf("disconnecting Session %q with code %d", id, FlagClientCloseEventCodeNormal)
+
+	s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalDisconnect)
+
 	if err := s.disconnect(FlagClientCloseEventCodeNormal); err != nil {
+		s.Unlock()
+
 		return err
 	}
 
@@ -329,17 +344,13 @@ func (s *Session) Disconnect() error {
 
 	putSession(s)
 
-	log.Printf("disconnected Session %q with code %d", s.ID, FlagClientCloseEventCodeNormal)
+	log.Printf("disconnected Session %q with code %d", id, FlagClientCloseEventCodeNormal)
 
 	return nil
 }
 
 // disconnect disconnects a session from a WebSocket Connection using the given status code.
 func (s *Session) disconnect(code int) error {
-	if !s.isConnected() {
-		return fmt.Errorf("Session %q is already disconnected", s.ID)
-	}
-
 	// cancel the context to kill the goroutines of the Session.
 	defer s.manager.cancel()
 
@@ -357,15 +368,15 @@ func (s *Session) disconnect(code int) error {
 // Reconnect reconnects an already connected session to the Discord Gateway
 // by disconnecting the session, then connecting again.
 func (s *Session) Reconnect(bot *Client) error {
-	s.manager.Go(func() error {
-		log.Printf("reconnecting Session %q", s.ID)
-		s.Context = context.WithValue(s.Context, keySignal, signalReconnect)
-
-		return s.disconnect(FlagClientCloseEventCodeReconnect)
-	})
+	s.reconnect(fmt.Sprintf("reconnecting Session %q", s.ID))
 
 	if err := <-s.manager.err; err != nil {
 		return err
+	}
+
+	// connect to the Discord Gateway again.
+	if err := s.Connect(bot); err != nil {
+		return fmt.Errorf("an error occurred while reconnecting Session %q: %w", s.ID, err)
 	}
 
 	return nil
@@ -375,15 +386,11 @@ func (s *Session) Reconnect(bot *Client) error {
 func readEvent(s *Session, name string, dst any) error {
 	payload := new(GatewayPayload)
 	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
-		return ErrorEvent{
-			Event:  name,
-			Err:    err,
-			Action: ErrorEventActionRead,
-		}
+		return fmt.Errorf("readEvent: %w", err)
 	}
 
 	if err := json.Unmarshal(payload.Data, dst); err != nil {
-		return fmt.Errorf("%w", err)
+		return fmt.Errorf("readEvent: %w", err)
 	}
 
 	return nil
@@ -394,11 +401,7 @@ func readEvent(s *Session, name string, dst any) error {
 func writeEvent(s *Session, op int, name string, dst any) error {
 	event, err := json.Marshal(dst)
 	if err != nil {
-		return ErrorEvent{
-			Event:  name,
-			Err:    err,
-			Action: ErrorEventActionMarshal,
-		}
+		return fmt.Errorf("writeEvent: %w", err)
 	}
 
 	if err = socket.Write(s.Context, s.Conn, websocket.MessageBinary,
@@ -406,11 +409,7 @@ func writeEvent(s *Session, op int, name string, dst any) error {
 			Op:   op,
 			Data: event,
 		}); err != nil {
-		return ErrorEvent{
-			Event:  name,
-			Err:    err,
-			Action: ErrorEventActionWrite,
-		}
+		return fmt.Errorf("writeEvent: %w", err)
 	}
 
 	return nil

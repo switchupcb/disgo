@@ -1,7 +1,6 @@
 package sessions_test
 
 import (
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -94,6 +93,9 @@ DISCONNECT:
 	if err := s.Disconnect(); err == nil {
 		t.Fatalf("expected error while disconnecting from already disconnected session")
 	}
+
+	// allow Discord to close the session.
+	<-time.After(time.Second * 5)
 }
 
 // TestReconnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
@@ -163,6 +165,6 @@ RECONNECT:
 
 	// disconnect from the Discord Gateway (WebSocket Connection).
 	if err := s.Disconnect(); err != nil {
-		log.Println(err)
+		t.Fatalf("%v", err)
 	}
 }

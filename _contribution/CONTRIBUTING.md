@@ -58,9 +58,9 @@ If you receive `File is not ... with -...`, use `golangci-lint run --disable-all
  | Directory | Command                       | Description                                        |
  | :-------- | :---------------------------- | :------------------------------------------------- |
  | `disgo`   | `golangci-lint run ./wrapper` | Perform static code analysis on the API Wrapper.   |
- | `_gen`    | `golangci-lint run`           | Perform static code analysis on the generator.     |
- | `cache`   | `golangci-lint run`           | Perform static code analysis on the Disgo Cache.   |
- | `shard`   | `golangci-lint run`           | Perform static code analysis on the Shard Manager. |
+ | `_gen`    | `golangci-lint run ./_gen`    | Perform static code analysis on the generator.     |
+ | `cache`   | `golangci-lint run ./cache`   | Perform static code analysis on the Disgo Cache.   |
+ | `shard`   | `golangci-lint run ./shard`   | Perform static code analysis on the Shard Manager. |
 
 #### Fieldalignment
 
@@ -78,7 +78,7 @@ Integration tests are used to ensure functionality between the API and Discord.
 
 #### Running Tests
 
-Use `go test` to run the tests in the current directory.
+Use `go test` to run the tests in the current directory. Use `go test ./<dir>` to run tests in a given directory (from the current directory). Use [Github Action Workflow Files](.github\workflows) to find the correct test command for a module.
 
 # Roadmap
 
