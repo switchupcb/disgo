@@ -199,30 +199,32 @@ func (s *Session) connect(bot *Client) error {
 func (s *Session) initial(bot *Client, attempt int) error {
 	if !s.canReconnect() {
 		// send an Opcode 2 Identify to the Discord Gateway.
-		if err := writeEvent(s, FlagGatewayOpcodeIdentify, FlagGatewayCommandNameIdentify,
-			Identify{
-				Token: bot.Authentication.Token,
-				Properties: IdentifyConnectionProperties{
-					OS:      runtime.GOOS,
-					Browser: module,
-					Device:  module,
-				},
-				Compress:       true,
-				LargeThreshold: maxIdentifyLargeThreshold,
-				Shard:          nil, // SHARD: set shard information using s.Shard.
-				Presence:       *bot.Config.Gateway.GatewayPresenceUpdate,
-				Intents:        bot.Config.Gateway.Intents,
-			}); err != nil {
+		identify := Identify{
+			Token: bot.Authentication.Token,
+			Properties: IdentifyConnectionProperties{
+				OS:      runtime.GOOS,
+				Browser: module,
+				Device:  module,
+			},
+			Compress:       true,
+			LargeThreshold: maxIdentifyLargeThreshold,
+			Shard:          nil, // SHARD: set shard information using s.Shard.
+			Presence:       *bot.Config.Gateway.GatewayPresenceUpdate,
+			Intents:        bot.Config.Gateway.Intents,
+		}
+
+		if err := identify.Command(s); err != nil {
 			return err
 		}
 	} else {
 		// send an Opcode 6 Resume to the Discord Gateway to reconnect the session.
-		if err := writeEvent(s, FlagGatewayOpcodeResume, FlagGatewayCommandNameResume,
-			Resume{
-				Token:     bot.Authentication.Token,
-				SessionID: s.ID,
-				Seq:       atomic.LoadInt64(&s.Seq),
-			}); err != nil {
+		resume := Resume{
+			Token:     bot.Authentication.Token,
+			SessionID: s.ID,
+			Seq:       atomic.LoadInt64(&s.Seq),
+		}
+
+		if err := resume.Command(s); err != nil {
 			return err
 		}
 	}

@@ -78,7 +78,7 @@ Integration tests are used to ensure functionality between the API and Discord.
 
 #### Running Tests
 
-Use `go test` to run the tests in the current directory. Use `go test ./<dir>` to run tests in a given directory (from the current directory). Use [Github Action Workflow Files](.github\workflows) to find the correct test command for a module.
+Use `go test` to run the tests in the current directory. Use `go test ./<dir>` to run tests in a given directory (from the current directory). Use [Github Action Workflow Files](/.github/workflows/) to find the correct test command for a module.
 
 # Roadmap
 

@@ -111,6 +111,7 @@ func (s *Session) logClose(routine string) {
 func (s *Session) reconnect(reason string) {
 	s.manager.Go(func() error {
 		s.Lock()
+		defer s.logClose("reconnect")
 		defer s.Unlock()
 
 		log.Println(reason)
@@ -126,6 +127,11 @@ func (s *Session) reconnect(reason string) {
 // manage manages a Session's goroutines.
 func (s *Session) manage(bot *Client) {
 	s.manager.routines.Done()
+	defer func() {
+		s.Lock()
+		s.logClose("manager")
+		s.Unlock()
+	}()
 
 	// wait until all of a Session's goroutines are closed.
 	err := s.manager.Wait()

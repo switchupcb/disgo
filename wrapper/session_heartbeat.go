@@ -42,16 +42,11 @@ func (s *Session) beat(bot *Client) error {
 			select {
 			case <-s.heartbeat.send:
 			case <-s.Context.Done():
-				s.Lock()
-
 				if atomic.LoadInt32(&s.manager.pulses) != 0 {
-					s.Unlock()
-
 					break
 				}
 
 				s.logClose("heartbeat")
-				s.Unlock()
 
 				return
 			}
@@ -85,7 +80,7 @@ func (s *Session) beat(bot *Client) error {
 			}
 
 			// send a Heartbeat to the Discord Gateway (WebSocket Connection).
-			if err := writeEvent(s, FlagGatewayOpcodeHeartbeat, FlagGatewayCommandNameHeartbeat, hb); err != nil {
+			if err := hb.Command(s); err != nil {
 				s.Unlock()
 
 				return err
