@@ -90,7 +90,7 @@ func peekDate(r *fasthttp.Response) (time.Time, error) {
 func peekHeaderRateLimit(r *fasthttp.Response) RateLimitHeader {
 	limit, _ := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimit)))
 	remaining, _ := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimitRemaining)))
-	reset, _ := strconv.ParseInt(string(r.Header.PeekBytes(headerRateLimitReset)), base10, bit64)
+	reset, _ := strconv.ParseFloat(string(r.Header.PeekBytes(headerRateLimitReset)), bit64)
 	resetafter, _ := strconv.ParseFloat(string(r.Header.PeekBytes(headerRateLimitResetAfter)), bit64)
 	global, _ := strconv.ParseBool(string(r.Header.PeekBytes(headerRateLimitGlobal)))
 

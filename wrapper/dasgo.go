@@ -1290,7 +1290,7 @@ const (
 type RateLimitHeader struct {
 	Limit      int     `http:"X-RateLimit-Limit,omitempty"`
 	Remaining  int     `http:"X-RateLimit-Remaining,omitempty"`
-	Reset      int64   `http:"X-RateLimit-Reset,omitempty"`
+	Reset      float64 `http:"X-RateLimit-Reset,omitempty"`
 	ResetAfter float64 `http:"X-RateLimit-Reset-After,omitempty"`
 	Bucket     string  `http:"X-RateLimit-Bucket,omitempty"`
 	Global     bool    `http:"X-RateLimit-Global,omitempty"`
