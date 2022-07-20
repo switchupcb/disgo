@@ -1,24 +1,24 @@
-package wrapper
+package sessions_test
 
 import (
-	"log"
 	"os"
-	"sync/atomic"
 	"testing"
 	"time"
+
+	. "github.com/switchupcb/disgo/wrapper"
 )
 
 // TestConnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
 // in order to ensure that WebSocket functionality works.
 func TestConnect(t *testing.T) {
 	// timeout is used to prevent this test from lasting longer than expected.
-	timeout := time.NewTimer(time.Second * 8)
+	timeout := time.NewTimer(time.Second * 4)
 
 	bot := &Client{
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       new(Handlers),
-		Sessions:       []*Session{new(Session)},
+		Sessions:       []*Session{NewSession()},
 	}
 
 	s := bot.Sessions[0]
@@ -28,39 +28,20 @@ func TestConnect(t *testing.T) {
 
 	// a Ready event is sent upon a successful connection.
 	bot.Handle(FlagGatewayEventNameReady, func(*Ready) {
-		// once the Ready event has been received, wait to send a Heartbeat.
-		//
-		// NOTE: use jitter functionality to queue the first Heartbeat faster.
-		s.mu.Lock()
-
-		s.heartbeat.interval = time.Second
-		s.heartbeat.ticker.Reset(s.heartbeat.interval)
-
-		s.mu.Unlock()
-
 		wait <- 0
 	})
 
 	// connect to the Discord Gateway (WebSocket Session).
-	if err := bot.Connect(s); err != nil {
+	if err := s.Connect(bot); err != nil {
 		t.Fatalf("%v", err)
 	}
 
 	// connecting to a connected session should result in an error.
-	if err := bot.Connect(s); err == nil {
+	if err := s.Connect(bot); err == nil {
 		t.Fatalf("expected error while connecting to already connected session")
 	}
 
-	// wait until the Ready event is received.
-	select {
-	case <-timeout.C:
-		t.Fatalf("test took longer than expected while receiving the Ready event")
-	case <-s.Context.Done():
-		t.Fatalf("disconnected before handling Ready event")
-	case <-wait:
-		break
-	}
-
+	// wait until a Heartbeat is sent.
 	for {
 		select {
 		case <-timeout.C:
@@ -68,17 +49,11 @@ func TestConnect(t *testing.T) {
 		case <-s.Context.Done():
 			t.Fatalf("disconnected while waiting to send heartbeat")
 		default:
-			s.mu.Lock()
-
 			// a Heartbeat is sent when the amount of ACKs since the
 			// last Heartbeat was sent is 0.
-			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
-				s.mu.Unlock()
-
+			if s.Monitor() == 0 {
 				goto ACK
 			}
-
-			s.mu.Unlock()
 		}
 	}
 
@@ -91,29 +66,36 @@ ACK:
 		case <-s.Context.Done():
 			t.Fatalf("disconnected while waiting for HeartbeatACK")
 		default:
-			s.mu.Lock()
-
 			// a respective HeartbeatACK should be sent to s.heartbeat.ack.
-			if atomic.LoadUint32(&s.heartbeat.acks) == 1 {
-				s.mu.Unlock()
-
+			if s.Monitor() == 1 {
 				goto DISCONNECT
 			}
-
-			s.mu.Unlock()
 		}
 	}
 
 DISCONNECT:
+	// wait until the Ready event is received.
+	select {
+	case <-timeout.C:
+		t.Fatalf("test took longer than expected while receiving the Ready event")
+	case <-s.Context.Done():
+		t.Fatalf("disconnected before handling Ready event")
+	case <-wait:
+		break
+	}
+
 	// disconnect from the Discord Gateway (WebSocket Connection).
-	if err := bot.Sessions[0].Disconnect(); err != nil {
+	if err := s.Disconnect(); err != nil {
 		t.Fatalf("%v", err)
 	}
 
 	// disconnecting from a disconnected session should result in an error.
-	if err := bot.Sessions[0].Disconnect(); err == nil {
+	if err := s.Disconnect(); err == nil {
 		t.Fatalf("expected error while disconnecting from already disconnected session")
 	}
+
+	// allow Discord to close the session.
+	<-time.After(time.Second * 5)
 }
 
 // TestReconnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
@@ -126,7 +108,7 @@ func TestReconnect(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       &Handlers{},
-		Sessions:       []*Session{new(Session)},
+		Sessions:       []*Session{NewSession()},
 	}
 
 	s := bot.Sessions[0]
@@ -136,18 +118,6 @@ func TestReconnect(t *testing.T) {
 
 	// a Ready event is sent upon a successful connection.
 	bot.Handle(FlagGatewayEventNameReady, func(*Ready) {
-		// manipulate s.heartbeat.ack to test reconnect functionality.
-		s.mu.Lock()
-
-		// simulate a Heartbeat not receiving a respective HeartbeatACK.
-		//
-		// NOTE: use jitter functionality to queue the first Heartbeat faster.
-		s.heartbeat.acks = 0
-		s.heartbeat.interval = time.Millisecond
-		s.heartbeat.ticker.Reset(s.heartbeat.interval)
-
-		s.mu.Unlock()
-
 		wait <- 0
 	})
 
@@ -157,13 +127,13 @@ func TestReconnect(t *testing.T) {
 	})
 
 	// connect to the Discord Gateway (WebSocket Session).
-	if err := bot.Connect(s); err != nil {
+	if err := s.Connect(bot); err != nil {
 		t.Fatalf("%v", err)
 	}
 
 	// wait until the Ready event is received.
 	for {
-		s.mu.Lock()
+		s.Lock()
 
 		select {
 		case <-timeout.C:
@@ -171,15 +141,20 @@ func TestReconnect(t *testing.T) {
 		case <-s.Context.Done():
 			t.Fatalf("disconnected before handling Ready event")
 		case <-wait:
-			s.mu.Unlock()
+			s.Unlock()
 
-			goto AGAIN
+			goto RECONNECT
 		default:
-			s.mu.Unlock()
+			s.Unlock()
 		}
 	}
 
-AGAIN:
+RECONNECT:
+	// reconnect.
+	if err := s.Reconnect(bot); err != nil {
+		t.Fatalf("%v", err)
+	}
+
 	// wait until another Ready or Resumed event is handled by the bot.
 	select {
 	case <-timeout.C:
@@ -189,7 +164,7 @@ AGAIN:
 	}
 
 	// disconnect from the Discord Gateway (WebSocket Connection).
-	if err := bot.Sessions[0].Disconnect(); err != nil {
-		log.Println(err)
+	if err := s.Disconnect(); err != nil {
+		t.Fatalf("%v", err)
 	}
 }

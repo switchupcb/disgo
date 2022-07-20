@@ -1,8 +1,14 @@
-package wrapper
+package unit_test
 
 import (
 	"fmt"
 	"testing"
+
+	. "github.com/switchupcb/disgo/wrapper"
+)
+
+const (
+	errRemoveInvalidEventHandler = "cannot remove event handler for %s since there is no event handler at index %d"
 )
 
 // TestHandle tests the Handle function for adding and removing event handlers.

@@ -1,7 +1,6 @@
 package wrapper
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -48,13 +47,9 @@ const (
 	errRemoveInvalidEventHandler = "cannot remove event handler for %s since there is no event handler at index %d"
 )
 
-var (
-	errOpcodeReconnect = errors.New("Opcode Reconnect")
-)
-
-// ErrorDisconnect represents a WebSocket disconnection error that occurs when
+// DisconnectError represents a WebSocket disconnection error that occurs when
 // a WebSocket attempt to gracefully disconnect fails.
-type ErrorDisconnect struct {
+type DisconnectError struct {
 	// SessionID represents the ID of the Session that is disconnecting.
 	SessionID string
 
@@ -65,7 +60,7 @@ type ErrorDisconnect struct {
 	Action error
 }
 
-func (e ErrorDisconnect) Error() string {
+func (e DisconnectError) Error() string {
 	return fmt.Sprintf("an error occurred disconnecting the session %q from the Discord Gateway\n"+
 		"\tDisconnect(): %v\n"+
 		"\treason: %v\n",

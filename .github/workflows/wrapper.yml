@@ -42,7 +42,6 @@ jobs:
   test-unit:
     needs: sca-lint
     name: Unit Tests
-    environment: testing
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -74,6 +73,37 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-${{ matrix.go-version }}-
       - name: Run Unit Tests
+        run: go test ./wrapper/tests/unit
+
+  test-integration:
+    needs: test-unit
+    name: Integration Tests
+    environment: testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.18
+      - name: Cache Go Modules
+        uses: actions/cache@v3
+        with:
+          # In order:
+          # * Module Download Directory
+          # * Linux Build Directory
+          # * Mac Build Directory
+          # * Windows Build Directory
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/Library/Caches/go-build
+            ~\AppData\Local\go-build
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-${{ matrix.go-version }}-
+      - name: Run Integration Tests
         env:
           TOKEN: ${{ secrets.TOKEN }}
-        run: go test ./wrapper
+        run: go test ./wrapper/tests/integration -race
