@@ -158,6 +158,13 @@ func (s *Session) respond(data json.RawMessage) error {
 
 	s.Lock()
 
+	// ensure that the heartbeat routine has not been closed.
+	if atomic.LoadInt32(&s.manager.pulses) <= 1 {
+		s.Unlock()
+
+		return nil
+	}
+
 	// heartbeat() checks for the amount of HeartbeatACKs received since the last Heartbeat.
 	// There is a possibility for this value to be 0 due to latency rather than a dead connection.
 	// For example, when a Heartbeat is queued, sent, responded, and sent.
