@@ -218,7 +218,7 @@ SEND:
 	// confirm the response with the rate limiter.
 	//
 	// Interaction endpoints are not bound to the bot's Global Rate Limit.
-	if !interactionRouteIDs[routeid] {
+	if !interactionRouteIDs[routeid] { // nolint:nestif
 		// parse the Date header for global rate limit functionality.
 		date, err := peekDate(response)
 		if err != nil {
@@ -296,7 +296,7 @@ SEND:
 				atomic.AddInt32(&globalBucket.Priority, 1)
 			}
 		} else {
-
+			// TODO
 		}
 
 		// parse the rate limit response data for `retry_after`.
@@ -337,7 +337,7 @@ SEND:
 				bot.Config.RateLimiter.EndTx()
 			}
 		} else {
-
+			// TODO
 		}
 
 		if globalBucket := bot.Config.RateLimiter.GetBucket(0); globalBucket != nil {
