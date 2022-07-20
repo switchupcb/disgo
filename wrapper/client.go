@@ -131,6 +131,7 @@ func DefaultConfig() *Config {
 	c.RateLimiter = &RateLimit{ //nolint:exhaustruct
 		ids:     make(map[uint16]string, rateLimitCapacity),
 		buckets: make(map[string]*Bucket, rateLimitCapacity),
+		entries: make(map[string]int, rateLimitCapacity),
 	}
 
 	// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
