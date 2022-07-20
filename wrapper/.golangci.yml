@@ -9,13 +9,19 @@ linters:
     - deadcode # The repository has no Application Life Cycle Management. Run manually prior to a release.
     - unused # The repository has no Application Life Cycle Management. Run manually prior to a release.
     
-    - gochecknoglobals # Types defined by Dasgo. Don't change maps that are global.
+    - stylecheck # Underscores in flags currently defined by Discord.
     - tagliatelle # Tags defined by Discord.
+    - gochecknoglobals # Types defined by Dasgo. Don't change maps that are global.
     - lll # Types defined by Dasgo.
     - godot # Dasgo comments.
     - gochecknoinits # Required by gorilla/schema to parse URL Query Strings correctly.
     - gocognit # Discord API is endless complexity.
     - cyclop # Discord API is endless complexity.
+
+    - ifshort # False Positive due to Manager Logic.
+    - errname # ErrorDescription > DesErr
+
+    - contextcheck # To be re-evaluated.
 
     - funlen
     - exhaustivestruct
@@ -23,12 +29,8 @@ linters:
     - gofumpt
     - varnamelen
     - wsl
-    - errname # ErrorDescription > DesErr
     - goerr113
     - forbidigo
-    - bodyclose # go1.18 version in development
-    - contextcheck # go1.18 version in development
-    - stylecheck # Underscores in flags currently defined by Discord.
 
     - golint # Deprecated
     - interfacer # Deprecated
