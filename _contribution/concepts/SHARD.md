@@ -1,6 +1,6 @@
 # What is Discord Sharding?
 
-Disgo provides an **optional** shard manager for your Discord Bot. For information about its implementation, read about [The Disgo Shard Manager](/shard/README.md).
+Disgo provides an **optional** shard manager for your Discord Bot. Read [The Disgo Shard Manager](/shard/README.md) for information about its implementation.
 
 ## What is a Session?
 
@@ -12,11 +12,11 @@ As the **new bot** is used by more guilds, it handles more and more data. This g
 
 ## What is a Shard?
 
-When the **new bot** handles more data _(without sharding)_, all that data is sent or received through one **Session**. This becomes inefficient, so Discord requires you to handle the data through multiple **Sessions**: This lowers the amount of data each **Session** maintains. A WebSocket **Session** (also known as a Gateway) holds a number of **shards**, and each **shard** contains multiple **guilds**.
+When the **new bot** handles more data _(without sharding)_, all that data is sent or received through one **Session**. This becomes inefficient, so Discord requires you to handle the data through multiple **Sessions** which lowers the amount of data each Session maintains. A WebSocket Session (also known as a Gateway) holds a number of **shards** and each **shard** contains multiple **guilds**.
 
 ### Advanced
 
-A shard only refers to which **Session(s)** a guild's data will be sent to. In other words, a shard represents a _traffic route_ for guild data. This presents the following hierarchy: 
+A shard only refers to which session(s) a guild's data will be sent to. In other words, a shard represents a _traffic route_ for guild data. This presents the following hierarchy: 
 - **One Session manages multiple shards**. 
 - **One Shard manages multiple guilds' data**.
 
@@ -38,4 +38,4 @@ The `shard_id` is equal to: The `guild_id` (which is an integer-based timestamp)
 
 ### How Does It Impact Performance?
 
-Maintaining multiple WebSocket Sessions does **NOT** have any performance implications on its own. However, processing more data among many connections _(within a set period of time)_ warrants more processing power (resulting in higher CPU usage). [Goroutines](https://gobyexample.com/goroutines) allow you to manage asynchronous connections concurrently. This language-specific feature — in addition to other factors — is why Go is the best language for creating Discord Bots.
+Maintaining multiple WebSocket Sessions does **NOT** have any performance implications on its own. However, processing more data among many connections _(within a set period of time)_ warrants more processing power (resulting in higher CPU usage). [Goroutines](https://gobyexample.com/goroutines) allow you to manage asynchronous connections concurrently (without blocking). This language-specific feature — in addition to other factors — is why we use Go to create Discord Bots.

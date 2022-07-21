@@ -8,27 +8,29 @@ The Disgo Shard Manager is a Go module that automatically handles sharding for y
 
 #### What is an application?
 
-An application refers to a built binary that is executed on your computer. You run applications through the terminal (i.e `run.exe`) or via visual shortcuts. In the context of this explanation, an application refers to the code your Discord Bot uses to run on a **server**.
+An application refers to a built binary that is executed on your computer. You run applications through the terminal (i.e `run.exe`) or via visual shortcuts. In the context of this explanation, an application refers to the code that your Discord Bot uses to run on a **server**.
 
 #### What is a server?
 
-A server is a computer (with a specialized use-case). You run applications on computers. A discord bot is hosted _(ran)_ on a server.
+A server is a computer (with a specialized use-case). You run applications on computers. A discord bot application is hosted _(run)_ on a server.
 
 #### What is a guild?
 
-Guilds in Discord represent an isolated collection of users and channels, and are often referred to as "servers" in the UI. However, these "servers" are **NOT** the same as the **servers** described above. A Discord guild is a concept, while a **server** is a physical machine.
+Guilds in Discord represent an isolated collection of users and channels, and are often referred to as "servers" in the User Interface (UI). However, these "servers" are **NOT** the same as the **servers** described above. A Discord guild is a concept, while a **server** is a physical machine.
 
 ### Method
 
-Sharding on Discord is a two-step process: implementing shard-logic and sharding your infrastructure. The **Disgo Shard Manager** handles the first step for you, so **how do we shard our infrastructure?** Discord only allows you to shard by guild, so - barring a load-balanced architecture - you must handle _every_ important Discord Event in every Discord Bot application. As a result, the only way to shard the infrastructure of your Discord Bot application _— without requiring additional code  —_ is to host multiple copies of it _(each handling a fraction of your total load)_.
+Sharding on Discord is a two-step process that involves implementing shard-logic in your application and sharding your infrastructure. The **Disgo Shard Manager** handles the first step for you, so **how do we shard our infrastructure?** Discord only allows you to shard by guild, so - barring a load-balanced architecture - you must handle _every_ important Discord Event in every Discord Bot application with a single codebase. As a result, the only way to shard the infrastructure of your Discord Bot application _— without requiring additional code  —_ is to host multiple copies of it _(each handling a fraction of your total load)_. This is known as **active-active load balancing**.
+
+_The Disgo Shard Manager implements this method._
 
 #### Explanation
 
-A WebSocket Session contains **shards** that contain **individual guilds**. Ignoring specific events in one shard would ignore those same events from multiple guilds _(since you can't specify a guild's shard)_. Following this logic, ignoring a **session's events** ignores **multiple shards' events** which ignores **multiple guilds' events**. Since Discord requires you to shard by guild, we **CANNOT** shard the infrastructure of our Discord Bot by creating multiple applications that handle a single event. Doing so would result in only receiving specific events from certain guilds _(depending on their session)_.
+A WebSocket Session contains **shards** that contain **individual guilds**. Ignoring specific events for one shard would ignore those same events from multiple guilds the shard contains _(since you can't specify a guild's shard)_. Following this logic, ignoring a **session's events** ignores **multiple shards' events** which ignores **multiple guilds' events**. Since Discord requires you to shard by guild, we **CANNOT** shard the infrastructure of our Discord Bot by creating multiple applications that handle a single event without an alternative infrastructure.
 
 #### Alternative
 
-A load balancer allows us to "shard" our bot by event. This entails creating **one application** _(the load balancer)_ that accepts every event your bot receives _(and thus every shard)_, and having that **same application** forward those events to micro-applications _(which run on other servers)_. Placing every "shard" in a single application requires that application to maintain every session. As a result, your load balancer's only purpose should be to balance the load by routing events to other applications. When the load balancer _(that handles every session)_ goes down, so does your bot.
+A load balancer allows us to "shard" our bot by event. This entails creating **one application** _(the load balancer)_ that accepts every event your bot receives _(and thus every shard)_, and having that **same application** forward those events to micro-applications _(which run on other servers)_. Placing every "shard" in a single application requires that same application to maintain every session. As a result, your load balancer's only purpose — in this alternative method — should be to balance the load by routing events to other applications. When the load balancer _(that handles every session)_ goes down, so does your bot.
 
 ### QA
 
