@@ -1,6 +1,7 @@
 package wrapper
 
 import (
+	"log"
 	"strconv"
 	"sync"
 )
@@ -61,6 +62,8 @@ func (r *RateLimit) SetBucketHash(routeid uint16, bucketid string) {
 			if r.entries[currentBucketID] == 0 {
 				delete(r.entries, currentBucketID)
 				delete(r.buckets, currentBucketID)
+
+				log.Println("deleted bucket", currentBucketID)
 			}
 		}
 
@@ -69,6 +72,8 @@ func (r *RateLimit) SetBucketHash(routeid uint16, bucketid string) {
 
 		// update the entries for the new Bucket ID.
 		r.entries[bucketid]++
+
+		log.Println("set route", routeid, "to bucket", bucketid)
 	}
 }
 
@@ -78,6 +83,8 @@ func (r *RateLimit) GetBucketHash(routeid uint16) string {
 
 func (r *RateLimit) SetBucketFromHash(bucketid string, bucket *Bucket) {
 	r.buckets[bucketid] = bucket
+
+	log.Printf("set bucket %s to %p", bucketid, bucket)
 }
 
 func (r *RateLimit) GetBucketFromHash(bucketid string) *Bucket {

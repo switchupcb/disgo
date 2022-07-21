@@ -77,10 +77,6 @@ type Bucket struct {
 	// Pending represents the amount of requests that are sent and awaiting a response.
 	Pending int16
 
-	// Priority represents the amount of requests that have priority over
-	// other requests in the Bucket.
-	Priority int32
-
 	// Date represents the time at which Discord received the last request of the Bucket.
 	//
 	// Date is only applicable to global rate limit Buckets.

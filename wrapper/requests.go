@@ -2,8 +2,8 @@ package wrapper
 
 import (
 	"fmt"
+	"log"
 	"strconv"
-	"sync/atomic"
 	"time"
 
 	json "github.com/goccy/go-json"
@@ -135,51 +135,44 @@ func SendRequest(bot *Client, routeid uint16, method, uri string, content, body 
 	}
 
 RATELIMIT:
-	// a single request is PROCESSED from a queue at any point in time.
+	// a single request or response is PROCESSED at any point in time.
 	bot.Config.RateLimiter.Lock()
 
-	// check global and route rate limit Buckets prior to sending the current request.
+	// check Global and Route Rate Limit Buckets prior to sending the current request.
 	for {
 		bot.Config.RateLimiter.StartTx()
 		globalBucket := bot.Config.RateLimiter.GetBucket(0)
-
-		// when a Bucket contains a priority request, it will be sent before the current request.
-		if containsPriority(globalBucket) {
-			bot.Config.RateLimiter.EndTx()
-			bot.Config.RateLimiter.Unlock()
-
-			goto RATELIMIT
-		}
 
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
 		if isNotEmpty(globalBucket) {
 			routeBucket := bot.Config.RateLimiter.GetBucket(routeid)
 
-			// TODO: A request should not be sent if a Global Rate Limit Bucket hit a 429.
-			if containsPriority(routeBucket) {
-				bot.Config.RateLimiter.EndTx()
-				bot.Config.RateLimiter.Unlock()
-
-				goto RATELIMIT
-			}
-
 			if isNotEmpty(routeBucket) {
 				bot.Config.RateLimiter.EndTx()
 
-				break
+				goto USE
 			}
 
 			if isExpired(routeBucket) {
+				// When a Route Bucket expires, its new expiry becomes unknown.
+				// As a result, it will never reset (again) until a pending request's
+				// response sets a new expiry.
 				routeBucket.Reset(time.Time{})
 			}
 
-			// TODO: Multiple requests would be blocked by a single route rate limit bucket.
+			// do NOT block other requests due to a Route Rate Limit.
 			bot.Config.RateLimiter.EndTx()
+			bot.Config.RateLimiter.Unlock()
 
-			continue
+			// requeue the request when it's ready.
+			if routeBucket != nil {
+				<-time.After(time.Until(routeBucket.Expiry))
+			}
+
+			goto RATELIMIT
 		}
 
-		// reset the global rate limit bucket when the current Bucket has passed its expiry.
+		// reset the Global Rate Limit Bucket when the current Bucket has passed its expiry.
 		if isExpired(globalBucket) {
 			globalBucket.Reset(time.Now().Add(time.Second))
 		}
@@ -211,14 +204,17 @@ SEND:
 		return fmt.Errorf("%w", err)
 	}
 
-	// parse the Rate Limit Header for per-route rate limit functionality.
-	header := peekHeaderRateLimit(response)
-	fmt.Println("\nTime Now", time.Now(), "\n"+response.Header.String())
+	var header RateLimitHeader
 
 	// confirm the response with the rate limiter.
 	//
 	// Interaction endpoints are not bound to the bot's Global Rate Limit.
 	if !interactionRouteIDs[routeid] { // nolint:nestif
+		log.Println("\n" + time.Now().String() + "\n" + response.Header.String())
+
+		// parse the Rate Limit Header for per-route rate limit functionality.
+		header = peekHeaderRateLimit(response)
+
 		// parse the Date header for global rate limit functionality.
 		date, err := peekDate(response)
 		if err != nil {
@@ -244,23 +240,23 @@ SEND:
 			// ensure the route Bucket is up to date.
 			if routeBucket == nil || routeBucket.ID != header.Bucket {
 				// update the route ID mapping to a rate limit Bucket ID.
-				//
-				// TODO: Potential memory leak due to excessive storage of buckets
-				// if IDs change between resets.
 				bot.Config.RateLimiter.SetBucketHash(routeid, header.Bucket)
 
-				// update the Bucket ID mapping to a rate limit Bucket.
+				// map the Bucket ID to the updated Rate Limit Bucket.
 				if bucket := bot.Config.RateLimiter.GetBucketFromHash(header.Bucket); bucket != nil {
 					routeBucket = bucket
 				} else {
-					bot.Config.RateLimiter.SetBucketFromHash(header.Bucket, new(Bucket))
+					routeBucket = new(Bucket)
+					bot.Config.RateLimiter.SetBucketFromHash(header.Bucket, routeBucket)
 				}
 			}
 
 			routeBucket.ConfirmHeader(1, routeid, header)
 		}
 
-		bot.Config.RateLimiter.EndTx()
+		if response.StatusCode() != fasthttp.StatusTooManyRequests {
+			bot.Config.RateLimiter.EndTx()
+		}
 	}
 
 	// follow redirects.
@@ -287,17 +283,7 @@ SEND:
 
 	// process the rate limit.
 	case fasthttp.StatusTooManyRequests:
-		// TODO: Handle priority.
-		fmt.Println(response.Header.String(), response.Body())
-
-		// prevent other requests in the queue from being sent by incrementing priority.
-		if header.Global {
-			if globalBucket := bot.Config.RateLimiter.GetBucket(0); globalBucket != nil {
-				atomic.AddInt32(&globalBucket.Priority, 1)
-			}
-		} else {
-			// TODO
-		}
+		log.Println(string(response.Body()))
 
 		// parse the rate limit response data for `retry_after`.
 		var data RateLimitResponse
@@ -319,40 +305,36 @@ SEND:
 			reset = time.Now().Add(time.Second * time.Duration(retryafter))
 		}
 
-		// a single request is PROCESSED from a mutex queue at any point in time.
+		log.Printf("429 Reset Time: %v", reset)
+
 		retry := retries < bot.Config.Retries
 		retries++
-
-		bot.Config.RateLimiter.Lock()
 
 		if header.Global {
 			// when the current time is BEFORE the reset time,
 			// all requests must wait until the 429 expires.
 			if time.Now().Before(reset) {
-				bot.Config.RateLimiter.StartTx()
 				if globalBucket := bot.Config.RateLimiter.GetBucket(0); globalBucket != nil {
 					globalBucket.Remaining = 0
-					globalBucket.Expiry = reset.Add(time.Second + 1)
+					globalBucket.Expiry = reset.Add(time.Millisecond)
 				}
-				bot.Config.RateLimiter.EndTx()
 			}
 		} else {
-			// TODO
+			// when the current time is BEFORE the reset time,
+			// requests with the same Rate Limit Bucket must wait until the 429 expires.
+			if time.Now().Before(reset) {
+				if routeBucket := bot.Config.RateLimiter.GetBucket(routeid); routeBucket != nil {
+					routeBucket.Remaining = 0
+					routeBucket.Expiry = reset.Add(time.Millisecond)
+				}
+			}
 		}
 
-		if globalBucket := bot.Config.RateLimiter.GetBucket(0); globalBucket != nil {
-			atomic.AddInt32(&globalBucket.Priority, -1)
-		}
+		bot.Config.RateLimiter.EndTx()
 
 		if retry {
-			// priorityWait contains the same functionality as the RATELIMIT `for` loop,
-			// but without a priority counter check.
-			priorityWait(bot.Config.RateLimiter, routeid)
-
-			goto USE
+			goto RATELIMIT
 		}
-
-		bot.Config.RateLimiter.Unlock()
 
 		return StatusCodeError(fasthttp.StatusTooManyRequests)
 
@@ -369,46 +351,6 @@ SEND:
 	default:
 		return StatusCodeError(response.StatusCode())
 	}
-}
-
-// priorityWait waits until a priority request is ready to be sent.
-func priorityWait(r RateLimiter, routeid uint16) {
-	for {
-		r.StartTx()
-		globalBucket := r.GetBucket(0)
-
-		if isNotEmpty(globalBucket) {
-			routeBucket := r.GetBucket(routeid)
-
-			if isNotEmpty(routeBucket) {
-				r.EndTx()
-
-				break
-			}
-
-			if isExpired(routeBucket) {
-				routeBucket.Reset(time.Time{})
-			}
-
-			r.EndTx()
-
-			continue
-		}
-
-		if isExpired(globalBucket) {
-			globalBucket.Reset(time.Now().Add(time.Second))
-		}
-
-		r.EndTx()
-	}
-}
-
-// containsPriority determines whether a rate limit Bucket contains a priority request.
-func containsPriority(b *Bucket) bool {
-	// a rate limit bucket contains priority when
-	// 1. the bucket exists AND
-	// 2. there is one or more priority request token(s).
-	return b != nil && atomic.LoadInt32(&b.Priority) > 0
 }
 
 // isExpired determines whether a rate limit Bucket is expired.

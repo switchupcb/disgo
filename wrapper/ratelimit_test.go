@@ -17,16 +17,16 @@ func TestGlobalRateLimit(t *testing.T) {
 		Config:         DefaultConfig(),
 	}
 	bot.Config.Retries = 0
-	DefaultRouteBucket.Limit = FlagGlobalRequestRateLimit
+	DefaultRouteBucket = nil
 
 	// prepare the request.
 	request := new(GetCurrentBotApplicationInformation)
-	requests := 151
+	requests := 101
 
 	// prepare the test tracking variables.
 	eg, ctx := errgroup.WithContext(context.Background())
 
-	// send 51 requests concurrently.
+	// send the requests concurrently.
 	for i := 1; i <= requests; i++ {
 		select {
 		case <-ctx.Done():
@@ -55,10 +55,51 @@ func TestGlobalRateLimit(t *testing.T) {
 	}
 
 	// ensure that the next test starts from a full bucket.
-	time.After(time.Second)
+	time.After(time.Second * 2)
 }
 
 // TestRouteRateLimit tests the per-route rate limit mechanism.
 func TestRouteRateLimit(t *testing.T) {
+	// setup the bot.
+	bot := &Client{
+		Authentication: BotToken(os.Getenv("TOKEN")),
+		Config:         DefaultConfig(),
+	}
+	bot.Config.Retries = 0
+	DefaultRouteBucket = &Bucket{Limit: 1} //nolint:exhaustruct
 
+	// prepare the request.
+	request := GetUser{UserID: os.Getenv("APPID")}
+	requests := 31
+
+	// prepare the test tracking variables.
+	eg, ctx := errgroup.WithContext(context.Background())
+
+	// send the requests concurrently.
+	for i := 1; i <= requests; i++ {
+		select {
+		case <-ctx.Done():
+			t.Fatalf("%v", eg.Wait())
+		default:
+		}
+
+		id := i
+		eg.Go(func() error {
+			t.Log("Spawned request goroutine", id)
+
+			user, err := request.Send(bot)
+			if err != nil {
+				return err
+			}
+
+			t.Log("Request", id, ":", user)
+
+			return nil
+		})
+	}
+
+	// wait until all requests are sent and responses are received.
+	if err := eg.Wait(); err != nil {
+		t.Fatalf("%v", err)
+	}
 }
