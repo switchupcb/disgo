@@ -13,14 +13,14 @@ var (
 		"EditGlobalApplicationCommand":           {"CreateGlobalApplicationCommand"},
 		"DeleteGlobalApplicationCommand":         {"CreateGlobalApplicationCommand"},
 		"BulkOverwriteGlobalApplicationCommands": {"CreateGlobalApplicationCommand"},
-		"GetGuildApplicationCommands":            {},
+		"GetGuildApplicationCommands":            {"CreateGlobalApplicationCommand"},
 		"CreateGuildApplicationCommand":          {},
 		"GetGuildApplicationCommand":             {"CreateGuildApplicationCommand"},
 		"EditGuildApplicationCommand":            {"CreateGuildApplicationCommand"},
 		"DeleteGuildApplicationCommand":          {"CreateGuildApplicationCommand"},
 		"BulkOverwriteGuildApplicationCommands":  {"CreateGuildApplicationCommand"},
-		"GetGuildApplicationCommandPermissions":  {},
-		"GetApplicationCommandPermissions":       {},
+		"GetGuildApplicationCommandPermissions":  {"CreateGuildApplicationCommand"},
+		"GetApplicationCommandPermissions":       {"CreateGuildApplicationCommand"},
 		"EditApplicationCommandPermissions":      {},
 		"BatchEditApplicationCommandPermissions": {},
 		"CreateInteractionResponse":              {},
@@ -268,7 +268,10 @@ func contains(s []string, x string) bool {
 }
 
 func main() {
-	for i, endpoint := range findOrder(endpoints) {
-		fmt.Println(fmt.Sprintf("%d. %v", i, endpoint))
+
+	for _, endpoint := range findOrder(endpoints) {
+		// fmt.Println(fmt.Sprintf("%d. %v", i, endpoint))
+		fmt.Println(endpoint)
 	}
+
 }
