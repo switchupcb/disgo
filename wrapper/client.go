@@ -8,10 +8,8 @@ import (
 
 // Default Configuration Values.
 const (
-	module                = "github.com/switchupcb/disgo"
-	defaultUserAgent      = "DiscordBot (https://" + module + ", v" + VersionDiscordAPI + ")"
-	defaultRequestTimeout = time.Second
-	rateLimitCapacity     = 175 // 174 routes + 1 global
+	module           = "github.com/switchupcb/disgo"
+	defaultUserAgent = "DiscordBot (https://" + module + ", v" + VersionDiscordAPI + ")"
 )
 
 // Client represents a Discord Application.
@@ -92,6 +90,24 @@ type Authorization struct {
 
 // Config represents parameters used to perform various actions by the client.
 type Config struct {
+	// Request holds configuration variables that pertain to the Discord HTTP API.
+	Request Request
+
+	// Gateway holds configuration variables that pertain to the Discord Gateway.
+	Gateway Gateway
+}
+
+// DefaultConfig returns a default client configuration.
+func DefaultConfig() *Config {
+	c := new(Config)
+	c.Request = DefaultRequest()
+	c.Gateway = DefaultGateway(false)
+
+	return c
+}
+
+// Request represents Discord Request parameters used to perform various actions by the client.
+type Request struct {
 	// Client is used to send requests.
 	//
 	// Use Client to set a custom User-Agent in the HTTP Request Header.
@@ -108,41 +124,43 @@ type Config struct {
 
 	// RateLimiter represents an object that provides rate limit functionality.
 	RateLimiter RateLimiter
-
-	// Gateway holds configuration variables that pertain to the Discord Gateway.
-	Gateway Gateway
-
-	// GlobalRateLimit represents a rate limit bucket for global rate limits.
-	GlobalRateLimit *Bucket
 }
 
-// DefaultConfig returns a default client configuration.
-func DefaultConfig() *Config {
-	c := new(Config)
+const (
+	// defaultRequestTimeout represents the default amount of time to wait on a request.
+	defaultRequestTimeout = time.Second
 
-	// configure request variables.
-	c.Client = new(fasthttp.Client)
-	c.Client.Name = defaultUserAgent
-	c.Timeout = defaultRequestTimeout
-	c.Retries = 1
-	c.Gateway = DefaultGateway(false)
+	// totalRoutes represents the total amount of Discord HTTP Routes (174) + the Global Route (1).
+	totalRoutes = 175
+)
+
+// DefaultRequest returns a default Request configuration.
+func DefaultRequest() Request {
+	// configure the client.
+	client := new(fasthttp.Client)
+	client.Name = defaultUserAgent
 
 	// configure the rate limiter.
-	c.RateLimiter = &RateLimit{ //nolint:exhaustruct
-		ids:     make(map[uint16]string, rateLimitCapacity),
-		buckets: make(map[string]*Bucket, rateLimitCapacity),
-		entries: make(map[string]int, rateLimitCapacity),
+	ratelimiter := &RateLimit{ //nolint:exhaustruct
+		ids:     make(map[uint16]string, totalRoutes),
+		buckets: make(map[string]*Bucket, totalRoutes),
+		entries: make(map[string]int, totalRoutes),
 	}
 
 	// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
-	c.RateLimiter.SetBucket(
+	ratelimiter.SetBucket(
 		0, &Bucket{ //nolint:exhaustruct
 			Limit:     FlagGlobalRequestRateLimit,
 			Remaining: FlagGlobalRequestRateLimit,
 		},
 	)
 
-	return c
+	return Request{
+		Client:      client,
+		Timeout:     defaultRequestTimeout,
+		Retries:     1,
+		RateLimiter: ratelimiter,
+	}
 }
 
 // Gateway represents Discord Gateway parameters used to perform various actions by the client.

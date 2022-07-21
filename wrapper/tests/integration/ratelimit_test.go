@@ -1,4 +1,4 @@
-package wrapper
+package integration_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	. "github.com/switchupcb/disgo/wrapper"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -16,7 +17,7 @@ func TestGlobalRateLimit(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 	}
-	bot.Config.Retries = 0
+	bot.Config.Request.Retries = 0
 	DefaultRouteBucket = nil
 
 	// prepare the request.
@@ -65,7 +66,7 @@ func TestRouteRateLimit(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 	}
-	bot.Config.Retries = 0
+	bot.Config.Request.Retries = 0
 	DefaultRouteBucket = &Bucket{Limit: 1} //nolint:exhaustruct
 
 	// prepare the request.
