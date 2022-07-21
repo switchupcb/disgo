@@ -6,8 +6,6 @@ import (
 	"sync"
 )
 
-// Routes for controlling emojis do not follow the normal rate limit conventions. These routes are specifically limited on a per-guild basis to prevent abuse. This means that the quota returned by our APIs may be inaccurate, and you may encounter 429s.
-
 var (
 	// DefaultRouteBucket represents the default rate limit Bucket for a route.
 	//
