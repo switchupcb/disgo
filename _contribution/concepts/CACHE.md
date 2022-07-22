@@ -7,6 +7,7 @@ Disgo provides an **optional** cache along with a **cache interface** for your D
 Using **Requests** and **Sessions** allow us to retrieve data from Discord, but it becomes redundant to receive the same data over and over again. For example, retrieving _the amount of users in a guild_ requires a network request to be sent _to_ and returned _from_ Discord. Without a cache, retrieving _the exact same information_ requires yet another network request; even when guild's condition remains unchanged. A cache is an alternative to sending redundant requests — that take time to complete — to Discord. A cache stores data so that future requests for that data can be served immediately.
 
 ## When to Use a Cache?
+
 Caches are useful for storing costly requests or calculations relevant to the lifetime of the application. In other words, A cache is not meant to be used for long-term storage. **If you need data to persist when your bot restarts, use a database.**
 
 ## How Does a Cache Work?

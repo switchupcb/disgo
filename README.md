@@ -10,8 +10,8 @@ High quality code merits easy development. Disgo uses developer operations to st
 
 **Don't Miss Out On These Exclusive Features**
 
-- Global Rate Limiting
-- Automatic Intent Calculation
+- EVERY Rate Limit (Global, Per Route, Per Resource, Emoji, Gateway)
+- Automatic Intent Calculation (Gateway)
 
 ## Table of Contents
 
