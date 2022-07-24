@@ -150,8 +150,8 @@ func DefaultRequest() Request {
 	// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
 	ratelimiter.SetBucket(
 		0, &Bucket{ //nolint:exhaustruct
-			Limit:     FlagGlobalRequestRateLimit,
-			Remaining: FlagGlobalRequestRateLimit,
+			Limit:     FlagGlobalRateLimitRequest,
+			Remaining: FlagGlobalRateLimitRequest,
 		},
 	)
 

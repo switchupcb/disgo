@@ -9,14 +9,14 @@ import (
 var (
 	// DefaultRouteBucket represents the default rate limit Bucket for a route.
 	//
-	// The default rate limit Bucket is used to control the flow of the
+	// The Default Rate Limit Bucket is used to control the flow of the
 	// "first request for any given route".
 	//
 	// This is necessary since Discord uses dynamic per-route rate limits.
 	// As a result, a route's actual rate limit Bucket can NOT be discovered
 	// until a request is sent (using the respective route).
 	//
-	// Use the default Bucket's Limit field-value to control
+	// Use the Default Bucket's Limit field-value to control how
 	// many requests of a given route can be sent (per second)
 	// BEFORE the actual rate limit Bucket of the route is known.
 	DefaultRouteBucket *Bucket = &Bucket{ //nolint:exhaustruct
@@ -57,7 +57,7 @@ func (r *RateLimit) SetBucketHash(routeid uint16, bucketid string) {
 
 			// when the current Bucket ID is no longer referenced by a Route,
 			// delete the respective Bucket (to allow Garbage Collection).
-			if r.entries[currentBucketID] == 0 {
+			if r.entries[currentBucketID] <= 0 {
 				delete(r.entries, currentBucketID)
 				delete(r.buckets, currentBucketID)
 

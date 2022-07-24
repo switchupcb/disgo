@@ -377,7 +377,9 @@ var (
 		30019:  "Maximum number of server members reached",
 		30030:  "Maximum number of server categories has been reached (5)",
 		30031:  "Guild already has a template",
+		30032:  "Maximum number of application commands reached",
 		30033:  "Max number of thread participants has been reached (1000)",
+		30034:  "Max number of daily application command creates has been reached (200)",
 		30035:  "Maximum number of bans for non-guild members have been exceeded",
 		30037:  "Maximum number of bans fetches has been reached",
 		30038:  "Maximum number of uncompleted guild scheduled events reached (100)",
@@ -395,6 +397,7 @@ var (
 		40005:  "Request entity too large. Try sending something smaller in size",
 		40006:  "This feature has been temporarily disabled server-side",
 		40007:  "The user is banned from this guild",
+		40012:  "Connection has been revoked",
 		40032:  "Target user is not connected to voice",
 		40033:  "This message has already been crossposted",
 		40041:  "An application command with that name already exists",
@@ -446,10 +449,14 @@ var (
 		50097:  "This server needs monetization enabled in order to perform this action",
 		50101:  "This server needs more boosts to perform this action",
 		50109:  "The request body contains invalid JSON.",
+		50132:  "Ownership cannot be transferred to a bot user",
+		50138:  "Failed to resize asset below the maximum size: 262144",
+		50146:  "Uploaded file not found.",
 		50600:  "You do not have permission to send this sticker.",
 		60003:  "Two factor is required for this operation",
 		80004:  "No users with DiscordTag exist",
 		90001:  "Reaction was blocked",
+		110001: "Application not yet available. Try again later",
 		130000: "API resource is currently overloaded. Try again a little later",
 		150006: "The Stage is already open",
 		160002: "Cannot reply without permission to read message history",
@@ -466,6 +473,8 @@ var (
 		170007: "Sticker animation duration exceeds maximum of 5 seconds",
 		180000: "Cannot update a finished event",
 		180002: "Failed to create stage needed for stage event",
+		200000: "Message was blocked by automatic moderation",
+		200001: "Title was blocked by automatic moderation",
 		220003: "Webhooks can only create threads in forum channels",
 	}
 )
@@ -1313,11 +1322,20 @@ type RateLimitResponse struct {
 	Global     bool    `json:"global"`
 }
 
-// Global Rate Limit
+// Global Rate Limits
 // https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
 const (
-	// 50 requests per second.
-	FlagGlobalRequestRateLimit = 50
+	// Global Rate Limit (Requests): 50 requests per second.
+	FlagGlobalRateLimitRequest = 50
+
+	// Global Rate Limit (Gateway): 120 commands per minute.
+	FlagGlobalRateLimitGateway = 120
+
+	// Global Rate Limit (Identify Command): 1 per 5 seconds.
+	FlagGlobalRateLimitIdentify = 1
+
+	// Global Rate Limit (Identify Command): 1000 per day.
+	FlagGlobalRateLimitIdentifyDaily = 1000
 )
 
 // Invalid Request Limit (CloudFlare Bans)
@@ -1491,6 +1509,7 @@ type DeleteGuildApplicationCommand struct {
 // https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-guild-application-commands
 type BulkOverwriteGuildApplicationCommands struct {
 	GuildID                  string
+	ID                       string                      `json:"id,omitempty"`
 	Name                     string                      `json:"name"`
 	NameLocalizations        map[string]string           `json:"name_localizations"`
 	Description              string                      `json:"description"`
@@ -3646,6 +3665,7 @@ type Channel struct {
 	DefaultAutoArchiveDuration int                   `json:"default_auto_archive_duration,omitempty"`
 	Permissions                *string               `json:"permissions,omitempty"`
 	Flags                      BitFlag               `json:"flags,omitempty"`
+	TotalMessageSent           int                   `json:"total_message_sent,omitempty"`
 }
 
 // Channel Types
@@ -3710,6 +3730,7 @@ type Message struct {
 	Components        []*Component      `json:"components"`
 	StickerItems      []*StickerItem    `json:"sticker_items"`
 	Stickers          []*Sticker        `json:"stickers"`
+	Position          int               `json:"position,omitempty"`
 
 	// MessageCreate Event Extra Fields
 	// https://discord.com/developers/docs/topics/gateway#message-create-message-create-extra-fields
