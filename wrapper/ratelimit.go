@@ -58,6 +58,7 @@ func (r *RateLimit) SetBucketHash(routeid uint16, bucketid string) {
 			// when the current Bucket ID is no longer referenced by a Route,
 			// delete the respective Bucket (to allow Garbage Collection).
 			if r.entries[currentBucketID] <= 0 {
+				putBucket(r.buckets[currentBucketID])
 				delete(r.entries, currentBucketID)
 				delete(r.buckets, currentBucketID)
 
@@ -126,7 +127,8 @@ func (r *RateLimit) GetBucket(routeid uint16) *Bucket {
 				return nil
 			}
 
-			b := &Bucket{Remaining: DefaultRouteBucket.Limit} //nolint:exhaustruct
+			b := getBucket()
+			b.Remaining = DefaultRouteBucket.Limit
 			r.SetBucketFromHash(s, b)
 
 			return b

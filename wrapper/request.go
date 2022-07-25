@@ -258,7 +258,7 @@ SEND:
 			if bucket := bot.Config.Request.RateLimiter.GetBucketFromHash(header.Bucket); bucket != nil {
 				routeBucket = bucket
 			} else {
-				routeBucket = new(Bucket)
+				routeBucket = getBucket()
 				bot.Config.Request.RateLimiter.SetBucketFromHash(header.Bucket, routeBucket)
 			}
 
