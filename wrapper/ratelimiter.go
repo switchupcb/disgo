@@ -129,7 +129,7 @@ func (b *Bucket) ConfirmDate(amount int16, date time.Time) {
 
 	// Date occurs BEFORE a Discord Bucket's Date when the request applies to the next Bucket.
 	//
-	// update the current Bucket to the next Bucket using Date.
+	// update the current Bucket to the next Bucket.
 	case b.Date.Before(date):
 		b.Date = date
 
@@ -143,16 +143,38 @@ func (b *Bucket) ConfirmDate(amount int16, date time.Time) {
 }
 
 // ConfirmHeader confirms the usage of a given amount of tokens for a Discord API Rate Limit Bucket,
-// using a give route ID and respective Discord Rate Limit Header.
+// using a given Route ID and respective Discord Rate Limit Header.
 //
 // Used for Route Rate Limits.
 func (b *Bucket) ConfirmHeader(amount int16, routeid uint16, header RateLimitHeader) {
-	if b.Pending > 0 {
-		b.Pending -= amount
+	b.Pending -= amount
+
+	reset := time.Unix(int64(header.Reset), 0)
+
+	// Expiry is zero when a request from the Route ID has never been sent to Discord.
+	//
+	// set the current Bucket to the current Discord Bucket.
+	if b.Expiry.IsZero() {
+		b.Limit = int16(header.Limit)
+		b.Remaining = int16(header.Remaining) - b.Pending
+		b.Expiry = reset
+
+		return
 	}
 
-	b.ID = header.Bucket
-	b.Limit = int16(header.Limit)
-	b.Remaining = int16(header.Remaining) - b.Pending
-	b.Expiry = time.Unix(int64(header.Reset)+1, 0)
+	switch {
+	// Expiry is EQUAL to the Discord Bucket's Reset when the request applies to the current Bucket.
+	case b.Expiry == reset:
+
+	// Expiry occurs BEFORE a Discord Bucket's Reset when the request applies to the next Bucket.
+	//
+	// update the current Bucket to the next Bucket.
+	case b.Expiry.Before(reset):
+		b.Limit = int16(header.Limit)
+		b.Expiry = reset
+
+	// Expiry occurs AFTER a Discord Bucket's Reset when the request applied to a previous Bucket.
+	case b.Expiry.After(reset):
+		b.Remaining += amount
+	}
 }

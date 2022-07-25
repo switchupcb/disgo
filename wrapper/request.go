@@ -117,7 +117,7 @@ func peekHeader429(r *fasthttp.Response) (int64, error) {
 
 // SendRequest sends a fasthttp.Request using the given route ID, HTTP method, URI, content type and body,
 // then parses the response into dst.
-func SendRequest(bot *Client, routeid uint16, method, uri string, content, body []byte, dst any) error { //nolint:gocognit,cyclop,funlen,gocyclo
+func SendRequest(bot *Client, routeid uint16, method, uri string, content, body []byte, dst any) error { //nolint:gocyclo,maintidx
 	retries := 0
 	request := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(request)
@@ -160,13 +160,17 @@ RATELIMIT:
 				routeBucket.Reset(time.Time{})
 			}
 
-			wait := routeBucket.Expiry
+			var wait time.Time
+			if routeBucket != nil {
+				wait = routeBucket.Expiry
+			}
 
 			// do NOT block other requests due to a Route Rate Limit.
 			bot.Config.Request.RateLimiter.EndTx()
 			bot.Config.Request.RateLimiter.Unlock()
 
-			// requeue the request when it's ready.
+			// reduce CPU usage by blocking the current goroutine
+			// until it's eligible for action.
 			if routeBucket != nil {
 				<-time.After(time.Until(wait))
 			}
@@ -211,7 +215,7 @@ SEND:
 	// confirm the response with the rate limiter.
 	//
 	// Interaction endpoints are not bound to the bot's Global Rate Limit.
-	if !interactionRouteIDs[routeid] { // nolint:nestif
+	if !interactionRouteIDs[routeid] { //nolint:nestif
 		log.Println("\n" + time.Now().String() + "\n" + response.Header.String())
 
 		// parse the Rate Limit Header for per-route rate limit functionality.
@@ -233,26 +237,36 @@ SEND:
 
 		// confirm the route rate limit Bucket (if applicable).
 		routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid)
-		if header.Bucket == "" {
-			// when there is no Discord Bucket, remove the route's mapping to a rate limit Bucket.
+		switch {
+		// when there is no Discord Bucket, remove the route's mapping to a rate limit Bucket.
+		case header.Bucket == "":
 			if routeBucket != nil {
 				bot.Config.Request.RateLimiter.SetBucketHash(routeid, nilRouteBucket)
 			}
-		} else {
-			// ensure the route Bucket is up to date.
-			if routeBucket == nil || routeBucket.ID != header.Bucket {
-				// update the route ID mapping to a rate limit Bucket ID.
-				bot.Config.Request.RateLimiter.SetBucketHash(routeid, header.Bucket)
 
-				// map the Bucket ID to the updated Rate Limit Bucket.
-				if bucket := bot.Config.Request.RateLimiter.GetBucketFromHash(header.Bucket); bucket != nil {
-					routeBucket = bucket
-				} else {
-					routeBucket = new(Bucket)
-					bot.Config.Request.RateLimiter.SetBucketFromHash(header.Bucket, routeBucket)
-				}
+		// when the route's Bucket ID does NOT match the Discord Bucket, update it.
+		case routeBucket.ID != header.Bucket:
+			var pending int16
+			if routeBucket != nil {
+				pending = routeBucket.Pending
 			}
 
+			// update the route ID mapping to a rate limit Bucket ID.
+			bot.Config.Request.RateLimiter.SetBucketHash(routeid, header.Bucket)
+
+			// map the Bucket ID to the updated Rate Limit Bucket.
+			if bucket := bot.Config.Request.RateLimiter.GetBucketFromHash(header.Bucket); bucket != nil {
+				routeBucket = bucket
+			} else {
+				routeBucket = new(Bucket)
+				bot.Config.Request.RateLimiter.SetBucketFromHash(header.Bucket, routeBucket)
+			}
+
+			routeBucket.Pending += pending
+			routeBucket.ID = header.Bucket
+		}
+
+		if routeBucket != nil {
 			routeBucket.ConfirmHeader(1, routeid, header)
 		}
 
@@ -312,7 +326,8 @@ SEND:
 		retry := retries < bot.Config.Request.Retries
 		retries++
 
-		if header.Global {
+		switch header.Global {
+		case true:
 			// when the current time is BEFORE the reset time,
 			// all requests must wait until the 429 expires.
 			if time.Now().Before(reset) {
@@ -321,7 +336,13 @@ SEND:
 					globalBucket.Expiry = reset.Add(time.Millisecond)
 				}
 			}
-		} else {
+
+			bot.Config.Request.RateLimiter.EndTx()
+
+		case false:
+			// do NOT block other requests while waiting for a Route Rate Limit.
+			bot.Config.Request.RateLimiter.EndTx()
+
 			// when the current time is BEFORE the reset time,
 			// requests with the same Rate Limit Bucket must wait until the 429 expires.
 			if time.Now().Before(reset) {
@@ -331,8 +352,6 @@ SEND:
 				}
 			}
 		}
-
-		bot.Config.Request.RateLimiter.EndTx()
 
 		if retry {
 			goto RATELIMIT
