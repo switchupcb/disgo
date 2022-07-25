@@ -84,10 +84,11 @@ Use `go test` to run the tests in the current directory. Use `go test ./<dir>` t
 
 Disgo is currently in DEVELOPMENT. Here are the steps required in order to complete it:
 
-1. **Implement Testing** _[usable at this stage]_.
-2. Structured Logging
-3. Implement Sharding.
-4. Implement Cache (which is likely where most effort lies; caching is difficult).
+1. **Implement Testing** _[USABLE]_.
+2. Implement Structured Logging.
+3. Bundle Disgo (with `fieldalignment`) _[RELEASE]_.
+4. Implement Sharding.
+5. Implement Cache.
 
 In addition, we must make [decisions](/_contribution/libraries/) for the following:
 1. UDP connections (Voice)

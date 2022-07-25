@@ -1,5 +1,8 @@
 # Disgo
 
+[![Go Doc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge&logo=appveyor&logo=appveyor)](https://pkg.go.dev/github.com/switchupcb/disgo)
+[![License](https://img.shields.io/github/license/switchupcb/disgo.svg?style=for-the-badge)](https://github.com/switchupcb/disgo/blob/main/LICENSE)
+
 **This repository is currently in DEVELOPMENT. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).**
 
 Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
@@ -50,16 +53,7 @@ Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full u
 
 ## Examples
 
-Each example has a **README**.
-
-| Example                           | Description                      |
-| :-------------------------------- | :------------------------------- |
-| [main](/_examples/main/)          | The default example.             |
-| [shard](/_examples/shard/)        | Uses the shard manager manually. |
-| [cache](/_examples/shard/)        | Uses the cache manually.         |
-| [ratelimit](/_examples/ratelimit) | Uses a custom rate limiter.      |
-
-The following [example](/_examples/main) creates a bot that creates an application command and handles it.
+The **main example** creates a bot that creates an application command and handles it. Check out the [examples](/_examples/) directory for more examples.
 
 ## Configuration
 
