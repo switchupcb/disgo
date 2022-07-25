@@ -27,9 +27,6 @@ var (
 	// contentTypeMulti represents an HTTP Header that indicates a payload with a multi-part (file) body.
 	contentTypeMulti = []byte("multipart/form-data")
 
-	// headerLocation represents a byte representation of "Location" for HTTP Header functionality.
-	headerLocation = []byte("Location")
-
 	// headerAuthorizationKey represents the key for an "Authorization" HTTP Header.
 	headerAuthorizationKey = "Authorization"
 )
@@ -149,9 +146,7 @@ RATELIMIT:
 			routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid)
 
 			if isNotEmpty(routeBucket) {
-				bot.Config.Request.RateLimiter.EndTx()
-
-				goto USE
+				break
 			}
 
 			if isExpired(routeBucket) {
@@ -187,19 +182,13 @@ RATELIMIT:
 		bot.Config.Request.RateLimiter.EndTx()
 	}
 
-USE:
-	bot.Config.Request.RateLimiter.StartTx()
+	if globalBucket := bot.Config.Request.RateLimiter.GetBucket(0); globalBucket != nil {
+		globalBucket.Use(1)
+	}
 
-	// func() is required to allow a jump over a variable declaration (from goto SEND).
-	func() {
-		if globalBucket := bot.Config.Request.RateLimiter.GetBucket(0); globalBucket != nil {
-			globalBucket.Use(1)
-		}
-
-		if routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid); routeBucket != nil {
-			routeBucket.Use(1)
-		}
-	}()
+	if routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid); routeBucket != nil {
+		routeBucket.Use(1)
+	}
 
 	bot.Config.Request.RateLimiter.EndTx()
 	bot.Config.Request.RateLimiter.Unlock()
@@ -274,18 +263,6 @@ SEND:
 		if response.StatusCode() != fasthttp.StatusTooManyRequests {
 			bot.Config.Request.RateLimiter.EndTx()
 		}
-	}
-
-	// follow redirects.
-	if fasthttp.StatusCodeIsRedirect(response.StatusCode()) {
-		location := response.Header.PeekBytes(headerLocation)
-		if len(location) == 0 {
-			return fmt.Errorf(ErrRedirect, uri)
-		}
-
-		request.URI().UpdateBytes(location)
-
-		goto USE
 	}
 
 	// handle the response.
