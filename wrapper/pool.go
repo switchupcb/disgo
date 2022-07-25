@@ -2,7 +2,32 @@ package wrapper
 
 import (
 	"sync"
+	"time"
 )
+
+// rlbpool represents a synchronized Rate Limit Bucket pool.
+var rlbpool sync.Pool
+
+// getBucket gets a Bucket from a pool.
+func getBucket() *Bucket {
+	if b := rlbpool.Get(); b != nil {
+		return b.(*Bucket) //nolint:forcetypeassert
+	}
+
+	return new(Bucket)
+}
+
+// putBucket puts a Rate Limit Bucket into the pool.
+func putBucket(b *Bucket) {
+	b.ID = ""
+	b.Limit = 0
+	b.Remaining = 0
+	b.Pending = 0
+	b.Date = time.Time{}
+	b.Expiry = time.Time{}
+
+	rlbpool.Put(b)
+}
 
 // spool represents a synchronized Session pool.
 var spool sync.Pool

@@ -10,6 +10,7 @@ const (
 	ErrSendRequest = "an error occurred while sending %v:\n%w"
 	ErrQueryString = "an error occurred creating a URL Query String for %v:\n%w"
 	ErrRedirect    = "an error occurred redirecting from %v due to a missing Location HTTP header"
+	ErrRateLimit   = "an error occurred converting the HTTP rate limit header %v\n\t%w"
 )
 
 // Status Code Error Messages.

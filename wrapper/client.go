@@ -8,9 +8,8 @@ import (
 
 // Default Configuration Values.
 const (
-	module                = "github.com/switchupcb/disgo"
-	defaultUserAgent      = "DiscordBot (https://" + module + ", v" + VersionDiscordAPI + ")"
-	defaultRequestTimeout = time.Second * 3
+	module           = "github.com/switchupcb/disgo"
+	defaultUserAgent = "DiscordBot (https://" + module + ", v" + VersionDiscordAPI + ")"
 )
 
 // Client represents a Discord Application.
@@ -91,6 +90,24 @@ type Authorization struct {
 
 // Config represents parameters used to perform various actions by the client.
 type Config struct {
+	// Request holds configuration variables that pertain to the Discord HTTP API.
+	Request Request
+
+	// Gateway holds configuration variables that pertain to the Discord Gateway.
+	Gateway Gateway
+}
+
+// DefaultConfig returns a default client configuration.
+func DefaultConfig() *Config {
+	c := new(Config)
+	c.Request = DefaultRequest()
+	c.Gateway = DefaultGateway(false)
+
+	return c
+}
+
+// Request represents Discord Request parameters used to perform various actions by the client.
+type Request struct {
 	// Client is used to send requests.
 	//
 	// Use Client to set a custom User-Agent in the HTTP Request Header.
@@ -105,20 +122,45 @@ type Config struct {
 	// Retries represents the amount of time a request will retry a bad gateway.
 	Retries int
 
-	// Gateway holds configuration variables that pertain to the Discord Gateway.
-	Gateway Gateway
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
 }
 
-// DefaultConfig returns a default client configuration.
-func DefaultConfig() *Config {
-	c := new(Config)
-	c.Client = new(fasthttp.Client)
-	c.Client.Name = defaultUserAgent
-	c.Timeout = defaultRequestTimeout
-	c.Retries = 1
-	c.Gateway = DefaultGateway(false)
+const (
+	// defaultRequestTimeout represents the default amount of time to wait on a request.
+	defaultRequestTimeout = time.Second
 
-	return c
+	// totalRoutes represents the total amount of Discord HTTP Routes (174) + the Global Route (1).
+	totalRoutes = 175
+)
+
+// DefaultRequest returns a default Request configuration.
+func DefaultRequest() Request {
+	// configure the client.
+	client := new(fasthttp.Client)
+	client.Name = defaultUserAgent
+
+	// configure the rate limiter.
+	ratelimiter := &RateLimit{ //nolint:exhaustruct
+		ids:     make(map[uint16]string, totalRoutes),
+		buckets: make(map[string]*Bucket, totalRoutes),
+		entries: make(map[string]int, totalRoutes),
+	}
+
+	// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
+	ratelimiter.SetBucket(
+		0, &Bucket{ //nolint:exhaustruct
+			Limit:     FlagGlobalRateLimitRequest,
+			Remaining: FlagGlobalRateLimitRequest,
+		},
+	)
+
+	return Request{
+		Client:      client,
+		Timeout:     defaultRequestTimeout,
+		Retries:     1,
+		RateLimiter: ratelimiter,
+	}
 }
 
 // Gateway represents Discord Gateway parameters used to perform various actions by the client.
@@ -142,11 +184,17 @@ type Gateway struct {
 	//
 	// https://discord.com/developers/docs/topics/gateway#update-presence
 	GatewayPresenceUpdate *GatewayPresenceUpdate
+
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
 }
 
 const (
 	// totalIntents represents the total amount of Discord Intents.
 	totalIntents = 19
+
+	// totalGatewayBuckets represents the total amount of Discord Gateway Rate Limits.
+	totalGatewayBuckets = 2
 )
 
 // DefaultGateway returns a default Gateway configuration.
@@ -158,6 +206,21 @@ const (
 //
 // https://discord.com/developers/docs/topics/gateway#privileged-intents
 func DefaultGateway(privileged bool) Gateway {
+	// configure the rate limiter.
+	ratelimiter := &RateLimit{ //nolint:exhaustruct
+		ids:     make(map[uint16]string, totalGatewayBuckets),
+		buckets: make(map[string]*Bucket, totalGatewayBuckets),
+	}
+
+	// https://discord.com/developers/docs/topics/gateway#rate-limiting
+	ratelimiter.SetBucket(
+		0, &Bucket{ //nolint:exhaustruct
+			Limit:     FlagGlobalRateLimitGateway,
+			Remaining: FlagGlobalRateLimitGateway,
+			Expiry:    time.Now().Add(FlagGlobalRateLimitGatewayInterval),
+		},
+	)
+
 	if privileged {
 		is := make(map[BitFlag]bool, totalIntents)
 		is[FlagIntentMESSAGE_CONTENT] = true
@@ -166,12 +229,14 @@ func DefaultGateway(privileged bool) Gateway {
 			Intents:               FlagIntentMESSAGE_CONTENT,
 			IntentSet:             is,
 			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+			RateLimiter:           ratelimiter,
 		}
 	} else {
 		return Gateway{
 			Intents:               0,
 			IntentSet:             make(map[BitFlag]bool, totalIntents),
 			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+			RateLimiter:           ratelimiter,
 		}
 	}
 }

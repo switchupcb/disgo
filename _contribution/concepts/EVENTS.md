@@ -16,7 +16,7 @@ Opening a connection to a Discord WebSocket Session (Gateway) allows Discord to 
 
 ### What is a Gateway Intent?
 
-[Gateway Intents](https://discord.com/developers/docs/topics/gateway#gateway-intents) are required to receive certain events. Disgo makes managing a bot's Gateway Intents easy by automatically setting the `Client.Config.Intents` when an event handler is added to the bot using the `Handle(event, handler)` function. When a bot's Session connects to the Discord Gateway, the bot's current `Intents` value will be used to identify which events to receive.
+[Gateway Intents](https://discord.com/developers/docs/topics/gateway#gateway-intents) are required to receive certain events. Disgo makes managing a bot's Gateway Intents easy by automatically setting the `Client.Config.Gateway.Intents` when an event handler is added to the bot using the `Handle(event, handler)` function. When a bot's Session connects to the Discord Gateway, the bot's current `Intents` value will be used to identify which events to receive.
 
 ### When should I add or remove my event handler?
 

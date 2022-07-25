@@ -16,7 +16,6 @@ const (
 	grantTypeClientCredentials      = "client_credentials"
 	amountAuthURLParams             = 6
 	amountAuthURLParamsBot          = 3
-	base10                          = 10
 )
 
 // GenerateAuthorizationURL generates an authorization URL from a given client and response type.
@@ -244,7 +243,7 @@ func WebhookAuthorization(bot *Client, ru *RedirectURL) (*AccessTokenResponse, *
 	}
 
 	result := new(WebhookTokenResponse)
-	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, nil, fmt.Errorf(ErrSendRequest, "WebhookAuthorization", err)
 	}
@@ -268,8 +267,8 @@ func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 		return nil, fmt.Errorf(ErrQueryString, "AccessTokenExchange", err)
 	}
 
-	var result *AccessTokenResponse
-	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	result := new(AccessTokenResponse)
+	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "AccessTokenExchange", err)
 	}
@@ -286,8 +285,8 @@ func (r *RefreshTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 		return nil, fmt.Errorf(ErrQueryString, "RefreshTokenExchange", err)
 	}
 
-	var result *AccessTokenResponse
-	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	result := new(AccessTokenResponse)
+	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "RefreshTokenExchange", err)
 	}
@@ -302,8 +301,8 @@ func (r *ClientCredentialsTokenRequest) Send(bot *Client) (*AccessTokenResponse,
 		return nil, fmt.Errorf(ErrQueryString, "ClientCredentialsTokenRequest", err)
 	}
 
-	var result *AccessTokenResponse
-	err = SendRequest(bot, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	result := new(AccessTokenResponse)
+	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ClientCredentialsTokenRequest", err)
 	}

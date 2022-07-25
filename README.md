@@ -1,8 +1,8 @@
 # Disgo
 
-_This repository is currently in DEVELOPMENT. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap)._
+**This repository is currently in DEVELOPMENT. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).**
 
-Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, and secure. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
+Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
 
 **A Next Generation Discord API Wrapper**
 
@@ -10,8 +10,8 @@ High quality code merits easy development. Disgo uses developer operations to st
 
 **Don't Miss Out On These Exclusive Features**
 
-- Global Rate Limiting
-- Automatic Intent Calculation
+- EVERY Rate Limit (Global, Per Route, Per Resource, Emoji, Gateway)
+- Automatic Intent Calculation (Gateway)
 
 ## Table of Contents
 
@@ -52,11 +52,12 @@ Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full u
 
 Each example has a **README**.
 
-| Example                    | Description                      |
-| :------------------------- | :------------------------------- |
-| [main](/_examples/main/)   | The default example.             |
-| [shard](/_examples/shard/) | Uses the shard manager manually. |
-| [cache](/_examples/shard/) | Uses the cache manually.         |
+| Example                           | Description                      |
+| :-------------------------------- | :------------------------------- |
+| [main](/_examples/main/)          | The default example.             |
+| [shard](/_examples/shard/)        | Uses the shard manager manually. |
+| [cache](/_examples/shard/)        | Uses the cache manually.         |
+| [ratelimit](/_examples/ratelimit) | Uses a custom rate limiter.      |
 
 The following [example](/_examples/main) creates a bot that creates an application command and handles it.
 

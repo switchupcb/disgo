@@ -80,7 +80,7 @@ func (s *Session) beat(bot *Client) error {
 			}
 
 			// send a Heartbeat to the Discord Gateway (WebSocket Connection).
-			if err := hb.Command(s); err != nil {
+			if err := hb.Command(bot, s); err != nil {
 				s.Unlock()
 
 				return err
