@@ -184,11 +184,17 @@ type Gateway struct {
 	//
 	// https://discord.com/developers/docs/topics/gateway#update-presence
 	GatewayPresenceUpdate *GatewayPresenceUpdate
+
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
 }
 
 const (
 	// totalIntents represents the total amount of Discord Intents.
 	totalIntents = 19
+
+	// totalGatewayBuckets represents the total amount of Discord Gateway Rate Limits.
+	totalGatewayBuckets = 2
 )
 
 // DefaultGateway returns a default Gateway configuration.
@@ -200,6 +206,21 @@ const (
 //
 // https://discord.com/developers/docs/topics/gateway#privileged-intents
 func DefaultGateway(privileged bool) Gateway {
+	// configure the rate limiter.
+	ratelimiter := &RateLimit{ //nolint:exhaustruct
+		ids:     make(map[uint16]string, totalGatewayBuckets),
+		buckets: make(map[string]*Bucket, totalGatewayBuckets),
+	}
+
+	// https://discord.com/developers/docs/topics/gateway#rate-limiting
+	ratelimiter.SetBucket(
+		0, &Bucket{ //nolint:exhaustruct
+			Limit:     FlagGlobalRateLimitGateway,
+			Remaining: FlagGlobalRateLimitGateway,
+			Expiry:    time.Now().Add(FlagGlobalRateLimitGatewayInterval),
+		},
+	)
+
 	if privileged {
 		is := make(map[BitFlag]bool, totalIntents)
 		is[FlagIntentMESSAGE_CONTENT] = true
@@ -208,12 +229,14 @@ func DefaultGateway(privileged bool) Gateway {
 			Intents:               FlagIntentMESSAGE_CONTENT,
 			IntentSet:             is,
 			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+			RateLimiter:           ratelimiter,
 		}
 	} else {
 		return Gateway{
 			Intents:               0,
 			IntentSet:             make(map[BitFlag]bool, totalIntents),
 			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+			RateLimiter:           ratelimiter,
 		}
 	}
 }

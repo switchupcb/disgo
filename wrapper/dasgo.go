@@ -1329,13 +1329,15 @@ const (
 	FlagGlobalRateLimitRequest = 50
 
 	// Global Rate Limit (Gateway): 120 commands per minute.
-	FlagGlobalRateLimitGateway = 120
+	FlagGlobalRateLimitGateway         = 120
+	FlagGlobalRateLimitGatewayInterval = time.Minute
 
-	// Global Rate Limit (Identify Command): 1 per 5 seconds.
-	FlagGlobalRateLimitIdentify = 1
+	// Global Rate Limit (Identify Command): Get Gateway Bot `max_concurrency + 1` per 5 Seconds.
+	FlagGlobalRateLimitIdentifyInterval = time.Second * 5
 
 	// Global Rate Limit (Identify Command): 1000 per day.
-	FlagGlobalRateLimitIdentifyDaily = 1000
+	FlagGlobalRateLimitIdentifyDaily         = 1000
+	FlagGlobalRateLimitIdentifyDailyInterval = time.Hour * 24
 )
 
 // Invalid Request Limit (CloudFlare Bans)

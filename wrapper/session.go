@@ -97,6 +97,23 @@ func (s *Session) connect(bot *Client) error {
 		}
 
 		s.Endpoint = response.URL + gatewayEndpointParams
+
+		// set the maximum allowed (Identify) concurrency rate limit.
+		//
+		// https://discord.com/developers/docs/topics/gateway#rate-limiting
+		bot.Config.Gateway.RateLimiter.StartTx()
+
+		identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromHash(FlagGatewayCommandNameIdentify)
+		if identifyBucket == nil {
+			identifyBucket = getBucket()
+			bot.Config.Gateway.RateLimiter.SetBucketFromHash(FlagGatewayCommandNameIdentify, identifyBucket)
+		}
+
+		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency) + 1
+		identifyBucket.Remaining = identifyBucket.Limit
+		identifyBucket.Expiry = time.Now().Add(FlagGlobalRateLimitIdentifyInterval)
+
+		bot.Config.Gateway.RateLimiter.EndTx()
 	}
 
 	var err error
@@ -213,7 +230,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			Intents:        bot.Config.Gateway.Intents,
 		}
 
-		if err := identify.Command(s); err != nil {
+		if err := identify.Command(bot, s); err != nil {
 			return err
 		}
 	} else {
@@ -224,7 +241,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			Seq:       atomic.LoadInt64(&s.Seq),
 		}
 
-		if err := resume.Command(s); err != nil {
+		if err := resume.Command(bot, s); err != nil {
 			return err
 		}
 	}
@@ -399,8 +416,91 @@ func readEvent(s *Session, name string, dst any) error {
 }
 
 // writeEvent is a helper function for writing events to the WebSocket Session.
-// returns an ErrorEvent.
-func writeEvent(s *Session, op int, name string, dst any) error {
+func writeEvent(bot *Client, s *Session, op int, name string, dst any) error {
+RATELIMIT:
+	// a single command is PROCESSED at any point in time.
+	bot.Config.Gateway.RateLimiter.Lock()
+
+	for {
+		bot.Config.Gateway.RateLimiter.StartTx()
+
+		globalBucket := bot.Config.Gateway.RateLimiter.GetBucket(0)
+
+		// stop waiting when the Global Rate Limit Bucket is NOT empty.
+		if isNotEmpty(globalBucket) { //nolint:nestif
+			switch op {
+			case FlagGatewayOpcodeIdentify:
+				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromHash(FlagGatewayCommandNameIdentify)
+
+				if isNotEmpty(identifyBucket) {
+					if globalBucket != nil {
+						globalBucket.Remaining--
+					}
+
+					if identifyBucket != nil {
+						identifyBucket.Remaining--
+					}
+
+					bot.Config.Gateway.RateLimiter.EndTx()
+
+					goto SEND
+				}
+
+				if isExpired(identifyBucket) {
+					if globalBucket != nil {
+						globalBucket.Remaining--
+					}
+
+					if identifyBucket != nil {
+						identifyBucket.Reset(time.Now().Add(FlagGlobalRateLimitIdentifyInterval))
+						identifyBucket.Remaining--
+					}
+
+					bot.Config.Gateway.RateLimiter.EndTx()
+
+					goto SEND
+				}
+
+				var wait time.Time
+				if identifyBucket != nil {
+					wait = identifyBucket.Expiry
+				}
+
+				// do NOT block other requests due to a Command Rate Limit.
+				bot.Config.Gateway.RateLimiter.EndTx()
+				bot.Config.Gateway.RateLimiter.Unlock()
+
+				// reduce CPU usage by blocking the current goroutine
+				// until it's eligible for action.
+				if identifyBucket != nil {
+					<-time.After(time.Until(wait))
+				}
+
+				goto RATELIMIT
+
+			default:
+				if globalBucket != nil {
+					globalBucket.Remaining--
+				}
+
+				bot.Config.Gateway.RateLimiter.EndTx()
+
+				goto SEND
+			}
+		}
+
+		// reset the Global Rate Limit Bucket when the current Bucket has passed its expiry.
+		if isExpired(globalBucket) {
+			globalBucket.Reset(time.Now().Add(time.Minute))
+		}
+
+		bot.Config.Gateway.RateLimiter.EndTx()
+	}
+
+SEND:
+	bot.Config.Gateway.RateLimiter.Unlock()
+
+	// write the event to the WebSocket Connection.
 	event, err := json.Marshal(dst)
 	if err != nil {
 		return fmt.Errorf("writeEvent: %w", err)

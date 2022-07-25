@@ -141,6 +141,7 @@ RATELIMIT:
 	// check Global and Route Rate Limit Buckets prior to sending the current request.
 	for {
 		bot.Config.Request.RateLimiter.StartTx()
+
 		globalBucket := bot.Config.Request.RateLimiter.GetBucket(0)
 
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
@@ -191,8 +192,7 @@ USE:
 
 	// func() is required to allow a jump over a variable declaration (from goto SEND).
 	func() {
-		globalBucket := bot.Config.Request.RateLimiter.GetBucket(0)
-		if globalBucket != nil {
+		if globalBucket := bot.Config.Request.RateLimiter.GetBucket(0); globalBucket != nil {
 			globalBucket.Use(1)
 		}
 
@@ -242,10 +242,11 @@ SEND:
 		case header.Bucket == "":
 			if routeBucket != nil {
 				bot.Config.Request.RateLimiter.SetBucketHash(routeid, nilRouteBucket)
+				routeBucket = nil
 			}
 
 		// when the route's Bucket ID does NOT match the Discord Bucket, update it.
-		case routeBucket.ID != header.Bucket:
+		case routeBucket == nil && header.Bucket != "" || routeBucket.ID != header.Bucket:
 			var pending int16
 			if routeBucket != nil {
 				pending = routeBucket.Pending

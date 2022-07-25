@@ -56,7 +56,7 @@ func (r *RateLimit) SetBucketHash(routeid uint16, bucketid string) {
 			r.entries[currentBucketID]--
 
 			// when the current Bucket ID is no longer referenced by a Route,
-			// delete the respective Bucket (to allow Garbage Collection).
+			// delete the respective Bucket (and recycle it).
 			if r.entries[currentBucketID] <= 0 {
 				putBucket(r.buckets[currentBucketID])
 				delete(r.entries, currentBucketID)
