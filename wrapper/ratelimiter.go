@@ -1,6 +1,7 @@
 package wrapper
 
 import (
+	"math"
 	"time"
 )
 
@@ -149,7 +150,9 @@ func (b *Bucket) ConfirmDate(amount int16, date time.Time) {
 func (b *Bucket) ConfirmHeader(amount int16, routeid uint16, header RateLimitHeader) {
 	b.Pending -= amount
 
-	reset := time.Unix(int64(header.Reset), 0)
+	// determine the reset time.
+	whole, decimal := math.Modf(header.Reset)
+	reset := time.Unix(int64(whole), 0).Add(time.Duration(decimal*msPerSecond+1) * time.Millisecond)
 
 	// Expiry is zero when a request from the Route ID has never been sent to Discord.
 	//

@@ -58,10 +58,10 @@ var (
 	headerRateLimitScope = []byte(FlagRateLimitHeaderScope)
 
 	// headerRetryAfter represents a byte representation of "Retry-After" for HTTP Header functionality.
-	headerRateLimitRetryAfter = []byte("Retry-After")
+	headerRateLimitRetryAfter = []byte(FlagRateLimitHeaderRetryAfter)
 
 	// headerDate represents a byte representation of "Date" for HTTP Header functionality.
-	headerDate = []byte("Date")
+	headerDate = []byte(FlagRateLimitHeaderDate)
 
 	// msPerSecond represents the amount of milliseconds in a second.
 	msPerSecond float64 = 1000
