@@ -1,6 +1,6 @@
 # TCP
 
-TCP is a protocol used to exchange messages over a network. TCP is used to receive events from the Discord API's Gateway. Disgo uses `nhooyr/websocket` to manage TCP.
+TCP is a protocol used to exchange messages over a network. TCP is used to receive events from the Discord API's Gateway (WebSocket Connection). Disgo uses a `nhooyr/websocket` fork to manage TCP.
 
 ## Libraries
 

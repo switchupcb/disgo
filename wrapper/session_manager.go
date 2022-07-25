@@ -9,8 +9,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/switchupcb/websocket"
 	"golang.org/x/sync/errgroup"
-	"nhooyr.io/websocket"
 )
 
 // signal represents a manager Context Signal.

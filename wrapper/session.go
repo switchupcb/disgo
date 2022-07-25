@@ -11,8 +11,8 @@ import (
 
 	"github.com/goccy/go-json"
 	"github.com/switchupcb/disgo/wrapper/internal/socket"
+	"github.com/switchupcb/websocket"
 	"golang.org/x/sync/errgroup"
-	"nhooyr.io/websocket"
 )
 
 const (

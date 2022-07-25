@@ -7,7 +7,7 @@ import (
 
 	"github.com/goccy/go-json"
 
-	"nhooyr.io/websocket"
+	"github.com/switchupcb/websocket"
 )
 
 // Read reads a JSON payload from conn into dst.

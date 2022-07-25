@@ -1,11 +1,12 @@
 package wrapper
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"sync/atomic"
 	"time"
+
+	json "github.com/goccy/go-json"
 )
 
 // heartbeat represents the heartbeat mechanism for a Session.

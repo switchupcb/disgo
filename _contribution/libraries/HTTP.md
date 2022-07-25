@@ -1,6 +1,6 @@
 # HTTP
 
-HTTP is a protocol used to communicate resources. HTTP is used to create and receive thousands of requests per second from the Discord API's application commands. Disgo uses `fiber` to manage HTTP.
+HTTP is a protocol used to communicate resources. HTTP is used to create and receive thousands of requests per second from the Discord API's application commands. Disgo uses `fasthttp` to manage HTTP.
  
 
 ## Libraries

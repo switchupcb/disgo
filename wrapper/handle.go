@@ -4,10 +4,11 @@
 package wrapper
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"sync"
+
+	json "github.com/goccy/go-json"
 )
 
 // Handlers represents a bot's event handlers.

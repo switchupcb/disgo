@@ -4,9 +4,9 @@
 package wrapper
 
 import (
-	"encoding/json"
 	"fmt"
 
+	json "github.com/goccy/go-json"
 	"github.com/valyala/fasthttp"
 )
 
