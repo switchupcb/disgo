@@ -108,4 +108,5 @@ jobs:
       - name: Run Integration Tests
         env:
           TOKEN: ${{ secrets.TOKEN }}
+          APPID: ${{ secrets.APPID }}
         run: go test ./wrapper/tests/integration -race
