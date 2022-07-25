@@ -2,8 +2,6 @@ package main
 
 import "fmt"
 
-// TODO: note that Group DM requests are not being used
-
 var (
 	// endpoints represents a dependency graph of endpoints (map[dependency][]endpoints).
 	endpoints = map[string][]string{
@@ -177,6 +175,9 @@ var (
 		"GetCurrentBotApplicationInformation":    {},
 		"GetCurrentAuthorizationInformation":     {},
 	}
+
+	// TODO: note that Group DM requests are not being used
+	unused = map[string]bool{}
 )
 
 // findOrder finds the order of endpoints with the least amount of dependencies

@@ -1,4 +1,4 @@
-package wrapper
+package integration_test
 
 import (
 	disgo "github.com/switchupcb/disgo/wrapper"
