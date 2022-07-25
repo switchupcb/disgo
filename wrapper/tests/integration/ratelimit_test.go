@@ -18,7 +18,7 @@ func TestGlobalRateLimit(t *testing.T) {
 		Config:         DefaultConfig(),
 	}
 	bot.Config.Request.Retries = 0
-	DefaultRouteBucket = nil
+	DefaultBuckets[DefaultBucketKeyRoute] = nil
 
 	// prepare the request.
 	request := new(GetCurrentBotApplicationInformation)
@@ -67,7 +67,7 @@ func TestRouteRateLimit(t *testing.T) {
 		Config:         DefaultConfig(),
 	}
 	bot.Config.Request.Retries = 0
-	DefaultRouteBucket = &Bucket{Limit: 1} //nolint:exhaustruct
+	DefaultBuckets[DefaultBucketKeyRoute] = &Bucket{Limit: 1} //nolint:exhaustruct
 
 	// prepare the request.
 	request := GetUser{UserID: os.Getenv("APPID")}

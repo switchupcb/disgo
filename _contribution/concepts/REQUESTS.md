@@ -63,7 +63,7 @@ In either case, the bot will eventually end up successfully sending all the requ
 
 Disgo solves this problem through the use of a configurable Default Bucket. When a request's rate limit is unknown, Disgo will only send as many requests as the configured Default Bucket allows _(which is 1 by default)_. Once the request receives a respective response, the Default Bucket will be discarded and replaced by the request's actual rate limit _(if applicable)_. This implementation gives you two ways to address the issue described above.
 
-**Configuring The Route A Bucket**
+**Configuring The "Route A" Bucket**
 
 If you want to ensure that **ONLY** Route **A** sends 25 requests per second initially, you can initialize a  `RateLimiter` with that `Bucket`, then assign the initialized rate limiter to the `Client`. 
 
@@ -75,7 +75,11 @@ bot := disgo.Client{
 }
 
 // add a Bucket to Route A in the Client's initialized Request Rate Limiter.
-bot.Config.Request.RateLimiter.SetBucket("A", &Bucket{Limit: 25})
+bot.Config.Request.RateLimiter.SetBucketHash("A", "temp")
+bot.Config.Request.RateLimiter.SetBucketFromHash("temp", &Bucket{Limit: 25})
+
+// set other Routes (i.e "B") to Route A's bucket using the Bucket Hash.
+bot.Config.Request.RateLimiter.SetBucketHash("B", "temp")
 ```
 
 _NOTE: `"A"` is used to represent Route A in this example. Use the Route ID showcased in [`request_send.go`](../../wrapper/request_send.go) for actual requests._

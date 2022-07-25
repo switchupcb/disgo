@@ -7,20 +7,24 @@ import (
 )
 
 var (
-	// DefaultRouteBucket represents the default rate limit Bucket for a route.
+	DefaultBucketKeyRoute         = "ROUTE"
+	DefaultBucketKeyResource      = "RESOURCE"
+	DefaultBucketKeyResourceRoute = "RESOURCExROUTE"
+
+	// DefaultBuckets represents a map of Default Rate Limit Buckets to Rate Limit Strategies.
 	//
-	// The Default Rate Limit Bucket is used to control the flow of the
-	// "first request for any given route".
+	// A Default Rate Limit Bucket is used to control the flow of the "first request for any given route".
 	//
-	// This is necessary since Discord uses dynamic per-route rate limits.
-	// As a result, a route's actual rate limit Bucket can NOT be discovered
-	// until a request is sent (using the respective route).
+	// This is necessary since Discord uses dynamic per-route token rate limits.
+	// As a result, a route's actual rate limit Bucket can NOT be discovered until
+	// a request is sent (using the respective route).
 	//
-	// Use the Default Bucket's Limit field-value to control how
-	// many requests of a given route can be sent (per second)
-	// BEFORE the actual rate limit Bucket of the route is known.
-	DefaultRouteBucket *Bucket = &Bucket{ //nolint:exhaustruct
-		Limit: 1,
+	// Use a Default Bucket's Limit field-value to control how many requests of
+	// a given route can be sent (per second) BEFORE the actual rate limit Bucket of the route is known.
+	DefaultBuckets = map[string]*Bucket{
+		DefaultBucketKeyRoute:         {Limit: 1},
+		DefaultBucketKeyResource:      {Limit: 1},
+		DefaultBucketKeyResourceRoute: {Limit: 1},
 	}
 
 	nilRouteBucket = "NIL"
@@ -123,12 +127,12 @@ func (r *RateLimit) GetBucket(routeid uint16) *Bucket {
 			// the pending request (and its respective Bucket) is confirmed.
 			s := strconv.FormatUint(uint64(routeid), base10)
 			r.SetBucketHash(routeid, s)
-			if DefaultRouteBucket == nil {
+			if DefaultBuckets[DefaultBucketKeyRoute] == nil {
 				return nil
 			}
 
 			b := getBucket()
-			b.Remaining = DefaultRouteBucket.Limit
+			b.Remaining = DefaultBuckets[DefaultBucketKeyRoute].Limit
 			r.SetBucketFromHash(s, b)
 
 			return b
