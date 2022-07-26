@@ -3,6 +3,7 @@ package tools
 import (
 	"fmt"
 	"go/format"
+	"sort"
 	"strings"
 )
 
@@ -30,10 +31,17 @@ func Endpoints(data []byte) ([]byte, error) {
 // parseEndpointDecl parses the endpoint declarations into a map.
 func parseEndpointDecl(content string) string {
 	var funcput strings.Builder
+
+	var endpointBaseURL string
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		decl := strings.Fields(line)
-		if len(decl) == 3 && decl[0] != "EndpointBaseURL" {
+		if len(decl) == 3 {
+			if decl[0] == "EndpointBaseURL" {
+				endpointBaseURL = line
+				continue
+			}
+
 			url := decl[2][1 : len(decl[2])-1]
 			funcput.WriteString(generateComment(decl[0]) + "\n")
 			funcput.WriteString(generateFunc(decl[0], url) + "\n")
@@ -42,7 +50,7 @@ func parseEndpointDecl(content string) string {
 
 	var output strings.Builder
 	output.WriteString("package wrapper\n\n")
-	output.WriteString(generateConst(constMap))
+	output.WriteString(generateConst(constMap, endpointBaseURL))
 	output.WriteString(funcput.String() + "\n")
 	output.WriteString(manual())
 
@@ -50,13 +58,25 @@ func parseEndpointDecl(content string) string {
 }
 
 // generateConst generates the constant declarations for the endpoint file.
-func generateConst(cm map[string]string) string {
+func generateConst(cm map[string]string, endpointBaseURL string) string {
 	var decl strings.Builder
 	decl.WriteString("// Discord API Endpoints\n")
 	decl.WriteString("const (\n")
-	decl.WriteString("EndpointBaseURL = \"https://discord.com/api/v9/\"\n")
+	decl.WriteString(endpointBaseURL + "\n")
+
+	decls := make([]string, len(cm))
+	i := 0
 	for variable, value := range cm {
-		decl.WriteString(variable + " = " + "\"" + value + "\"" + "\n")
+		decls[i] = variable + " = " + "\"" + value + "\""
+		i++
+	}
+
+	sort.Slice(decls, func(i, j int) bool {
+		return decls[i] < decls[j]
+	})
+
+	for _, line := range decls {
+		decl.WriteString(line + "\n")
 	}
 	decl.WriteString(")\n")
 

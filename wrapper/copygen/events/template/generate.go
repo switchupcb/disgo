@@ -21,6 +21,7 @@ func Generate(gen *models.Generator) (string, error) {
 
 	var content strings.Builder
 	content.WriteString(string(gen.Keep) + "\n")
+	content.WriteString("import json \"github.com/goccy/go-json\"\n")
 	content.WriteString(generateHandlers(functions) + "\n")
 	content.WriteString(generateHandle(functions) + "\n")
 	content.WriteString(generateRemove(functions) + "\n")

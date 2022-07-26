@@ -133,8 +133,6 @@ func endpoints(path string) error {
 func convert(abspath string) error {
 	dasgopath := abspath + "/..."
 
-	// nstruct
-
 	// xstruct
 	xstruct := exec.Command("tools/xstruct", "-d", dasgopath, "-p", "wrapper", "-g")
 	std, err := xstruct.CombinedOutput()
@@ -170,7 +168,7 @@ func generate() error {
 		return fmt.Errorf("copygen error (send): %v", string(std))
 	}
 
-	// events
+	// event handling
 	handlegen := exec.Command("copygen", "-yml", "wrapper/copygen/events/setup.yml", "-xm")
 	std, err = handlegen.CombinedOutput()
 	if err != nil {
