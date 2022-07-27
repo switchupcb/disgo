@@ -98,7 +98,7 @@ func main() {
 
 	// create a ModifyCurrentUser request.
 	request := disgo.ModifyCurrentUser{
-		Username: nil,
+		Username: "",
 		Avatar:   &data,
 	}
 
@@ -117,7 +117,7 @@ func main() {
 	if *remove {
 		fmt.Println("Removing avatar...")
 		request := disgo.ModifyCurrentUser{
-			Username: nil,
+			Username: "",
 			Avatar:   disgo.Pointer(""),
 		}
 

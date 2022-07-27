@@ -33,6 +33,7 @@ This example uses [command line flags](https://pkg.go.dev/flag) to input the ava
 Usage of avatar:
   -i string
         Set the location (Filepath or URL) of the avatar image using -i.
+  -r    Use -r to remove the avatar image after successfully setting it.
 ```
 
 ## Usage
