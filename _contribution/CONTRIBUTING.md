@@ -82,11 +82,11 @@ Use `go test` to run the tests in the current directory. Use `go test ./<dir>` t
 
 # Roadmap
 
-Disgo is currently in DEVELOPMENT. Here are the steps required in order to complete it:
+Disgo is **USABLE**. Here are the steps required in order to complete it:
 
-1. **Implement Testing** _[USABLE]_.
+1. **Implement [Coverage Testing](https://github.com/switchupcb/disgo/pull/19)** _[STABLE]_.
 2. Implement Structured Logging.
-3. Bundle Disgo (with `fieldalignment`) _[RELEASE]_.
+3. Bundle Disgo (with `fieldalignment`) _[v10.0.0]_.
 4. Implement Sharding.
 5. Implement Cache.
 

@@ -10,6 +10,8 @@ on:
       - "_gen/**"
       - "cache/**"
       - "shard/**"
+      - "tools/**"
+      - "README.md"
 
   pull_request_target:
     types:
@@ -23,6 +25,8 @@ on:
       - "_gen/**"
       - "cache/**"
       - "shard/**"
+      - "tools/**"
+      - "README.md"
 
 jobs:
   sca-lint:
