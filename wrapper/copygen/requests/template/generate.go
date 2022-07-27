@@ -185,11 +185,11 @@ func generateEndpointCall(request *models.Field) string {
 func generateContentType(tags map[string]int) string {
 	switch {
 	case tags["dasgo"] != 0:
-		return "contentTypeMulti"
+		return "ContentTypeMultipartForm"
 	case tags["json"] != 0:
-		return "contentTypeJSON"
+		return "ContentTypeJSON"
 	case tags["url"] != 0:
-		return "contentTypeURL"
+		return "ContentTypeURLQueryString"
 	default:
 		return "nil"
 	}
