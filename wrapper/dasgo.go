@@ -152,7 +152,7 @@ var (
 	FlagClientCloseEventCodeNormal = 1000
 	FlagClientCloseEventCodeAway   = 1001
 
-	//  https://www.rfc-editor.org/rfc/rfc6455#section-7.4.1
+	// https://www.rfc-editor.org/rfc/rfc6455#section-7.4.1
 	FlagClientCloseEventCodeReconnect = 3000
 )
 
@@ -1359,6 +1359,23 @@ var (
 // https://discord.com/developers/docs/reference#api-versioning
 const (
 	VersionDiscordAPI = "10"
+)
+
+// Image Formats
+// https://discord.com/developers/docs/reference#image-formatting-image-formats
+const (
+	ImageFormatJPEG   = "JPEG"
+	ImageFormatPNG    = "PNG"
+	ImageFormatWebP   = "WebP"
+	ImageFormatGIF    = "GIF"
+	ImageFormatLottie = "Lottie"
+)
+
+// CDN Endpoint Exceptions
+// https://discord.com/developers/docs/reference#image-formatting-cdn-endpoints
+const (
+	CDNEndpointAnimatedHashPrefix       = "a_"
+	CDNEndpointUserDiscriminatorDivisor = 5
 )
 
 // Locales
