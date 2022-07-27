@@ -2,70 +2,84 @@ package wrapper
 
 // Discord API Endpoints
 const (
-	EndpointBaseURL = "https://discord.com/api/v10/"
-	active          = "active"
-	applications    = "applications"
-	archived        = "archived"
-	auditlogs       = "audit-logs"
-	authorize       = "authorize"
-	automoderation  = "auto-moderation"
-	bans            = "bans"
-	bot             = "bot"
-	bulkdelete      = "bulk-delete"
-	callback        = "callback"
-	channels        = "channels"
-	commands        = "commands"
-	connections     = "connections"
-	crosspost       = "crosspost"
-	emojis          = "emojis"
-	followers       = "followers"
-	gateway         = "gateway"
-	github          = "github"
-	guilds          = "guilds"
-	integrations    = "integrations"
-	interactions    = "interactions"
-	invites         = "invites"
-	me              = "@me"
-	member          = "member"
-	members         = "members"
-	messages        = "messages"
-	mfa             = "mfa"
-	nick            = "nick"
-	oauth           = "oauth2"
-	original        = "@original"
-	permissions     = "permissions"
-	pins            = "pins"
-	preview         = "preview"
-	private         = "private"
-	prune           = "prune"
-	public          = "public"
-	reactions       = "reactions"
-	recipients      = "recipients"
-	regions         = "regions"
-	revoke          = "revoke"
-	roles           = "roles"
-	rules           = "rules"
-	scheduledevents = "scheduled-events"
-	search          = "search"
-	slack           = "slack"
-	slash           = "/"
-	stageinstances  = "stage-instances"
-	stickerpacks    = "sticker-packs"
-	stickers        = "stickers"
-	templates       = "templates"
-	threadmembers   = "thread-members"
-	threads         = "threads"
-	token           = "token"
-	typing          = "typing"
-	users           = "users"
-	vanityurl       = "vanity-url"
-	voice           = "voice"
-	voicestates     = "voice-states"
-	webhooks        = "webhooks"
-	welcomescreen   = "welcome-screen"
-	widget          = "widget"
-	widgetjson      = "widget.json"
-	widgetpng       = "widget.png"
+	EndpointBaseURL    = "https://discord.com/api/v" + VersionDiscordAPI + "/"
+	CDNEndpointBaseURL = "https://cdn.discordapp.com/"
+	achievements       = "achievements"
+	active             = "active"
+	appassets          = "app-assets"
+	appicons           = "app-icons"
+	applications       = "applications"
+	archived           = "archived"
+	auditlogs          = "audit-logs"
+	authorize          = "authorize"
+	automoderation     = "auto-moderation"
+	avatars            = "avatars"
+	banners            = "banners"
+	bans               = "bans"
+	bot                = "bot"
+	bulkdelete         = "bulk-delete"
+	callback           = "callback"
+	channels           = "channels"
+	commands           = "commands"
+	connections        = "connections"
+	crosspost          = "crosspost"
+	discoverysplashes  = "discovery-splashes"
+	embed              = "embed"
+	emojis             = "emojis"
+	followers          = "followers"
+	gateway            = "gateway"
+	github             = "github"
+	guildevents        = "guild-events"
+	guilds             = "guilds"
+	icons              = "icons"
+	integrations       = "integrations"
+	interactions       = "interactions"
+	invites            = "invites"
+	me                 = "@me"
+	member             = "member"
+	members            = "members"
+	messages           = "messages"
+	mfa                = "mfa"
+	nick               = "nick"
+	oauth              = "oauth2"
+	original           = "@original"
+	permissions        = "permissions"
+	pins               = "pins"
+	preview            = "preview"
+	private            = "private"
+	prune              = "prune"
+	public             = "public"
+	reactions          = "reactions"
+	recipients         = "recipients"
+	regions            = "regions"
+	revoke             = "revoke"
+	roleicons          = "role-icons"
+	roles              = "roles"
+	rules              = "rules"
+	scheduledevents    = "scheduled-events"
+	search             = "search"
+	slack              = "slack"
+	slash              = "/"
+	splashes           = "splashes"
+	stageinstances     = "stage-instances"
+	stickerpacks       = "sticker-packs"
+	stickers           = "stickers"
+	store              = "store"
+	teamicons          = "team-icons"
+	templates          = "templates"
+	threadmembers      = "thread-members"
+	threads            = "threads"
+	token              = "token"
+	typing             = "typing"
+	users              = "users"
+	vanityurl          = "vanity-url"
+	voice              = "voice"
+	voicestates        = "voice-states"
+	webhooks           = "webhooks"
+	welcomescreen      = "welcome-screen"
+	widget             = "widget"
+	widgetjson         = "widget.json"
+	widgetpng          = "widget.png"
 )
 
 // EndpointGetGlobalApplicationCommands builds a query for an HTTP request.
@@ -946,6 +960,101 @@ func EndpointGetCurrentBotApplicationInformation() string {
 // EndpointGetCurrentAuthorizationInformation builds a query for an HTTP request.
 func EndpointGetCurrentAuthorizationInformation() string {
 	return EndpointBaseURL + oauth + slash + me
+}
+
+// CDNEndpointCustomEmoji builds a query for an HTTP request.
+func CDNEndpointCustomEmoji(emojiid string) string {
+	return CDNEndpointBaseURL + emojis + slash + emojiid
+}
+
+// CDNEndpointGuildIcon builds a query for an HTTP request.
+func CDNEndpointGuildIcon(guildid, guildicon string) string {
+	return CDNEndpointBaseURL + icons + slash + guildid + slash + guildicon
+}
+
+// CDNEndpointGuildSplash builds a query for an HTTP request.
+func CDNEndpointGuildSplash(guildid, guildsplash string) string {
+	return CDNEndpointBaseURL + splashes + slash + guildid + slash + guildsplash
+}
+
+// CDNEndpointGuildDiscoverySplash builds a query for an HTTP request.
+func CDNEndpointGuildDiscoverySplash(guildid, guilddiscoverysplash string) string {
+	return CDNEndpointBaseURL + discoverysplashes + slash + guildid + slash + guilddiscoverysplash
+}
+
+// CDNEndpointGuildBanner builds a query for an HTTP request.
+func CDNEndpointGuildBanner(guildid, guildbanner string) string {
+	return CDNEndpointBaseURL + banners + slash + guildid + slash + guildbanner
+}
+
+// CDNEndpointUserBanner builds a query for an HTTP request.
+func CDNEndpointUserBanner(userid, userbanner string) string {
+	return CDNEndpointBaseURL + banners + slash + userid + slash + userbanner
+}
+
+// CDNEndpointDefaultUserAvatar builds a query for an HTTP request.
+func CDNEndpointDefaultUserAvatar(userdiscriminator string) string {
+	return CDNEndpointBaseURL + embed + slash + avatars + slash + userdiscriminator
+}
+
+// CDNEndpointUserAvatar builds a query for an HTTP request.
+func CDNEndpointUserAvatar(userid, useravatar string) string {
+	return CDNEndpointBaseURL + avatars + slash + userid + slash + useravatar
+}
+
+// CDNEndpointGuildMemberAvatar builds a query for an HTTP request.
+func CDNEndpointGuildMemberAvatar(guildid, userid, memberavatar string) string {
+	return CDNEndpointBaseURL + guilds + slash + guildid + slash + users + slash + userid + slash + avatars + slash + memberavatar
+}
+
+// CDNEndpointApplicationIcon builds a query for an HTTP request.
+func CDNEndpointApplicationIcon(applicationid, icon string) string {
+	return CDNEndpointBaseURL + appicons + slash + applicationid + slash + icon
+}
+
+// CDNEndpointApplicationCover builds a query for an HTTP request.
+func CDNEndpointApplicationCover(applicationid, coverimage string) string {
+	return CDNEndpointBaseURL + appicons + slash + applicationid + slash + coverimage
+}
+
+// CDNEndpointApplicationAsset builds a query for an HTTP request.
+func CDNEndpointApplicationAsset(applicationid, assetid string) string {
+	return CDNEndpointBaseURL + appassets + slash + applicationid + slash + assetid
+}
+
+// CDNEndpointAchievementIcon builds a query for an HTTP request.
+func CDNEndpointAchievementIcon(applicationid, achievementid, iconhash string) string {
+	return CDNEndpointBaseURL + appassets + slash + applicationid + slash + achievements + slash + achievementid + slash + icons + slash + iconhash
+}
+
+// CDNEndpointStickerPackBanner builds a query for an HTTP request.
+func CDNEndpointStickerPackBanner(applicationid, stickerpackbannerassetid string) string {
+	return CDNEndpointBaseURL + appassets + slash + applicationid + slash + store + slash + stickerpackbannerassetid
+}
+
+// CDNEndpointTeamIcon builds a query for an HTTP request.
+func CDNEndpointTeamIcon(teamid, teamicon string) string {
+	return CDNEndpointBaseURL + teamicons + slash + teamid + slash + teamicon
+}
+
+// CDNEndpointSticker builds a query for an HTTP request.
+func CDNEndpointSticker(stickerid string) string {
+	return CDNEndpointBaseURL + stickers + slash + stickerid
+}
+
+// CDNEndpointRoleIcon builds a query for an HTTP request.
+func CDNEndpointRoleIcon(roleid, roleicon string) string {
+	return CDNEndpointBaseURL + roleicons + slash + roleid + slash + roleicon
+}
+
+// CDNEndpointGuildScheduledEventCover builds a query for an HTTP request.
+func CDNEndpointGuildScheduledEventCover(scheduledeventid, scheduledeventcoverimage string) string {
+	return CDNEndpointBaseURL + guildevents + slash + scheduledeventid + slash + scheduledeventcoverimage
+}
+
+// CDNEndpointGuildMemberBanner builds a query for an HTTP request.
+func CDNEndpointGuildMemberBanner(guildid, userid, memberbanner string) string {
+	return CDNEndpointBaseURL + guilds + slash + guildid + slash + users + slash + userid + slash + banners + slash + memberbanner
 }
 
 var (

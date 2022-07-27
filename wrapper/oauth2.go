@@ -243,7 +243,7 @@ func WebhookAuthorization(bot *Client, ru *RedirectURL) (*AccessTokenResponse, *
 	}
 
 	result := new(WebhookTokenResponse)
-	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, ContentTypeURLQueryString, nil, result)
 	if err != nil {
 		return nil, nil, fmt.Errorf(ErrSendRequest, "WebhookAuthorization", err)
 	}
@@ -268,7 +268,7 @@ func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	}
 
 	result := new(AccessTokenResponse)
-	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, ContentTypeURLQueryString, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "AccessTokenExchange", err)
 	}
@@ -286,7 +286,7 @@ func (r *RefreshTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 	}
 
 	result := new(AccessTokenResponse)
-	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, ContentTypeURLQueryString, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "RefreshTokenExchange", err)
 	}
@@ -302,7 +302,7 @@ func (r *ClientCredentialsTokenRequest) Send(bot *Client) (*AccessTokenResponse,
 	}
 
 	result := new(AccessTokenResponse)
-	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, contentTypeURL, nil, result)
+	err = SendRequest(bot, 1, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, ContentTypeURLQueryString, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "ClientCredentialsTokenRequest", err)
 	}

@@ -21,8 +21,9 @@ const (
 	// redirect `>` is not guaranteed to work, so files must be written.
 	filemodewrite = 0644
 
-	downloadURL   = "https://github.com/switchupcb/dasgo/archive/main.zip"
-	inputDownload = "input/dasgo.zip"
+	downloadURL    = "https://github.com/switchupcb/dasgo/archive/main.zip"
+	inputDownload  = "input/dasgo.zip"
+	unzippedFolder = "dasgo-10"
 
 	outputEndpoints = "../wrapper/endpoints.go"
 	outputDasgo     = "../wrapper/dasgo.go"
@@ -47,7 +48,7 @@ func main() {
 	}
 
 	// dasgo generation
-	absfilepath, err := filepath.Abs("input/dasgo-main/dasgo")
+	absfilepath, err := filepath.Abs("input/" + unzippedFolder + "/dasgo")
 	if err != nil {
 		fmt.Printf("an error occurred determining the unzipped dasgo source code filepath.\n%v", err)
 		os.Exit(1)
@@ -134,7 +135,7 @@ func convert(abspath string) error {
 	dasgopath := abspath + "/..."
 
 	// xstruct
-	xstruct := exec.Command("tools/xstruct", "-d", dasgopath, "-p", "wrapper", "-g")
+	xstruct := exec.Command("tools/xstruct", "-d", dasgopath, "-p", "wrapper", "-g", "-f")
 	std, err := xstruct.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("xstruct error: %v", string(std))

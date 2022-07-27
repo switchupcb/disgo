@@ -61,7 +61,7 @@ The **main example** creates a bot that creates an application command and handl
 
 Use the client to configure the bot's settings.
 ```go
-bot := disgo.Client{
+bot := &disgo.Client{
     ApplicationID: "APPID", // optional
     Authentication: disgo.BotToken("TOKEN"), // or BearerToken("TOKEN")
     Authorization: &disgo.Authorization{ ... },
