@@ -1,11 +1,11 @@
-# Disgo
+# Create a Discord Bot in Go
 
 [![Go Doc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge&logo=appveyor&logo=appveyor)](https://pkg.go.dev/github.com/switchupcb/disgo)
 [![License](https://img.shields.io/github/license/switchupcb/disgo.svg?style=for-the-badge)](https://github.com/switchupcb/disgo/blob/main/LICENSE)
 
 **This repository is USABLE. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).**
 
-Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
+**Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
 
 **A Next Generation Discord API Wrapper**
 
