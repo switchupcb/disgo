@@ -2846,8 +2846,8 @@ type GetUser struct {
 // PATCH /users/@me
 // https://discord.com/developers/docs/resources/user#modify-current-user
 type ModifyCurrentUser struct {
-	Username string  `json:"username"`
-	Avatar   *string `json:"avatar"`
+	Username *string `json:"username,omitempty"`
+	Avatar   *string `json:"avatar,omitempty"`
 }
 
 // Get Current User Guilds
@@ -4915,4 +4915,49 @@ type ExtendedBotAuthorizationAccessTokenResponse struct {
 	Scope        string        `json:"scope,omitempty"`
 	ExpiresIn    time.Duration `json:"expires_in,omitempty"`
 	RefreshToken string        `json:"refresh_token,omitempty"`
+}
+
+// Pointer returns a pointer to the given value.
+func Pointer[T any](v T) *T {
+	return &v
+}
+
+func (c ActionsRow) ComponentType() Flag {
+	return FlagComponentTypeActionRow
+}
+
+func (c Button) ComponentType() Flag {
+	return FlagComponentTypeButton
+}
+
+func (c SelectMenu) ComponentType() Flag {
+	return FlagComponentTypeSelectMenu
+}
+
+func (c TextInput) ComponentType() Flag {
+	return FlagComponentTypeTextInput
+}
+
+func (d ApplicationCommandData) InteractionDataType() Flag {
+	return FlagInteractionTypeAPPLICATION_COMMAND
+}
+
+func (d MessageComponentData) InteractionDataType() Flag {
+	return FlagInteractionTypeMESSAGE_COMPONENT
+}
+
+func (d ModalSubmitData) InteractionDataType() Flag {
+	return FlagInteractionTypeMODAL_SUBMIT
+}
+
+func (d Messages) InteractionCallbackDataType() Flag {
+	return FlagInteractionCallbackTypeCHANNEL_MESSAGE_WITH_SOURCE
+}
+
+func (d Autocomplete) InteractionCallbackDataType() Flag {
+	return FlagInteractionCallbackTypeAPPLICATION_COMMAND_AUTOCOMPLETE_RESULT
+}
+
+func (d Modal) InteractionCallbackDataType() Flag {
+	return FlagInteractionCallbackTypeMODAL
 }

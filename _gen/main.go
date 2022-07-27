@@ -134,7 +134,7 @@ func convert(abspath string) error {
 	dasgopath := abspath + "/..."
 
 	// xstruct
-	xstruct := exec.Command("tools/xstruct", "-d", dasgopath, "-p", "wrapper", "-g")
+	xstruct := exec.Command("tools/xstruct", "-d", dasgopath, "-p", "wrapper", "-g", "-f")
 	std, err := xstruct.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("xstruct error: %v", string(std))
