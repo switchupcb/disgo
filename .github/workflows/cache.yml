@@ -3,13 +3,13 @@ name: "Cache"
 on:
   push:
     branches:
-      - main
+      - v10
     paths:
       - "cache/**"
 
   pull_request:
     branches:
-      - main
+      - v10
     paths:
       - "cache/**"
 

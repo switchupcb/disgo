@@ -3,13 +3,13 @@ name: "Generator"
 on:
   push:
     branches:
-      - main
+      - v10
     paths:
       - "_gen/**"
 
   pull_request:
     branches:
-      - main
+      - v10
     paths:
       - "_gen/**"
 

@@ -3,13 +3,13 @@ name: "Tools"
 on:
   push:
     branches:
-      - main
+      - v10
     paths:
       - "tools/**"
 
   pull_request:
     branches:
-      - main
+      - v10
     paths:
       - "tools/**"
 

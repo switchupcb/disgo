@@ -3,13 +3,13 @@ name: "Shard Manager"
 on:
   push:
     branches:
-      - main
+      - v10
     paths:
       - "shard/**"
 
   pull_request:
     branches:
-      - main
+      - v10
     paths:
       - "shard/**"
 
