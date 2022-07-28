@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/switchupcb/disgo/tools"
 	disgo "github.com/switchupcb/disgo/wrapper"
 )
 
@@ -86,9 +87,11 @@ func main() {
 	}
 
 	// format the Image Data into a Data URI.
+	//
+	// The following code is equivalent to tools.ImageDataURI(image).
 	contentType := http.DetectContentType(image)
 	encodedImage := base64.StdEncoding.EncodeToString(image)
-	data := fmt.Sprintf("data:%s;base64,%s", contentType, encodedImage)
+	data := tools.DataURI(contentType, encodedImage)
 
 	// create a new Bot Client with the information required to send a request.
 	bot := &disgo.Client{

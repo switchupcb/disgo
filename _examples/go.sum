@@ -22,6 +22,8 @@ github.com/klauspost/compress v1.15.9 h1:wKRjX6JRtDdrE9qwa4b/Cip7ACOshUI4smpCQan
 github.com/klauspost/compress v1.15.9/go.mod h1:PhcZ0MbTNciWF3rruxRgKxI5NkcHHrHUDtV4Yw2GlzU=
 github.com/switchupcb/disgo v0.0.0-20220726210903-501dcb40b012 h1:8K0Cs/qWX0p21TH6WYeb9ihYT+nLzabfsGyfm/g/Xv4=
 github.com/switchupcb/disgo v0.0.0-20220726210903-501dcb40b012/go.mod h1:Wl43EK7HOIj+qYkKGY7bfmhHcs4kOamgHeMk8ZujROQ=
+github.com/switchupcb/disgo/tools v0.0.0-20220727073006-e0f01397d626 h1:M9XQfGcnMXzlAXWFzxTLnwY65Y0K4VD4LlsyPt55MSQ=
+github.com/switchupcb/disgo/tools v0.0.0-20220727073006-e0f01397d626/go.mod h1:meg8UOjeK6vLhi5powODQ8VhmUrH8x2krlPEelARWjE=
 github.com/switchupcb/websocket v1.8.8 h1:0x7RIs90NJ8YggqcLdKeb/LTofJ1BY79n784pkLyk5o=
 github.com/switchupcb/websocket v1.8.8/go.mod h1:HdhyzCLfOFPrBv+QNcnDSbv8L8rfJ7ZCulrBKZJHip0=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=

@@ -1,0 +1,32 @@
+run:
+  timeout: 5m
+  tests: false
+
+linters:
+  fast: false
+  enable-all: true
+  disable:
+    - deadcode
+    - unused
+    - gofumpt
+
+    - golint # Deprecated
+    - interfacer # Deprecated
+    - scopelint # Deprecated
+    - maligned # Deprecated
+    - exhaustivestruct # Deprecated
+
+linters-settings:
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true # Flags defined by Discord.
+        arguments:
+          - [] # AllowList
+          - [] # DenyList
+
+  govet:
+    enable-all: true
+    disable:
+      - shadow
+      - fieldalignment # Completed at bundle-time.

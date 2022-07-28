@@ -2,7 +2,10 @@ module github.com/switchupcb/disgo/_examples
 
 go 1.18
 
-require github.com/switchupcb/disgo v0.0.0-20220726210903-501dcb40b012
+require (
+	github.com/switchupcb/disgo v0.0.0-20220726210903-501dcb40b012
+	github.com/switchupcb/disgo/tools v0.0.0-20220727073006-e0f01397d626
+)
 
 require (
 	github.com/andybalholm/brotli v1.0.4 // indirect
