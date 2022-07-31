@@ -19,3 +19,6 @@ _gen/input*
 
 # Environment Variables
 .env
+
+# Examples
+_examples/**/*.png

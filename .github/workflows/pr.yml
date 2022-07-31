@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [opened]
     branches:
-      - main
+      - v10
 
 jobs:
   label:

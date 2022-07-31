@@ -3,26 +3,30 @@ name: "API Wrapper"
 on:
   push:
     branches:
-      - main
+      - v10
     paths-ignore:
       - "_contribution"
       - "_examples"
       - "_gen/**"
       - "cache/**"
       - "shard/**"
+      - "tools/**"
+      - "README.md"
 
   pull_request_target:
     types:
       - opened
       - synchronize
     branches:
-      - main
+      - v10
     paths-ignore:
       - "_contribution"
       - "_examples"
       - "_gen/**"
       - "cache/**"
       - "shard/**"
+      - "tools/**"
+      - "README.md"
 
 jobs:
   sca-lint:

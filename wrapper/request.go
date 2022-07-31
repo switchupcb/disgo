@@ -12,21 +12,40 @@ import (
 
 // Conversion Constants.
 const (
-	base10 = 10
-	bit64  = 64
+	base10              = 10
+	bit64               = 64
+	msPerSecond float64 = 1000
+)
+
+// Content Types
+// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Type
+var (
+	// ContentTypeURLQueryString is an HTTP Header Content Type that indicates
+	// a payload with an encoded URL Query String.
+	ContentTypeURLQueryString = []byte("application/x-www-form-urlencoded")
+
+	// ContentTypeJSON is an HTTP Header Content Type that indicates a payload with a JSON body.
+	ContentTypeJSON = []byte("application/json")
+
+	// ContentTypeMultipartForm is an HTTP Header Content Type that indicates
+	// a payload with multiple content types.
+	ContentTypeMultipartForm = []byte("multipart/form-data")
+
+	// ContentTypeJPEG is an HTTP Header Content Type that indicates a payload with a JPEG image.
+	ContentTypeJPEG = []byte("image/jpeg")
+
+	// ContentTypePNG is an HTTP Header Content Type that indicates a payload with a PNG image.
+	ContentTypePNG = []byte("image/png")
+
+	// ContentTypeWebP is an HTTP Header Content Type that indicates a payload with a WebP image.
+	ContentTypeWebP = []byte("image/webp")
+
+	// ContentTypeGIF is an HTTP Header Content Type that indicates a payload with a GIF animated image.
+	ContentTypeGIF = []byte("image/gif")
 )
 
 // HTTP Header Variables.
-var (
-	// contentTypeURL represents an HTTP Header indicating a payload with an encoded URL Query String.
-	contentTypeURL = []byte("application/x-www-form-urlencoded")
-
-	// contentTypeJSON represents an HTTP Header that indicates a payload with a JSON body.
-	contentTypeJSON = []byte("application/json")
-
-	// contentTypeMulti represents an HTTP Header that indicates a payload with a multi-part (file) body.
-	contentTypeMulti = []byte("multipart/form-data")
-
+const (
 	// headerAuthorizationKey represents the key for an "Authorization" HTTP Header.
 	headerAuthorizationKey = "Authorization"
 )
@@ -59,9 +78,6 @@ var (
 
 	// headerDate represents a byte representation of "Date" for HTTP Header functionality.
 	headerDate = []byte(FlagRateLimitHeaderDate)
-
-	// msPerSecond represents the amount of milliseconds in a second.
-	msPerSecond float64 = 1000
 )
 
 // Custom Rate Limit Variables

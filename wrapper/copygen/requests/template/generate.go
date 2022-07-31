@@ -18,6 +18,7 @@ func Generate(gen *models.Generator) (string, error) {
 	var content strings.Builder
 
 	content.WriteString(string(gen.Keep) + "\n")
+	content.WriteString("import json \"github.com/goccy/go-json\"\n")
 	for i := range gen.Functions {
 		content.WriteString(Function(&gen.Functions[i]) + "\n")
 	}
@@ -184,11 +185,11 @@ func generateEndpointCall(request *models.Field) string {
 func generateContentType(tags map[string]int) string {
 	switch {
 	case tags["dasgo"] != 0:
-		return "contentTypeMulti"
+		return "ContentTypeMultipartForm"
 	case tags["json"] != 0:
-		return "contentTypeJSON"
+		return "ContentTypeJSON"
 	case tags["url"] != 0:
-		return "contentTypeURL"
+		return "ContentTypeURLQueryString"
 	default:
 		return "nil"
 	}

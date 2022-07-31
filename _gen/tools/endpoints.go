@@ -3,12 +3,19 @@ package tools
 import (
 	"fmt"
 	"go/format"
+	"sort"
 	"strings"
 )
 
 var (
 	// constMap represents a map of constants referenced in functions (`key = val`)
 	constMap map[string]string
+
+	// EndpointBaseURL represents the EndpointBaseURL declaration variable name.
+	EndpointBaseURL = "EndpointBaseURL"
+
+	// CDNEndpointBaseURL represents the CDNEndpointBaseURL declaration variable name.
+	CDNEndpointBaseURL = "CDNEndpointBaseURL"
 )
 
 // Endpoints reads the contents of a dasgo file and outputs disgo endpoints.
@@ -21,6 +28,8 @@ func Endpoints(data []byte) ([]byte, error) {
 	// gofmt
 	fmtdata, err := format.Source(contentdata)
 	if err != nil {
+		fmt.Println(string(contentdata))
+
 		return contentdata, fmt.Errorf("an error occurred while formatting the generated code.\n%w", err)
 	}
 
@@ -30,13 +39,28 @@ func Endpoints(data []byte) ([]byte, error) {
 // parseEndpointDecl parses the endpoint declarations into a map.
 func parseEndpointDecl(content string) string {
 	var funcput strings.Builder
+
+	base := EndpointBaseURL
 	lines := strings.Split(content, "\n")
 	for _, line := range lines {
 		decl := strings.Fields(line)
-		if len(decl) == 3 && decl[0] != "EndpointBaseURL" {
-			url := decl[2][1 : len(decl[2])-1]
-			funcput.WriteString(generateComment(decl[0]) + "\n")
-			funcput.WriteString(generateFunc(decl[0], url) + "\n")
+
+		if len(decl) > 0 {
+			switch decl[0] {
+			case EndpointBaseURL:
+				constMap[EndpointBaseURL] = strings.Join(decl[2:], "")
+
+			case CDNEndpointBaseURL:
+				constMap[CDNEndpointBaseURL] = strings.Join(decl[2:], "")
+				base = CDNEndpointBaseURL
+
+			default:
+				if len(decl) == 3 && decl[0] != "//" {
+					url := decl[2][1 : len(decl[2])-1]
+					funcput.WriteString(generateComment(decl[0]) + "\n")
+					funcput.WriteString(generateFunc(decl[0], base, url) + "\n")
+				}
+			}
 		}
 	}
 
@@ -54,9 +78,24 @@ func generateConst(cm map[string]string) string {
 	var decl strings.Builder
 	decl.WriteString("// Discord API Endpoints\n")
 	decl.WriteString("const (\n")
-	decl.WriteString("EndpointBaseURL = \"https://discord.com/api/v9/\"\n")
+	decl.WriteString(EndpointBaseURL + " = " + cm[EndpointBaseURL] + "\n")
+	decl.WriteString(CDNEndpointBaseURL + " = " + cm[CDNEndpointBaseURL] + "\n")
+	delete(cm, EndpointBaseURL)
+	delete(cm, CDNEndpointBaseURL)
+
+	decls := make([]string, len(cm))
+	i := 0
 	for variable, value := range cm {
-		decl.WriteString(variable + " = " + "\"" + value + "\"" + "\n")
+		decls[i] = variable + " = " + "\"" + value + "\""
+		i++
+	}
+
+	sort.Slice(decls, func(i, j int) bool {
+		return decls[i] < decls[j]
+	})
+
+	for _, line := range decls {
+		decl.WriteString(line + "\n")
 	}
 	decl.WriteString(")\n")
 
@@ -69,7 +108,7 @@ func generateComment(endpoint string) string {
 }
 
 // generateFunc generates an endpoint function.
-func generateFunc(endpoint, url string) string {
+func generateFunc(endpoint, base, url string) string {
 	urlparams := parameters(url)
 	funcparams := make([]string, 0, len(urlparams))
 	for _, param := range urlparams {
@@ -85,7 +124,7 @@ func generateFunc(endpoint, url string) string {
 
 	var f strings.Builder
 	f.WriteString("func " + endpoint + "(" + p + ")" + " string {\n")
-	f.WriteString("return EndpointBaseURL +" + strings.Join(urlparams, "+ slash +") + "\n")
+	f.WriteString("return " + base + " +" + strings.Join(urlparams, "+ slash +") + "\n")
 	f.WriteString("}\n")
 
 	return f.String()

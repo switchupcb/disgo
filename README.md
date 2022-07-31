@@ -1,11 +1,11 @@
-# Disgo
+# Create a Discord Bot in Go
 
 [![Go Doc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge&logo=appveyor&logo=appveyor)](https://pkg.go.dev/github.com/switchupcb/disgo)
 [![License](https://img.shields.io/github/license/switchupcb/disgo.svg?style=for-the-badge)](https://github.com/switchupcb/disgo/blob/main/LICENSE)
 
-**This repository is currently in DEVELOPMENT. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).**
+**This repository is USABLE. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).**
 
-Create a Discord Bot in Go using Disgo. This [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
+**Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
 
 **A Next Generation Discord API Wrapper**
 
@@ -18,12 +18,12 @@ High quality code merits easy development. Disgo uses developer operations to st
 
 ## Table of Contents
 
-| Topic                           | Categories                                                                                                                                          |
-| :------------------------------ | :-------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Using the API](#using-the-api) | [Breakdown](#using-the-api), [Sharding](#sharding), [Caching](#caching)                                                                             |
-| [Examples](#examples)           | [Configuration](#configuration), [Create a Command](#create-a-command), [Handle an Event](#handle-an-event), [Output](#output), [Summary](#Summary) |
-| [Features](#features)           | [Why Go?](#why-go), [Comparison](#comparison), [Contributing](#contributing)                                                                        |
-| [Ecosystem](#ecosystem)         | [License](#license), [Libraries](#libraries), [Credits](#credits)                                                                                   |
+| Topic                           | Categories                                                                                                                                                             |
+| :------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Using the API](#using-the-api) | [Breakdown](#using-the-api), [Sharding](#sharding), [Caching](#caching)                                                                                                |
+| [Examples](#examples)           | [Import](#import), [Configuration](#configuration), [Create a Command](#create-a-command), [Handle an Event](#handle-an-event), [Output](#output), [Summary](#Summary) |
+| [Features](#features)           | [Why Go?](#why-go), [Comparison](#comparison), [Contributing](#contributing)                                                                                           |
+| [Ecosystem](#ecosystem)         | [License](#license), [Libraries](#libraries), [Credits](#credits)                                                                                                      |
 
 ## Using the API
 
@@ -55,13 +55,25 @@ Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full u
 
 The **main example** creates a bot that creates an application command and handles it. Check out the [examples](/_examples/) directory for more examples.
 
-## Configuration
+### Import
+
+Get a specific version of `disgo` by specifying a tag or branch.
+
+```
+go get github.com/switchupcb/disgo@v0.10.0
+```
+
+_Disgo branches are referenced by API version (i.e `v10`)._
+
+_NOTE: `v0.10.0` is a BETA version. For more information, read the [State of Disgo (v0.10.0)](https://github.com/switchupcb/disgo/discussions/28)._
+
+### Configuration
 
 **You must create a Discord Application in the [Discord Developer Portal](https://discord.com/developers/docs/getting-started#creating-an-app) to receive your Bot Token.** 
 
 Use the client to configure the bot's settings.
 ```go
-bot := disgo.Client{
+bot := &disgo.Client{
     ApplicationID: "APPID", // optional
     Authentication: disgo.BotToken("TOKEN"), // or BearerToken("TOKEN")
     Authorization: &disgo.Authorization{ ... },
@@ -71,7 +83,7 @@ bot := disgo.Client{
 }
 ```
 
-## Create a Command
+### Create a Command
 
 Create an application command **request** to add an application command.
 
@@ -90,7 +102,7 @@ if err != nil {
 }
 ```
 
-## Handle an Event
+### Handle an Event
 
 Create an **event handler** and add it to the **bot**.
 
@@ -195,11 +207,12 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 
 ### Libraries
 
-| Library                                          | Description                                             |
-| :----------------------------------------------- | :------------------------------------------------------ |
-| [Copygen](https://github.com/switchupcb/copygen) | Generate custom type-based code.                        |
-| [Dasgo](https://github.com/switchupcb/dasgo)     | Go Type Definitions for the Discord API.                |
-| Disgo Template                                   | Get started on a Discord Bot with this Disgo Framework. |
+| Library                                               | Description                                             |
+| :---------------------------------------------------- | :------------------------------------------------------ |
+| [Copygen](https://github.com/switchupcb/copygen)      | Generate custom type-based code.                        |
+| [Dasgo](https://github.com/switchupcb/dasgo)          | Go Type Definitions for the Discord API.                |
+| Disgo Template                                        | Get started on a Discord Bot with this Disgo Framework. |
+| [Ecosystem](https://github.com/switchupcb/disgo/wiki) | View projects that use Disgo.                           |
 
 ### Credits
 
