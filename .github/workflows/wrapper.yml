@@ -52,8 +52,6 @@ jobs:
     strategy:
       matrix:
         os:
-          - windows-latest
-          - macos-latest
           - ubuntu-latest
     steps:
       - name: Checkout repository code
@@ -68,13 +66,9 @@ jobs:
           # In order:
           # * Module Download Directory
           # * Linux Build Directory
-          # * Mac Build Directory
-          # * Windows Build Directory
           path: |
             ~/go/pkg/mod
             ~/.cache/go-build
-            ~/Library/Caches/go-build
-            ~\AppData\Local\go-build
           key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-${{ matrix.go-version }}-

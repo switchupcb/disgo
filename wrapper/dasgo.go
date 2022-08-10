@@ -604,12 +604,13 @@ type Hello struct {
 // Ready Event Fields
 // https://discord.com/developers/docs/topics/gateway#ready-ready-event-fields
 type Ready struct {
-	Version     int          `json:"v"`
-	User        *User        `json:"user"`
-	Guilds      []*Guild     `json:"guilds"`
-	SessionID   string       `json:"session_id"`
-	Shard       *[2]int      `json:"shard,omitempty"`
-	Application *Application `json:"application"`
+	Version          int          `json:"v"`
+	User             *User        `json:"user"`
+	Guilds           []*Guild     `json:"guilds"`
+	SessionID        string       `json:"session_id"`
+	ResumeGatewayURL string       `json:"resume_gateway_url"`
+	Shard            *[2]int      `json:"shard,omitempty"`
+	Application      *Application `json:"application"`
 }
 
 // Resumed
@@ -1425,9 +1426,9 @@ type GetGlobalApplicationCommands struct {
 // https://discord.com/developers/docs/interactions/application-commands#create-global-application-command
 type CreateGlobalApplicationCommand struct {
 	Name                     string                      `json:"name,omitempty"`
-	NameLocalizations        map[Flag]string             `json:"name_localizations,omitempty"`
+	NameLocalizations        map[string]string           `json:"name_localizations,omitempty"`
 	Description              string                      `json:"description,omitempty"`
-	DescriptionLocalizations map[Flag]string             `json:"description_localizations,omitempty"`
+	DescriptionLocalizations map[string]string           `json:"description_localizations,omitempty"`
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
 	DefaultMemberPermissions string                      `json:"default_member_permissions,omitempty"`
 	DMPermission             bool                        `json:"dm_permission,omitempty"`
@@ -3128,9 +3129,9 @@ type ApplicationCommand struct {
 	ApplicationID            string                      `json:"application_id"`
 	GuildID                  string                      `json:"guild_id,omitempty"`
 	Name                     string                      `json:"name"`
-	NameLocalizations        map[Flag]string             `json:"name_localizations"`
+	NameLocalizations        map[string]string           `json:"name_localizations"`
 	Description              string                      `json:"description"`
-	DescriptionLocalizations map[Flag]string             `json:"description_localizations"`
+	DescriptionLocalizations map[string]string           `json:"description_localizations"`
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
 	DefaultMemberPermissions *string                     `json:"default_member_permissions"`
 	DMPermission             *bool                       `json:"dm_permission,omitempty"`
@@ -3150,9 +3151,9 @@ const (
 type ApplicationCommandOption struct {
 	Type                     Flag                              `json:"type"`
 	Name                     string                            `json:"name"`
-	NameLocalizations        map[Flag]string                   `json:"name_localizations"`
+	NameLocalizations        map[string]string                 `json:"name_localizations"`
 	Description              string                            `json:"description"`
-	DescriptionLocalizations map[Flag]string                   `json:"description_localizations"`
+	DescriptionLocalizations map[string]string                 `json:"description_localizations"`
 	Required                 *bool                             `json:"required,omitempty"`
 	Choices                  []*ApplicationCommandOptionChoice `json:"choices,omitempty"`
 	Options                  []*ApplicationCommandOption       `json:"options,omitempty"`
@@ -3390,8 +3391,8 @@ type MessageInteraction struct {
 // Interaction Response Structure
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-response-structure
 type InteractionResponse struct {
-	Type Flag                     `json:"type"`
-	Data *InteractionCallbackData `json:"data,omitempty"`
+	Type Flag                    `json:"type"`
+	Data InteractionCallbackData `json:"data,omitempty"`
 }
 
 // Interaction Callback Type
@@ -3607,15 +3608,17 @@ const (
 	FlagTriggerTypeHARMFUL_LINK   = 2
 	FlagTriggerTypeSPAM           = 3
 	FlagTriggerTypeKEYWORD_PRESET = 4
+	FlagTriggerTypeMENTION_SPAM   = 5
 )
 
 // Trigger Metadata
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-trigger-metadata
 type TriggerMetadata struct {
 	// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-keyword-matching-strategies
-	KeywordFilter []string `json:"keyword_filter"`
-	Presets       []Flag   `json:"presets"`
-	AllowList     []string `json:"allow_list"`
+	KeywordFilter     []string `json:"keyword_filter"`
+	Presets           []Flag   `json:"presets"`
+	AllowList         []string `json:"allow_list"`
+	MentionTotalLimit int      `json:"mention_total_limit"`
 }
 
 // Keyword Preset Types

@@ -31,7 +31,7 @@ type Session struct {
 	// https://discord.com/developers/docs/topics/gateway#heartbeat
 	Seq int64
 
-	// Endpoint represents the endpoint that is used to connect to the Gateway.
+	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
 	Endpoint string
 
 	// Context carries request-scoped data for the Discord Gateway Connection.
@@ -69,7 +69,7 @@ func (s *Session) isConnected() bool {
 
 // canReconnect determines whether the session is in a valid state to reconnect.
 func (s *Session) canReconnect() bool {
-	return s.ID != "" && atomic.LoadInt64(&s.Seq) != 0
+	return s.ID != "" && s.Endpoint != "" && atomic.LoadInt64(&s.Seq) != 0
 }
 
 // Connect connects a session to the Discord Gateway (WebSocket Connection).
@@ -89,14 +89,15 @@ func (s *Session) connect(bot *Client) error {
 	}
 
 	// request a valid Gateway URL endpoint from the Discord API.
-	if s.Endpoint == "" || !s.canReconnect() {
+	gatewayEndpoint := s.Endpoint
+	if gatewayEndpoint == "" || !s.canReconnect() {
 		gateway := GetGateway{}
 		response, err := gateway.Send(bot)
 		if err != nil {
 			return fmt.Errorf("an error occurred getting the Gateway API Endpoint\n%w", err)
 		}
 
-		s.Endpoint = response.URL + gatewayEndpointParams
+		gatewayEndpoint = response.URL + gatewayEndpointParams
 
 		// set the maximum allowed (Identify) concurrency rate limit.
 		//
@@ -121,7 +122,7 @@ func (s *Session) connect(bot *Client) error {
 	// connect to the Discord Gateway Websocket.
 	s.manager = new(manager)
 	s.Context, s.manager.cancel = context.WithCancel(context.Background())
-	if s.Conn, _, err = websocket.Dial(s.Context, s.Endpoint, nil); err != nil {
+	if s.Conn, _, err = websocket.Dial(s.Context, gatewayEndpoint, nil); err != nil {
 		return fmt.Errorf("an error occurred while connecting to the Discord Gateway\n%w", err)
 	}
 
@@ -266,6 +267,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 
 			s.ID = ready.SessionID
 			s.Seq = 0
+			s.Endpoint = ready.ResumeGatewayURL
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = ready.Application.ID
 

@@ -38,7 +38,7 @@ type Copygen interface {
 	EditApplicationCommandPermissions(*disgo.EditApplicationCommandPermissions) (*disgo.GuildApplicationCommandPermissions, error)
 	// http PUT
 	BatchEditApplicationCommandPermissions(*disgo.BatchEditApplicationCommandPermissions) (*disgo.GuildApplicationCommandPermissions, error)
-	// http GET
+	// http POST
 	CreateInteractionResponse(*disgo.CreateInteractionResponse) error
 	// http PATCH
 	GetOriginalInteractionResponse(*disgo.GetOriginalInteractionResponse) error

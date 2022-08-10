@@ -231,7 +231,7 @@ func (r *BatchEditApplicationCommandPermissions) Send(bot *Client) (*GuildApplic
 
 // Send sends a CreateInteractionResponse request to Discord and returns a error.
 func (r *CreateInteractionResponse) Send(bot *Client) error {
-	err := SendRequest(bot, 18, fasthttp.MethodGet, EndpointCreateInteractionResponse(r.InteractionID, r.InteractionToken), nil, nil, nil)
+	err := SendRequest(bot, 18, fasthttp.MethodPost, EndpointCreateInteractionResponse(r.InteractionID, r.InteractionToken), nil, nil, nil)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "CreateInteractionResponse", err)
 	}
