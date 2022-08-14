@@ -1,4 +1,4 @@
-package integration_test
+package wrapper
 
 import (
 	disgo "github.com/switchupcb/disgo/wrapper"
@@ -6,173 +6,195 @@ import (
 
 // Copygen defines the functions that will be generated.
 type Copygen interface {
-	CreateMessage(disgo.CreateMessage)
-	GetChannelMessages(disgo.GetChannelMessages)
-	GetPinnedMessages(disgo.GetPinnedMessages)
-	GetGuildEmoji(disgo.GetGuildEmoji)
-	GetChannelWebhooks(disgo.GetChannelWebhooks)
-	GetCurrentAuthorizationInformation(disgo.GetCurrentAuthorizationInformation)
-	CreateGuildTemplate(disgo.CreateGuildTemplate)
-	ModifyUserVoiceState(disgo.ModifyUserVoiceState)
-	StartThreadwithoutMessage(disgo.StartThreadwithoutMessage)
-	CreateInteractionResponse(disgo.CreateInteractionResponse)
-	DeleteGuildEmoji(disgo.DeleteGuildEmoji)
-	GetCurrentBotApplicationInformation(disgo.GetCurrentBotApplicationInformation)
-	GetCurrentUserGuilds(disgo.GetCurrentUserGuilds)
-	CreateChannelInvite(disgo.CreateChannelInvite)
-	CreateWebhook(disgo.CreateWebhook)
-	CrosspostMessage(disgo.CrosspostMessage)
-	FollowNewsChannel(disgo.FollowNewsChannel)
-	ModifyCurrentUser(disgo.ModifyCurrentUser)
-	ModifyChannelThread(disgo.ModifyChannelThread)
-	GetUser(disgo.GetUser)
-	GetGatewayBot(disgo.GetGatewayBot)
-	DeleteChannelPermission(disgo.DeleteChannelPermission)
-	CreateGuildSticker(disgo.CreateGuildSticker)
-	ModifyGuildChannelPositions(disgo.ModifyGuildChannelPositions)
-	GetGuildTemplates(disgo.GetGuildTemplates)
-	ListGuildStickers(disgo.ListGuildStickers)
-	CreateStageInstance(disgo.CreateStageInstance)
-	DeleteCloseChannel(disgo.DeleteCloseChannel)
-	CreateGlobalApplicationCommand(disgo.CreateGlobalApplicationCommand)
-	DeleteAllReactionsforEmoji(disgo.DeleteAllReactionsforEmoji)
-	CreateGuildApplicationCommand(disgo.CreateGuildApplicationCommand)
-	GetChannelMessage(disgo.GetChannelMessage)
-	CreateGuildEmoji(disgo.CreateGuildEmoji)
-	ModifyGuildEmoji(disgo.ModifyGuildEmoji)
-	GetGateway(disgo.GetGateway)
-	ListVoiceRegions(disgo.ListVoiceRegions)
-	ModifyCurrentUserVoiceState(disgo.ModifyCurrentUserVoiceState)
-	CreateGuildfromGuildTemplate(disgo.CreateGuildfromGuildTemplate)
-	ListNitroStickerPacks(disgo.ListNitroStickerPacks)
-	TriggerTypingIndicator(disgo.TriggerTypingIndicator)
-	DeleteInvite(disgo.DeleteInvite)
-	CreateGuild(disgo.CreateGuild)
-	CreateFollowupMessage(disgo.CreateFollowupMessage)
-	GetCurrentUserGuildMember(disgo.GetCurrentUserGuildMember)
-	GetSticker(disgo.GetSticker)
-	GetChannelInvites(disgo.GetChannelInvites)
-	BatchEditApplicationCommandPermissions(disgo.BatchEditApplicationCommandPermissions)
-	StartThreadinForumChannel(disgo.StartThreadinForumChannel)
-	ListGuildEmojis(disgo.ListGuildEmojis)
-	GetInvite(disgo.GetInvite)
-	GetCurrentUser(disgo.GetCurrentUser)
-	EditApplicationCommandPermissions(disgo.EditApplicationCommandPermissions)
-	CreateReaction(disgo.CreateReaction)
-	EditChannelPermissions(disgo.EditChannelPermissions)
-	BulkDeleteMessages(disgo.BulkDeleteMessages)
-	StartThreadfromMessage(disgo.StartThreadfromMessage)
-	PinMessage(disgo.PinMessage)
-	EditMessage(disgo.EditMessage)
-	DeleteMessage(disgo.DeleteMessage)
-	UnpinMessage(disgo.UnpinMessage)
-	ModifyGuildTemplate(disgo.ModifyGuildTemplate)
-	DeleteGuildTemplate(disgo.DeleteGuildTemplate)
-	SyncGuildTemplate(disgo.SyncGuildTemplate)
-	GetGuildTemplate(disgo.GetGuildTemplate)
-	DeleteOriginalInteractionResponse(disgo.DeleteOriginalInteractionResponse)
-	GetOriginalInteractionResponse(disgo.GetOriginalInteractionResponse)
-	EditOriginalInteractionResponse(disgo.EditOriginalInteractionResponse)
-	ModifyWebhook(disgo.ModifyWebhook)
-	GetWebhookwithToken(disgo.GetWebhookwithToken)
-	ModifyWebhookwithToken(disgo.ModifyWebhookwithToken)
-	GetWebhook(disgo.GetWebhook)
-	DeleteWebhook(disgo.DeleteWebhook)
-	ExecuteSlackCompatibleWebhook(disgo.ExecuteSlackCompatibleWebhook)
-	GetWebhookMessage(disgo.GetWebhookMessage)
-	DeleteWebhookMessage(disgo.DeleteWebhookMessage)
-	ExecuteGitHubCompatibleWebhook(disgo.ExecuteGitHubCompatibleWebhook)
-	DeleteWebhookwithToken(disgo.DeleteWebhookwithToken)
-	ExecuteWebhook(disgo.ExecuteWebhook)
-	EditWebhookMessage(disgo.EditWebhookMessage)
-	GetUserConnections(disgo.GetUserConnections)
-	GetGuildSticker(disgo.GetGuildSticker)
-	ModifyGuildSticker(disgo.ModifyGuildSticker)
-	DeleteGuildSticker(disgo.DeleteGuildSticker)
-	GetStageInstance(disgo.GetStageInstance)
-	ModifyStageInstance(disgo.ModifyStageInstance)
-	DeleteStageInstance(disgo.DeleteStageInstance)
-	BulkOverwriteGlobalApplicationCommands(disgo.BulkOverwriteGlobalApplicationCommands)
-	DeleteGlobalApplicationCommand(disgo.DeleteGlobalApplicationCommand)
-	GetGlobalApplicationCommands(disgo.GetGlobalApplicationCommands)
-	GetGlobalApplicationCommand(disgo.GetGlobalApplicationCommand)
-	GetGuildApplicationCommands(disgo.GetGuildApplicationCommands)
-	EditGlobalApplicationCommand(disgo.EditGlobalApplicationCommand)
-	DeleteGuildApplicationCommand(disgo.DeleteGuildApplicationCommand)
-	GetGuildApplicationCommandPermissions(disgo.GetGuildApplicationCommandPermissions)
-	EditGuildApplicationCommand(disgo.EditGuildApplicationCommand)
-	GetApplicationCommandPermissions(disgo.GetApplicationCommandPermissions)
-	BulkOverwriteGuildApplicationCommands(disgo.BulkOverwriteGuildApplicationCommands)
-	GetGuildApplicationCommand(disgo.GetGuildApplicationCommand)
-	GetGuildWidgetSettings(disgo.GetGuildWidgetSettings)
-	GetGuildVanityURL(disgo.GetGuildVanityURL)
-	GetGuildWidgetImage(disgo.GetGuildWidgetImage)
-	GetGuildAuditLog(disgo.GetGuildAuditLog)
-	BeginGuildPrune(disgo.BeginGuildPrune)
-	ModifyGuild(disgo.ModifyGuild)
-	ModifyGuildMember(disgo.ModifyGuildMember)
-	GetChannel(disgo.GetChannel)
-	CreateGuildChannel(disgo.CreateGuildChannel)
-	GetGuildRoles(disgo.GetGuildRoles)
-	ModifyGuildRolePositions(disgo.ModifyGuildRolePositions)
-	GetGuildPruneCount(disgo.GetGuildPruneCount)
-	GetGuildIntegrations(disgo.GetGuildIntegrations)
-	ModifyChannel(disgo.ModifyChannel)
-	ListActiveGuildThreads(disgo.ListActiveGuildThreads)
-	GetGuildMember(disgo.GetGuildMember)
-	AddGuildMember(disgo.AddGuildMember)
-	ModifyGuildWelcomeScreen(disgo.ModifyGuildWelcomeScreen)
-	ListGuildMembers(disgo.ListGuildMembers)
-	GetGuildInvites(disgo.GetGuildInvites)
-	GetGuildWelcomeScreen(disgo.GetGuildWelcomeScreen)
-	LeaveGuild(disgo.LeaveGuild)
-	SearchGuildMembers(disgo.SearchGuildMembers)
-	GetGuildVoiceRegions(disgo.GetGuildVoiceRegions)
-	DeleteGuildIntegration(disgo.DeleteGuildIntegration)
-	CreateGuildScheduledEvent(disgo.CreateGuildScheduledEvent)
-	GetGuildWebhooks(disgo.GetGuildWebhooks)
-	ModifyChannelGuild(disgo.ModifyChannelGuild)
-	CreateAutoModerationRule(disgo.CreateAutoModerationRule)
-	ModifyGuildWidget(disgo.ModifyGuildWidget)
-	CreateGuildBan(disgo.CreateGuildBan)
-	GetGuildChannels(disgo.GetGuildChannels)
-	CreateGuildRole(disgo.CreateGuildRole)
-	GetGuildPreview(disgo.GetGuildPreview)
-	DeleteGuild(disgo.DeleteGuild)
-	GetGuildWidget(disgo.GetGuildWidget)
-	GetGuild(disgo.GetGuild)
-	DeleteFollowupMessage(disgo.DeleteFollowupMessage)
-	EditFollowupMessage(disgo.EditFollowupMessage)
-	GetFollowupMessage(disgo.GetFollowupMessage)
-	DeleteAllReactions(disgo.DeleteAllReactions)
-	DeleteOwnReaction(disgo.DeleteOwnReaction)
-	DeleteUserReaction(disgo.DeleteUserReaction)
-	GetReactions(disgo.GetReactions)
-	ListPublicArchivedThreads(disgo.ListPublicArchivedThreads)
-	RemoveThreadMember(disgo.RemoveThreadMember)
-	ListThreadMembers(disgo.ListThreadMembers)
-	AddThreadMember(disgo.AddThreadMember)
-	LeaveThread(disgo.LeaveThread)
-	GetThreadMember(disgo.GetThreadMember)
-	ListJoinedPrivateArchivedThreads(disgo.ListJoinedPrivateArchivedThreads)
-	ListPrivateArchivedThreads(disgo.ListPrivateArchivedThreads)
-	JoinThread(disgo.JoinThread)
-	RemoveGuildMember(disgo.RemoveGuildMember)
-	AddGuildMemberRole(disgo.AddGuildMemberRole)
-	RemoveGuildMemberRole(disgo.RemoveGuildMemberRole)
-	ModifyCurrentMember(disgo.ModifyCurrentMember)
-	DeleteGuildScheduledEvent(disgo.DeleteGuildScheduledEvent)
-	ModifyGuildScheduledEvent(disgo.ModifyGuildScheduledEvent)
-	GetGuildScheduledEvent(disgo.GetGuildScheduledEvent)
-	GetGuildScheduledEventUsers(disgo.GetGuildScheduledEventUsers)
-	ListScheduledEventsforGuild(disgo.ListScheduledEventsforGuild)
-	ModifyAutoModerationRule(disgo.ModifyAutoModerationRule)
-	DeleteAutoModerationRule(disgo.DeleteAutoModerationRule)
-	GetAutoModerationRule(disgo.GetAutoModerationRule)
-	ListAutoModerationRulesForGuild(disgo.ListAutoModerationRulesForGuild)
-	GetGuildBan(disgo.GetGuildBan)
-	GetGuildBans(disgo.GetGuildBans)
-	RemoveGuildBan(disgo.RemoveGuildBan)
-	DeleteGuildRole(disgo.DeleteGuildRole)
-	ModifyGuildRole(disgo.ModifyGuildRole)
+	CreateGuild(*disgo.CreateGuild) (*disgo.Guild, error)
+	CreateGlobalApplicationCommand(*disgo.CreateGlobalApplicationCommand) (*disgo.ApplicationCommand, error)
+	CreateGuildApplicationCommand(*disgo.CreateGuildApplicationCommand) (*disgo.ApplicationCommand, error)
+	CreateInteractionResponse(*disgo.CreateInteractionResponse) error
+	CreateFollowupMessage(*disgo.CreateFollowupMessage) (*disgo.Message, error)
+	CreateAutoModerationRule(*disgo.CreateAutoModerationRule) (*disgo.AutoModerationRule, error)
+	CreateMessage(*disgo.CreateMessage) (*disgo.Message, error)
+	CreateReaction(*disgo.CreateReaction) error
+	CreateChannelInvite(*disgo.CreateChannelInvite) (*disgo.Invite, error)
+	CreateGuildEmoji(*disgo.CreateGuildEmoji) (*disgo.Emoji, error)
+	CreateGuildChannel(*disgo.CreateGuildChannel) (*disgo.Channel, error)
+	CreateGuildBan(*disgo.CreateGuildBan) error
+	CreateGuildRole(*disgo.CreateGuildRole) (*disgo.Role, error)
+	CreateGuildScheduledEvent(*disgo.CreateGuildScheduledEvent) (*disgo.GuildScheduledEvent, error)
+	CreateGuildfromGuildTemplate(*disgo.CreateGuildfromGuildTemplate) ([]*disgo.GuildTemplate, error)
+	CreateGuildTemplate(*disgo.CreateGuildTemplate) (*disgo.GuildTemplate, error)
+	CreateStageInstance(*disgo.CreateStageInstance) (*disgo.StageInstance, error)
+	CreateGuildSticker(*disgo.CreateGuildSticker) (*disgo.Sticker, error)
+	CreateGroupDM(*disgo.CreateGroupDM) (*disgo.Channel, error)
+	CreateWebhook(*disgo.CreateWebhook) (*disgo.Webhook, error)
+
+	GetGlobalApplicationCommands(*disgo.GetGlobalApplicationCommands) ([]*disgo.ApplicationCommand, error)
+	GetGlobalApplicationCommand(*disgo.GetGlobalApplicationCommand) (*disgo.ApplicationCommand, error)
+	GetGuildApplicationCommands(*disgo.GetGuildApplicationCommands) ([]*disgo.ApplicationCommand, error)
+	GetGuildApplicationCommand(*disgo.GetGuildApplicationCommand) (*disgo.ApplicationCommand, error)
+	GetGuildApplicationCommandPermissions(*disgo.GetGuildApplicationCommandPermissions) (*disgo.GuildApplicationCommandPermissions, error)
+	GetApplicationCommandPermissions(*disgo.GetApplicationCommandPermissions) (*disgo.GuildApplicationCommandPermissions, error)
+	GetOriginalInteractionResponse(*disgo.GetOriginalInteractionResponse) error
+	GetFollowupMessage(*disgo.GetFollowupMessage) (*disgo.Message, error)
+	GetGuildAuditLog(*disgo.GetGuildAuditLog) (*disgo.AuditLog, error)
+	GetAutoModerationRule(*disgo.GetAutoModerationRule) (*disgo.AutoModerationRule, error)
+	GetChannel(*disgo.GetChannel) (*disgo.Channel, error)
+	GetChannelMessages(*disgo.GetChannelMessages) ([]*disgo.Message, error)
+	GetChannelMessage(*disgo.GetChannelMessage) (*disgo.Message, error)
+	GetReactions(*disgo.GetReactions) ([]*disgo.User, error)
+	GetChannelInvites(*disgo.GetChannelInvites) ([]*disgo.Invite, error)
+	GetPinnedMessages(*disgo.GetPinnedMessages) ([]*disgo.Message, error)
+	GetThreadMember(*disgo.GetThreadMember) (*disgo.ThreadMember, error)
+	GetGuildEmoji(*disgo.GetGuildEmoji) (*disgo.Emoji, error)
+	GetGuild(*disgo.GetGuild) (*disgo.Guild, error)
+	GetGuildPreview(*disgo.GetGuildPreview) (*disgo.GuildPreview, error)
+	GetGuildChannels(*disgo.GetGuildChannels) ([]*disgo.Channel, error)
+	GetGuildMember(*disgo.GetGuildMember) (*disgo.GuildMember, error)
+	GetGuildBans(*disgo.GetGuildBans) ([]*disgo.Ban, error)
+	GetGuildBan(*disgo.GetGuildBan) (*disgo.Ban, error)
+	GetGuildRoles(*disgo.GetGuildRoles) ([]*disgo.Role, error)
+	GetGuildPruneCount(*disgo.GetGuildPruneCount) error
+	GetGuildVoiceRegions(*disgo.GetGuildVoiceRegions) (*disgo.VoiceRegion, error)
+	GetGuildInvites(*disgo.GetGuildInvites) ([]*disgo.Invite, error)
+	GetGuildIntegrations(*disgo.GetGuildIntegrations) ([]*disgo.Integration, error)
+	GetGuildWidgetSettings(*disgo.GetGuildWidgetSettings) (*disgo.GuildWidget, error)
+	GetGuildWidget(*disgo.GetGuildWidget) (*disgo.GuildWidget, error)
+	GetGuildVanityURL(*disgo.GetGuildVanityURL) (*disgo.Invite, error)
+	GetGuildWidgetImage(*disgo.GetGuildWidgetImage) (*disgo.EmbedImage, error)
+	GetGuildWelcomeScreen(*disgo.GetGuildWelcomeScreen) (*disgo.WelcomeScreen, error)
+	GetGuildScheduledEvent(*disgo.GetGuildScheduledEvent) (*disgo.GuildScheduledEvent, error)
+	GetGuildScheduledEventUsers(*disgo.GetGuildScheduledEventUsers) ([]*disgo.GuildScheduledEventUser, error)
+	GetGuildTemplate(*disgo.GetGuildTemplate) (*disgo.GuildTemplate, error)
+	GetGuildTemplates(*disgo.GetGuildTemplates) ([]*disgo.GuildTemplate, error)
+	GetInvite(*disgo.GetInvite) (*disgo.Invite, error)
+	GetStageInstance(*disgo.GetStageInstance) error
+	GetSticker(*disgo.GetSticker) (*disgo.Sticker, error)
+	GetGuildSticker(*disgo.GetGuildSticker) (*disgo.Sticker, error)
+	GetCurrentUser(*disgo.GetCurrentUser) (*disgo.User, error)
+	GetUser(*disgo.GetUser) (*disgo.User, error)
+	GetCurrentUserGuilds(*disgo.GetCurrentUserGuilds) ([]*disgo.Guild, error)
+	GetCurrentUserGuildMember(*disgo.GetCurrentUserGuildMember) (*disgo.GuildMember, error)
+	GetUserConnections(*disgo.GetUserConnections) ([]*disgo.Connection, error)
+	GetChannelWebhooks(*disgo.GetChannelWebhooks) ([]*disgo.Webhook, error)
+	GetGuildWebhooks(*disgo.GetGuildWebhooks) ([]*disgo.Webhook, error)
+	GetWebhook(*disgo.GetWebhook) (*disgo.Webhook, error)
+	GetWebhookwithToken(*disgo.GetWebhookwithToken) (*disgo.Webhook, error)
+	GetWebhookMessage(*disgo.GetWebhookMessage) (*disgo.Message, error)
+	GetGateway(*disgo.GetGateway) (*disgo.GetGatewayBotResponse, error)
+	GetGatewayBot(*disgo.GetGatewayBot) (*disgo.GetGatewayBotResponse, error)
+	GetCurrentBotApplicationInformation(*disgo.GetCurrentBotApplicationInformation) (*disgo.Application, error)
+	GetCurrentAuthorizationInformation(*disgo.GetCurrentAuthorizationInformation) (*disgo.CurrentAuthorizationInformationResponse, error)
+
+	EditGlobalApplicationCommand(*disgo.EditGlobalApplicationCommand) (*disgo.ApplicationCommand, error)
+	EditGuildApplicationCommand(*disgo.EditGuildApplicationCommand) (*disgo.ApplicationCommand, error)
+	EditApplicationCommandPermissions(*disgo.EditApplicationCommandPermissions) (*disgo.GuildApplicationCommandPermissions, error)
+	EditOriginalInteractionResponse(*disgo.EditOriginalInteractionResponse) (*disgo.Message, error)
+	EditFollowupMessage(*disgo.EditFollowupMessage) (*disgo.Message, error)
+	EditMessage(*disgo.EditMessage) (*disgo.Message, error)
+	EditChannelPermissions(*disgo.EditChannelPermissions) error
+	EditWebhookMessage(*disgo.EditWebhookMessage) (*disgo.Message, error)
+	BatchEditApplicationCommandPermissions(*disgo.BatchEditApplicationCommandPermissions) (*disgo.GuildApplicationCommandPermissions, error)
+
+	ModifyGuildWidget(*disgo.ModifyGuildWidget) (*disgo.GuildWidget, error)
+	ModifyAutoModerationRule(*disgo.ModifyAutoModerationRule) (*disgo.AutoModerationRule, error)
+	ModifyChannel(*disgo.ModifyChannel) (*disgo.Channel, error)
+	ModifyChannelGroupDM(*disgo.ModifyChannelGroupDM) (*disgo.Channel, error)
+	ModifyChannelGuild(*disgo.ModifyChannelGuild) (*disgo.Channel, error)
+	ModifyChannelThread(*disgo.ModifyChannelThread) (*disgo.Channel, error)
+	ModifyGuildEmoji(*disgo.ModifyGuildEmoji) (*disgo.Emoji, error)
+	ModifyGuild(*disgo.ModifyGuild) (*disgo.Guild, error)
+	ModifyGuildChannelPositions(*disgo.ModifyGuildChannelPositions) error
+	ModifyGuildMember(*disgo.ModifyGuildMember) (*disgo.GuildMember, error)
+	ModifyCurrentMember(*disgo.ModifyCurrentMember) (*disgo.GuildMember, error)
+	ModifyGuildRolePositions(*disgo.ModifyGuildRolePositions) ([]*disgo.Role, error)
+	ModifyGuildRole(*disgo.ModifyGuildRole) (*disgo.Role, error)
+	ModifyGuildWelcomeScreen(*disgo.ModifyGuildWelcomeScreen) (*disgo.WelcomeScreen, error)
+	ModifyCurrentUserVoiceState(*disgo.ModifyCurrentUserVoiceState) error
+	ModifyUserVoiceState(*disgo.ModifyUserVoiceState) error
+	ModifyGuildScheduledEvent(*disgo.ModifyGuildScheduledEvent) (*disgo.GuildScheduledEvent, error)
+	ModifyGuildTemplate(*disgo.ModifyGuildTemplate) (*disgo.GuildTemplate, error)
+	ModifyStageInstance(*disgo.ModifyStageInstance) (*disgo.StageInstance, error)
+	ModifyGuildSticker(*disgo.ModifyGuildSticker) (*disgo.Sticker, error)
+	ModifyCurrentUser(*disgo.ModifyCurrentUser) (*disgo.User, error)
+	ModifyWebhook(*disgo.ModifyWebhook) (*disgo.Webhook, error)
+	ModifyWebhookwithToken(*disgo.ModifyWebhookwithToken) (*disgo.Webhook, error)
+
+	ListAutoModerationRulesForGuild(*disgo.ListAutoModerationRulesForGuild) ([]*disgo.AutoModerationAction, error)
+	ListThreadMembers(*disgo.ListThreadMembers) ([]*disgo.ThreadMember, error)
+	ListPublicArchivedThreads(*disgo.ListPublicArchivedThreads) (*disgo.ListPublicArchivedThreadsResponse, error)
+	ListPrivateArchivedThreads(*disgo.ListPrivateArchivedThreads) (*disgo.ListPrivateArchivedThreadsResponse, error)
+	ListJoinedPrivateArchivedThreads(*disgo.ListJoinedPrivateArchivedThreads) (*disgo.ListJoinedPrivateArchivedThreadsResponse, error)
+	ListGuildEmojis(*disgo.ListGuildEmojis) ([]*disgo.Emoji, error)
+	ListActiveGuildThreads(*disgo.ListActiveGuildThreads) (*disgo.ListActiveGuildThreadsResponse, error)
+	ListGuildMembers(*disgo.ListGuildMembers) ([]*disgo.GuildMember, error)
+	ListScheduledEventsforGuild(*disgo.ListScheduledEventsforGuild) ([]*disgo.GuildScheduledEvent, error)
+	ListNitroStickerPacks(*disgo.ListNitroStickerPacks) ([]*disgo.StickerPack, error)
+	ListGuildStickers(*disgo.ListGuildStickers) ([]*disgo.Sticker, error)
+	ListVoiceRegions(*disgo.ListVoiceRegions) ([]*disgo.VoiceRegion, error)
+
+	GroupDMAddRecipient(*disgo.GroupDMAddRecipient) error
+	AddThreadMember(*disgo.AddThreadMember) error
+	AddGuildMember(*disgo.AddGuildMember) (*disgo.GuildMember, error)
+	AddGuildMemberRole(*disgo.AddGuildMemberRole) error
+
+	StartThreadfromMessage(*disgo.StartThreadfromMessage) (*disgo.Channel, error)
+	StartThreadwithoutMessage(*disgo.StartThreadwithoutMessage) (*disgo.Channel, error)
+	StartThreadinForumChannel(*disgo.StartThreadinForumChannel) (*disgo.Channel, error)
+
+	BulkOverwriteGlobalApplicationCommands(*disgo.BulkOverwriteGlobalApplicationCommands) ([]*disgo.ApplicationCommand, error)
+	BulkOverwriteGuildApplicationCommands(*disgo.BulkOverwriteGuildApplicationCommands) ([]*disgo.ApplicationCommand, error)
+
+	CrosspostMessage(*disgo.CrosspostMessage) (*disgo.Message, error)
+
+	FollowNewsChannel(*disgo.FollowNewsChannel) (*disgo.FollowedChannel, error)
+	TriggerTypingIndicator(*disgo.TriggerTypingIndicator) error
+
+	PinMessage(*disgo.PinMessage) error
+	UnpinMessage(*disgo.UnpinMessage) error
+
+	JoinThread(*disgo.JoinThread) error
+
+	SearchGuildMembers(*disgo.SearchGuildMembers) ([]*disgo.GuildMember, error)
+
+	BeginGuildPrune(*disgo.BeginGuildPrune) error
+
+	SyncGuildTemplate(*disgo.SyncGuildTemplate) (*disgo.GuildTemplate, error)
+
+	ExecuteWebhook(*disgo.ExecuteWebhook) error
+	ExecuteSlackCompatibleWebhook(*disgo.ExecuteSlackCompatibleWebhook) error
+	ExecuteGitHubCompatibleWebhook(*disgo.ExecuteGitHubCompatibleWebhook) error
+
+	GroupDMRemoveRecipient(*disgo.GroupDMRemoveRecipient) error
+	RemoveThreadMember(*disgo.RemoveThreadMember) error
+	RemoveGuildMemberRole(*disgo.RemoveGuildMemberRole) error
+	RemoveGuildMember(*disgo.RemoveGuildMember) error
+	RemoveGuildBan(*disgo.RemoveGuildBan) error
+
+	DeleteGlobalApplicationCommand(*disgo.DeleteGlobalApplicationCommand) error
+	DeleteGuildApplicationCommand(*disgo.DeleteGuildApplicationCommand) error
+	DeleteOriginalInteractionResponse(*disgo.DeleteOriginalInteractionResponse) error
+	DeleteFollowupMessage(*disgo.DeleteFollowupMessage) error
+	DeleteAutoModerationRule(*disgo.DeleteAutoModerationRule) error
+	DeleteCloseChannel(*disgo.DeleteCloseChannel) (*disgo.Channel, error)
+	DeleteOwnReaction(*disgo.DeleteOwnReaction) error
+	DeleteUserReaction(*disgo.DeleteUserReaction) error
+	DeleteAllReactions(*disgo.DeleteAllReactions) error
+	DeleteAllReactionsforEmoji(*disgo.DeleteAllReactionsforEmoji) error
+	DeleteMessage(*disgo.DeleteMessage) error
+	BulkDeleteMessages(*disgo.BulkDeleteMessages) error
+	DeleteChannelPermission(*disgo.DeleteChannelPermission) error
+	DeleteGuildEmoji(*disgo.DeleteGuildEmoji) error
+	DeleteGuild(*disgo.DeleteGuild) error
+	DeleteGuildRole(*disgo.DeleteGuildRole) error
+	DeleteGuildIntegration(*disgo.DeleteGuildIntegration) error
+	DeleteGuildScheduledEvent(*disgo.DeleteGuildScheduledEvent) error
+	DeleteGuildTemplate(*disgo.DeleteGuildTemplate) (*disgo.GuildTemplate, error)
+	DeleteInvite(*disgo.DeleteInvite) (*disgo.Invite, error)
+	DeleteStageInstance(*disgo.DeleteStageInstance) error
+	DeleteGuildSticker(*disgo.DeleteGuildSticker) error
+	DeleteWebhook(*disgo.DeleteWebhook) error
+	DeleteWebhookwithToken(*disgo.DeleteWebhookwithToken) error
+	DeleteWebhookMessage(*disgo.DeleteWebhookMessage) error
+
+	LeaveThread(*disgo.LeaveThread) error
+	LeaveGuild(*disgo.LeaveGuild) error
 }

@@ -22,6 +22,7 @@ func Generate(gen *models.Generator) (string, error) {
 	content.WriteString("\tAuthentication: BotToken(os.Getenv(\"TOKEN\")),\n")
 	content.WriteString("\tConfig:         DefaultConfig(),\n\t}\n")
 	content.WriteString("\t	eg, ctx := errgroup.WithContext(context.Background())\n\n\t")
+
 	for i := range gen.Functions {
 		content.WriteString(Function(&gen.Functions[i]) + "\n")
 	}
@@ -33,10 +34,18 @@ func Generate(gen *models.Generator) (string, error) {
 // Function provides generated code for a function.
 func Function(function *models.Function) string {
 	var fn strings.Builder
-	fn.WriteString(generateErrGroup(function))
-	fn.WriteString(generateComment(function) + "\n")
-	fn.WriteString(generateRequest(function))
-	fn.WriteString(generateErrHandle(function) + "\n})\n")
+
+	if strings.Contains(function.Name, "Create") {
+		fn.WriteString(generateComment(function) + "\n")
+		fn.WriteString(generateRequest(function))
+		fn.WriteString(generateErrHandle(function) + "\n")
+	} else {
+		fn.WriteString(generateErrGroup(function))
+		fn.WriteString(generateComment(function) + "\n")
+		fn.WriteString(generateRequest(function))
+		fn.WriteString(generateErrHandle(function) + "\n})\n")
+	}
+
 	return fn.String()
 }
 
@@ -67,11 +76,16 @@ func generateComment(function *models.Function) string {
 
 // generateSignature generates a function's signature.
 func generateRequest(function *models.Function) string {
-	return "request := " + function.Name + generateEndpointCall(function.From[0].Field) + "\n"
+	return "request" + function.Name + " := " + function.Name + generateEndpointCall(function.From[0].Field) + "\n"
 }
 
 func generateErrHandle(function *models.Function) string {
-	return "if err := request.Send(bot); err != nil {\n\treturn err\n}\nreturn nil\n"
+
+	if strings.Contains(function.Name, "Create") {
+		return "if _, err := request" + function.Name + ".Send(bot); err != nil {\n\treturn\n}\n"
+	} else {
+		return "if _, err := request" + function.Name + ".Send(bot); err != nil {\n\treturn err\n}\nreturn nil\n"
+	}
 }
 
 func generateErrGroup(function *models.Function) string {
