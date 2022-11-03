@@ -196,7 +196,7 @@ Disgo is the easiest Discord Go API for developers to use and contribute to. You
 | Library   | Contribution                                                                                                                                                                                                                              | Lines of Code to Maintain |
 | :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
 | Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 6K/15K                    |
-| DiscordGo | No Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                           | 12K/12K                   |
+| DiscordGo | Contribution Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                 | 12K/12K                   |
 | Disgord   | Contribution Guidelines, No Linter, ORM, Not Feature Complete                                                                                                                                                                             | ?/30K                     |
 
 ## Ecosystem

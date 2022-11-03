@@ -14,7 +14,7 @@ The domain of Disgo in providing an API for HTTP/WebSocket requests. The program
 
 ## Project Structure
 
-The repository consists of a detailed [README](/README.md), [examples](/_examples/), [**API Wrapper**](/wrapper), [**Cache**](/cache), and [**Shard Manager**](/shard/).
+The repository contains a [README](/README.md), [Examples](/_examples/), [Code Generator](/_gen/), [**Cache**](/cache), [**Shard Manager**](/shard/), [**API Tools**](/tools/), and [**API Wrapper**](/wrapper).
 
 ### Disgo
 
@@ -23,16 +23,17 @@ The repository consists of a detailed [README](/README.md), [examples](/_example
 | wrapper | API Wrapper.      |
 | cache   | Cache.            |
 | shard   | Sharding Manager. |
+| tools   | Utility Tools.    |
 
 _A [bundler](https://pkg.go.dev/golang.org/x/tools/cmd/bundle) is used to package the API into a `disgo` package (`disgo.go`)_.
 
 #### Structs
 
-Structs are sourced from [Dasgo](https://github.com/switchupcb/dasgo) and refactored into the correct name scheme for end users. The abstraction _(i.e Resource)_ is pre-pended to the resource name _(i.e User)_ to speed up development. Modern IDE's will show the developer a list of resources when `disgo.R` is typed; rather than a bunch of irrelevant resources, functions, and variables.
+Structs are sourced from [Dasgo](https://github.com/switchupcb/dasgo).
 
 ```go
-disgo.ResourceUser
-disgo.RequestGetUser
+disgo.User
+disgo.GetUser
 ```
 
 #### Requests
@@ -61,6 +62,7 @@ If you receive `File is not ... with -...`, use `golangci-lint run --disable-all
  | `_gen`    | `golangci-lint run ./_gen`    | Perform static code analysis on the generator.     |
  | `cache`   | `golangci-lint run ./cache`   | Perform static code analysis on the Disgo Cache.   |
  | `shard`   | `golangci-lint run ./shard`   | Perform static code analysis on the Shard Manager. |
+ | `tools`   | `golangci-lint run ./tools`   | Perform static code analysis on the Shard Manager. |
 
 #### Fieldalignment
 
@@ -84,10 +86,10 @@ Use `go test` to run the tests in the current directory. Use `go test ./<dir>` t
 
 Disgo is **USABLE**. Here are the steps required in order to complete it:
 
-1. **Implement [Coverage Testing](https://github.com/switchupcb/disgo/pull/19)** _[STABLE]_.
-2. Implement Structured Logging.
-3. Bundle Disgo (with `fieldalignment`) _[v10.0.0]_.
-4. Implement Sharding.
+1. Implement Structured Logging.
+2. Bundle Disgo (with `fieldalignment`) _[v10.0.0]_.
+3. **Finish [Coverage Testing](https://github.com/switchupcb/disgo/pull/19)** _[STABLE]_.
+4. Implement [Sharding](https://github.com/switchupcb/disgo/issues/26).
 5. Implement Cache.
 
 In addition, we must make [decisions](/_contribution/libraries/) for the following:

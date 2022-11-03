@@ -1,8 +1,7 @@
-name: Monorepo Pull Request Labeler
+name: Pull Request Labeler
 
 on:
-  pull_request:
-    types: [opened]
+  pull_request_target:
     branches:
       - v10
 
@@ -11,7 +10,6 @@ jobs:
     name: Label Pull Request
     runs-on: ubuntu-latest
     steps:
-      - name: label pull request
-        uses: TinkurLab/monorepo-pr-labeler-action@4.1.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/labeler@v4.0.2
+      with:
+        repo-token: "${{ secrets.GITHUB_TOKEN }}"
