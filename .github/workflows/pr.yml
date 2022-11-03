@@ -11,7 +11,6 @@ jobs:
     name: Label Pull Request
     runs-on: ubuntu-latest
     steps:
-      - name: label pull request
-        uses: TinkurLab/monorepo-pr-labeler-action@4.1.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/labeler@v4.0.2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
