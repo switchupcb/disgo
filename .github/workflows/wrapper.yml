@@ -5,8 +5,9 @@ on:
     branches:
       - v10
     paths-ignore:
-      - "_contribution"
-      - "_examples"
+      - ".github/**"
+      - "_contribution/**"
+      - "_examples/**"
       - "_gen/**"
       - "cache/**"
       - "shard/**"
