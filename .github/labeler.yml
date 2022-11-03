@@ -1,17 +1,21 @@
 examples:
-- _examples/*
+- _examples/**/*
 
 generator:
-- _gen/*
+- _gen/**/*
 
 cache:
-- cache/*
+- cache/**/*
 
 shard:
-- shard/*
+- shard/**/*
 
 tools:
-- tools/*
+- tools/**/*
 
 wrapper:
-- wrapper/*
+- wrapper/**/*
+
+workflow:
+- .github/**/*
+
