@@ -1,8 +1,10 @@
 name: Monorepo Pull Request Labeler
 
 on:
-  pull_request:
-    types: [opened]
+ pull_request_target:
+    types:
+      - opened
+      - synchronize
     branches:
       - v10
 
