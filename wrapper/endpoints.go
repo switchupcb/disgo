@@ -332,8 +332,8 @@ func EndpointDeleteChannelPermission(channelid, overwriteid string) string {
 	return EndpointBaseURL + channels + slash + channelid + slash + permissions + slash + overwriteid
 }
 
-// EndpointFollowNewsChannel builds a query for an HTTP request.
-func EndpointFollowNewsChannel(channelid string) string {
+// EndpointFollowAnnouncementChannel builds a query for an HTTP request.
+func EndpointFollowAnnouncementChannel(channelid string) string {
 	return EndpointBaseURL + channels + slash + channelid + slash + followers
 }
 

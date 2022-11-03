@@ -687,17 +687,17 @@ func (r *DeleteChannelPermission) Send(bot *Client) error {
 	return nil
 }
 
-// Send sends a FollowNewsChannel request to Discord and returns a FollowedChannel.
-func (r *FollowNewsChannel) Send(bot *Client) (*FollowedChannel, error) {
+// Send sends a FollowAnnouncementChannel request to Discord and returns a FollowedChannel.
+func (r *FollowAnnouncementChannel) Send(bot *Client) (*FollowedChannel, error) {
 	body, err := json.Marshal(r)
 	if err != nil {
-		return nil, fmt.Errorf(ErrSendMarshal, "FollowNewsChannel", err)
+		return nil, fmt.Errorf(ErrSendMarshal, "FollowAnnouncementChannel", err)
 	}
 
 	result := new(FollowedChannel)
-	err = SendRequest(bot, 55, fasthttp.MethodPost, EndpointFollowNewsChannel(r.ChannelID), ContentTypeJSON, body, result)
+	err = SendRequest(bot, 55, fasthttp.MethodPost, EndpointFollowAnnouncementChannel(r.ChannelID), ContentTypeJSON, body, result)
 	if err != nil {
-		return nil, fmt.Errorf(ErrSendRequest, "FollowNewsChannel", err)
+		return nil, fmt.Errorf(ErrSendRequest, "FollowAnnouncementChannel", err)
 	}
 
 	return result, nil

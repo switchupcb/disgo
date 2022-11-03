@@ -22,4 +22,4 @@ Disgo generates code for features using [copygen](https://github.com/switchupcb/
 | `send.go`    | Uses copygen to generate request `Send()` functions.               |
 | `handle.go`  | Uses copygen to generate request **event handling** functionality. |
 | `command.go` | Uses copygen to generate request `Command()` functions.            |
-| Clean        | Cleans the generated code _(by removing unnecessary fields)_.      |
+| Clean        | Cleans the generated code.                                         |

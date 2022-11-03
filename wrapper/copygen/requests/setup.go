@@ -113,7 +113,7 @@ type Copygen interface {
 	// http DELETE
 	DeleteChannelPermission(*disgo.DeleteChannelPermission) error
 	// http POST
-	FollowNewsChannel(*disgo.FollowNewsChannel) (*disgo.FollowedChannel, error)
+	FollowAnnouncementChannel(*disgo.FollowAnnouncementChannel) (*disgo.FollowedChannel, error)
 	// http POST
 	TriggerTypingIndicator(*disgo.TriggerTypingIndicator) error
 	// http GET

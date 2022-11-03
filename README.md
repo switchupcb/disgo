@@ -5,7 +5,7 @@
 
 **This repository is USABLE. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).**
 
-**Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper is designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
+**Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
 
 **A Next Generation Discord API Wrapper**
 

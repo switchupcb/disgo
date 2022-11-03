@@ -9,6 +9,7 @@ import (
 // Clean cleans the generated code.
 func Clean(code []byte) ([]byte, error) {
 	content := removeApplicationID(string(code))
+	content = fixPointerFunc(content)
 
 	// gofmt
 	contentdata := []byte(content)
@@ -47,6 +48,22 @@ func removeApplicationID(content string) string {
 		}
 
 		if keep {
+			file.WriteString(line + "\n")
+		}
+	}
+
+	return file.String()
+}
+
+// fixPointerFunc fixes the generated pointer function in dasgo.
+func fixPointerFunc(content string) string {
+	var file strings.Builder
+
+	lines := strings.Split(content, "\n")
+	for _, line := range lines {
+		if "func Pointer(v T) *T {" == line {
+			file.WriteString("func Pointer[T any](v T) *T {" + "\n")
+		} else {
 			file.WriteString(line + "\n")
 		}
 	}
