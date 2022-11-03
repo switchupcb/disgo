@@ -4,15 +4,13 @@ on:
   push:
     branches:
       - v10
-    paths-ignore:
-      - ".github/**"
-      - "_contribution/**"
-      - "_examples/**"
-      - "_gen/**"
-      - "cache/**"
-      - "shard/**"
-      - "tools/**"
-      - "README.md"
+    paths:
+      - "wrapper/**"
+      - "disgo.go"
+      - "go.mod"
+      - "go.sum"
+      - "go.work"
+      - "go.work.sum"
 
   pull_request_target:
     types:
@@ -20,15 +18,13 @@ on:
       - synchronize
     branches:
       - v10
-    paths-ignore:
-      - ".github/**"
-      - "_contribution/**"
-      - "_examples/**"
-      - "_gen/**"
-      - "cache/**"
-      - "shard/**"
-      - "tools/**"
-      - "README.md"
+    paths:
+      - "wrapper/**"
+      - "disgo.go"
+      - "go.mod"
+      - "go.sum"
+      - "go.work"
+      - "go.work.sum"
 
 jobs:
   sca-lint:
