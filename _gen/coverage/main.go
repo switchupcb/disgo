@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 var (
-	// endpoints represents a dependency graph of endpoints (map[dependency][]dependents).
+	// endpoints represents a dependency graph of endpoints (map[dependent][]dependencies).
 	endpoints = map[string][]string{
 		"GetGlobalApplicationCommands":           {"CreateGlobalApplicationCommand"},
 		"CreateGlobalApplicationCommand":         {},
@@ -69,7 +69,7 @@ var (
 		"StartThreadwithoutMessage":              {"CreateGuildChannel"},
 		"StartThreadinForumChannel":              {"CreateGuildChannel"},
 		"JoinThread":                             {"StartThreadwithoutMessage"},
-		"AddThreadMember":                        {"StartThreadwithoutMessage"},
+		"AddThreadMember":                        {"StartThreadwithoutMessage", "GetUser"},
 		"LeaveThread":                            {"JoinThread"},
 		"RemoveThreadMember":                     {"AddThreadMember"},
 		"GetThreadMember":                        {"AddThreadMember"},
@@ -79,7 +79,7 @@ var (
 		"ListJoinedPrivateArchivedThreads":       {"CreateGuildChannel"},
 		"ListGuildEmojis":                        {"CreateGuildChannel"},
 		"GetGuildEmoji":                          {"CreateGuildEmoji"},
-		"CreateGuildEmoji":                       {},
+		"CreateGuildEmoji":                       {"CreateGuild"},
 		"ModifyGuildEmoji":                       {"CreateGuildEmoji"},
 		"DeleteGuildEmoji":                       {"CreateGuildEmoji"},
 		"CreateGuild":                            {},
@@ -147,7 +147,7 @@ var (
 		"ListNitroStickerPacks":                  {},
 		"ListGuildStickers":                      {"CreateGuildSticker"},
 		"GetGuildSticker":                        {"CreateGuildSticker"},
-		"CreateGuildSticker":                     {"CreateGuildSticker"},
+		"CreateGuildSticker":                     {"CreateGuild"},
 		"ModifyGuildSticker":                     {"CreateGuildSticker"},
 		"DeleteGuildSticker":                     {"CreateGuildSticker"},
 		"GetCurrentUser":                         {},
@@ -190,6 +190,7 @@ var (
 		"TriggerTypingIndicator":                 true,
 		"GroupDMAddRecipient":                    true,
 		"GroupDMRemoveRecipient":                 true,
+		"GetGuildIntegration":                    true,
 		"DeleteGuildIntegration":                 true,
 		"CreateGroupDM":                          true,
 
@@ -223,14 +224,81 @@ func filterEndpoints(endpoints map[string][]string) {
 	}
 }
 
-// findOrder finds the order of endpoints with the least amount of dependencies
-// to the most amount of dependencies.
+// findOrder finds the optimal order of endpoints using dependency graph.
 func findOrder(endpoints map[string][]string) []string {
 	filterEndpoints(endpoints)
 
-	// TODO
+	numEndpoints := len(endpoints)
 
-	return []string{}
+	// dependents represents a map of dependent endpoints to
+	// the respective amount of dependencies (map[dependency]numDependencies).
+	dependents := make(map[string]int, numEndpoints)
+
+	// calculate the number of dependencies for each dependent.
+	for endpoint, dependencies := range endpoints {
+		dependents[endpoint] = len(dependencies)
+	}
+
+	// queue represents a first-in first-out data structure.
+	//
+	// queue can't have more entries than the number of endpoints,
+	// so initialize a map of length 0 with capacity = numEndpoints.
+	queue := make([]string, 0, numEndpoints)
+
+	// fill the queue with dependent endpoints that have no dependencies (i.e `CreateGuild`).
+	for endpoint, numDependencies := range dependents {
+		if numDependencies == 0 {
+			queue = append(queue, endpoint)
+		}
+	}
+
+	// output represents the returned result.
+	output := make([]string, 0, numEndpoints)
+
+	// add dependent endpoints with no dependencies to the output list.
+	for len(queue) > 0 {
+		// select the first entry in the queue (of dependent endpoints with no dependencies).
+		current := queue[0]
+
+		// remove the first entry out the queue (of dependent endpoints with no dependencies).
+		queue = queue[1:]
+
+		// add the entry to the output.
+		output = append(output, current)
+
+		// decrease the amount of endpoints remaining.
+		delete(endpoints, current)
+		numEndpoints--
+
+		// The operation above removes any amount of dependencies from the queue.
+		//
+		// add endpoints with no dependencies to the queue.
+		for endpoint, dependencies := range endpoints {
+			// when a dependency is added to the output,
+			// remove that endpoint (current) from dependent (endpoint)s' dependencies.
+			if contains(dependencies, current) {
+				dependents[endpoint]--
+
+				// when the endpoint is dependent on no other endpoints, add it to the queue.
+				if dependents[endpoint] == 0 {
+					queue = append(queue, endpoint)
+				}
+			}
+		}
+	}
+
+	if numEndpoints != 0 {
+		fmt.Println("WARNING: dependency cycle occurred (i.e [a: b],[b: a]) or necessary endpoint is unused.\n")
+		fmt.Println("Examine the following endpoints.")
+
+		for endpoint, dependencies := range endpoints {
+			fmt.Println(endpoint, "depends on", dependencies)
+		}
+
+		return []string{}
+	}
+
+	return output
 }
 
 // contains returns whether the slice s contains the string x.
