@@ -162,7 +162,7 @@ var (
 		"CreateWebhook":                          {"CreateGuildChannel"},
 		"GetChannelWebhooks":                     {"CreateGuildChannel"},
 		"GetGuildWebhooks":                       {"CreateGuild"},
-		"GetWebhook":                             {"GetWebhook"},
+		"GetWebhook":                             {},
 		"GetWebhookwithToken":                    {"CreateWebhook"},
 		"ModifyWebhook":                          {"CreateWebhook"},
 		"ModifyWebhookwithToken":                 {"GetWebhook"},
@@ -192,6 +192,7 @@ var (
 		"GroupDMRemoveRecipient":                 true,
 		"GetGuildIntegration":                    true,
 		"DeleteGuildIntegration":                 true,
+		"ListNitroStickerPacks":                  true,
 		"CreateGroupDM":                          true,
 
 		// Webhooks
@@ -224,10 +225,23 @@ func filterEndpoints(endpoints map[string][]string) {
 	}
 }
 
+// filterOutput removes unused endpoints from the endpoint output slice.
+func filterOutput(endpoints []string) []string {
+	output := make([]string, 0, len(unused))
+
+	for _, endpoint := range endpoints {
+		if unused[endpoint] {
+			continue
+		}
+
+		output = append(output, endpoint)
+	}
+
+	return output
+}
+
 // findOrder finds the optimal order of endpoints using dependency graph.
 func findOrder(endpoints map[string][]string) []string {
-	filterEndpoints(endpoints)
-
 	numEndpoints := len(endpoints)
 
 	// dependents represents a map of dependent endpoints to
@@ -313,7 +327,7 @@ func contains(s []string, x string) bool {
 }
 
 func main() {
-	for i, endpoint := range findOrder(endpoints) {
+	for i, endpoint := range filterOutput(findOrder(endpoints)) {
 		fmt.Printf("%d. %v\n", i, endpoint)
 	}
 }

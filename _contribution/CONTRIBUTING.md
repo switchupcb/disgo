@@ -62,7 +62,7 @@ If you receive `File is not ... with -...`, use `golangci-lint run --disable-all
  | `_gen`    | `golangci-lint run ./_gen`    | Perform static code analysis on the generator.     |
  | `cache`   | `golangci-lint run ./cache`   | Perform static code analysis on the Disgo Cache.   |
  | `shard`   | `golangci-lint run ./shard`   | Perform static code analysis on the Shard Manager. |
- | `tools`   | `golangci-lint run ./tools`   | Perform static code analysis on the Shard Manager. |
+ | `tools`   | `golangci-lint run ./tools`   | Perform static code analysis on the Tools Module. |
 
 #### Fieldalignment
 

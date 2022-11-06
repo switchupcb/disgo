@@ -1,6 +1,6 @@
 # Coverage Integration Test Generator
 
-Disgo contains an integration test that covers nearly 100% of the Discord API to ensure feature-complete functionality. This test entails calling 160+ endpoints (requests) and dealing with respective events as necessary. The test is run in the CI/CD pipeline used to approve a build for production-usage. It can also be used by developers to debug issues. As a result, it's important to optimize this task in order to _minimize the amount of time spent running tests_ in any given workflow.
+Disgo contains an integration test that covers a majority of the Discord API to ensure feature-complete functionality. This test entails calling 150+ endpoints (requests) and dealing with respective events as necessary. The test is run in the CI/CD pipeline used to approve a build for production-usage. It can also be used by developers to debug issues. As a result, it's important to optimize this task in order to _minimize the amount of time spent running tests_ in any given workflow.
 
 ## Guide
 
@@ -12,8 +12,6 @@ Running the entire story can be optimized to approximately 2 - 4 seconds. Discor
 
 ## Generation
 
-A general order of request is generated using the `main.go` file in this directory. It consists of every endpoint placed in a map (of dependent endpoints _to_ dependencies), along with a topological sort to output a **valid order to call requests**. Requests that are **NOT** included in the test should be marked in the `unused` map.
+A general order of requests is generated using the `main.go` file in this directory. It consists of every endpoint placed in a map (of dependent endpoints _to_ dependencies), along with a topological sort to output a **valid order to call requests**. Requests that are **NOT** included in the test are marked in the `unused` map.
 
-Copygen is used to speed up the test file's creation. First, requests are placed in a [`setup.go`](/wrapper/copygen/integration/setup.go) file _(using the same definitions as the [`send.go` setup file](/wrapper/copygen/requests/setup.go)_) in the specified order _(which can be adjusted manually)_. Then, Copygen is run using the customized template to output a test that calls functions in an `errgroup`.
-
-Once the general test is output, it can be further modified where necessary. In the case of dependent requests, it may be more efficient to move them to the same goroutine as their dependency, such that the dependent is called synchronously AFTER the dependency. In other cases, a dependency that maintains many dependents may need to be called on its own, with some capacity to ensure it was called BEFORE the dependent is called _(i.e `WaitGroups`)_.
+Once the request order is output, the test can be created or modified. Dependent requests may be moved to same goroutine as their dependencies, such that the dependent request is called synchronously AFTER the dependency. In other cases, a dependency that maintains many dependents may need to be called on its own, with some capacity to ensure it was called BEFORE the dependent is called _(i.e `WaitGroups`)_.
