@@ -142,14 +142,18 @@ func DefaultRequest() Request {
 
 	// configure the rate limiter.
 	ratelimiter := &RateLimit{ //nolint:exhaustruct
-		ids:     make(map[uint16]string, totalRoutes),
+		ids:     make(map[string]string, totalRoutes),
 		buckets: make(map[string]*Bucket, totalRoutes),
 		entries: make(map[string]int, totalRoutes),
 	}
 
+	ratelimiter.DefaultBucket = &Bucket{ //nolint:exhaustruct
+		Limit: 1,
+	}
+
 	// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
 	ratelimiter.SetBucket(
-		0, &Bucket{ //nolint:exhaustruct
+		GlobalRateLimitRouteID, &Bucket{ //nolint:exhaustruct
 			Limit:     FlagGlobalRateLimitRequest,
 			Remaining: FlagGlobalRateLimitRequest,
 		},
@@ -208,13 +212,17 @@ const (
 func DefaultGateway(privileged bool) Gateway {
 	// configure the rate limiter.
 	ratelimiter := &RateLimit{ //nolint:exhaustruct
-		ids:     make(map[uint16]string, totalGatewayBuckets),
+		ids:     make(map[string]string, totalGatewayBuckets),
 		buckets: make(map[string]*Bucket, totalGatewayBuckets),
+	}
+
+	ratelimiter.DefaultBucket = &Bucket{ //nolint:exhaustruct
+		Limit: 1,
 	}
 
 	// https://discord.com/developers/docs/topics/gateway#rate-limiting
 	ratelimiter.SetBucket(
-		0, &Bucket{ //nolint:exhaustruct
+		GlobalRateLimitRouteID, &Bucket{ //nolint:exhaustruct
 			Limit:     FlagGlobalRateLimitGateway,
 			Remaining: FlagGlobalRateLimitGateway,
 			Expiry:    time.Now().Add(FlagGlobalRateLimitGatewayInterval),

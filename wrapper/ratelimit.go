@@ -2,38 +2,27 @@ package wrapper
 
 import (
 	"log"
-	"strconv"
 	"sync"
 )
 
-var (
-	DefaultBucketKeyRoute         = "ROUTE"
-	DefaultBucketKeyResource      = "RESOURCE"
-	DefaultBucketKeyResourceRoute = "RESOURCExROUTE"
-
-	// DefaultBuckets represents a map of Default Rate Limit Buckets to Rate Limit Strategies.
-	//
-	// A Default Rate Limit Bucket is used to control the flow of the "first request for any given route".
-	//
-	// This is necessary since Discord uses dynamic per-route token rate limits.
-	// As a result, a route's actual rate limit Bucket can NOT be discovered until
-	// a request is sent (using the respective route).
-	//
-	// Use a Default Bucket's Limit field-value to control how many requests of
-	// a given route can be sent (per second) BEFORE the actual rate limit Bucket of the route is known.
-	DefaultBuckets = map[string]*Bucket{
-		DefaultBucketKeyRoute:         {Limit: 1},
-		DefaultBucketKeyResource:      {Limit: 1},
-		DefaultBucketKeyResourceRoute: {Limit: 1},
-	}
-
+const (
 	nilRouteBucket = "NIL"
+)
+
+var (
+	// IgnoreGlobalRateLimitRouteIDs represents a set of Route IDs that do NOT adhere to the Global Rate Limit.
+	//
+	// Interaction endpoints are not bound to the bot's Global Rate Limit.
+	// https://discord.com/developers/docs/interactions/receiving-and-responding#endpoints
+	IgnoreGlobalRateLimitRouteIDs = map[string]bool{
+		"18": true, "19": true, "20": true, "21": true, "22": true, "23": true, "24": true, "25": true,
+	}
 )
 
 // RateLimit provides concurrency-safe rate limit functionality by implementing the RateLimiter interface.
 type RateLimit struct {
 	// ids represents a map of Route IDs to Bucket IDs (map[routeID]BucketID).
-	ids map[uint16]string
+	ids map[string]string
 
 	// buckets represents a map of Bucket IDs to rate limit Bucket (map[BucketID]*Bucket).
 	buckets map[string]*Bucket
@@ -48,9 +37,28 @@ type RateLimit struct {
 
 	// muTx represents a mutex used to access multiple rate limit Buckets as a transaction.
 	muTx sync.Mutex
+
+	// DefaultBucket represents a Default Rate Limit Bucket, which is used to control
+	// the rate of the "first request(s) for any given route".
+	//
+	// This is necessary since Discord uses dynamic per-route token rate limits.
+	// As a result, a route's actual Rate Limit Bucket can NOT be discovered until a request (for that route) is sent.
+	//
+	// A Default Rate Limit Bucket can be set at multiple levels.
+	//	Route (RateLimit.DefaultBucket):    Used when a per-route request's bucket is NOT initialized (i.e route 16*).
+	// 	Resource (Route Bucket Hash):       Used when a per-resource request's bucket is NOT initialized (i.e route 16, resource 32*).
+	// 	Resource(s) (Resource Bucket Hash): Used when an nth degree per-resource request's bucket is NOT initialized (i.e route 16; resource 32; resource 7*).
+	// 	So on and so forth...
+	//	*A request is NOT initialized when it has never been set (to a bucket or nil).
+	//
+	// Set the DefaultBucket to `nil` to disable the Default Rate Limit Bucket mechanism.
+	//
+	// Use a Default Bucket's Limit field-value to control how many requests of
+	// a given route can be sent (per second) BEFORE the actual Rate Limit Bucket of that route is known.
+	DefaultBucket *Bucket
 }
 
-func (r *RateLimit) SetBucketHash(routeid uint16, bucketid string) {
+func (r *RateLimit) SetBucketID(routeid string, bucketid string) {
 	currentBucketID := r.ids[routeid]
 
 	// when the current Bucket ID is not the same as the new Bucket ID.
@@ -62,7 +70,9 @@ func (r *RateLimit) SetBucketHash(routeid uint16, bucketid string) {
 			// when the current Bucket ID is no longer referenced by a Route,
 			// delete the respective Bucket (and recycle it).
 			if r.entries[currentBucketID] <= 0 {
-				putBucket(r.buckets[currentBucketID])
+				if currentBucket := r.buckets[currentBucketID]; currentBucket != nil {
+					putBucket(currentBucket)
+				}
 				delete(r.entries, currentBucketID)
 				delete(r.buckets, currentBucketID)
 
@@ -80,66 +90,91 @@ func (r *RateLimit) SetBucketHash(routeid uint16, bucketid string) {
 	}
 }
 
-func (r *RateLimit) GetBucketHash(routeid uint16) string {
+func (r *RateLimit) GetBucketID(routeid string) string {
 	return r.ids[routeid]
 }
 
-func (r *RateLimit) SetBucketFromHash(bucketid string, bucket *Bucket) {
+func (r *RateLimit) SetBucketFromID(bucketid string, bucket *Bucket) {
 	r.buckets[bucketid] = bucket
 
 	log.Printf("set bucket %s to %p", bucketid, bucket)
 }
 
-func (r *RateLimit) GetBucketFromHash(bucketid string) *Bucket {
+func (r *RateLimit) GetBucketFromID(bucketid string) *Bucket {
 	return r.buckets[bucketid]
 }
 
-func (r *RateLimit) SetBucket(routeid uint16, bucket *Bucket) {
+func (r *RateLimit) SetBucket(routeid string, bucket *Bucket) {
 	r.buckets[r.ids[routeid]] = bucket
 }
 
-func (r *RateLimit) GetBucket(routeid uint16) *Bucket {
-	// ID 0 is used as a Global Rate Limit Bucket or nil.
-	if routeid != 0 {
-		switch r.ids[routeid] {
-		// when a non-global route is initialized and nil (see explanation below).
+func (r *RateLimit) GetBucket(routeid string, resourceid string) *Bucket {
+	requestid := routeid + resourceid
+
+	// ID 0 is used as a Global Rate Limit Bucket (or nil).
+	if routeid != GlobalRateLimitRouteID {
+		switch r.ids[requestid] {
+		// when a non-global route is initialized and (BucketID == "NIL"), NO rate limit applies.
 		case nilRouteBucket:
 			return nil
 
-		// This rate limiter implementation points ID 0 (which is reserved for a
-		// Global Rate Limiter) to Bucket ID "".
+		// This rate limiter implementation points the Route ID 0 (which is reserved for a
+		// Global Rate Limit) to Bucket ID "".
 		//
-		// As a result (of the Default Bucket), non-0 Route IDs must be handled accordingly.
+		// As a result (of the Default Bucket mechanism), non-0 Route IDs must be handled accordingly.
 		case "":
-			// when a non-global route is uninitialized, set it to the default bucket.
+			// when a non-global route is uninitialized, set it to the Default Bucket.
 			//
-			// While GetBucket can be called multiple times BEFORE a request is sent,
-			// routeBucket.GetBucket is only called when the global rate limit has
-			// been validated. As a result, the bucket that is allocated from this
-			// call will ALWAYS be immediately used.
+			// While GetBucket() can be called multiple times BEFORE a request is sent,
+			// this case is only true the FIRST time a GetBucket() call is made (for that request),
+			// As a result, the Bucket that is allocated from this call will ALWAYS be
+			// immediately used.
 			//
-			// The Bucket ID (Hash) is an artificial value while the Route ID
-			// is pointed to a Default Bucket. This results in subsequent calls to the
-			// Route's Default Bucket to return the same bucket.
+			// The Route's Bucket ID (Hash) is set to an artificial value while
+			// the Route ID is pointed to a Default Bucket. This results in
+			// subsequent calls to the Route's Default Bucket to return to
+			// the same initialized bucket.
 			//
 			// When a Default Bucket is exhausted, it will never expire.
 			// As a result, the Remaining field-value will remain at 0 until
-			// the pending request (and its respective Bucket) is confirmed.
-			s := strconv.FormatUint(uint64(routeid), base10)
-			r.SetBucketHash(routeid, s)
-			if DefaultBuckets[DefaultBucketKeyRoute] == nil {
+			// the pending request (and its actual Bucket) is confirmed.
+			//
+			// requestID = routeid + resourceid
+			// temporaryBucketID = requestID
+			r.SetBucketID(requestid, requestid)
+
+			// DefaultBucket (Per-Route) = RateLimit.DefaultBucket
+			if "" == resourceid {
+				if r.DefaultBucket == nil {
+					return nil
+				}
+
+				b := getBucket()
+				b.Remaining = r.DefaultBucket.Limit
+				r.SetBucketFromID(requestid, b)
+
+				return b
+			}
+
+			// DefaultBucket (Per-Resource) = GetBucket(routeid, "")
+			defaultBucket := r.GetBucket(routeid, "")
+			if defaultBucket == nil {
 				return nil
 			}
 
 			b := getBucket()
-			b.Remaining = DefaultBuckets[DefaultBucketKeyRoute].Limit
-			r.SetBucketFromHash(s, b)
+			b.Remaining = defaultBucket.Limit
+			r.SetBucketFromID(requestid, b)
 
 			return b
 		}
 	}
 
-	return r.buckets[r.ids[routeid]]
+	return r.buckets[r.ids[requestid]]
+}
+
+func (r *RateLimit) SetDefaultBucket(bucket *Bucket) {
+	r.DefaultBucket = bucket
 }
 
 func (r *RateLimit) Lock() {

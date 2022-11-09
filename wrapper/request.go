@@ -80,15 +80,6 @@ var (
 	headerDate = []byte(FlagRateLimitHeaderDate)
 )
 
-// Custom Rate Limit Variables
-var (
-	// Interaction endpoints are not bound to the bot's Global Rate Limit.
-	// https://discord.com/developers/docs/interactions/receiving-and-responding#endpoints
-	interactionRouteIDs = map[uint16]bool{
-		18: true, 19: true, 20: true, 21: true, 22: true, 23: true, 24: true, 25: true,
-	}
-)
-
 // peekDate peeks an HTTP Header for the Date.
 func peekDate(r *fasthttp.Response) (time.Time, error) {
 	date, err := time.Parse(time.RFC1123, string(r.Header.PeekBytes(headerDate)))
@@ -130,8 +121,9 @@ func peekHeader429(r *fasthttp.Response) (int64, error) {
 
 // SendRequest sends a fasthttp.Request using the given route ID, HTTP method, URI, content type and body,
 // then parses the response into dst.
-func SendRequest(bot *Client, routeid uint16, method, uri string, content, body []byte, dst any) error { //nolint:gocyclo,maintidx
+func SendRequest(bot *Client, routeid, resourceid, method, uri string, content, body []byte, dst any) error { //nolint:gocyclo,maintidx
 	retries := 0
+	requestid := routeid + resourceid
 	request := fasthttp.AcquireRequest()
 	defer fasthttp.ReleaseRequest(request)
 	request.Header.SetMethod(method)
@@ -142,8 +134,8 @@ func SendRequest(bot *Client, routeid uint16, method, uri string, content, body 
 	response := fasthttp.AcquireResponse()
 	defer fasthttp.ReleaseResponse(response)
 
-	// Interaction endpoints are not bound to the bot's Global Rate Limit.
-	if interactionRouteIDs[routeid] {
+	// Certain endpoints are not bound to the bot's Global Rate Limit.
+	if IgnoreGlobalRateLimitRouteIDs[requestid] {
 		goto SEND
 	}
 
@@ -155,11 +147,11 @@ RATELIMIT:
 	for {
 		bot.Config.Request.RateLimiter.StartTx()
 
-		globalBucket := bot.Config.Request.RateLimiter.GetBucket(0)
+		globalBucket := bot.Config.Request.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
 
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
 		if isNotEmpty(globalBucket) {
-			routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid)
+			routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid, resourceid)
 
 			if isNotEmpty(routeBucket) {
 				break
@@ -198,11 +190,11 @@ RATELIMIT:
 		bot.Config.Request.RateLimiter.EndTx()
 	}
 
-	if globalBucket := bot.Config.Request.RateLimiter.GetBucket(0); globalBucket != nil {
+	if globalBucket := bot.Config.Request.RateLimiter.GetBucket(GlobalRateLimitRouteID, ""); globalBucket != nil {
 		globalBucket.Use(1)
 	}
 
-	if routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid); routeBucket != nil {
+	if routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid, resourceid); routeBucket != nil {
 		routeBucket.Use(1)
 	}
 
@@ -219,8 +211,8 @@ SEND:
 
 	// confirm the response with the rate limiter.
 	//
-	// Interaction endpoints are not bound to the bot's Global Rate Limit.
-	if !interactionRouteIDs[routeid] { //nolint:nestif
+	// Certain endpoints are not bound to the bot's Global Rate Limit.
+	if !IgnoreGlobalRateLimitRouteIDs[requestid] { //nolint:nestif
 		log.Println("\n" + time.Now().String() + "\n" + response.Header.String())
 
 		// parse the Rate Limit Header for per-route rate limit functionality.
@@ -235,18 +227,18 @@ SEND:
 		bot.Config.Request.RateLimiter.StartTx()
 
 		// confirm the global rate limit Bucket.
-		globalBucket := bot.Config.Request.RateLimiter.GetBucket(0)
+		globalBucket := bot.Config.Request.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
 		if globalBucket != nil {
 			globalBucket.ConfirmDate(1, date)
 		}
 
 		// confirm the route rate limit Bucket (if applicable).
-		routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid)
+		routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid, resourceid)
 		switch {
 		// when there is no Discord Bucket, remove the route's mapping to a rate limit Bucket.
 		case header.Bucket == "":
 			if routeBucket != nil {
-				bot.Config.Request.RateLimiter.SetBucketHash(routeid, nilRouteBucket)
+				bot.Config.Request.RateLimiter.SetBucketID(requestid, nilRouteBucket)
 				routeBucket = nil
 			}
 
@@ -258,14 +250,14 @@ SEND:
 			}
 
 			// update the route ID mapping to a rate limit Bucket ID.
-			bot.Config.Request.RateLimiter.SetBucketHash(routeid, header.Bucket)
+			bot.Config.Request.RateLimiter.SetBucketID(requestid, header.Bucket)
 
 			// map the Bucket ID to the updated Rate Limit Bucket.
-			if bucket := bot.Config.Request.RateLimiter.GetBucketFromHash(header.Bucket); bucket != nil {
+			if bucket := bot.Config.Request.RateLimiter.GetBucketFromID(header.Bucket); bucket != nil {
 				routeBucket = bucket
 			} else {
 				routeBucket = getBucket()
-				bot.Config.Request.RateLimiter.SetBucketFromHash(header.Bucket, routeBucket)
+				bot.Config.Request.RateLimiter.SetBucketFromID(header.Bucket, routeBucket)
 			}
 
 			routeBucket.Pending += pending
@@ -273,7 +265,7 @@ SEND:
 		}
 
 		if routeBucket != nil {
-			routeBucket.ConfirmHeader(1, routeid, header)
+			routeBucket.ConfirmHeader(1, header)
 		}
 
 		if response.StatusCode() != fasthttp.StatusTooManyRequests {
@@ -325,7 +317,7 @@ SEND:
 			// when the current time is BEFORE the reset time,
 			// all requests must wait until the 429 expires.
 			if time.Now().Before(reset) {
-				if globalBucket := bot.Config.Request.RateLimiter.GetBucket(0); globalBucket != nil {
+				if globalBucket := bot.Config.Request.RateLimiter.GetBucket(GlobalRateLimitRouteID, ""); globalBucket != nil {
 					globalBucket.Remaining = 0
 					globalBucket.Expiry = reset.Add(time.Millisecond)
 				}
@@ -340,7 +332,7 @@ SEND:
 			// when the current time is BEFORE the reset time,
 			// requests with the same Rate Limit Bucket must wait until the 429 expires.
 			if time.Now().Before(reset) {
-				if routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid); routeBucket != nil {
+				if routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid, resourceid); routeBucket != nil {
 					routeBucket.Remaining = 0
 					routeBucket.Expiry = reset.Add(time.Millisecond)
 				}

@@ -104,10 +104,10 @@ func (s *Session) connect(bot *Client) error {
 		// https://discord.com/developers/docs/topics/gateway#rate-limiting
 		bot.Config.Gateway.RateLimiter.StartTx()
 
-		identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromHash(FlagGatewayCommandNameIdentify)
+		identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewayCommandNameIdentify)
 		if identifyBucket == nil {
 			identifyBucket = getBucket()
-			bot.Config.Gateway.RateLimiter.SetBucketFromHash(FlagGatewayCommandNameIdentify, identifyBucket)
+			bot.Config.Gateway.RateLimiter.SetBucketFromID(FlagGatewayCommandNameIdentify, identifyBucket)
 		}
 
 		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency) + 1
@@ -426,13 +426,13 @@ RATELIMIT:
 	for {
 		bot.Config.Gateway.RateLimiter.StartTx()
 
-		globalBucket := bot.Config.Gateway.RateLimiter.GetBucket(0)
+		globalBucket := bot.Config.Gateway.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
 
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
 		if isNotEmpty(globalBucket) { //nolint:nestif
 			switch op {
 			case FlagGatewayOpcodeIdentify:
-				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromHash(FlagGatewayCommandNameIdentify)
+				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewayCommandNameIdentify)
 
 				if isNotEmpty(identifyBucket) {
 					if globalBucket != nil {
