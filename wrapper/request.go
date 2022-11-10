@@ -110,8 +110,8 @@ func peekHeaderRateLimit(r *fasthttp.Response) RateLimitHeader {
 }
 
 // peekHeader429 peeks an HTTP Header with a 429 Status Code for the Rate Limit Header "Retry-After".
-func peekHeader429(r *fasthttp.Response) (int64, error) {
-	retryafter, err := strconv.ParseInt(string(r.Header.PeekBytes(headerRateLimitRetryAfter)), base10, bit64)
+func peekHeader429(r *fasthttp.Response) (float64, error) {
+	retryafter, err := strconv.ParseFloat(string(r.Header.PeekBytes(headerRateLimitRetryAfter)), bit64)
 	if err != nil {
 		return 0, fmt.Errorf(ErrRateLimit, string(headerRateLimitRetryAfter), err)
 	}
@@ -218,7 +218,7 @@ SEND:
 		// parse the Rate Limit Header for per-route rate limit functionality.
 		header = peekHeaderRateLimit(response)
 
-		// parse the Date header for global rate limit functionality.
+		// parse the Date header for Global Rate Limit functionality.
 		date, err := peekDate(response)
 		if err != nil {
 			return fmt.Errorf("%w", err)
@@ -226,13 +226,13 @@ SEND:
 
 		bot.Config.Request.RateLimiter.StartTx()
 
-		// confirm the global rate limit Bucket.
+		// confirm the Global Rate Limit Bucket.
 		globalBucket := bot.Config.Request.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
 		if globalBucket != nil {
 			globalBucket.ConfirmDate(1, date)
 		}
 
-		// confirm the route rate limit Bucket (if applicable).
+		// confirm the Route Rate Limit Bucket (if applicable).
 		routeBucket := bot.Config.Request.RateLimiter.GetBucket(routeid, resourceid)
 		switch {
 		// when there is no Discord Bucket, remove the route's mapping to a rate limit Bucket.
@@ -276,6 +276,8 @@ SEND:
 	// handle the response.
 	switch response.StatusCode() {
 	case fasthttp.StatusOK:
+		log.Println(string(response.Body()))
+
 		// parse the response data.
 		if err := json.Unmarshal(response.Body(), dst); err != nil {
 			return fmt.Errorf("%w", err)
@@ -296,15 +298,16 @@ SEND:
 		// determine the reset time.
 		var reset time.Time
 		if data.RetryAfter == 0 {
-			// when the 429 is from Discord, use the `retry_after` value (ms).
+			// when the 429 is from Discord, use the `retry_after` value (s).
 			reset = time.Now().Add(time.Millisecond * time.Duration(data.RetryAfter*msPerSecond))
 		} else {
-			// when the 429 is a Cloudflare Ban, use the `"Retry-After"` value (s).
+			// when the 429 is from a Cloudflare Ban, use the `"Retry-After"` value (s).
 			retryafter, err := peekHeader429(response)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
-			reset = time.Now().Add(time.Second * time.Duration(retryafter))
+
+			reset = time.Now().Add(time.Millisecond * time.Duration(retryafter*msPerSecond))
 		}
 
 		log.Printf("429 Reset Time: %v", reset)

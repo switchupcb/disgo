@@ -150,6 +150,7 @@ func (r *RateLimit) GetBucket(routeid string, resourceid string) *Bucket {
 				}
 
 				b := getBucket()
+				b.Limit = r.DefaultBucket.Limit
 				b.Remaining = r.DefaultBucket.Limit
 				r.SetBucketFromID(requestid, b)
 
@@ -163,6 +164,7 @@ func (r *RateLimit) GetBucket(routeid string, resourceid string) *Bucket {
 			}
 
 			b := getBucket()
+			b.Limit = defaultBucket.Limit
 			b.Remaining = defaultBucket.Limit
 			r.SetBucketFromID(requestid, b)
 

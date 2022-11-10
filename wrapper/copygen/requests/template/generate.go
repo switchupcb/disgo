@@ -166,8 +166,11 @@ func generateBody(function *models.Function) string {
 	switch {
 	case response.FullDefinition() == "error":
 		result = "nil"
+
 	case response.IsSlice():
-		body.WriteString("var result " + response.FullDefinition() + "\n")
+		body.WriteString("result := make(" + response.FullDefinition() + ", 0)\n")
+		result = "&" + result
+
 	default:
 		body.WriteString("result := new(" + response.FullDefinitionWithoutPointer() + ")\n")
 	}

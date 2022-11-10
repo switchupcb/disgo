@@ -429,7 +429,7 @@ RATELIMIT:
 		globalBucket := bot.Config.Gateway.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
 
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
-		if isNotEmpty(globalBucket) { //nolint:nestif
+		if isNotEmpty(globalBucket) {
 			switch op {
 			case FlagGatewayOpcodeIdentify:
 				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewayCommandNameIdentify)
