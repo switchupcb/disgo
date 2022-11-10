@@ -40,13 +40,13 @@ if err != nil {
 
 Rate limits are used by servers to prevent spam, abuse, and service overload. A rate limit defines the speed at which a server can handle requests _(in requests per second)_. While there are many rate limit strategies a server may employ, [Google Architecture Rate Limiting Strategies](https://cloud.google.com/architecture/rate-limiting-strategies-techniques#techniques-enforcing-rate-limits) provides an explanation for the most common ones. Discord enforces multiple rate limit strategies dependent on the data that is sent to the server. This includes Global (Requests), Per Route (Requests), Per Resource (Requests), Per Resource Per Routes (Emoji), Global (Gateway), and Identify (Gateway) rate limits.
 
-Disgo makes adhering to Discord's Rate Limits easy by providing a customizable rate limiter. A [`Bucket`](../../wrapper/ratelimiter.go) represents a single rate limit. Use the [`RateLimiter interface`](../../wrapper/ratelimiter.go) to provide your own Rate Limiter implementation _(which stores Buckets)_. Set the `Client.Request.RateLimiter` or `Client.Gateway.RateLimiter` to customize how rate limiting works for HTTP Requests and Gateway Events. Configure the entries in the `DefaultBuckets` map to control the behavior for requests sent without a known rate limit.
+Disgo makes adhering to Discord's Rate Limits easy by providing a customizable rate limiter. Use the builtin [`RateLimit`](/wrapper/ratelimit.go) implementation or provide your own by implementing the [`RateLimiter interface`](/wrapper/ratelimiter.go) _(which stores Buckets)_. Set the `Client.Request.RateLimiter` or `Client.Gateway.RateLimiter` to customize how rate limiting works for HTTP Requests and Gateway Commands. Configure the `RateLimit.DefaultBucket` to control the behavior for requests that are sent without a known rate limit. Set entries in the `RateLimitHashFuncs` map to control how a route is rate limited _(per-route, per-resource, etc)_.
 
 #### What is a Default Bucket?
 
-Discord utilizes a Token Bucket Rate Limit Algorithm for Per Route, Per Resource, and Per Resource per Route (Emoji) requests. Unfortunately, Discord's specific implementation of this rate limit strategy does **NOT** allow the application to determine the rate limit of certain **Routes** (HTTP METHOD + Endpoint) until a request with that route is sent. In other cases, the rate limit cannot be known until a request for a specific **Resource** _(i.e `guild`,`channel`,`webhook`)_ on a route is sent. This results in a dilemma where one must determine whether to sacrifice performance or safety to send certain requests _(before those requests have ever been sent)_.
+Discord utilizes a Token Bucket Rate Limit Algorithm for their rate limits. Unfortunately, Discord's specific implementation of this rate limit strategy does **NOT** allow the application to determine the rate limit of a **route** (HTTP Method + Endpoint) until a request with that **route** is sent. This results in a dilemma where you must determine whether to sacrifice performance or safety to send certain requests _(before those requests have ever been sent)_.
 
-A Default Bucket is used when a Rate Limit is **NOT** yet known by the application. In other words, when a request for a route has **NEVER** been sent _(since the start of the application)_. In Disgo, the `DefaultBuckets` global variable represents a map of the Default Rate Limit Buckets used for each rate limit strategy. Set the Default `Bucket.Limit` field-value to control how many requests of a given route can be sent _(per second)_ **BEFORE** the actual rate limit Bucket of the route is known.
+A **Default Bucket** is used when a rate limit is **NOT** yet known by the application: In other words, when a request for a route has **NEVER** been sent. In Disgo, the `RateLimit.DefaultBucket` field represents the Default Rate Limit Bucket used for requests which operate at the per-route level. However, configuring DefaultBuckets for per-resource (n) routes is also possible. Set the `DefaultBucket.Limit` field-value to control how many requests of a given route can be sent _(per second)_ **BEFORE** the actual Rate Limit Bucket of that route is known.
 
 ##### Example
 
@@ -61,11 +61,11 @@ In either case, the bot will eventually end up successfully sending all the requ
 
 ##### Solution
 
-Disgo solves this problem through the use of a configurable Default Bucket. When a request's rate limit is unknown, Disgo will only send as many requests as the configured Default Bucket allows _(which is 1 by default)_. Once the request receives a respective response, the Default Bucket will be discarded and replaced by the request's actual rate limit _(if applicable)_. This implementation gives you two ways to address the issue described above.
+Disgo solves this problem through the use of configurable Default Buckets. When a request's rate limit is unknown, Disgo will only send as many requests as the configured Default Bucket allows _(1 by default)_. Once the request receives a response, the Default Bucket will be discarded and replaced by the request's actual Rate Limit Bucket _(or nil)_. This implementation gives you multiple ways to address the issue described above.
 
 **Configuring The "Route A" Bucket**
 
-If you want to ensure that **ONLY** Route **A** sends 25 requests per second initially, you can initialize a  `RateLimiter` with that `Bucket`, then assign the initialized rate limiter to the `Client`. 
+If you want to ensure that **ONLY** Route **A** initially sends 25 requests per second, you can initialize a `RateLimiter` with that `Bucket`, then assign the initialized rate limiter to the `Client`. 
 
 ```go
 // create a Client using a Default Configuration.
@@ -74,24 +74,54 @@ bot := disgo.Client{
     ...
 }
 
-// add a Bucket to Route A in the Client's initialized Request Rate Limiter.
-bot.Config.Request.RateLimiter.SetBucketHash("A", "temp")
-bot.Config.Request.RateLimiter.SetBucketFromHash("temp", &Bucket{Limit: 25})
+// set Route A to a Bucket (ID "temp") in the Client's initialized Request Rate Limiter.
+bot.Config.Request.RateLimiter.SetBucketID("A", "temp")
+bot.Config.Request.RateLimiter.SetBucketFromID("temp", &Bucket{
+	Limit:     25,
+	Remaining: 25,
+})
 
-// set other Routes (i.e "B") to Route A's bucket using the Bucket Hash.
-bot.Config.Request.RateLimiter.SetBucketHash("B", "temp")
+// optional: set other Routes (i.e "B") to Route A's Bucket using the SetBucketID function.
+bot.Config.Request.RateLimiter.SetBucketID("B", "temp")
 ```
 
-_NOTE: `"A"` is used to represent Route A in this example. Use the Route ID showcased in [`request_send.go`](../../wrapper/request_send.go) for actual requests._
+_NOTE: `"A"` is used as the ID for Route A in this example. Use the Route ID showcased in [`request_send.go`](/wrapper/request_send.go) for actual requests._
 
 **Configuring The Route Default Bucket**
 
-If you want to ensure that every request with a **Route** Rate Limit sends 25 requests per second initially, you can set the `Route` key of the `DefaultBuckets` map.
+If you want to ensure that every request with a **Route** Rate Limit initially sends 25 requests per second, you can set the `DefaultBucket` of the `Client.RateLimiter`.
 
 ```go
-DefaultBuckets[DefaultBucketKeyRoute] = &Bucket{Limit: 25}
+bot.Config.Request.RateLimiter.SetDefaultBucket(&Bucket{
+	Limit:     25,
+	Remaining: 25,
+})
 ```
 
 **Configuring Both**
 
-If you do both, Route A will never be assigned a Default Bucket, since it already has a "known" bucket. This bucket will be updated upon receiving a response _(respective to a Route A request)_ from Discord.
+If you do both, Route `A` will never be assigned a Default Bucket, since it already has a "known" bucket. This bucket will be updated upon receiving a response _(respective to a Route A request)_ from Discord.
+
+**Configuring The Previous Default Bucket**
+
+When Route `A` refers to a per-resource route, a Default Bucket can be configured by using the Route ID of the parent route. As an example, Route `A/Guild2/Channel3` _(RouteID `A/Guild2`, ResourceID `Channel3`)_ uses the Default Bucket at `A/Guild2` (if it exists). This is possible with two steps.
+
+1. Configure the hashing function for Route `A/Guild2/Channel3` to use `A/Guild2` as a Route ID. **This step can also be used to change the rate limit algorithm of any route.**
+
+```go
+RateLimitHashFuncs[RouteIDs["A"]] = func(routeid string, parameters ...string) (string, string) {
+    return routeid + parameters[0], parameters[1] // where parameters is [Guild2, Channel3]
+}
+```
+
+2. Set the default bucket for Route `A/Guild2`.
+
+```go
+bot.Config.Request.RateLimiter.SetBucketID("AGuild2", "AGuild2BucketID")
+bot.Config.Request.RateLimiter.SetBucketFromID("AGuild2BucketID", &Bucket{
+	Limit:     25,
+	Remaining: 25,
+})
+```
+
+This results in the first requests of Route `A/Guild2/Channel3`, Route `A/Guild2/Channel4`, Route  `A/Guild2/Channel...` to adhere to a bucket that initially allows 25 requests per second.
