@@ -212,7 +212,7 @@ SEND:
 	// confirm the response with the rate limiter.
 	//
 	// Certain endpoints are not bound to the bot's Global Rate Limit.
-	if !IgnoreGlobalRateLimitRouteIDs[requestid] { //nolint:nestif
+	if !IgnoreGlobalRateLimitRouteIDs[requestid] {
 		log.Println("\n" + time.Now().String() + "\n" + response.Header.String())
 
 		// parse the Rate Limit Header for per-route rate limit functionality.
@@ -289,6 +289,23 @@ SEND:
 	case fasthttp.StatusTooManyRequests:
 		log.Println(string(response.Body()))
 
+		retry := retries < bot.Config.Request.Retries
+		retries++
+
+		switch header.Scope { //nolint:gocritic
+		// Discord per-resource (shared) rate limit headers include the per-route (user) bucket.
+		//
+		// when a per-resource rate limit is encountered, send another request or return.
+		case RateLimitScopeValueShared:
+			bot.Config.Request.RateLimiter.EndTx()
+
+			if retry || bot.Config.Request.RetryShared {
+				goto RATELIMIT
+			}
+
+			return StatusCodeError(response.StatusCode())
+		}
+
 		// parse the rate limit response data for `retry_after`.
 		var data RateLimitResponse
 		if err := json.Unmarshal(response.Body(), &data); err != nil {
@@ -312,10 +329,8 @@ SEND:
 
 		log.Printf("429 Reset Time: %v", reset)
 
-		retry := retries < bot.Config.Request.Retries
-		retries++
-
 		switch header.Global {
+		// when the global request rate limit is encountered.
 		case true:
 			// when the current time is BEFORE the reset time,
 			// all requests must wait until the 429 expires.
@@ -328,6 +343,7 @@ SEND:
 
 			bot.Config.Request.RateLimiter.EndTx()
 
+		// when a per-route (user) rate limit is encountered.
 		case false:
 			// do NOT block other requests while waiting for a Route Rate Limit.
 			bot.Config.Request.RateLimiter.EndTx()
