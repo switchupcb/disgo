@@ -19,13 +19,13 @@ func Read(ctx context.Context, conn *websocket.Conn, dst any) error {
 		return err
 	}
 
+	// reuse buffers in between calls to avoid allocations.
+	b := get()
+	defer put(b)
+
 	// determine the reader based on the message type.
 	switch messageType {
 	case websocket.MessageText:
-		// reuse buffers in between calls to avoid allocations.
-		b := get()
-		defer put(b)
-
 		// read the message.
 		if _, err := b.ReadFrom(reader); err != nil {
 			return err
@@ -33,7 +33,7 @@ func Read(ctx context.Context, conn *websocket.Conn, dst any) error {
 
 		// unmarshal the message into dst.
 		if err = json.Unmarshal(b.Bytes(), &dst); err != nil {
-			return err
+			return fmt.Errorf("socket.Read (websocket.MessageText) to %T: %w\n%s", dst, err, string(b.Bytes()))
 		}
 
 	case websocket.MessageBinary:
@@ -43,10 +43,14 @@ func Read(ctx context.Context, conn *websocket.Conn, dst any) error {
 		}
 		defer zlibReader.Close()
 
-		// unmarshal the message into dst.
-		decoder := json.NewDecoder(zlibReader)
-		if err = decoder.Decode(&dst); err != nil {
+		// read the message.
+		if _, err := b.ReadFrom(zlibReader); err != nil {
 			return err
+		}
+
+		// unmarshal the message into dst.
+		if err = json.Unmarshal(b.Bytes(), &dst); err != nil {
+			return fmt.Errorf("socket.Read (websocket.MessageBinary) to %T: %w\n%s", dst, err, string(b.Bytes()))
 		}
 
 	default:
