@@ -78,7 +78,7 @@ Disgo solves the problem described above through the use of **configurable Rate 
 If you want to ensure that every request at the **route** level initially sends 25 requests per second, you can set the `DefaultBucket` of the `Client.RateLimiter`.
 
 ```go
-bot.Config.Request.RateLimiter.SetDefaultBucket(&Bucket{
+bot.Config.Request.RateLimiter.SetDefaultBucket(&disgo.Bucket{
 	Limit:     25,
 	Remaining: 25,
 })
@@ -97,7 +97,7 @@ bot := disgo.Client{
 
 // set Route A to a Bucket (ID "temp") in the Client's initialized Request Rate Limiter.
 bot.Config.Request.RateLimiter.SetBucketID("A", "temp")
-bot.Config.Request.RateLimiter.SetBucketFromID("temp", &Bucket{
+bot.Config.Request.RateLimiter.SetBucketFromID("temp", &disgo.Bucket{
 	Limit:     25,
 	Remaining: 25,
 })
@@ -115,7 +115,7 @@ When Route `A` refers to a per-resource route, a Default Bucket can be configure
 **1.** Configure the hashing function for Route `A/Guild2/Channel3` to use `A/Guild2` as a Route ID. **This step can also be used to change the rate limit algorithm of any route.**
 
 ```go
-RateLimitHashFuncs[RouteIDs["A"]] = func(routeid string, parameters ...string) (string, string) {
+disgo.RateLimitHashFuncs[disgo.RouteIDs["A"]] = func(routeid string, parameters ...string) (string, string) {
     return routeid + parameters[0], parameters[1] // where parameters is [Guild2, Channel3]
 }
 ```
@@ -124,7 +124,7 @@ RateLimitHashFuncs[RouteIDs["A"]] = func(routeid string, parameters ...string) (
 
 ```go
 bot.Config.Request.RateLimiter.SetBucketID("AGuild2", "AGuild2BucketID")
-bot.Config.Request.RateLimiter.SetBucketFromID("AGuild2BucketID", &Bucket{
+bot.Config.Request.RateLimiter.SetBucketFromID("AGuild2BucketID", &disgo.Bucket{
 	Limit:     25,
 	Remaining: 25,
 })
