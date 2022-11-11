@@ -1,8 +1,11 @@
 package wrapper
 
 import (
-	"math"
 	"time"
+)
+
+const (
+	GlobalRateLimitRouteID = "0"
 )
 
 // RateLimiter represents an interface for rate limits.
@@ -10,27 +13,32 @@ import (
 // RateLimiter is an interface which allows developers to use multi-application architectures,
 // which run multiple applications on separate processes or servers.
 type RateLimiter interface {
-	// SetBucketHash maps a Route ID to a rate limit Bucket ID (Discord Hash).
+	// SetBucketID maps a Route ID to a Rate Limit Bucket ID (Discord Hash).
 	//
-	// ID 0 is used as a Global Rate Limit Bucket or nil.
-	SetBucketHash(uint16, string)
+	// ID 0 is reserved for a Global Rate Limit Bucket or nil.
+	SetBucketID(routeid string, bucketid string)
 
-	// GetBucketHash gets a rate limit Bucket ID (Discord Hash) using a Route ID.
-	GetBucketHash(uint16) string
+	// GetBucketID gets a Rate Limit Bucket ID (Discord Hash) using a Route ID.
+	GetBucketID(routeid string) string
 
-	// SetBucketFromHash maps a Bucket ID to a rate limit Bucket.
-	SetBucketFromHash(string, *Bucket)
+	// SetBucketFromID maps a Bucket ID to a Rate Limit Bucket.
+	SetBucketFromID(bucketid string, bucket *Bucket)
 
-	// GetBucketFromHash gets a rate limit Bucket using the given Bucket ID.
-	GetBucketFromHash(string) *Bucket
+	// GetBucketFromID gets a Rate Limit Bucket using the given Bucket ID.
+	GetBucketFromID(bucketid string) *Bucket
 
-	// SetBucket maps a Route ID to a rate limit Bucket.
+	// SetBucket maps a Route ID to a Rate Limit Bucket.
 	//
-	// ID 0 is used as a Global Rate Limit Bucket or nil.
-	SetBucket(uint16, *Bucket)
+	// ID 0 is reserved for a Global Rate Limit Bucket or nil.
+	SetBucket(routeid string, bucket *Bucket)
 
-	// GetBucket gets a rate limit Bucket using the given Route ID.
-	GetBucket(uint16) *Bucket
+	// GetBucket gets a Rate Limit Bucket using the given Route ID + Resource ID.
+	//
+	// Implements the Default Bucket mechanism by assigning the GetBucketID(routeid) when applicable.
+	GetBucket(routeid string, resourceid string) *Bucket
+
+	// SetDefaultBucket sets the Default Bucket for per-route rate limits.
+	SetDefaultBucket(bucket *Bucket)
 
 	// Lock locks the rate limiter.
 	//
@@ -52,7 +60,7 @@ type RateLimiter interface {
 	//
 	// If a transaction is already started, the calling goroutine blocks until the rate limiter is available.
 	//
-	// This prevents the transaction (of rate limit Bucket reads and writes) from concurrent manipulation.
+	// This prevents the transaction (of Rate Limit Bucket reads and writes) from concurrent manipulation.
 	StartTx()
 
 	// EndTx ends a transaction with the rate limiter.
@@ -65,8 +73,6 @@ type RateLimiter interface {
 // Bucket represents a Discord API Rate Limit Bucket.
 type Bucket struct {
 	// ID represents the Bucket ID.
-	//
-	// ID is only applicable to route rate limit Buckets.
 	ID string
 
 	// Limit represents the amount of requests a Bucket can send per reset.
@@ -80,7 +86,7 @@ type Bucket struct {
 
 	// Date represents the time at which Discord received the last request of the Bucket.
 	//
-	// Date is only applicable to global rate limit Buckets.
+	// Date is only applicable to Global Rate Limit Buckets.
 	Date time.Time
 
 	// Expiry represents the time at which the Bucket will reset (or become outdated).
@@ -147,12 +153,15 @@ func (b *Bucket) ConfirmDate(amount int16, date time.Time) {
 // using a given Route ID and respective Discord Rate Limit Header.
 //
 // Used for Route Rate Limits.
-func (b *Bucket) ConfirmHeader(amount int16, routeid uint16, header RateLimitHeader) {
+func (b *Bucket) ConfirmHeader(amount int16, header RateLimitHeader) {
 	b.Pending -= amount
 
 	// determine the reset time.
-	whole, decimal := math.Modf(header.Reset)
-	reset := time.Unix(int64(whole), 0).Add(time.Duration(decimal*msPerSecond+1) * time.Millisecond)
+	// whole, decimal := math.Modf(header.Reset)
+	// reset := time.Unix(int64(whole), 0).Add(time.Millisecond*time.Duration(decimal*msPerSecond) + time.Millisecond)
+	//
+	// PATCH: Discord's `reset` and `reset-after` header is not consistent.
+	reset := time.Now().Add(time.Millisecond*time.Duration(header.ResetAfter*msPerSecond) + time.Millisecond)
 
 	// Expiry is zero when a request from the Route ID has never been sent to Discord.
 	//

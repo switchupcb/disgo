@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// TestGlobalRateLimit tests the global rate limit mechanism.
+// TestGlobalRateLimit tests the global rate limit mechanism (with the Default Bucket mechanism disabled).
 func TestGlobalRateLimit(t *testing.T) {
 	// setup the bot.
 	bot := &Client{
@@ -18,7 +18,7 @@ func TestGlobalRateLimit(t *testing.T) {
 		Config:         DefaultConfig(),
 	}
 	bot.Config.Request.Retries = 0
-	DefaultBuckets[DefaultBucketKeyRoute] = nil
+	bot.Config.Request.RateLimiter.SetDefaultBucket(nil)
 
 	// prepare the request.
 	request := new(GetCurrentBotApplicationInformation)
@@ -59,7 +59,7 @@ func TestGlobalRateLimit(t *testing.T) {
 	time.After(time.Second * 2)
 }
 
-// TestRouteRateLimit tests the per-route rate limit mechanism.
+// TestRouteRateLimit tests the per-route rate limit mechanism (with the Default Bucket mechanism enabled).
 func TestRouteRateLimit(t *testing.T) {
 	// setup the bot.
 	bot := &Client{
@@ -67,7 +67,9 @@ func TestRouteRateLimit(t *testing.T) {
 		Config:         DefaultConfig(),
 	}
 	bot.Config.Request.Retries = 0
-	DefaultBuckets[DefaultBucketKeyRoute] = &Bucket{Limit: 1} //nolint:exhaustruct
+	bot.Config.Request.RateLimiter.SetDefaultBucket(
+		&Bucket{Limit: 1}, //nolint:exhaustruct
+	)
 
 	// prepare the request.
 	request := GetUser{UserID: os.Getenv("APPID")}

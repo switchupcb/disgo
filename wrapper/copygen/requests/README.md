@@ -26,6 +26,6 @@ type Copygen interface {
 }
 ```
 
-4. Generate `Endpoint` and `Send` functions using [`gen -d`](/_gen/README.md).
+4. Generate `Endpoint` functions, `Send` functions, and `RouteIDs` using [`gen -d`](/_gen/README.md). View the output in [`request_send.go`](/wrapper/request_send.go).
 
-View the output in [`send.go`](/wrapper/send.go).
+5. Set the rate limit algorithm for the route by modifying `RateLimitHashFuncs` in [`ratelimit_algorithm.go`](/wrapper/ratelimit_algorithm.go).

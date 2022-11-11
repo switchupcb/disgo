@@ -119,8 +119,17 @@ type Request struct {
 	// Timeout represents the amount of time a request will wait for a response.
 	Timeout time.Duration
 
-	// Retries represents the amount of time a request will retry a bad gateway.
+	// Retries represents the number of times a request may be retried upon failure.
+	//
+	// A request is ONLY retried when a Bad Gateway or Rate Limit is encountered.
 	Retries int
+
+	// RetryShared determines the behavior of a request when
+	// a (shared) per-resource rate limit is hit.
+	//
+	// set RetryShared to true (default) to retry a request (within the per-route rate limit)
+	// until it's successful or until it experiences a non-shared 429 status code.
+	RetryShared bool
 
 	// RateLimiter represents an object that provides rate limit functionality.
 	RateLimiter RateLimiter
@@ -134,7 +143,7 @@ const (
 	totalRoutes = 175
 )
 
-// DefaultRequest returns a default Request configuration.
+// DefaultRequest returns a Default Request configuration.
 func DefaultRequest() Request {
 	// configure the client.
 	client := new(fasthttp.Client)
@@ -142,14 +151,18 @@ func DefaultRequest() Request {
 
 	// configure the rate limiter.
 	ratelimiter := &RateLimit{ //nolint:exhaustruct
-		ids:     make(map[uint16]string, totalRoutes),
+		ids:     make(map[string]string, totalRoutes),
 		buckets: make(map[string]*Bucket, totalRoutes),
 		entries: make(map[string]int, totalRoutes),
 	}
 
+	ratelimiter.DefaultBucket = &Bucket{ //nolint:exhaustruct
+		Limit: 1,
+	}
+
 	// https://discord.com/developers/docs/topics/rate-limits#global-rate-limit
 	ratelimiter.SetBucket(
-		0, &Bucket{ //nolint:exhaustruct
+		GlobalRateLimitRouteID, &Bucket{ //nolint:exhaustruct
 			Limit:     FlagGlobalRateLimitRequest,
 			Remaining: FlagGlobalRateLimitRequest,
 		},
@@ -159,6 +172,7 @@ func DefaultRequest() Request {
 		Client:      client,
 		Timeout:     defaultRequestTimeout,
 		Retries:     1,
+		RetryShared: true,
 		RateLimiter: ratelimiter,
 	}
 }
@@ -208,13 +222,17 @@ const (
 func DefaultGateway(privileged bool) Gateway {
 	// configure the rate limiter.
 	ratelimiter := &RateLimit{ //nolint:exhaustruct
-		ids:     make(map[uint16]string, totalGatewayBuckets),
+		ids:     make(map[string]string, totalGatewayBuckets),
 		buckets: make(map[string]*Bucket, totalGatewayBuckets),
+	}
+
+	ratelimiter.DefaultBucket = &Bucket{ //nolint:exhaustruct
+		Limit: 1,
 	}
 
 	// https://discord.com/developers/docs/topics/gateway#rate-limiting
 	ratelimiter.SetBucket(
-		0, &Bucket{ //nolint:exhaustruct
+		GlobalRateLimitRouteID, &Bucket{ //nolint:exhaustruct
 			Limit:     FlagGlobalRateLimitGateway,
 			Remaining: FlagGlobalRateLimitGateway,
 			Expiry:    time.Now().Add(FlagGlobalRateLimitGatewayInterval),

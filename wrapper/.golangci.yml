@@ -17,6 +17,7 @@ linters:
     - gochecknoinits # Required by gorilla/schema to parse URL Query Strings correctly.
     - gocognit # Discord API is endless complexity.
     - cyclop # Discord API is endless complexity.
+    - nestif # Discord API is endless complexity.
 
     - ifshort # False Positive due to Manager Logic.
     - errname # ErrorDescription > DesErr

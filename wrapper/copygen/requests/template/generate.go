@@ -4,6 +4,10 @@
 package template
 
 import (
+	"fmt"
+	"hash"
+	"hash/fnv"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -19,12 +23,65 @@ func Generate(gen *models.Generator) (string, error) {
 
 	content.WriteString(string(gen.Keep) + "\n")
 	content.WriteString("import json \"github.com/goccy/go-json\"\n")
+
+	var funcs strings.Builder
 	for i := range gen.Functions {
-		content.WriteString(Function(&gen.Functions[i]) + "\n")
+		funcs.WriteString(Function(&gen.Functions[i]) + "\n")
 	}
+
+	// call generateRouteIDs after the routeidMap is populated.
+	content.WriteString(generateRouteIDs() + "\n")
+	content.WriteString(funcs.String())
 
 	return content.String(), nil
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Route IDs
+////////////////////////////////////////////////////////////////////////////////
+
+// routeid represents the internal Rate Limit Bucket ID of a Route (endpoint + HTTP Method).
+//
+// Global Rate Limit reserves 0.
+// OAuth reserves 1.
+var routeid = 2
+
+// routeidMap represents a map of Routes to RouteIDs (map[string]uint8).
+//
+// "" resolves to the Global Rate Limit "Route".
+var routeidMap = map[string]int{
+	"":      0,
+	"OAuth": 1,
+}
+
+// generateRouteIDs generates the RouteIDs map.
+func generateRouteIDs() string {
+	var decl strings.Builder
+	decl.WriteString("var (\n")
+	decl.WriteString("// RouteIDs represents a map of Routes to Route IDs (map[string]uint8).\n")
+	decl.WriteString("RouteIDs = map[string]uint8 {\n")
+
+	// sort the map by value.
+	keys := make([]string, 0, len(routeidMap))
+	for route := range routeidMap {
+		keys = append(keys, route)
+	}
+
+	sort.Slice(keys, func(i, j int) bool { return routeidMap[keys[i]] < routeidMap[keys[j]] })
+
+	// populate the written map.
+	for _, route := range keys {
+		decl.WriteString(fmt.Sprintf("\"%s\": %d,\n", route, routeidMap[route]))
+	}
+
+	decl.WriteString("}\n")
+	decl.WriteString(")")
+	return decl.String()
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Functions
+////////////////////////////////////////////////////////////////////////////////
 
 // Function provides generated code for a function.
 func Function(function *models.Function) string {
@@ -68,12 +125,6 @@ func generateResultParameters(function *models.Function) string {
 // Body
 ////////////////////////////////////////////////////////////////////////////////
 
-// routeid represents the internal rate limit bucket ID of a route (endpoint + HTTP Method).
-//
-// Global Rate Limit reserves 0.
-// OAuth reserves 1.
-var routeid = 1
-
 // generateBody generates the body of a function.
 func generateBody(function *models.Function) string {
 	request := function.From[0].Field
@@ -115,26 +166,69 @@ func generateBody(function *models.Function) string {
 	switch {
 	case response.FullDefinition() == "error":
 		result = "nil"
+
 	case response.IsSlice():
-		body.WriteString("var result " + response.FullDefinition() + "\n")
+		body.WriteString("result := make(" + response.FullDefinition() + ", 0)\n")
+		result = "&" + result
+
 	default:
 		body.WriteString("result := new(" + response.FullDefinitionWithoutPointer() + ")\n")
 	}
 
+	// determine the request hash.
+	body.WriteString("routeid, resourceid := " + generateHashCall(function.From[0].Field, routeid) + "\n")
+
 	// send the request.
-	routeid++
 	body.WriteString("err " + errDecl +
-		" SendRequest(bot, " + strconv.Itoa(routeid) + ", " + generateHTTPMethod(function) + ", " +
+		" SendRequest(bot, routeid, resourceid, " + generateHTTPMethod(function) + ", " +
 		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", " + result + ")\n",
 	)
 	body.WriteString("if err != nil {\n")
 	body.WriteString(generateSendRequestErrReturn(function, requestName))
 	body.WriteString("}\n")
 
+	// map the route to the route id.
+	routeidMap[requestName] = routeid
+
+	// increment route for the next request (if applicable).
+	routeid++
+
 	return body.String()
 }
 
-// generateHTTPMethod generates the HTTP method type for a SendRequest call.
+var hasher hash.Hash32 = fnv.New32a()
+
+// generateHashCall generates the hashing function call for the Send() function.
+func generateHashCall(request *models.Field, routeid int) string {
+	var parameters strings.Builder
+	routeidstring := strconv.Itoa(routeid)
+
+	parameters.WriteString("\"" + routeidstring + "\"")
+
+	tagCount := 0
+	for _, subfield := range request.Fields {
+
+		// subfields with no tags are endpoint parameters (i.e `GuildID`).
+		if len(subfield.Tags) == 0 {
+			if subfield.Name == "ApplicationID" {
+				continue
+			} else {
+				hasher.Write([]byte(subfield.Name))
+
+				identifier := string(hasher.Sum(nil))
+				parameters.WriteString(fmt.Sprintf(",\"%x\" + %s", identifier, "r."+subfield.Name))
+
+				hasher.Reset()
+			}
+
+			tagCount++
+		}
+	}
+
+	return "RateLimitHashFuncs[" + routeidstring + "]" + "(" + parameters.String() + ")"
+}
+
+// generateHTTPMethod generates the HTTP method type for a SendRequest(..., method) call.
 func generateHTTPMethod(function *models.Function) string {
 	http := function.Options.Custom["http"][0]
 
@@ -155,14 +249,14 @@ func generateHTTPMethod(function *models.Function) string {
 	return "fasthttp.Method" + method
 }
 
-// generateEndpointCall generates the endpoint function call (parameter) for a SendRequest call.
+// generateEndpointCall generates the endpoint function call for a SendRequest(..., endpoint) call.
 func generateEndpointCall(request *models.Field) string {
 	var parameters strings.Builder
 
 	tagCount := 0
 	for _, subfield := range request.Fields {
 
-		// subfields with no tags are endpoints.
+		// subfields with no tags are endpoint parameters (i.e `GuildID`).
 		if len(subfield.Tags) == 0 {
 			if tagCount != 0 {
 				parameters.WriteString(", ")
@@ -181,7 +275,7 @@ func generateEndpointCall(request *models.Field) string {
 	return "Endpoint" + request.Definition[1:] + "(" + parameters.String() + ")"
 }
 
-// generateContentType generates the content type for a SendRequest call.
+// generateContentType generates the content type for a SendRequest(..., content type) call.
 func generateContentType(tags map[string]int) string {
 	switch {
 	case tags["dasgo"] != 0:
