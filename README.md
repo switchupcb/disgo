@@ -9,9 +9,7 @@
 
 **A Next Generation Discord API Wrapper**
 
-High quality code merits easy development. Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. Code generation is used to provide a clean implementation for every request and event. Data race detection is used with _an integration test that covers nearly 100% of the Discord API_ in order to ensure that Disgo is safe for concurrent usage.
-
-**Don't Miss Out On These Exclusive Features**
+High quality code merits easy development. Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. Code generation is used to provide a clean implementation for every request and event. Data race detection is used with _an integration test that covers the entire Discord API_ in order to ensure that Disgo is safe for concurrent usage. In addition, Disgo provides the following **exclusive features**.
 
 - EVERY Rate Limit (Global, Per Route, Per Resource, Custom, Gateway)
 - Automatic Intent Calculation (Gateway)
@@ -29,13 +27,13 @@ High quality code merits easy development. Disgo uses developer operations to st
 
 This breakdown provides you with a **full understanding** on how to use the API.
 
-| Abstraction  | Usecase                                                                                                                                                            | Example                                                             |
-| :----------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
-| **Resource** | A [Discord API Resource](https://discord.com/developers/docs/resources/application).                                                                               | Guild Object. User Object.                                          |
-| **Event**    | A [Discord API Event](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events).                                                      | A message is created. A user joins a channel.                       |
-| **Client**   | The Discord Bot [Application](https://discord.com/developers/docs/resources/application) that you program. One Bot = One Client.                                   | Configure the bot settings. Set the token.                          |
-| **Request**  | Uses the Discord HTTP REST API to make one-time requests for information _(i.e resources)_. Provides create, read, update, delete, patch endpoints.                | Create a command. Request Guild Info.                               |
-| **Session**  | Uses Discord WebSockets [(Gateways)](https://discord.com/developers/docs/topics/gateway) to receive ongoing **events** that contain information _(i.e resources)_. | Send a message when a command used or a user joins a voice channel. |
+| Abstraction  | Usecase                                                                                                                                          | Example                                                             |
+| :----------- | :----------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
+| **Resource** | A [Discord API Resource](https://discord.com/developers/docs/resources/application).                                                             | Guild Object. User Object.                                          |
+| **Event**    | A [Discord API Event](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events).                                    | A message is created. A user joins a channel.                       |
+| **Client**   | The Discord Bot [Application](https://discord.com/developers/docs/resources/application) that you program. One Bot = One Client.                 | Configure the bot settings. Set the token.                          |
+| **Request**  | Uses the Discord HTTP REST API to make one-time requests for information.                                                                        | Create an application command. Request guild information.           |
+| **Session**  | Uses Discord WebSockets [(Gateways)](https://discord.com/developers/docs/topics/gateway) to receive ongoing **events** that contain information. | Send a message when a command used or a user joins a voice channel. |
 
 You create a **Client** that calls for **Resources** using **Requests** and handles **Events** from **Sessions** using event handlers. For more information, please read [What is a Request?](/_contribution/concepts/REQUESTS.md) and [What is an Event?](/_contribution/concepts/EVENTS.md)
 
@@ -78,8 +76,8 @@ bot := &disgo.Client{
     Authentication: disgo.BotToken("TOKEN"), // or BearerToken("TOKEN")
     Authorization: &disgo.Authorization{ ... },
     Config: disgo.DefaultConfig(),
-    Handlers: new(Handlers),
-    Sessions: new(Sessions)
+    Handlers:       new(disgo.Handlers),
+    Sessions:       []*disgo.Session{NewSession()},
 }
 ```
 
@@ -121,7 +119,7 @@ Open a WebSocket **Session** to receive events.
 
 ```go
 // Connect the session to the Discord Gateway (WebSocket Connection).
-if err := bot.Connect(disgo.NewSession()); err != nil {
+if err := bot.Sessions[0].Connect(bot); err != nil {
     log.Printf("can't open websocket session to Discord: %v", err)
 }
 ```
