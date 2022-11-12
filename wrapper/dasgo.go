@@ -1813,8 +1813,7 @@ type CreateMessage struct {
 	MessageReference *MessageReference `json:"message_reference,omitempty"`
 	Components       []*Component      `json:"components,omitempty"`
 	StickerIDS       []*string         `json:"sticker_ids,omitempty"`
-	Files            []byte            `dasgo:"files,omitempty"`
-	PayloadJSON      *string           `json:"payload_json,omitempty"`
+	Files            []File            `dasgo:"files,omitempty"`
 	Attachments      []*Attachment     `json:"attachments,omitempty"`
 	Flags            *BitFlag          `json:"flags,omitempty"`
 }
@@ -1894,8 +1893,7 @@ type EditMessage struct {
 	Flags           *BitFlag         `json:"flags"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions"`
 	Components      []*Component     `json:"components"`
-	Files           []byte           `dasgo:"files"`
-	PayloadJSON     *string          `json:"payload_json"`
+	Files           []File           `dasgo:"files"`
 	Attachments     []*Attachment    `json:"attachments"`
 }
 
@@ -2054,8 +2052,7 @@ type ForumThreadMessageParams struct {
 	Components      []*Component     `json:"components,omitempty"`
 	StickerIDS      []*string        `json:"sticker_ids,omitempty"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
-	Files           []byte           `dasgo:"files"`
-	PayloadJSON     string           `json:"payload_json,omitempty"`
+	Files           []File           `dasgo:"files"`
 	Flags           BitFlag          `json:"flags,omitempty"`
 }
 
@@ -2835,7 +2832,7 @@ type CreateGuildSticker struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Tags        *string `json:"tags"`
-	File        []byte  `dasgo:"file"`
+	File        File    `dasgo:"file"`
 }
 
 // Modify Guild Sticker
@@ -3011,8 +3008,7 @@ type ExecuteWebhook struct {
 	Embeds          []*Embed         `json:"embeds"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
 	Components      []Component      `json:"components,omitempty"`
-	Files           []byte           `dasgo:"files"`
-	PayloadJSON     string           `json:"payload_json"`
+	Files           []File           `dasgo:"files"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
 	Flags           BitFlag          `json:"flags,omitempty"`
 	ThreadName      string           `json:"thread_name,omitempty"`
@@ -3059,9 +3055,8 @@ type EditWebhookMessage struct {
 	Content         *string          `json:"content"`
 	Embeds          []*Embed         `json:"embeds"`
 	Components      []*Component     `json:"components"`
-	Files           []byte           `dasgo:"files"`
+	Files           []File           `dasgo:"files"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions"`
-	PayloadJSON     string           `json:"payload_json"`
 	Attachments     []*Attachment    `json:"attachments"`
 }
 

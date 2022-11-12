@@ -727,9 +727,19 @@ func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateMessage", err)
 	}
 
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		contentType = ContentTypeMultipartForm
+
+		var multipartErr error
+		if body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[40]("40", "e5416649"+r.ChannelID)
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointCreateMessage(r.ChannelID), ContentTypeMultipartForm, body, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointCreateMessage(r.ChannelID), contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateMessage", err)
 	}
@@ -828,9 +838,19 @@ func (r *EditMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "EditMessage", err)
 	}
 
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		contentType = ContentTypeMultipartForm
+
+		var multipartErr error
+		if body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[48]("48", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditMessage(r.ChannelID, r.MessageID), ContentTypeMultipartForm, body, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditMessage(r.ChannelID, r.MessageID), contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditMessage", err)
 	}
@@ -2195,6 +2215,11 @@ func (r *CreateGuildSticker) Send(bot *Client) (*Sticker, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildSticker", err)
 	}
 
+	var multipartErr error
+	if body, multipartErr = createMultipartForm(body, r.File); multipartErr != nil {
+		return nil, fmt.Errorf(ErrMultipart, err)
+	}
+
 	result := new(Sticker)
 	routeid, resourceid := RateLimitHashFuncs[144]("144", "45892a5d"+r.GuildID)
 	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointCreateGuildSticker(r.GuildID), ContentTypeMultipartForm, body, result)
@@ -2478,13 +2503,23 @@ func (r *ExecuteWebhook) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "ExecuteWebhook", err)
 	}
 
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		contentType = ContentTypeMultipartForm
+
+		var multipartErr error
+		if body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return fmt.Errorf(ErrQueryString, "ExecuteWebhook", err)
 	}
 
 	routeid, resourceid := RateLimitHashFuncs[165]("165", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointExecuteWebhook(r.WebhookID, r.WebhookToken)+"?"+query, ContentTypeMultipartForm, body, nil)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointExecuteWebhook(r.WebhookID, r.WebhookToken)+"?"+query, contentType, body, nil)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ExecuteWebhook", err)
 	}
@@ -2548,6 +2583,16 @@ func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "EditWebhookMessage", err)
 	}
 
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		contentType = ContentTypeMultipartForm
+
+		var multipartErr error
+		if body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, fmt.Errorf(ErrQueryString, "EditWebhookMessage", err)
@@ -2555,7 +2600,7 @@ func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[169]("169", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, ContentTypeMultipartForm, body, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditWebhookMessage", err)
 	}

@@ -130,6 +130,7 @@ func generateBody(function *models.Function) string {
 	request := function.From[0].Field
 	requestName := request.FullDefinitionWithoutPointer()
 	response := function.To[0].Field
+	uniquetags := uniqueTags(request)
 
 	// write the function body.
 	var body strings.Builder
@@ -137,8 +138,7 @@ func generateBody(function *models.Function) string {
 
 	// marshal the request.
 	httpbody := "nil"
-	uniquetags := uniqueTags(request)
-	if uniquetags["json"] != 0 {
+	if len(uniquetags["json"]) != 0 {
 		body.WriteString("body, err " + errDecl + " json.Marshal(r)\n")
 		body.WriteString("if err != nil {\n")
 		body.WriteString(generateMarshalErrReturn(function, requestName))
@@ -148,9 +148,32 @@ func generateBody(function *models.Function) string {
 		errDecl = "="
 	}
 
+	// add file upload support (if applicable).
+	contentType := generateContentType(uniquetags)
+	if contentType == "varies" {
+		contentType = "contentType"
+
+		body.WriteString("contentType := ContentTypeJSON\n")
+		body.WriteString("if len(r.Files) != 0 {\n")
+		body.WriteString("contentType = ContentTypeMultipartForm\n")
+		body.WriteString("\n")
+		body.WriteString("var multipartErr error\n")
+		body.WriteString("if body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {\n")
+		body.WriteString(generateMultipartErrReturn(function, requestName))
+		body.WriteString("}\n")
+		body.WriteString("}\n")
+		body.WriteString("\n")
+	} else if contentType == "ContentTypeMultipartForm" {
+		body.WriteString("var multipartErr error\n")
+		body.WriteString("if body, multipartErr = createMultipartForm(body, r.File); multipartErr != nil {\n")
+		body.WriteString(generateMultipartErrReturn(function, requestName))
+		body.WriteString("}\n")
+		body.WriteString("\n")
+	}
+
 	// call the endpoint's function.
 	endpoint := generateEndpointCall(function.From[0].Field)
-	if uniquetags["url"] != 0 {
+	if len(uniquetags["url"]) != 0 {
 		body.WriteString("query, err := EndpointQueryString(r)\n")
 		body.WriteString("if err != nil {\n")
 		body.WriteString(generateQueryStringErrReturn(function, requestName))
@@ -181,7 +204,7 @@ func generateBody(function *models.Function) string {
 	// send the request.
 	body.WriteString("err " + errDecl +
 		" SendRequest(bot, routeid, resourceid, " + generateHTTPMethod(function) + ", " +
-		endpoint + ", " + generateContentType(uniquetags) + ", " + httpbody + ", " + result + ")\n",
+		endpoint + ", " + contentType + ", " + httpbody + ", " + result + ")\n",
 	)
 	body.WriteString("if err != nil {\n")
 	body.WriteString(generateSendRequestErrReturn(function, requestName))
@@ -276,26 +299,36 @@ func generateEndpointCall(request *models.Field) string {
 }
 
 // generateContentType generates the content type for a SendRequest(..., content type) call.
-func generateContentType(tags map[string]int) string {
+func generateContentType(tags map[string][]string) string {
 	switch {
-	case tags["dasgo"] != 0:
-		return "ContentTypeMultipartForm"
-	case tags["json"] != 0:
+	case len(tags["dasgo"]) != 0:
+		if tags["dasgo"][0] == "file" {
+			return "ContentTypeMultipartForm"
+		}
+
+		return "varies"
+
+	case len(tags["json"]) != 0:
 		return "ContentTypeJSON"
-	case tags["url"] != 0:
+	case len(tags["url"]) != 0:
 		return "ContentTypeURLQueryString"
 	default:
 		return "nil"
 	}
 }
 
-// uniqueTags determines the unique tags of a request.
-func uniqueTags(request *models.Field) map[string]int {
-	uniquetags := make(map[string]int)
+// uniqueTags determines the unique tags of a request including all of its subfield tags.
+func uniqueTags(request *models.Field) map[string][]string {
+	uniquetags := make(map[string][]string)
 
 	for _, subfield := range request.Fields {
-		for k := range subfield.Tags {
-			uniquetags[k]++
+		for tagKey := range subfield.Tags {
+			tags := make([]string, 0, len(subfield.Tags))
+			for tagName := range subfield.Tags[tagKey] {
+				tags = append(tags, tagName)
+			}
+
+			uniquetags[tagKey] = tags
 		}
 	}
 
@@ -335,6 +368,19 @@ func generateSendRequestErrReturn(function *models.Function, request string) str
 // generateQueryStringErrReturn generates a return statement for the function.
 func generateQueryStringErrReturn(function *models.Function, request string) string {
 	errorf := "fmt.Errorf(ErrQueryString" + ",\"" + request + "\"" + ", err)"
+	switch len(function.To) {
+	case 1:
+		return "return " + errorf + "\n"
+	case 2:
+		return "return nil, " + errorf + "\n"
+	default:
+		return "return nil, " + errorf + "\n"
+	}
+}
+
+// generateMultipartErrReturn generates a return statement for the function.
+func generateMultipartErrReturn(function *models.Function, request string) string {
+	errorf := "fmt.Errorf(ErrMultipart" + ", err)"
 	switch len(function.To) {
 	case 1:
 		return "return " + errorf + "\n"
