@@ -2,8 +2,8 @@ go 1.18
 
 use (
 	./
+	./_examples
+	./cache
+	./shard
 	./tools
-    ./shard
-    ./cache
-    ./_examples
 )

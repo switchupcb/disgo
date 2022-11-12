@@ -2,11 +2,11 @@ package wrapper
 
 import (
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 
 	json "github.com/goccy/go-json"
+	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 )
 
@@ -52,6 +52,12 @@ const (
 
 // HTTP Header Rate Limit Variables.
 var (
+	// headerDate represents a byte representation of "Date" for HTTP Header functionality.
+	headerDate = []byte(FlagRateLimitHeaderDate)
+
+	// headerRetryAfter represents a byte representation of "Retry-After" for HTTP Header functionality.
+	headerRateLimitRetryAfter = []byte(FlagRateLimitHeaderRetryAfter)
+
 	// headerRateLimit represents a byte representation of "X-RateLimit-Limit" for HTTP Header functionality.
 	headerRateLimit = []byte(FlagRateLimitHeaderLimit)
 
@@ -72,12 +78,6 @@ var (
 
 	// headerRateLimitScope represents a byte representation of "X-RateLimit-Scope" for HTTP Header functionality.
 	headerRateLimitScope = []byte(FlagRateLimitHeaderScope)
-
-	// headerRetryAfter represents a byte representation of "Retry-After" for HTTP Header functionality.
-	headerRateLimitRetryAfter = []byte(FlagRateLimitHeaderRetryAfter)
-
-	// headerDate represents a byte representation of "Date" for HTTP Header functionality.
-	headerDate = []byte(FlagRateLimitHeaderDate)
 )
 
 // peekDate peeks an HTTP Header for the Date.
@@ -90,7 +90,17 @@ func peekDate(r *fasthttp.Response) (time.Time, error) {
 	return date, nil
 }
 
-// peekHeaderRateLimit peeks an HTTP Header for Rate Limit Header values.
+// peekHeaderRetryAfter peeks an HTTP Header for the Rate Limit Header "Retry-After".
+func peekHeaderRetryAfter(r *fasthttp.Response) (float64, error) {
+	retryafter, err := strconv.ParseFloat(string(r.Header.PeekBytes(headerRateLimitRetryAfter)), bit64)
+	if err != nil {
+		return 0, fmt.Errorf(ErrRateLimit, string(headerRateLimitRetryAfter), err)
+	}
+
+	return retryafter, nil
+}
+
+// peekHeaderRateLimit peeks an HTTP Header for Discord Rate Limit Header values.
 func peekHeaderRateLimit(r *fasthttp.Response) RateLimitHeader {
 	limit, _ := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimit)))
 	remaining, _ := strconv.Atoi(string(r.Header.PeekBytes(headerRateLimitRemaining)))
@@ -107,16 +117,6 @@ func peekHeaderRateLimit(r *fasthttp.Response) RateLimitHeader {
 		Global:     global,
 		Scope:      string(r.Header.PeekBytes(headerRateLimitScope)),
 	}
-}
-
-// peekHeader429 peeks an HTTP Header with a 429 Status Code for the Rate Limit Header "Retry-After".
-func peekHeader429(r *fasthttp.Response) (float64, error) {
-	retryafter, err := strconv.ParseFloat(string(r.Header.PeekBytes(headerRateLimitRetryAfter)), bit64)
-	if err != nil {
-		return 0, fmt.Errorf(ErrRateLimit, string(headerRateLimitRetryAfter), err)
-	}
-
-	return retryafter, nil
 }
 
 // SendRequest sends a fasthttp.Request using the given route ID, HTTP method, URI, content type and body,
@@ -142,6 +142,8 @@ func SendRequest(bot *Client, routeid, resourceid, method, uri string, content, 
 RATELIMIT:
 	// a single request or response is PROCESSED at any point in time.
 	bot.Config.Request.RateLimiter.Lock()
+
+	Logger.Trace().Timestamp().Str(logCtxClient, bot.ApplicationID).Str(logCtxRequest, requestid).Msg("processing request")
 
 	// check Global and Route Rate Limit Buckets prior to sending the current request.
 	for {
@@ -202,10 +204,18 @@ RATELIMIT:
 	bot.Config.Request.RateLimiter.Unlock()
 
 SEND:
+	Logger.Trace().Timestamp().Str(logCtxClient, bot.ApplicationID).Str(logCtxRequest, requestid).Msg("sending request")
+
 	// send the request.
 	if err := bot.Config.Request.Client.DoTimeout(request, response, bot.Config.Request.Timeout); err != nil {
 		return fmt.Errorf("%w", err)
 	}
+
+	Logger.Info().Timestamp().Str(logCtxClient, logCtxRequest).Str(logCtxRequest, requestid).
+		Dict(logCtxResponse, zerolog.Dict().
+			Str(logCtxResponseHeader, response.Header.String()).
+			Str(logCtxResponseBody, string(response.Body())),
+		).Msg("")
 
 	var header RateLimitHeader
 
@@ -213,8 +223,6 @@ SEND:
 	//
 	// Certain endpoints are not bound to the bot's Global Rate Limit.
 	if !IgnoreGlobalRateLimitRouteIDs[requestid] {
-		log.Println("\n" + time.Now().String() + "\n" + response.Header.String())
-
 		// parse the Rate Limit Header for per-route rate limit functionality.
 		header = peekHeaderRateLimit(response)
 
@@ -276,8 +284,6 @@ SEND:
 	// handle the response.
 	switch response.StatusCode() {
 	case fasthttp.StatusOK:
-		log.Println(string(response.Body()))
-
 		// parse the response data.
 		if err := json.Unmarshal(response.Body(), dst); err != nil {
 			return fmt.Errorf("%w", err)
@@ -287,8 +293,6 @@ SEND:
 
 	// process the rate limit.
 	case fasthttp.StatusTooManyRequests:
-		log.Println(string(response.Body()))
-
 		retry := retries < bot.Config.Request.Retries
 		retries++
 
@@ -319,7 +323,7 @@ SEND:
 			reset = time.Now().Add(time.Millisecond * time.Duration(data.RetryAfter*msPerSecond))
 		} else {
 			// when the 429 is from a Cloudflare Ban, use the `"Retry-After"` value (s).
-			retryafter, err := peekHeader429(response)
+			retryafter, err := peekHeaderRetryAfter(response)
 			if err != nil {
 				return fmt.Errorf("%w", err)
 			}
@@ -327,7 +331,7 @@ SEND:
 			reset = time.Now().Add(time.Millisecond * time.Duration(retryafter*msPerSecond))
 		}
 
-		log.Printf("429 Reset Time: %v", reset)
+		Logger.Debug().Timestamp().Str(logCtxClient, logCtxRequest).Str(logCtxRequest, requestid).Time(logCtxReset, reset)
 
 		switch header.Global {
 		// when the global request rate limit is encountered.

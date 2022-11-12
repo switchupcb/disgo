@@ -45,7 +45,8 @@ func JSONCodeError(status int) error {
 
 /// Gateway Errors
 const (
-	errRemoveInvalidEventHandler = "cannot remove event handler for %s since there is no event handler at index %d"
+	errHandleNotRemoved   = "event handler for %s was not added"
+	errRemoveInvalidIndex = "event handler for %s cannot be removed since there is no event handler at index %d"
 )
 
 // DisconnectError represents a WebSocket disconnection error that occurs when

@@ -75,8 +75,16 @@ func generateHandle(functions []*models.Function) string {
 		}
 	}
 	fn.WriteString("}\n")
+	fn.WriteString("\n")
 
-	fn.WriteString("\nreturn fmt.Errorf(\"event handler for %s was not added.\", eventname)\n")
+	fn.WriteString("err := fmt.Errorf(errHandleNotRemoved, eventname)\n")
+	fn.WriteString("Logger.Error()." +
+		"Timestamp()." +
+		"Str(logCtxClient, bot.ApplicationID)." +
+		"Err(err)." +
+		"Msg(\"\")\n")
+	fn.WriteString("\n")
+	fn.WriteString("return err")
 	fn.WriteString("}\n")
 	return fn.String()
 }
@@ -91,12 +99,17 @@ func generateHandleCase(eventname string, flag string) string {
 		c.WriteString("if !bot.Config.Gateway.IntentSet[" + flag + "] {\n")
 		c.WriteString("bot.Config.Gateway.IntentSet[" + flag + "] = true\n")
 		c.WriteString("bot.Config.Gateway.Intents |= " + flag + "\n")
-		c.WriteString("}\n\n")
+		c.WriteString("}\n")
+		c.WriteString("\n")
 	}
 
 	// add the event handler.
 	c.WriteString("if f, ok := function.(func(*" + eventname + ")); ok {\n")
 	c.WriteString("bot.Handlers." + eventname + " = append(bot.Handlers." + eventname + ", f)\n")
+	c.WriteString("Logger.Info()." +
+		"Timestamp()." +
+		"Str(logCtxClient, bot.ApplicationID)." +
+		"Msg(\"event handler for " + eventname + " added\")\n")
 	c.WriteString("return nil\n")
 	c.WriteString("}\n")
 	return c.String()
@@ -137,8 +150,15 @@ func generateRemove(functions []*models.Function) string {
 		}
 	}
 	fn.WriteString("}\n")
+	fn.WriteString("\n")
 
-	fn.WriteString("\nreturn fmt.Errorf(\"event handler for %s at index %d was not removed.\", eventname, index)\n")
+	fn.WriteString("Logger.Info()." +
+		"Timestamp()." +
+		"Str(logCtxClient, bot.ApplicationID)." +
+		"Msgf(\"event handler for %s removed\", eventname)\n")
+	fn.WriteString("\n")
+
+	fn.WriteString("return nil\n")
 	fn.WriteString("}\n")
 	return fn.String()
 }
@@ -150,13 +170,18 @@ func generateRemoveCase(eventname string) string {
 
 	// check the bounds of the handlers.
 	c.WriteString("if len(bot.Handlers." + eventname + ") <= index {\n")
-	c.WriteString("return fmt.Errorf(errRemoveInvalidEventHandler, eventname, index)\n")
-	c.WriteString("}\n\n")
+	c.WriteString("err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)\n")
+	c.WriteString("Logger.Error()." +
+		"Str(logCtxClient, bot.ApplicationID)." +
+		"Err(err)." +
+		"Msg(\"\")\n")
+	c.WriteString("return err\n")
+	c.WriteString("}\n")
+	c.WriteString("\n")
 
 	// remove the event handler.
 	c.WriteString("bot.Handlers." + eventname + " = " +
 		"append(bot.Handlers." + eventname + "[:index], bot.Handlers." + eventname + "[index+1:]...)\n")
-	c.WriteString("return nil\n")
 	return c.String()
 }
 
@@ -195,9 +220,14 @@ func generatehandleCase(eventname string) string {
 	c.WriteString("case FlagGatewayEventName" + eventname + ":\n")
 	c.WriteString("event := new(" + eventname + ")\n")
 	c.WriteString("if err := json.Unmarshal(data, event); err != nil {\n")
-	c.WriteString("log.Println(ErrorEvent{Event: FlagGatewayEventName" + eventname + ", Err: err, Action: ErrorEventActionUnmarshal})\n")
+	c.WriteString("Logger.Error()." +
+		"Timestamp()." +
+		"Str(logCtxClient, bot.ApplicationID)." +
+		"Err(ErrorEvent{Event: FlagGatewayEventName" + eventname + ", Err: err, Action: ErrorEventActionUnmarshal})." +
+		"Msg(\"\")\n")
 	c.WriteString("return\n")
-	c.WriteString("}\n\n")
+	c.WriteString("}\n")
+	c.WriteString("\n")
 
 	// call the handlers.
 	c.WriteString("for _, handler := range bot.Handlers." + eventname + " {\n")

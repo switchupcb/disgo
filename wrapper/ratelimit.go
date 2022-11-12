@@ -1,7 +1,6 @@
 package wrapper
 
 import (
-	"log"
 	"sync"
 )
 
@@ -76,7 +75,7 @@ func (r *RateLimit) SetBucketID(routeid string, bucketid string) {
 				delete(r.entries, currentBucketID)
 				delete(r.buckets, currentBucketID)
 
-				log.Println("deleted bucket", currentBucketID)
+				Logger.Info().Timestamp().Str(logCtxRequest, routeid).Str(logCtxBucket, currentBucketID).Msg("deleted bucket")
 			}
 		}
 
@@ -86,7 +85,7 @@ func (r *RateLimit) SetBucketID(routeid string, bucketid string) {
 		// update the entries for the new Bucket ID.
 		r.entries[bucketid]++
 
-		log.Println("set route", routeid, "to bucket", bucketid)
+		Logger.Info().Timestamp().Str(logCtxRequest, routeid).Str(logCtxBucket, bucketid).Msg("set route to bucket")
 	}
 }
 
@@ -97,7 +96,7 @@ func (r *RateLimit) GetBucketID(routeid string) string {
 func (r *RateLimit) SetBucketFromID(bucketid string, bucket *Bucket) {
 	r.buckets[bucketid] = bucket
 
-	log.Printf("set bucket %s to %p", bucketid, bucket)
+	Logger.Info().Timestamp().Str(logCtxBucket, bucketid).Msgf("set bucket to object %p", bucket)
 }
 
 func (r *RateLimit) GetBucketFromID(bucketid string) *Bucket {
