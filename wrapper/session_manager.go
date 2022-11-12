@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -103,7 +102,7 @@ func (s *Session) decrementPulses() {
 
 // logClose safely logs the close of a Session's goroutine.
 func (s *Session) logClose(routine string) {
-	log.Printf("closed %s routine for session %s", routine, s.ID)
+	Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msgf("closed %s routine", routine)
 }
 
 // reconnect spawns a goroutine for reconnection which prompts the manager
@@ -114,7 +113,8 @@ func (s *Session) reconnect(reason string) {
 		defer s.logClose("reconnect")
 		defer s.Unlock()
 
-		log.Println(reason)
+		Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg(reason)
+
 		s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalReconnect)
 		if err := s.disconnect(FlagClientCloseEventCodeReconnect); err != nil {
 			return fmt.Errorf("reconnect: %w", err)
@@ -138,21 +138,21 @@ func (s *Session) manage(bot *Client) {
 
 	// log the reason for disconnection (if applicable).
 	if reason := s.manager.signal.Value(keyReason); reason != nil {
-		log.Println(reason)
+		Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msgf("%v", reason)
 	}
 
 	// when a signal is provided, it indicates that the disconnection was purposeful.
 	signal := s.manager.signal.Value(keySignal)
 	switch signal {
 	case signalDisconnect:
-		log.Printf("successfully disconnected Session %q", s.ID)
+		Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("successfully disconnected")
 
 		s.manager.err <- nil
 
 		return
 
 	case signalReconnect:
-		log.Printf("successfully disconnected Session %q (while reconnecting)", s.ID)
+		Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("successfully disconnected (while reconnecting)")
 
 		// allow Discord to close the session.
 		<-time.After(time.Second)
@@ -201,13 +201,11 @@ func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.Close
 	switch ok {
 	// Gateway Close Event Code is known.
 	case true:
-		log.Printf(
-			"Session %q received Gateway Close Event Code %d %s: %s",
-			s.ID, code.Code, code.Description, code.Explanation,
-		)
+		Logger.Info().Timestamp().Str(logCtxSession, s.ID).
+			Msgf("received Gateway Close Event Code %d %s: %s", code.Code, code.Description, code.Explanation)
 
 		if code.Reconnect {
-			s.reconnect(fmt.Sprintf("reconnecting Session %q due to Gateway Close Event Code %d", s.ID, code.Code))
+			s.reconnect(fmt.Sprintf("reconnecting due to Gateway Close Event Code %d", code.Code))
 
 			return nil
 		}
@@ -224,10 +222,8 @@ func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.Close
 			return nil
 		}
 
-		log.Printf(
-			"Session %q received unknown Gateway Close Event Code %d with reason %q",
-			s.ID, closeErr.Code, closeErr.Reason,
-		)
+		Logger.Info().Timestamp().Str(logCtxSession, s.ID).
+			Msgf("received unknown Gateway Close Event Code %d with reason %q", closeErr.Code, closeErr.Reason)
 
 		return closeErr
 	}

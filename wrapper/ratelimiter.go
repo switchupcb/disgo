@@ -157,10 +157,9 @@ func (b *Bucket) ConfirmHeader(amount int16, header RateLimitHeader) {
 	b.Pending -= amount
 
 	// determine the reset time.
-	// whole, decimal := math.Modf(header.Reset)
-	// reset := time.Unix(int64(whole), 0).Add(time.Millisecond*time.Duration(decimal*msPerSecond) + time.Millisecond)
 	//
-	// PATCH: Discord's `reset` and `reset-after` header is not consistent.
+	// Discord recommends to rely on the `Retry-After` header.
+	// https://discord.com/developers/docs/topics/rate-limits#exceeding-a-rate-limit
 	reset := time.Now().Add(time.Millisecond*time.Duration(header.ResetAfter*msPerSecond) + time.Millisecond)
 
 	// Expiry is zero when a request from the Route ID has never been sent to Discord.

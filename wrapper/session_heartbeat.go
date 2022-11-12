@@ -2,7 +2,6 @@ package wrapper
 
 import (
 	"fmt"
-	"log"
 	"sync/atomic"
 	"time"
 
@@ -63,7 +62,7 @@ func (s *Session) beat(bot *Client) error {
 			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
 				s.Unlock()
 
-				s.reconnect(fmt.Sprintf("attempting to reconnect Session %q due to no HeartbeatACK", s.ID))
+				s.reconnect("attempting to reconnect session due to no HeartbeatACK")
 
 				return nil
 			}
@@ -96,7 +95,7 @@ func (s *Session) beat(bot *Client) error {
 			// reset the amount of HeartbeatACKs since the last heartbeat.
 			atomic.StoreUint32(&s.heartbeat.acks, 0)
 
-			log.Println("sent heartbeat")
+			Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("sent heartbeat")
 
 			s.Unlock()
 
@@ -115,7 +114,7 @@ func (s *Session) pulse() {
 	// (where jitter is a random value between 0 and 1).
 	s.Lock()
 	s.heartbeat.send <- Heartbeat{Data: s.Seq}
-	log.Println("queued jitter heartbeat")
+	Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("queued jitter heartbeat")
 	s.Unlock()
 
 	for {
@@ -127,7 +126,7 @@ func (s *Session) pulse() {
 			// queue a heartbeat.
 			s.heartbeat.send <- Heartbeat{Data: s.Seq}
 
-			log.Println("queued heartbeat")
+			Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("queued heartbeat")
 
 			s.Unlock()
 
@@ -172,7 +171,7 @@ func (s *Session) respond(data json.RawMessage) error {
 	// send an Opcode 1 Heartbeat without waiting the remainder of the current interval.
 	s.heartbeat.send <- heartbeat
 
-	log.Println("responded to heartbeat")
+	Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("responded to heartbeat")
 
 	s.Unlock()
 

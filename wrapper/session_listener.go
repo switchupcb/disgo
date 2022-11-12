@@ -2,10 +2,10 @@ package wrapper
 
 import (
 	"fmt"
-	"log"
 	"sync/atomic"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/switchupcb/disgo/wrapper/internal/socket"
 )
 
@@ -21,7 +21,11 @@ func (s *Session) listen(bot *Client) error {
 			break
 		}
 
-		log.Println("PAYLOAD", payload.Op, string(payload.Data))
+		Logger.Info().Timestamp().Str(logCtxSession, s.ID).Dict(logCtxPayload, zerolog.Dict().
+			Int(logCtxPayloadOpcode, payload.Op).
+			Bytes(logCtxPayloadData, payload.Data),
+		).Msg("received payload")
+
 		if err = s.onPayload(bot, *payload); err != nil {
 			break
 		}
@@ -73,7 +77,7 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// occurs when the Discord Gateway is shutting down the connection, while signalling the client to reconnect.
 	case FlagGatewayOpcodeReconnect:
-		s.reconnect(fmt.Sprintf("reconnecting Session %q due to Opcode 7 Reconnect", s.ID))
+		s.reconnect("reconnecting session due to Opcode 7 Reconnect")
 
 		return nil
 
