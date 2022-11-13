@@ -958,7 +958,7 @@ type MessageCreate struct {
 // Message Update
 // https://discord.com/developers/docs/topics/gateway-events#message-update
 type MessageUpdate struct {
-	Message *Message
+	*Message
 }
 
 // Message Delete
@@ -1593,6 +1593,7 @@ type BatchEditApplicationCommandPermissions struct {
 type CreateInteractionResponse struct {
 	InteractionID    string
 	InteractionToken string
+	*InteractionResponse
 }
 
 // Get Original Interaction Response
@@ -1600,6 +1601,7 @@ type CreateInteractionResponse struct {
 // https://discord.com/developers/docs/interactions/receiving-and-responding#get-original-interaction-response
 type GetOriginalInteractionResponse struct {
 	InteractionToken string
+	ThreadID         string `url:"thread_id"`
 }
 
 // Edit Original Interaction Response
@@ -1607,6 +1609,13 @@ type GetOriginalInteractionResponse struct {
 // https://discord.com/developers/docs/interactions/receiving-and-responding#edit-original-interaction-response
 type EditOriginalInteractionResponse struct {
 	InteractionToken string
+	ThreadID         string           `url:"thread_id"`
+	Content          *string          `json:"content"`
+	Embeds           []*Embed         `json:"embeds"`
+	Components       []*Component     `json:"components"`
+	Files            []*File          `dasgo:"files"`
+	AllowedMentions  *AllowedMentions `json:"allowed_mentions"`
+	Attachments      []*Attachment    `json:"attachments"`
 }
 
 // Delete Original Interaction Response
@@ -1621,6 +1630,18 @@ type DeleteOriginalInteractionResponse struct {
 // https://discord.com/developers/docs/interactions/receiving-and-responding#create-followup-message
 type CreateFollowupMessage struct {
 	InteractionToken string
+	ThreadID         string           `url:"thread_id"`
+	Content          string           `json:"content"`
+	Username         string           `json:"username,omitempty"`
+	AvatarURL        string           `json:"avatar_url,omitempty"`
+	TTS              bool             `json:"tts"`
+	Embeds           []*Embed         `json:"embeds"`
+	AllowedMentions  *AllowedMentions `json:"allowed_mentions,omitempty"`
+	Components       []Component      `json:"components,omitempty"`
+	Files            []*File          `dasgo:"files"`
+	Attachments      []*Attachment    `json:"attachments,omitempty"`
+	Flags            BitFlag          `json:"flags,omitempty"`
+	ThreadName       string           `json:"thread_name,omitempty"`
 }
 
 // Get Followup Message
@@ -1629,6 +1650,7 @@ type CreateFollowupMessage struct {
 type GetFollowupMessage struct {
 	InteractionToken string
 	MessageID        string
+	ThreadID         string `url:"thread_id"`
 }
 
 // Edit Followup Message
@@ -1637,6 +1659,13 @@ type GetFollowupMessage struct {
 type EditFollowupMessage struct {
 	InteractionToken string
 	MessageID        string
+	ThreadID         string           `url:"thread_id"`
+	Content          *string          `json:"content"`
+	Embeds           []*Embed         `json:"embeds"`
+	Components       []*Component     `json:"components"`
+	Files            []*File          `dasgo:"files"`
+	AllowedMentions  *AllowedMentions `json:"allowed_mentions"`
+	Attachments      []*Attachment    `json:"attachments"`
 }
 
 // Delete Followup Message
@@ -1813,8 +1842,7 @@ type CreateMessage struct {
 	MessageReference *MessageReference `json:"message_reference,omitempty"`
 	Components       []*Component      `json:"components,omitempty"`
 	StickerIDS       []*string         `json:"sticker_ids,omitempty"`
-	Files            []byte            `dasgo:"files,omitempty"`
-	PayloadJSON      *string           `json:"payload_json,omitempty"`
+	Files            []*File           `dasgo:"files,omitempty"`
 	Attachments      []*Attachment     `json:"attachments,omitempty"`
 	Flags            *BitFlag          `json:"flags,omitempty"`
 }
@@ -1894,8 +1922,7 @@ type EditMessage struct {
 	Flags           *BitFlag         `json:"flags"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions"`
 	Components      []*Component     `json:"components"`
-	Files           []byte           `dasgo:"files"`
-	PayloadJSON     *string          `json:"payload_json"`
+	Files           []*File          `dasgo:"files"`
 	Attachments     []*Attachment    `json:"attachments"`
 }
 
@@ -2054,8 +2081,7 @@ type ForumThreadMessageParams struct {
 	Components      []*Component     `json:"components,omitempty"`
 	StickerIDS      []*string        `json:"sticker_ids,omitempty"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
-	Files           []byte           `dasgo:"files"`
-	PayloadJSON     string           `json:"payload_json,omitempty"`
+	Files           []*File          `dasgo:"files"`
 	Flags           BitFlag          `json:"flags,omitempty"`
 }
 
@@ -2835,7 +2861,7 @@ type CreateGuildSticker struct {
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Tags        *string `json:"tags"`
-	File        []byte  `dasgo:"file"`
+	File        File    `dasgo:"file"`
 }
 
 // Modify Guild Sticker
@@ -3011,8 +3037,7 @@ type ExecuteWebhook struct {
 	Embeds          []*Embed         `json:"embeds"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
 	Components      []Component      `json:"components,omitempty"`
-	Files           []byte           `dasgo:"files"`
-	PayloadJSON     string           `json:"payload_json"`
+	Files           []*File          `dasgo:"files"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
 	Flags           BitFlag          `json:"flags,omitempty"`
 	ThreadName      string           `json:"thread_name,omitempty"`
@@ -3059,9 +3084,8 @@ type EditWebhookMessage struct {
 	Content         *string          `json:"content"`
 	Embeds          []*Embed         `json:"embeds"`
 	Components      []*Component     `json:"components"`
-	Files           []byte           `dasgo:"files"`
+	Files           []*File          `dasgo:"files"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions"`
-	PayloadJSON     string           `json:"payload_json"`
 	Attachments     []*Attachment    `json:"attachments"`
 }
 

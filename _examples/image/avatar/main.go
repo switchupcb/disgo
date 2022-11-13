@@ -20,7 +20,7 @@ var (
 
 // Command Line Flags
 var (
-	location = flag.String("i", "", "Set the location (Filepath or URL) of the avatar image using -i.")
+	location = flag.String("i", "", "Set the location (filepath or URL) of the avatar image using -i.")
 	remove   = flag.Bool("r", false, "Use -r to remove the avatar image after successfully setting it.")
 )
 
@@ -42,14 +42,14 @@ func main() {
 		return
 	}
 
-	// determine if the provided location is a Filepath or URL,
+	// Determine if the provided location is a filepath or URL,
 	// by checking whether the file exists.
 	var isFile bool
 	if _, err := os.Stat(*location); err == nil {
 		isFile = true
 	}
 
-	// In order to upload the file, we must determine the Image's Content Type
+	// In order to upload the file, you must determine the Image's Content Type
 	// and Data URI scheme.
 	//
 	// https://discord.com/developers/docs/reference#image-data

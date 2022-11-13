@@ -4,13 +4,14 @@ import (
 	"fmt"
 )
 
-// Send Error Messages.
+// Send Request Error Messages.
 const (
-	ErrSendMarshal = "an error occurred while marshalling a %v:\n%w"
-	ErrSendRequest = "an error occurred while sending %v:\n%w"
-	ErrQueryString = "an error occurred creating a URL Query String for %v:\n%w"
-	ErrRedirect    = "an error occurred redirecting from %v due to a missing Location HTTP header"
-	ErrRateLimit   = "an error occurred converting the HTTP rate limit header %v\n\t%w"
+	ErrSendMarshal = "error while marshalling a %v:\n%w"
+	ErrSendRequest = "error while sending %v:\n%w"
+	ErrQueryString = "error creating a URL Query String for %v:\n%w"
+	ErrMultipart   = "error creating multipart form: %w"
+	ErrRedirect    = "error redirecting from %v due to a missing Location HTTP header"
+	ErrRateLimit   = "error converting the HTTP rate limit header %v\n\t%w"
 )
 
 // Status Code Error Messages.
@@ -43,31 +44,11 @@ func JSONCodeError(status int) error {
 	return fmt.Errorf(ErrJSONErrorUnknown, status)
 }
 
-/// Gateway Errors
+// Event Handler Error Messages.
 const (
 	errHandleNotRemoved   = "event handler for %s was not added"
 	errRemoveInvalidIndex = "event handler for %s cannot be removed since there is no event handler at index %d"
 )
-
-// DisconnectError represents a WebSocket disconnection error that occurs when
-// a WebSocket attempt to gracefully disconnect fails.
-type DisconnectError struct {
-	// SessionID represents the ID of the Session that is disconnecting.
-	SessionID string
-
-	// Err represents the error that occurred while disconnecting.
-	Err error
-
-	// Action represents the error that prompted the disconnection (if applicable).
-	Action error
-}
-
-func (e DisconnectError) Error() string {
-	return fmt.Sprintf("an error occurred disconnecting the session %q from the Discord Gateway\n"+
-		"\tDisconnect(): %v\n"+
-		"\treason: %v\n",
-		e.SessionID, e.Err, e.Action)
-}
 
 // ErrorEvent represents a WebSocket error that occurs when
 // a WebSocket attempt to {action} an event fails.
@@ -89,7 +70,7 @@ type ErrorEvent struct {
 }
 
 func (e ErrorEvent) Error() string {
-	return fmt.Sprintf("an error occurred while %s a %v Event\n\t%v", e.Action, e.Event, e.Err)
+	return fmt.Sprintf("error while %s a %v Event\n\t%v", e.Action, e.Event, e.Err)
 }
 
 const (
@@ -99,28 +80,22 @@ const (
 	ErrorEventActionWrite     = "writing"
 )
 
-// ErrorEventHandler represents an Event Handler error that occurs when
-// an attempt to {action} an event handler fails.
-type ErrorEventHandler struct {
-	// Event represents the name of the event handler involved in this error.
-	Event string
+// DisconnectError represents a WebSocket disconnection error that occurs when
+// a WebSocket attempt to gracefully disconnect fails.
+type DisconnectError struct {
+	// SessionID represents the ID of the Session that is disconnecting.
+	SessionID string
 
-	// Err represents the error that occurred while performing the action.
+	// Err represents the error that occurred while disconnecting.
 	Err error
 
-	// Action represents the action that prompted the error.
-	//
-	// ErrorEventHandlerAction can be four values:
-	// ErrorEventHandlerAdd:       an error occurred while adding an event handler.
-	// ErrorEventHandlerRemove:    an error occurred while removing an event handler.
-	Action string
+	// Action represents the error that prompted the disconnection (if applicable).
+	Action error
 }
 
-func (e ErrorEventHandler) Error() string {
-	return fmt.Sprintf("an error occurred while %s a %s event handler\n\t%v", e.Action, e.Event, e.Err)
+func (e DisconnectError) Error() string {
+	return fmt.Sprintf("error disconnecting the session %q from the Discord Gateway\n"+
+		"\tDisconnect(): %v\n"+
+		"\treason: %v\n",
+		e.SessionID, e.Err, e.Action)
 }
-
-const (
-	ErrorEventHandlerAdd    = "adding"
-	ErrorEventHandlerRemove = "removing"
-)

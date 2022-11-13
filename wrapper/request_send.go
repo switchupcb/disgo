@@ -439,8 +439,13 @@ func (r *CreateInteractionResponse) Send(bot *Client) error {
 
 // Send sends a GetOriginalInteractionResponse request to Discord and returns a error.
 func (r *GetOriginalInteractionResponse) Send(bot *Client) error {
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return fmt.Errorf(ErrQueryString, "GetOriginalInteractionResponse", err)
+	}
+
 	routeid, resourceid := RateLimitHashFuncs[19]("19", "cb69bb28"+r.InteractionToken)
-	err := SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointGetOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), nil, nil, nil)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointGetOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken)+"?"+query, ContentTypeURLQueryString, nil, nil)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "GetOriginalInteractionResponse", err)
 	}
@@ -450,9 +455,27 @@ func (r *GetOriginalInteractionResponse) Send(bot *Client) error {
 
 // Send sends a EditOriginalInteractionResponse request to Discord and returns a Message.
 func (r *EditOriginalInteractionResponse) Send(bot *Client) (*Message, error) {
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf(ErrSendMarshal, "EditOriginalInteractionResponse", err)
+	}
+
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		var multipartErr error
+		if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, fmt.Errorf(ErrQueryString, "EditOriginalInteractionResponse", err)
+	}
+
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[20]("20", "cb69bb28"+r.InteractionToken)
-	err := SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken), nil, nil, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditOriginalInteractionResponse(bot.ApplicationID, r.InteractionToken)+"?"+query, contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditOriginalInteractionResponse", err)
 	}
@@ -473,9 +496,27 @@ func (r *DeleteOriginalInteractionResponse) Send(bot *Client) error {
 
 // Send sends a CreateFollowupMessage request to Discord and returns a Message.
 func (r *CreateFollowupMessage) Send(bot *Client) (*Message, error) {
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf(ErrSendMarshal, "CreateFollowupMessage", err)
+	}
+
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		var multipartErr error
+		if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, fmt.Errorf(ErrQueryString, "CreateFollowupMessage", err)
+	}
+
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[22]("22", "cb69bb28"+r.InteractionToken)
-	err := SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointCreateFollowupMessage(bot.ApplicationID, r.InteractionToken), nil, nil, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointCreateFollowupMessage(bot.ApplicationID, r.InteractionToken)+"?"+query, contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateFollowupMessage", err)
 	}
@@ -485,9 +526,14 @@ func (r *CreateFollowupMessage) Send(bot *Client) (*Message, error) {
 
 // Send sends a GetFollowupMessage request to Discord and returns a Message.
 func (r *GetFollowupMessage) Send(bot *Client) (*Message, error) {
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, fmt.Errorf(ErrQueryString, "GetFollowupMessage", err)
+	}
+
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[23]("23", "cb69bb28"+r.InteractionToken, "d57d6589"+r.MessageID)
-	err := SendRequest(bot, routeid, resourceid, fasthttp.MethodGet, EndpointGetFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), nil, nil, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodGet, EndpointGetFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID)+"?"+query, ContentTypeURLQueryString, nil, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "GetFollowupMessage", err)
 	}
@@ -497,9 +543,27 @@ func (r *GetFollowupMessage) Send(bot *Client) (*Message, error) {
 
 // Send sends a EditFollowupMessage request to Discord and returns a Message.
 func (r *EditFollowupMessage) Send(bot *Client) (*Message, error) {
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, fmt.Errorf(ErrSendMarshal, "EditFollowupMessage", err)
+	}
+
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		var multipartErr error
+		if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, fmt.Errorf(ErrQueryString, "EditFollowupMessage", err)
+	}
+
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[24]("24", "cb69bb28"+r.InteractionToken, "d57d6589"+r.MessageID)
-	err := SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID), nil, nil, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditFollowupMessage(bot.ApplicationID, r.InteractionToken, r.MessageID)+"?"+query, contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditFollowupMessage", err)
 	}
@@ -727,9 +791,17 @@ func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateMessage", err)
 	}
 
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		var multipartErr error
+		if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[40]("40", "e5416649"+r.ChannelID)
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointCreateMessage(r.ChannelID), ContentTypeMultipartForm, body, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointCreateMessage(r.ChannelID), contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateMessage", err)
 	}
@@ -828,9 +900,17 @@ func (r *EditMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "EditMessage", err)
 	}
 
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		var multipartErr error
+		if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[48]("48", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditMessage(r.ChannelID, r.MessageID), ContentTypeMultipartForm, body, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditMessage(r.ChannelID, r.MessageID), contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditMessage", err)
 	}
@@ -2195,9 +2275,15 @@ func (r *CreateGuildSticker) Send(bot *Client) (*Sticker, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "CreateGuildSticker", err)
 	}
 
+	var contentType []byte
+	var multipartErr error
+	if contentType, body, multipartErr = createMultipartForm(body, &r.File); multipartErr != nil {
+		return nil, fmt.Errorf(ErrMultipart, err)
+	}
+
 	result := new(Sticker)
 	routeid, resourceid := RateLimitHashFuncs[144]("144", "45892a5d"+r.GuildID)
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointCreateGuildSticker(r.GuildID), ContentTypeMultipartForm, body, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointCreateGuildSticker(r.GuildID), contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "CreateGuildSticker", err)
 	}
@@ -2478,13 +2564,21 @@ func (r *ExecuteWebhook) Send(bot *Client) error {
 		return fmt.Errorf(ErrSendMarshal, "ExecuteWebhook", err)
 	}
 
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		var multipartErr error
+		if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return fmt.Errorf(ErrQueryString, "ExecuteWebhook", err)
 	}
 
 	routeid, resourceid := RateLimitHashFuncs[165]("165", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointExecuteWebhook(r.WebhookID, r.WebhookToken)+"?"+query, ContentTypeMultipartForm, body, nil)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointExecuteWebhook(r.WebhookID, r.WebhookToken)+"?"+query, contentType, body, nil)
 	if err != nil {
 		return fmt.Errorf(ErrSendRequest, "ExecuteWebhook", err)
 	}
@@ -2548,6 +2642,14 @@ func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 		return nil, fmt.Errorf(ErrSendMarshal, "EditWebhookMessage", err)
 	}
 
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		var multipartErr error
+		if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, fmt.Errorf(ErrMultipart, err)
+		}
+	}
+
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, fmt.Errorf(ErrQueryString, "EditWebhookMessage", err)
@@ -2555,7 +2657,7 @@ func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 
 	result := new(Message)
 	routeid, resourceid := RateLimitHashFuncs[169]("169", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, ContentTypeMultipartForm, body, result)
+	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPatch, EndpointEditWebhookMessage(r.WebhookID, r.WebhookToken, r.MessageID)+"?"+query, contentType, body, result)
 	if err != nil {
 		return nil, fmt.Errorf(ErrSendRequest, "EditWebhookMessage", err)
 	}
@@ -2625,4 +2727,160 @@ func (r *GetCurrentAuthorizationInformation) Send(bot *Client) (*CurrentAuthoriz
 	}
 
 	return result, nil
+}
+
+func (r *EditOriginalInteractionResponse) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Content         *string          `json:"content"`
+		Embeds          []*Embed         `json:"embeds"`
+		Components      []*Component     `json:"components"`
+		AllowedMentions *AllowedMentions `json:"allowed_mentions"`
+		Attachments     []*Attachment    `json:"attachments"`
+	}{
+		Content:         r.Content,
+		Embeds:          r.Embeds,
+		Components:      r.Components,
+		AllowedMentions: r.AllowedMentions,
+		Attachments:     r.Attachments,
+	})
+}
+
+func (r *CreateFollowupMessage) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Content         string           `json:"content"`
+		Username        string           `json:"username,omitempty"`
+		AvatarURL       string           `json:"avatar_url,omitempty"`
+		TTS             bool             `json:"tts"`
+		Embeds          []*Embed         `json:"embeds"`
+		AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
+		Components      []Component      `json:"components,omitempty"`
+		Attachments     []*Attachment    `json:"attachments,omitempty"`
+		Flags           BitFlag          `json:"flags,omitempty"`
+		ThreadName      string           `json:"thread_name,omitempty"`
+	}{
+		Content:         r.Content,
+		Username:        r.Username,
+		AvatarURL:       r.AvatarURL,
+		TTS:             r.TTS,
+		Embeds:          r.Embeds,
+		AllowedMentions: r.AllowedMentions,
+		Components:      r.Components,
+		Attachments:     r.Attachments,
+		Flags:           r.Flags,
+		ThreadName:      r.ThreadName,
+	})
+}
+
+func (r *EditFollowupMessage) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Content         *string          `json:"content"`
+		Embeds          []*Embed         `json:"embeds"`
+		Components      []*Component     `json:"components"`
+		AllowedMentions *AllowedMentions `json:"allowed_mentions"`
+		Attachments     []*Attachment    `json:"attachments"`
+	}{
+		Content:         r.Content,
+		Embeds:          r.Embeds,
+		Components:      r.Components,
+		AllowedMentions: r.AllowedMentions,
+		Attachments:     r.Attachments,
+	})
+}
+
+func (r *CreateMessage) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Content          *string           `json:"content,omitempty"`
+		Nonce            interface{}       `json:"nonce,omitempty"`
+		TTS              *bool             `json:"tts,omitempty"`
+		Embeds           []*Embed          `json:"embeds,omitempty"`
+		AllowedMentions  *AllowedMentions  `json:"allowed_mentions,omitempty"`
+		MessageReference *MessageReference `json:"message_reference,omitempty"`
+		Components       []*Component      `json:"components,omitempty"`
+		StickerIDS       []*string         `json:"sticker_ids,omitempty"`
+		Attachments      []*Attachment     `json:"attachments,omitempty"`
+		Flags            *BitFlag          `json:"flags,omitempty"`
+	}{
+		Content:          r.Content,
+		Nonce:            r.Nonce,
+		TTS:              r.TTS,
+		Embeds:           r.Embeds,
+		AllowedMentions:  r.AllowedMentions,
+		MessageReference: r.MessageReference,
+		Components:       r.Components,
+		StickerIDS:       r.StickerIDS,
+		Attachments:      r.Attachments,
+		Flags:            r.Flags,
+	})
+}
+
+func (r *EditMessage) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Content         *string          `json:"content"`
+		Embeds          []*Embed         `json:"embeds"`
+		Flags           *BitFlag         `json:"flags"`
+		AllowedMentions *AllowedMentions `json:"allowed_mentions"`
+		Components      []*Component     `json:"components"`
+		Attachments     []*Attachment    `json:"attachments"`
+	}{
+		Content:         r.Content,
+		Embeds:          r.Embeds,
+		Flags:           r.Flags,
+		AllowedMentions: r.AllowedMentions,
+		Components:      r.Components,
+		Attachments:     r.Attachments,
+	})
+}
+
+func (r *CreateGuildSticker) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Name        string  `json:"name"`
+		Description string  `json:"description"`
+		Tags        *string `json:"tags"`
+	}{
+		Name:        r.Name,
+		Description: r.Description,
+		Tags:        r.Tags,
+	})
+}
+
+func (r *ExecuteWebhook) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Content         string           `json:"content"`
+		Username        string           `json:"username,omitempty"`
+		AvatarURL       string           `json:"avatar_url,omitempty"`
+		TTS             bool             `json:"tts"`
+		Embeds          []*Embed         `json:"embeds"`
+		AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
+		Components      []Component      `json:"components,omitempty"`
+		Attachments     []*Attachment    `json:"attachments,omitempty"`
+		Flags           BitFlag          `json:"flags,omitempty"`
+		ThreadName      string           `json:"thread_name,omitempty"`
+	}{
+		Content:         r.Content,
+		Username:        r.Username,
+		AvatarURL:       r.AvatarURL,
+		TTS:             r.TTS,
+		Embeds:          r.Embeds,
+		AllowedMentions: r.AllowedMentions,
+		Components:      r.Components,
+		Attachments:     r.Attachments,
+		Flags:           r.Flags,
+		ThreadName:      r.ThreadName,
+	})
+}
+
+func (r *EditWebhookMessage) MarshalJSON() ([]byte, error) {
+	return json.Marshal(&struct {
+		Content         *string          `json:"content"`
+		Embeds          []*Embed         `json:"embeds"`
+		Components      []*Component     `json:"components"`
+		AllowedMentions *AllowedMentions `json:"allowed_mentions"`
+		Attachments     []*Attachment    `json:"attachments"`
+	}{
+		Content:         r.Content,
+		Embeds:          r.Embeds,
+		Components:      r.Components,
+		AllowedMentions: r.AllowedMentions,
+		Attachments:     r.Attachments,
+	})
 }
