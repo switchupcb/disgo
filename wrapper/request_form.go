@@ -31,47 +31,45 @@ func randomBoundary() string {
 var quoteEscaper = strings.NewReplacer("\\", "\\\\", `"`, "\\\"")
 
 // createMultipartForm creates a multipart/form for Discord using a given JSON body and files.
-func createMultipartForm(json []byte, files ...File) ([]byte, error) {
-	b := bytes.NewBuffer(nil)
+func createMultipartForm(json []byte, files ...*File) ([]byte, []byte, error) {
+	form := bytes.NewBuffer(nil)
 
 	// set the boundary.
-	multipartWriter := multipart.NewWriter(b)
+	multipartWriter := multipart.NewWriter(form)
 	err := multipartWriter.SetBoundary(boundary)
 	if err != nil {
-		return nil, fmt.Errorf("error setting multipart form boundary: %w", err)
+		return nil, nil, fmt.Errorf("error setting multipart form boundary: %w", err)
 	}
 
 	// add the `payload_json` JSON to the form.
 	multipartPayloadJSONPart, err := createPayloadJSONForm(multipartWriter)
 	if err != nil {
-		return nil, fmt.Errorf("error adding JSON payload header to multipart form: %w", err)
+		return nil, nil, fmt.Errorf("error adding JSON payload header to multipart form: %w", err)
 	}
 
-	payloadJSON := bytes.NewReader(json)
-	if _, err := io.Copy(multipartPayloadJSONPart, payloadJSON); err != nil {
-		return nil, fmt.Errorf("error copying JSON payload data to multipart form: %w", err)
+	if _, err := multipartPayloadJSONPart.Write(json); err != nil {
+		return nil, nil, fmt.Errorf("error writing JSON payload data to multipart form: %w", err)
 	}
 
 	// add the remaining files to the form.
 	for i, file := range files {
-		name := strings.Join([]string{"file[", strconv.Itoa(i), "]"}, "")
+		name := strings.Join([]string{"files[", strconv.Itoa(i), "]"}, "")
 		multipartFilePart, err := createFormFile(multipartWriter, name, file.Name, file.ContentType)
 		if err != nil {
-			return nil, fmt.Errorf("error adding a file %q to a multipart form: %w", file.Name, err)
+			return nil, nil, fmt.Errorf("error adding a file %q to a multipart form: %w", file.Name, err)
 		}
 
-		payloadFile := bytes.NewReader(file.Data)
-		if _, err := io.Copy(multipartFilePart, payloadFile); err != nil {
-			return nil, fmt.Errorf("error copying file %q data to multipart form: %w", file.Name, err)
+		if _, err := multipartFilePart.Write(file.Data); err != nil {
+			return nil, nil, fmt.Errorf("error writing file %q data to multipart form: %w", file.Name, err)
 		}
 	}
 
 	// write the trailing boundary.
 	if err := multipartWriter.Close(); err != nil {
-		return nil, fmt.Errorf("error closing the multipart form: %w", err)
+		return nil, nil, fmt.Errorf("error closing the multipart form: %w", err)
 	}
 
-	return b.Bytes(), nil
+	return []byte(multipartWriter.FormDataContentType()), form.Bytes(), nil
 }
 
 var (
@@ -85,7 +83,7 @@ var (
 // createPayloadJSONForm creates a form-data header for the `payload_json` file in a multipart form.
 func createPayloadJSONForm(m *multipart.Writer) (io.Writer, error) {
 	h := make(textproto.MIMEHeader)
-	h.Set("Content-Disposition", `data; name="payload_json"`)
+	h.Set("Content-Disposition", `form-data; name="payload_json"`)
 	h.Set("Content-Type", contentTypeJSONString)
 
 	return m.CreatePart(h) // nolint:wrapcheck

@@ -56,5 +56,5 @@ _NOTE: `avatar.png` file must be in the current directory._
 ### URL
 
 ```
-avatar -i https://cdn.discordapp.com/avatars/990803528735932476/2228f6e251332127235020d43dc235f4
+avatar -i send -c 1041179872518737990 -f https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0b52aa9e99b832574a53_full_logo_blurple_RGB.png
 ```

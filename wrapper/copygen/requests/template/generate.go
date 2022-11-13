@@ -24,14 +24,16 @@ func Generate(gen *models.Generator) (string, error) {
 	content.WriteString(string(gen.Keep) + "\n")
 	content.WriteString("import json \"github.com/goccy/go-json\"\n")
 
-	var funcs strings.Builder
+	var funcs, json strings.Builder
 	for i := range gen.Functions {
 		funcs.WriteString(Function(&gen.Functions[i]) + "\n")
+		json.WriteString(generateMarshalJSON(&gen.Functions[i]))
 	}
 
 	// call generateRouteIDs after the routeidMap is populated.
 	content.WriteString(generateRouteIDs() + "\n")
 	content.WriteString(funcs.String())
+	content.WriteString(json.String())
 
 	return content.String(), nil
 }
@@ -155,17 +157,18 @@ func generateBody(function *models.Function) string {
 
 		body.WriteString("contentType := ContentTypeJSON\n")
 		body.WriteString("if len(r.Files) != 0 {\n")
-		body.WriteString("contentType = ContentTypeMultipartForm\n")
-		body.WriteString("\n")
 		body.WriteString("var multipartErr error\n")
-		body.WriteString("if body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {\n")
+		body.WriteString("if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {\n")
 		body.WriteString(generateMultipartErrReturn(function, requestName))
 		body.WriteString("}\n")
 		body.WriteString("}\n")
 		body.WriteString("\n")
 	} else if contentType == "ContentTypeMultipartForm" {
+		contentType = "contentType"
+
+		body.WriteString("var contentType []byte\n")
 		body.WriteString("var multipartErr error\n")
-		body.WriteString("if body, multipartErr = createMultipartForm(body, r.File); multipartErr != nil {\n")
+		body.WriteString("if contentType, body, multipartErr = createMultipartForm(body, &r.File); multipartErr != nil {\n")
 		body.WriteString(generateMultipartErrReturn(function, requestName))
 		body.WriteString("}\n")
 		body.WriteString("\n")
@@ -233,7 +236,7 @@ func generateHashCall(request *models.Field, routeid int) string {
 
 		// subfields with no tags are endpoint parameters (i.e `GuildID`).
 		if len(subfield.Tags) == 0 {
-			if subfield.Name == "ApplicationID" {
+			if subfield.Name == "ApplicationID" || subfield.Definition != "string" {
 				continue
 			} else {
 				hasher.Write([]byte(subfield.Name))
@@ -278,6 +281,9 @@ func generateEndpointCall(request *models.Field) string {
 
 	tagCount := 0
 	for _, subfield := range request.Fields {
+		if subfield.Definition != "string" {
+			continue
+		}
 
 		// subfields with no tags are endpoint parameters (i.e `GuildID`).
 		if len(subfield.Tags) == 0 {
@@ -401,4 +407,71 @@ func generateReturn(function *models.Function) string {
 	default:
 		return "\nreturn result, nil\n}\n"
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// MarshalJSON
+////////////////////////////////////////////////////////////////////////////////
+
+// generateMarshalJSON generates a custom MarshalJSON function.
+func generateMarshalJSON(function *models.Function) string {
+	request := function.From[0].Field
+	requestObj := function.From[0].Field.FullDefinition()
+	uniquetags := uniqueTags(request)
+
+	// a custom MarshalJSON function is only necessary for requests
+	// that contain fields that shouldn't be marshalled.
+	if len(uniquetags) <= 1 {
+		return ""
+	}
+
+	// Write the function.
+	var json strings.Builder
+
+	// write the signature.
+	json.WriteString("func (r " + requestObj + ") MarshalJSON() ([]byte, error) {\n")
+
+	// write the function body.
+	var fill strings.Builder
+	json.WriteString("return json.Marshal(&struct{\n")
+
+	for _, subfield := range request.Fields {
+		jsonTag := ""
+
+		// reconstruct the json tag (i.e `json:"name,omitempty"`).
+		for tagKey := range subfield.Tags {
+			if tagKey == "json" {
+				jsonTag = "`json:\""
+
+				for tagName, options := range subfield.Tags["json"] {
+					jsonTag += tagName + ","
+
+					for _, option := range options {
+						jsonTag += option + ","
+					}
+
+					jsonTag = jsonTag[:len(jsonTag)-1] + "\"`"
+				}
+
+				break
+			}
+		}
+
+		if jsonTag != "" {
+			// i.e Field type `json:"name,omitempty"`
+			json.WriteString(fmt.Sprintf("%s %s %s\n", subfield.Name, subfield.FullDefinition(), jsonTag))
+
+			// i.e Field: r.Field,
+			fill.WriteString(fmt.Sprintf("%s: r.%s,\n", subfield.Name, subfield.Name))
+		}
+	}
+
+	json.WriteString("}{\n")
+	json.WriteString(fill.String() + "\n")
+	json.WriteString("})\n")
+
+	// write the function close.
+	json.WriteString("}\n\n")
+
+	return json.String()
 }
