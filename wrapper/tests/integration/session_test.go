@@ -5,12 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	. "github.com/switchupcb/disgo/wrapper"
 )
 
 // TestConnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
 // in order to ensure that WebSocket functionality works.
 func TestConnect(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
 	// timeout is used to prevent this test from lasting longer than expected.
 	timeout := time.NewTimer(time.Second * 4)
 
@@ -101,6 +104,8 @@ DISCONNECT:
 // TestReconnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
 // in order to ensure that WebSocket reconnection functionality works.
 func TestReconnect(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
 	// timeout is used to prevent this test from lasting longer than expected.
 	timeout := time.NewTimer(time.Second * 8)
 

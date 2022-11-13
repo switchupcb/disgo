@@ -28,7 +28,7 @@ Disgo uses [`rs/zerolog`](https://github.com/rs/zerolog) to provide customizable
 
 ## Usage
 
-Disgo provides leveled logging of the API Wrapper via the `Logger` global variable. As a result, this variable is accessible via `disgo.Logger`. For more information on the usage of the `zerolog.Logger`, check out its [features](https://github.com/rs/zerolog#features).
+Disgo provides leveled logging of the API Wrapper via the `Logger` global variable. As a result, this variable is accessible via `disgo.Logger`. **Disgo disables logs by default. Enable them using `zerolog.SetGlobalLevel(zerolog.LEVEL)`.** For more information on the usage of the `zerolog.Logger`, check out its [features](https://github.com/rs/zerolog#features).
 
 ## Configuration
 

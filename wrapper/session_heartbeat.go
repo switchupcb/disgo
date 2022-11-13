@@ -95,7 +95,7 @@ func (s *Session) beat(bot *Client) error {
 			// reset the amount of HeartbeatACKs since the last heartbeat.
 			atomic.StoreUint32(&s.heartbeat.acks, 0)
 
-			Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("sent heartbeat")
+			logSession(Logger.Info(), s.ID).Msg("sent heartbeat")
 
 			s.Unlock()
 
@@ -114,7 +114,7 @@ func (s *Session) pulse() {
 	// (where jitter is a random value between 0 and 1).
 	s.Lock()
 	s.heartbeat.send <- Heartbeat{Data: s.Seq}
-	Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("queued jitter heartbeat")
+	logSession(Logger.Info(), s.ID).Msg("queued jitter heartbeat")
 	s.Unlock()
 
 	for {
@@ -126,7 +126,7 @@ func (s *Session) pulse() {
 			// queue a heartbeat.
 			s.heartbeat.send <- Heartbeat{Data: s.Seq}
 
-			Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("queued heartbeat")
+			logSession(Logger.Info(), s.ID).Msg("queued heartbeat")
 
 			s.Unlock()
 
@@ -146,7 +146,7 @@ func (s *Session) respond(data json.RawMessage) error {
 
 	var heartbeat Heartbeat
 	if err := json.Unmarshal(data, &heartbeat); err != nil {
-		return fmt.Errorf("error occurred unmarshalling incoming Heartbeat: %w", err)
+		return fmt.Errorf("error unmarshalling incoming Heartbeat: %w", err)
 	}
 
 	atomic.StoreInt64(&s.Seq, heartbeat.Data)
@@ -171,7 +171,7 @@ func (s *Session) respond(data json.RawMessage) error {
 	// send an Opcode 1 Heartbeat without waiting the remainder of the current interval.
 	s.heartbeat.send <- heartbeat
 
-	Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("responded to heartbeat")
+	logSession(Logger.Info(), s.ID).Msg("responded to heartbeat")
 
 	s.Unlock()
 

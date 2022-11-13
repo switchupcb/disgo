@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/goccy/go-json"
-	"github.com/rs/zerolog"
 	"github.com/switchupcb/disgo/wrapper/internal/socket"
 	"github.com/switchupcb/websocket"
 	"golang.org/x/sync/errgroup"
@@ -77,7 +76,7 @@ func (s *Session) Connect(bot *Client) error {
 	s.Lock()
 	defer s.Unlock()
 
-	Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("connecting session")
+	logSession(Logger.Info(), s.ID).Str(logCtxClient, bot.ApplicationID).Msg("connecting session")
 
 	return s.connect(bot)
 }
@@ -94,7 +93,7 @@ func (s *Session) connect(bot *Client) error {
 		gateway := GetGateway{}
 		response, err := gateway.Send(bot)
 		if err != nil {
-			return fmt.Errorf("an error occurred getting the Gateway API Endpoint\n%w", err)
+			return fmt.Errorf("error getting the Gateway API Endpoint: %w", err)
 		}
 
 		gatewayEndpoint = response.URL + gatewayEndpointParams
@@ -123,21 +122,22 @@ func (s *Session) connect(bot *Client) error {
 	s.manager = new(manager)
 	s.Context, s.manager.cancel = context.WithCancel(context.Background())
 	if s.Conn, _, err = websocket.Dial(s.Context, gatewayEndpoint, nil); err != nil {
-		return fmt.Errorf("an error occurred while connecting to the Discord Gateway\n%w", err)
+		return fmt.Errorf("error connecting to the Discord Gateway: %w", err)
 	}
 
 	// handle the incoming Hello event upon connecting to the Gateway.
 	hello := new(Hello)
 	if err := readEvent(s, FlagGatewayEventNameHello, hello); err != nil {
+		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
-			return DisconnectError{
-				SessionID: s.ID,
-				Err:       disconnectErr,
-				Action:    err,
+			sessionErr.Err = ErrorDisconnect{
+				Connection: ErrConnectionSession,
+				Action:     err,
+				Err:        disconnectErr,
 			}
 		}
 
-		return err
+		return sessionErr
 	}
 
 	for _, handler := range bot.Handlers.Hello {
@@ -173,7 +173,10 @@ func (s *Session) connect(bot *Client) error {
 	s.manager.routines.Add(1)
 	s.manager.Go(func() error {
 		if err := s.beat(bot); err != nil {
-			return fmt.Errorf("heartbeat: %w", err)
+			return ErrorSession{
+				SessionID: s.ID,
+				Err:       fmt.Errorf("heartbeat: %w", err),
+			}
 		}
 
 		return nil
@@ -181,22 +184,26 @@ func (s *Session) connect(bot *Client) error {
 
 	// send the initial Identify or Resumed packet.
 	if err := s.initial(bot, 0); err != nil {
+		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
-			return DisconnectError{
-				SessionID: s.ID,
-				Err:       disconnectErr,
-				Action:    err,
+			sessionErr.Err = ErrorDisconnect{
+				Connection: ErrConnectionSession,
+				Action:     err,
+				Err:        disconnectErr,
 			}
 		}
 
-		return err
+		return sessionErr
 	}
 
 	// spawn the event listener listen goroutine.
 	s.manager.routines.Add(1)
 	s.manager.Go(func() error {
 		if err := s.listen(bot); err != nil {
-			return fmt.Errorf("listen: %w", err)
+			return ErrorSession{
+				SessionID: s.ID,
+				Err:       fmt.Errorf("listen: %w", err),
+			}
 		}
 
 		return nil
@@ -250,13 +257,10 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	// handle the incoming Ready, Resumed or Replayed event (or Opcode 9 Invalid Session).
 	payload := new(GatewayPayload)
 	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
-		return fmt.Errorf("error occurred while reading initial payload: %w", err)
+		return fmt.Errorf("error reading initial payload: %w", err)
 	}
 
-	Logger.Info().Timestamp().Str(logCtxSession, s.ID).Dict(logCtxPayload, zerolog.Dict().
-		Int(logCtxPayloadOpcode, payload.Op).
-		Bytes(logCtxPayloadData, payload.Data),
-	).Msg("received initial payload")
+	logPayload(logSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received initial payload")
 
 	switch payload.Op {
 	case FlagGatewayOpcodeDispatch:
@@ -274,7 +278,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = ready.Application.ID
 
-			Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("received Ready event")
+			logSession(Logger.Info(), s.ID).Msg("received Ready event")
 
 			for _, handler := range bot.Handlers.Ready {
 				go handler(ready)
@@ -283,7 +287,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 		// When a reconnection is successful, the Discord Gateway will respond
 		// by replaying all missed events in order, finalized by a Resumed event.
 		case *payload.EventName == FlagGatewayEventNameResumed:
-			Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("received Resumed event")
+			logSession(Logger.Info(), s.ID).Msg("received Resumed event")
 
 			for _, handler := range bot.Handlers.Resumed {
 				go handler(&Resumed{})
@@ -298,11 +302,11 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			for {
 				replayed := new(GatewayPayload)
 				if err := socket.Read(s.Context, s.Conn, replayed); err != nil {
-					return fmt.Errorf("error occurred while replaying events: %w", err)
+					return fmt.Errorf("error replaying events: %w", err)
 				}
 
 				if replayed.Op == FlagGatewayOpcodeDispatch && *replayed.EventName == FlagGatewayEventNameResumed {
-					Logger.Info().Timestamp().Str(logCtxSession, s.ID).Msg("received Resumed event")
+					logSession(Logger.Info(), s.ID).Msg("received Resumed event")
 
 					for _, handler := range bot.Handlers.Resumed {
 						go handler(&Resumed{})
@@ -350,14 +354,18 @@ func (s *Session) Disconnect() error {
 	}
 
 	id := s.ID
-	Logger.Info().Timestamp().Str(logCtxSession, id).Msgf("disconnecting session with code %d", FlagClientCloseEventCodeNormal)
+	logSession(Logger.Info(), id).Msgf("disconnecting session with code %d", FlagClientCloseEventCodeNormal)
 
 	s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalDisconnect)
 
 	if err := s.disconnect(FlagClientCloseEventCodeNormal); err != nil {
 		s.Unlock()
 
-		return err
+		return ErrorDisconnect{
+			Connection: ErrConnectionSession,
+			Action:     nil,
+			Err:        err,
+		}
 	}
 
 	s.Unlock()
@@ -368,7 +376,7 @@ func (s *Session) Disconnect() error {
 
 	putSession(s)
 
-	Logger.Info().Timestamp().Str(logCtxSession, id).Msgf("disconnected session with code %d", FlagClientCloseEventCodeNormal)
+	logSession(Logger.Info(), id).Msgf("disconnected session with code %d", FlagClientCloseEventCodeNormal)
 
 	return nil
 }
@@ -379,11 +387,7 @@ func (s *Session) disconnect(code int) error {
 	defer s.manager.cancel()
 
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
-		return DisconnectError{
-			SessionID: s.ID,
-			Err:       err,
-			Action:    nil,
-		}
+		return fmt.Errorf("%w", err)
 	}
 
 	return nil
@@ -400,7 +404,7 @@ func (s *Session) Reconnect(bot *Client) error {
 
 	// connect to the Discord Gateway again.
 	if err := s.Connect(bot); err != nil {
-		return fmt.Errorf("an error occurred while reconnecting session %q: %w", s.ID, err)
+		return fmt.Errorf("error reconnecting session %q: %w", s.ID, err)
 	}
 
 	return nil
@@ -426,9 +430,7 @@ RATELIMIT:
 	// a single command is PROCESSED at any point in time.
 	bot.Config.Gateway.RateLimiter.Lock()
 
-	Logger.Trace().Timestamp().Str(logCtxClient, bot.ApplicationID).Str(logCtxSession, s.ID).
-		Dict(logCtxCommand, zerolog.Dict().Int(logCtxCommandOpcode, op).Str(logCtxCommandName, name)).
-		Msg("processing gateway command")
+	logCommand(logSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("processing gateway command")
 
 	for {
 		bot.Config.Gateway.RateLimiter.StartTx()
@@ -509,9 +511,7 @@ RATELIMIT:
 SEND:
 	bot.Config.Gateway.RateLimiter.Unlock()
 
-	Logger.Trace().Timestamp().Str(logCtxClient, bot.ApplicationID).Str(logCtxSession, s.ID).
-		Dict(logCtxCommand, zerolog.Dict().Int(logCtxCommandOpcode, op).Str(logCtxCommandName, name)).
-		Msg("sending gateway command")
+	logCommand(logSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sending gateway command")
 
 	// write the event to the WebSocket Connection.
 	event, err := json.Marshal(dst)
@@ -527,9 +527,7 @@ SEND:
 		return fmt.Errorf("writeEvent: %w", err)
 	}
 
-	Logger.Trace().Timestamp().Str(logCtxClient, bot.ApplicationID).Str(logCtxSession, s.ID).
-		Dict(logCtxCommand, zerolog.Dict().Int(logCtxCommandOpcode, op).Str(logCtxCommandName, name)).
-		Msg("sent gateway command")
+	logCommand(logSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sent gateway command")
 
 	return nil
 }

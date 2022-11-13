@@ -87,42 +87,42 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 	case FlagGatewayEventNameHello:
 		if f, ok := function.(func(*Hello)); ok {
 			bot.Handlers.Hello = append(bot.Handlers.Hello, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for Hello added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
 	case FlagGatewayEventNameReady:
 		if f, ok := function.(func(*Ready)); ok {
 			bot.Handlers.Ready = append(bot.Handlers.Ready, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for Ready added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
 	case FlagGatewayEventNameResumed:
 		if f, ok := function.(func(*Resumed)); ok {
 			bot.Handlers.Resumed = append(bot.Handlers.Resumed, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for Resumed added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
 	case FlagGatewayEventNameReconnect:
 		if f, ok := function.(func(*Reconnect)); ok {
 			bot.Handlers.Reconnect = append(bot.Handlers.Reconnect, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for Reconnect added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
 	case FlagGatewayEventNameInvalidSession:
 		if f, ok := function.(func(*InvalidSession)); ok {
 			bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for InvalidSession added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		if f, ok := function.(func(*ApplicationCommandPermissionsUpdate)); ok {
 			bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ApplicationCommandPermissionsUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -134,7 +134,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*AutoModerationRuleCreate)); ok {
 			bot.Handlers.AutoModerationRuleCreate = append(bot.Handlers.AutoModerationRuleCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for AutoModerationRuleCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -146,7 +146,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*AutoModerationRuleUpdate)); ok {
 			bot.Handlers.AutoModerationRuleUpdate = append(bot.Handlers.AutoModerationRuleUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for AutoModerationRuleUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -158,7 +158,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*AutoModerationRuleDelete)); ok {
 			bot.Handlers.AutoModerationRuleDelete = append(bot.Handlers.AutoModerationRuleDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for AutoModerationRuleDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -170,35 +170,35 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*AutoModerationActionExecution)); ok {
 			bot.Handlers.AutoModerationActionExecution = append(bot.Handlers.AutoModerationActionExecution, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for AutoModerationActionExecution added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
 	case FlagGatewayEventNameInteractionCreate:
 		if f, ok := function.(func(*InteractionCreate)); ok {
 			bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for InteractionCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
 	case FlagGatewayEventNameVoiceServerUpdate:
 		if f, ok := function.(func(*VoiceServerUpdate)); ok {
 			bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for VoiceServerUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
 	case FlagGatewayEventNameGuildMembersChunk:
 		if f, ok := function.(func(*GuildMembersChunk)); ok {
 			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildMembersChunk added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
 	case FlagGatewayEventNameUserUpdate:
 		if f, ok := function.(func(*UserUpdate)); ok {
 			bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for UserUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -210,7 +210,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ChannelCreate)); ok {
 			bot.Handlers.ChannelCreate = append(bot.Handlers.ChannelCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ChannelCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -222,7 +222,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ChannelUpdate)); ok {
 			bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ChannelUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -234,7 +234,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ChannelDelete)); ok {
 			bot.Handlers.ChannelDelete = append(bot.Handlers.ChannelDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ChannelDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -246,7 +246,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ChannelPinsUpdate)); ok {
 			bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ChannelPinsUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -258,7 +258,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ThreadCreate)); ok {
 			bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ThreadCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -270,7 +270,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ThreadUpdate)); ok {
 			bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ThreadUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -282,7 +282,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ThreadDelete)); ok {
 			bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ThreadDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -294,7 +294,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ThreadListSync)); ok {
 			bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ThreadListSync added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -306,7 +306,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ThreadMemberUpdate)); ok {
 			bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ThreadMemberUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -318,7 +318,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*ThreadMembersUpdate)); ok {
 			bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for ThreadMembersUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -330,7 +330,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildCreate)); ok {
 			bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -342,7 +342,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildUpdate)); ok {
 			bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -354,7 +354,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildDelete)); ok {
 			bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -366,7 +366,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildBanAdd)); ok {
 			bot.Handlers.GuildBanAdd = append(bot.Handlers.GuildBanAdd, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildBanAdd added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -378,7 +378,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildBanRemove)); ok {
 			bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildBanRemove added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -390,7 +390,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildEmojisUpdate)); ok {
 			bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildEmojisUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -402,7 +402,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildStickersUpdate)); ok {
 			bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildStickersUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -414,7 +414,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildIntegrationsUpdate)); ok {
 			bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildIntegrationsUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -426,7 +426,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildMemberAdd)); ok {
 			bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildMemberAdd added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -438,7 +438,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildMemberRemove)); ok {
 			bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildMemberRemove added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -450,7 +450,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildMemberUpdate)); ok {
 			bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildMemberUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -462,7 +462,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildRoleCreate)); ok {
 			bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildRoleCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -474,7 +474,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildRoleUpdate)); ok {
 			bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildRoleUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -486,7 +486,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildRoleDelete)); ok {
 			bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildRoleDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -498,7 +498,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildScheduledEventCreate)); ok {
 			bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildScheduledEventCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -510,7 +510,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildScheduledEventUpdate)); ok {
 			bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildScheduledEventUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -522,7 +522,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildScheduledEventDelete)); ok {
 			bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildScheduledEventDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -534,7 +534,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildScheduledEventUserAdd)); ok {
 			bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildScheduledEventUserAdd added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -546,7 +546,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildScheduledEventUserRemove)); ok {
 			bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for GuildScheduledEventUserRemove added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -558,7 +558,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*IntegrationCreate)); ok {
 			bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for IntegrationCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -570,7 +570,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*IntegrationUpdate)); ok {
 			bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for IntegrationUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -582,7 +582,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*IntegrationDelete)); ok {
 			bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for IntegrationDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -594,7 +594,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*InviteCreate)); ok {
 			bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for InviteCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -606,7 +606,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*InviteDelete)); ok {
 			bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for InviteDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -618,7 +618,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*MessageCreate)); ok {
 			bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for MessageCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -630,7 +630,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*MessageUpdate)); ok {
 			bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for MessageUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -642,7 +642,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*MessageDelete)); ok {
 			bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for MessageDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -654,7 +654,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*MessageDeleteBulk)); ok {
 			bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for MessageDeleteBulk added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -666,7 +666,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*MessageReactionAdd)); ok {
 			bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for MessageReactionAdd added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -678,7 +678,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*MessageReactionRemove)); ok {
 			bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for MessageReactionRemove added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -690,7 +690,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*MessageReactionRemoveAll)); ok {
 			bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for MessageReactionRemoveAll added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -702,7 +702,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*MessageReactionRemoveEmoji)); ok {
 			bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for MessageReactionRemoveEmoji added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -714,7 +714,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*PresenceUpdate)); ok {
 			bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for PresenceUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -726,7 +726,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*StageInstanceCreate)); ok {
 			bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for StageInstanceCreate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -738,7 +738,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*StageInstanceDelete)); ok {
 			bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for StageInstanceDelete added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -750,7 +750,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*StageInstanceUpdate)); ok {
 			bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for StageInstanceUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -762,7 +762,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*TypingStart)); ok {
 			bot.Handlers.TypingStart = append(bot.Handlers.TypingStart, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for TypingStart added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -774,7 +774,7 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*VoiceStateUpdate)); ok {
 			bot.Handlers.VoiceStateUpdate = append(bot.Handlers.VoiceStateUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for VoiceStateUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 
@@ -786,13 +786,17 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*WebhooksUpdate)); ok {
 			bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate, f)
-			Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msg("event handler for WebhooksUpdate added")
+			logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
 	}
 
-	err := fmt.Errorf(errHandleNotRemoved, eventname)
-	Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+	err := ErrorEventHandler{
+		ClientID: bot.ApplicationID,
+		Event:    eventname,
+		Err:      fmt.Errorf("%s", errHandleNotRemoved),
+	}
+	logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 
 	return err
 }
@@ -806,8 +810,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 	switch eventname {
 	case FlagGatewayEventNameHello:
 		if len(bot.Handlers.Hello) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -815,8 +823,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameReady:
 		if len(bot.Handlers.Ready) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -824,8 +836,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameResumed:
 		if len(bot.Handlers.Resumed) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -833,8 +849,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameReconnect:
 		if len(bot.Handlers.Reconnect) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -842,8 +862,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameInvalidSession:
 		if len(bot.Handlers.InvalidSession) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -851,8 +875,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		if len(bot.Handlers.ApplicationCommandPermissionsUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -860,8 +888,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameAutoModerationRuleCreate:
 		if len(bot.Handlers.AutoModerationRuleCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -869,8 +901,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameAutoModerationRuleUpdate:
 		if len(bot.Handlers.AutoModerationRuleUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -878,8 +914,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameAutoModerationRuleDelete:
 		if len(bot.Handlers.AutoModerationRuleDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -887,8 +927,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameAutoModerationActionExecution:
 		if len(bot.Handlers.AutoModerationActionExecution) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -896,8 +940,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameInteractionCreate:
 		if len(bot.Handlers.InteractionCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -905,8 +953,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameVoiceServerUpdate:
 		if len(bot.Handlers.VoiceServerUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -914,8 +966,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildMembersChunk:
 		if len(bot.Handlers.GuildMembersChunk) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -923,8 +979,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameUserUpdate:
 		if len(bot.Handlers.UserUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -932,8 +992,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameChannelCreate:
 		if len(bot.Handlers.ChannelCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -941,8 +1005,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameChannelUpdate:
 		if len(bot.Handlers.ChannelUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -950,8 +1018,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameChannelDelete:
 		if len(bot.Handlers.ChannelDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -959,8 +1031,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameChannelPinsUpdate:
 		if len(bot.Handlers.ChannelPinsUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -968,8 +1044,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameThreadCreate:
 		if len(bot.Handlers.ThreadCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -977,8 +1057,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameThreadUpdate:
 		if len(bot.Handlers.ThreadUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -986,8 +1070,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameThreadDelete:
 		if len(bot.Handlers.ThreadDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -995,8 +1083,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameThreadListSync:
 		if len(bot.Handlers.ThreadListSync) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1004,8 +1096,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameThreadMemberUpdate:
 		if len(bot.Handlers.ThreadMemberUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1013,8 +1109,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameThreadMembersUpdate:
 		if len(bot.Handlers.ThreadMembersUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1022,8 +1122,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildCreate:
 		if len(bot.Handlers.GuildCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1031,8 +1135,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildUpdate:
 		if len(bot.Handlers.GuildUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1040,8 +1148,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildDelete:
 		if len(bot.Handlers.GuildDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1049,8 +1161,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildBanAdd:
 		if len(bot.Handlers.GuildBanAdd) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1058,8 +1174,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildBanRemove:
 		if len(bot.Handlers.GuildBanRemove) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1067,8 +1187,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildEmojisUpdate:
 		if len(bot.Handlers.GuildEmojisUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1076,8 +1200,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildStickersUpdate:
 		if len(bot.Handlers.GuildStickersUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1085,8 +1213,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildIntegrationsUpdate:
 		if len(bot.Handlers.GuildIntegrationsUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1094,8 +1226,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildMemberAdd:
 		if len(bot.Handlers.GuildMemberAdd) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1103,8 +1239,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildMemberRemove:
 		if len(bot.Handlers.GuildMemberRemove) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1112,8 +1252,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildMemberUpdate:
 		if len(bot.Handlers.GuildMemberUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1121,8 +1265,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildRoleCreate:
 		if len(bot.Handlers.GuildRoleCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1130,8 +1278,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildRoleUpdate:
 		if len(bot.Handlers.GuildRoleUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1139,8 +1291,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildRoleDelete:
 		if len(bot.Handlers.GuildRoleDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1148,8 +1304,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildScheduledEventCreate:
 		if len(bot.Handlers.GuildScheduledEventCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1157,8 +1317,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildScheduledEventUpdate:
 		if len(bot.Handlers.GuildScheduledEventUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1166,8 +1330,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildScheduledEventDelete:
 		if len(bot.Handlers.GuildScheduledEventDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1175,8 +1343,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildScheduledEventUserAdd:
 		if len(bot.Handlers.GuildScheduledEventUserAdd) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1184,8 +1356,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameGuildScheduledEventUserRemove:
 		if len(bot.Handlers.GuildScheduledEventUserRemove) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1193,8 +1369,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameIntegrationCreate:
 		if len(bot.Handlers.IntegrationCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1202,8 +1382,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameIntegrationUpdate:
 		if len(bot.Handlers.IntegrationUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1211,8 +1395,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameIntegrationDelete:
 		if len(bot.Handlers.IntegrationDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1220,8 +1408,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameInviteCreate:
 		if len(bot.Handlers.InviteCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1229,8 +1421,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameInviteDelete:
 		if len(bot.Handlers.InviteDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1238,8 +1434,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameMessageCreate:
 		if len(bot.Handlers.MessageCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1247,8 +1447,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameMessageUpdate:
 		if len(bot.Handlers.MessageUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1256,8 +1460,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameMessageDelete:
 		if len(bot.Handlers.MessageDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1265,8 +1473,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameMessageDeleteBulk:
 		if len(bot.Handlers.MessageDeleteBulk) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1274,8 +1486,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameMessageReactionAdd:
 		if len(bot.Handlers.MessageReactionAdd) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1283,8 +1499,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameMessageReactionRemove:
 		if len(bot.Handlers.MessageReactionRemove) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1292,8 +1512,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameMessageReactionRemoveAll:
 		if len(bot.Handlers.MessageReactionRemoveAll) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1301,8 +1525,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameMessageReactionRemoveEmoji:
 		if len(bot.Handlers.MessageReactionRemoveEmoji) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1310,8 +1538,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNamePresenceUpdate:
 		if len(bot.Handlers.PresenceUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1319,8 +1551,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameStageInstanceCreate:
 		if len(bot.Handlers.StageInstanceCreate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1328,8 +1564,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameStageInstanceDelete:
 		if len(bot.Handlers.StageInstanceDelete) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1337,8 +1577,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameStageInstanceUpdate:
 		if len(bot.Handlers.StageInstanceUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1346,8 +1590,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameTypingStart:
 		if len(bot.Handlers.TypingStart) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1355,8 +1603,12 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameVoiceStateUpdate:
 		if len(bot.Handlers.VoiceStateUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
@@ -1364,15 +1616,19 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 	case FlagGatewayEventNameWebhooksUpdate:
 		if len(bot.Handlers.WebhooksUpdate) <= index {
-			err := fmt.Errorf(errRemoveInvalidIndex, eventname, index)
-			Logger.Error().Str(logCtxClient, bot.ApplicationID).Err(err).Msg("")
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
 		bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate[:index], bot.Handlers.WebhooksUpdate[index+1:]...)
 	}
 
-	Logger.Info().Timestamp().Str(logCtxClient, bot.ApplicationID).Msgf("event handler for %s removed", eventname)
+	logEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("removed event handler")
 
 	return nil
 }
@@ -1386,7 +1642,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameHello:
 		event := new(Hello)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1397,7 +1653,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameReady:
 		event := new(Ready)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1408,7 +1664,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameResumed:
 		event := new(Resumed)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1419,7 +1675,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameReconnect:
 		event := new(Reconnect)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameReconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1430,7 +1686,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameInvalidSession:
 		event := new(InvalidSession)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameInvalidSession, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInvalidSession, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1441,7 +1697,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
 		event := new(ApplicationCommandPermissionsUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameApplicationCommandPermissionsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameApplicationCommandPermissionsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1452,7 +1708,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameAutoModerationRuleCreate:
 		event := new(AutoModerationRuleCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameAutoModerationRuleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1463,7 +1719,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameAutoModerationRuleUpdate:
 		event := new(AutoModerationRuleUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameAutoModerationRuleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1474,7 +1730,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameAutoModerationRuleDelete:
 		event := new(AutoModerationRuleDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameAutoModerationRuleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1485,7 +1741,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameAutoModerationActionExecution:
 		event := new(AutoModerationActionExecution)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameAutoModerationActionExecution, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationActionExecution, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1496,7 +1752,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameInteractionCreate:
 		event := new(InteractionCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1507,7 +1763,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameVoiceServerUpdate:
 		event := new(VoiceServerUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1518,7 +1774,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildMembersChunk:
 		event := new(GuildMembersChunk)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1529,7 +1785,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameUserUpdate:
 		event := new(UserUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1540,7 +1796,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameChannelCreate:
 		event := new(ChannelCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameChannelCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1551,7 +1807,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameChannelUpdate:
 		event := new(ChannelUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameChannelUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1562,7 +1818,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameChannelDelete:
 		event := new(ChannelDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameChannelDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1573,7 +1829,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameChannelPinsUpdate:
 		event := new(ChannelPinsUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameChannelPinsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelPinsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1584,7 +1840,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameThreadCreate:
 		event := new(ThreadCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameThreadCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1595,7 +1851,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameThreadUpdate:
 		event := new(ThreadUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameThreadUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1606,7 +1862,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameThreadDelete:
 		event := new(ThreadDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameThreadDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1617,7 +1873,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameThreadListSync:
 		event := new(ThreadListSync)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameThreadListSync, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadListSync, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1628,7 +1884,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameThreadMemberUpdate:
 		event := new(ThreadMemberUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameThreadMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1639,7 +1895,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameThreadMembersUpdate:
 		event := new(ThreadMembersUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameThreadMembersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMembersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1650,7 +1906,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildCreate:
 		event := new(GuildCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1661,7 +1917,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildUpdate:
 		event := new(GuildUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1672,7 +1928,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildDelete:
 		event := new(GuildDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1683,7 +1939,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildBanAdd:
 		event := new(GuildBanAdd)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildBanAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1694,7 +1950,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildBanRemove:
 		event := new(GuildBanRemove)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildBanRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1705,7 +1961,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildEmojisUpdate:
 		event := new(GuildEmojisUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildEmojisUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildEmojisUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1716,7 +1972,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildStickersUpdate:
 		event := new(GuildStickersUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildStickersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildStickersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1727,7 +1983,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildIntegrationsUpdate:
 		event := new(GuildIntegrationsUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildIntegrationsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildIntegrationsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1738,7 +1994,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildMemberAdd:
 		event := new(GuildMemberAdd)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildMemberAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1749,7 +2005,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildMemberRemove:
 		event := new(GuildMemberRemove)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildMemberRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1760,7 +2016,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildMemberUpdate:
 		event := new(GuildMemberUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1771,7 +2027,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildRoleCreate:
 		event := new(GuildRoleCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildRoleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1782,7 +2038,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildRoleUpdate:
 		event := new(GuildRoleUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildRoleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1793,7 +2049,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildRoleDelete:
 		event := new(GuildRoleDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildRoleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1804,7 +2060,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildScheduledEventCreate:
 		event := new(GuildScheduledEventCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1815,7 +2071,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildScheduledEventUpdate:
 		event := new(GuildScheduledEventUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1826,7 +2082,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildScheduledEventDelete:
 		event := new(GuildScheduledEventDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1837,7 +2093,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildScheduledEventUserAdd:
 		event := new(GuildScheduledEventUserAdd)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventUserAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1848,7 +2104,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameGuildScheduledEventUserRemove:
 		event := new(GuildScheduledEventUserRemove)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameGuildScheduledEventUserRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1859,7 +2115,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameIntegrationCreate:
 		event := new(IntegrationCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameIntegrationCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1870,7 +2126,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameIntegrationUpdate:
 		event := new(IntegrationUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameIntegrationUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1881,7 +2137,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameIntegrationDelete:
 		event := new(IntegrationDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameIntegrationDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1892,7 +2148,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameInviteCreate:
 		event := new(InviteCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameInviteCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1903,7 +2159,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameInviteDelete:
 		event := new(InviteDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameInviteDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1914,7 +2170,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameMessageCreate:
 		event := new(MessageCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameMessageCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1925,7 +2181,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameMessageUpdate:
 		event := new(MessageUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameMessageUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1936,7 +2192,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameMessageDelete:
 		event := new(MessageDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameMessageDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1947,7 +2203,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameMessageDeleteBulk:
 		event := new(MessageDeleteBulk)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameMessageDeleteBulk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDeleteBulk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1958,7 +2214,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameMessageReactionAdd:
 		event := new(MessageReactionAdd)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameMessageReactionAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1969,7 +2225,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameMessageReactionRemove:
 		event := new(MessageReactionRemove)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameMessageReactionRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1980,7 +2236,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameMessageReactionRemoveAll:
 		event := new(MessageReactionRemoveAll)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameMessageReactionRemoveAll, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveAll, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -1991,7 +2247,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameMessageReactionRemoveEmoji:
 		event := new(MessageReactionRemoveEmoji)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameMessageReactionRemoveEmoji, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveEmoji, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -2002,7 +2258,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNamePresenceUpdate:
 		event := new(PresenceUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNamePresenceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNamePresenceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -2013,7 +2269,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameStageInstanceCreate:
 		event := new(StageInstanceCreate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameStageInstanceCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -2024,7 +2280,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameStageInstanceDelete:
 		event := new(StageInstanceDelete)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameStageInstanceDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -2035,7 +2291,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameStageInstanceUpdate:
 		event := new(StageInstanceUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameStageInstanceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -2046,7 +2302,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameTypingStart:
 		event := new(TypingStart)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameTypingStart, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameTypingStart, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -2057,7 +2313,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameVoiceStateUpdate:
 		event := new(VoiceStateUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameVoiceStateUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceStateUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 
@@ -2068,7 +2324,7 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	case FlagGatewayEventNameWebhooksUpdate:
 		event := new(WebhooksUpdate)
 		if err := json.Unmarshal(data, event); err != nil {
-			Logger.Error().Timestamp().Str(logCtxClient, bot.ApplicationID).Err(ErrorEvent{Event: FlagGatewayEventNameWebhooksUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+			logEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameWebhooksUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 			return
 		}
 

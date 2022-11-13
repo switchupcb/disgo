@@ -6,12 +6,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/rs/zerolog"
 	. "github.com/switchupcb/disgo/wrapper"
 	"golang.org/x/sync/errgroup"
 )
 
 // TestGlobalRateLimit tests the global rate limit mechanism (with the Default Bucket mechanism disabled).
 func TestGlobalRateLimit(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
 	// setup the bot.
 	bot := &Client{
 		Authentication: BotToken(os.Getenv("TOKEN")),
@@ -61,6 +64,8 @@ func TestGlobalRateLimit(t *testing.T) {
 
 // TestRouteRateLimit tests the per-route rate limit mechanism (with the Default Bucket mechanism enabled).
 func TestRouteRateLimit(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
 	// setup the bot.
 	bot := &Client{
 		Authentication: BotToken(os.Getenv("TOKEN")),

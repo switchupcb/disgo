@@ -6,7 +6,6 @@ import (
 	"time"
 
 	json "github.com/goccy/go-json"
-	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 )
 
@@ -94,7 +93,7 @@ func peekDate(r *fasthttp.Response) (time.Time, error) {
 func peekHeaderRetryAfter(r *fasthttp.Response) (float64, error) {
 	retryafter, err := strconv.ParseFloat(string(r.Header.PeekBytes(headerRateLimitRetryAfter)), bit64)
 	if err != nil {
-		return 0, fmt.Errorf(ErrRateLimit, string(headerRateLimitRetryAfter), err)
+		return 0, fmt.Errorf(errRateLimit, string(headerRateLimitRetryAfter), err)
 	}
 
 	return retryafter, nil
@@ -121,7 +120,7 @@ func peekHeaderRateLimit(r *fasthttp.Response) RateLimitHeader {
 
 // SendRequest sends a fasthttp.Request using the given route ID, HTTP method, URI, content type and body,
 // then parses the response into dst.
-func SendRequest(bot *Client, routeid, resourceid, method, uri string, content, body []byte, dst any) error { //nolint:gocyclo,maintidx
+func SendRequest(bot *Client, xid, routeid, resourceid, method, uri string, content, body []byte, dst any) error { //nolint:gocyclo,maintidx
 	retries := 0
 	requestid := routeid + resourceid
 	request := fasthttp.AcquireRequest()
@@ -143,7 +142,7 @@ RATELIMIT:
 	// a single request or response is PROCESSED at any point in time.
 	bot.Config.Request.RateLimiter.Lock()
 
-	Logger.Trace().Timestamp().Str(logCtxClient, bot.ApplicationID).Str(logCtxRequest, requestid).Msg("processing request")
+	logRequest(Logger.Trace(), bot.ApplicationID, xid, routeid, resourceid, uri).Msg("processing request")
 
 	// check Global and Route Rate Limit Buckets prior to sending the current request.
 	for {
@@ -204,18 +203,16 @@ RATELIMIT:
 	bot.Config.Request.RateLimiter.Unlock()
 
 SEND:
-	Logger.Trace().Timestamp().Str(logCtxClient, bot.ApplicationID).Str(logCtxRequest, requestid).Msg("sending request")
+	logRequest(Logger.Trace(), bot.ApplicationID, xid, routeid, resourceid, uri).Msg("sending request")
 
 	// send the request.
 	if err := bot.Config.Request.Client.DoTimeout(request, response, bot.Config.Request.Timeout); err != nil {
 		return fmt.Errorf("%w", err)
 	}
 
-	Logger.Info().Timestamp().Str(logCtxClient, logCtxRequest).Str(logCtxRequest, requestid).
-		Dict(logCtxResponse, zerolog.Dict().
-			Str(logCtxResponseHeader, response.Header.String()).
-			Str(logCtxResponseBody, string(response.Body())),
-		).Msg("")
+	logResponse(logRequest(Logger.Info(), bot.ApplicationID, xid, routeid, resourceid, uri),
+		response.Header.String(), string(response.Body()),
+	).Msg("")
 
 	var header RateLimitHeader
 
@@ -331,7 +328,8 @@ SEND:
 			reset = time.Now().Add(time.Millisecond * time.Duration(retryafter*msPerSecond))
 		}
 
-		Logger.Debug().Timestamp().Str(logCtxClient, logCtxRequest).Str(logCtxRequest, requestid).Time(logCtxReset, reset)
+		logRequest(Logger.Debug(), bot.ApplicationID, xid, routeid, resourceid, uri).
+			Time(logCtxReset, reset).Msg("")
 
 		switch header.Global {
 		// when the global request rate limit is encountered.

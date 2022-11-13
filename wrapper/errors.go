@@ -6,53 +6,102 @@ import (
 
 // Send Request Error Messages.
 const (
-	ErrSendMarshal = "error while marshalling a %v:\n%w"
-	ErrSendRequest = "error while sending %v:\n%w"
-	ErrQueryString = "error creating a URL Query String for %v:\n%w"
-	ErrMultipart   = "error creating multipart form: %w"
-	ErrRedirect    = "error redirecting from %v due to a missing Location HTTP header"
-	ErrRateLimit   = "error converting the HTTP rate limit header %v\n\t%w"
+	errSendMarshal = "marshalling an HTTP body: %w"
+	errRateLimit   = "error converting the HTTP rate limit header %q: %w"
 )
+
+// ErrorRequest represents an HTTP Request error that occurs when an attempt to send a request fails.
+type ErrorRequest struct {
+	// ClientID represents the Application ID of the request sender.
+	ClientID string
+
+	// CorrelationID represents the ID used to correlate the request to other logs.
+	CorrelationID string
+
+	// RouteID represents the ID (hash) of the Disgo Route.
+	RouteID string
+
+	// ResourceID represents the ID (hash) of the resource for the route.
+	ResourceID string
+
+	// Endpoint represents the endpoint the request was sent to.
+	Endpoint string
+
+	// Err represents the error that occurred while performing the action.
+	Err error
+}
+
+func (e ErrorRequest) Error() string {
+	return fmt.Errorf("REQUEST ERROR: client %q: x %q: route: %q: resource: %q: endpoint: %q: error: %w",
+		e.ClientID, e.CorrelationID, e.RouteID, e.ResourceID, e.Endpoint, e.Err).Error()
+}
 
 // Status Code Error Messages.
 const (
-	ErrStatusCodeKnown   = "Status Code %d: %v"
-	ErrStatusCodeUnknown = "Status Code %d: Unknown status code error from Discord"
+	errStatusCodeKnown   = "Status Code %d: %v"
+	errStatusCodeUnknown = "Status Code %d: Unknown status code error from Discord"
 )
 
 // StatusCodeError handles a Discord API HTTP Status Code and returns the relevant error message.
 func StatusCodeError(status int) error {
 	if msg, ok := HTTPResponseCodes[status]; ok {
-		return fmt.Errorf(ErrStatusCodeKnown, status, msg)
+		return fmt.Errorf(errStatusCodeKnown, status, msg)
 	}
 
-	return fmt.Errorf(ErrStatusCodeUnknown, status)
+	return fmt.Errorf(errStatusCodeUnknown, status)
 }
 
 // JSON Error Code Messages.
 const (
-	ErrJSONErrorCodeKnown = "JSON Error Code %d: %v"
-	ErrJSONErrorUnknown   = "JSON Error Code %d: Unknown JSON Error Code from Discord"
+	errJSONErrorCodeKnown = "JSON Error Code %d: %v"
+	errJSONErrorUnknown   = "JSON Error Code %d: Unknown JSON Error Code from Discord"
 )
 
 // JSONCodeError handles a Discord API JSON Error Code and returns the relevant error message.
 func JSONCodeError(status int) error {
 	if msg, ok := JSONErrorCodes[status]; ok {
-		return fmt.Errorf(ErrJSONErrorCodeKnown, status, msg)
+		return fmt.Errorf(errJSONErrorCodeKnown, status, msg)
 	}
 
-	return fmt.Errorf(ErrJSONErrorUnknown, status)
+	return fmt.Errorf(errJSONErrorUnknown, status)
 }
 
 // Event Handler Error Messages.
 const (
-	errHandleNotRemoved   = "event handler for %s was not added"
-	errRemoveInvalidIndex = "event handler for %s cannot be removed since there is no event handler at index %d"
+	errHandleNotRemoved   = "event handler was not added"
+	errRemoveInvalidIndex = "event handler cannot be removed since there is no event handler at index %d"
 )
 
-// ErrorEvent represents a WebSocket error that occurs when
-// a WebSocket attempt to {action} an event fails.
+// ErrorEventHandler represents an Event Handler error that occurs when an attempt to
+// add or remove an event handler fails.
+type ErrorEventHandler struct {
+	// ClientID represents the Application ID of the event handler owner.
+	ClientID string
+
+	// Event represents the event of the involved handler.
+	Event string
+
+	// Err represents the error that occurred while performing the action.
+	Err error
+}
+
+func (e ErrorEventHandler) Error() string {
+	return fmt.Errorf("EVENT HANDLER ERROR: client %q: event %q: error: %w",
+		e.ClientID, e.Event, e.Err).Error()
+}
+
+const (
+	ErrorEventActionUnmarshal = "unmarshalling"
+	ErrorEventActionMarshal   = "marshalling"
+	ErrorEventActionRead      = "reading"
+	ErrorEventActionWrite     = "writing"
+)
+
+// ErrorEvent represents a WebSocket error that occurs when an attempt to {action} an event fails.
 type ErrorEvent struct {
+	// ClientID represents the Application ID of the event handler caller.
+	ClientID string
+
 	// Event represents the name of the event involved in this error.
 	Event string
 
@@ -70,32 +119,43 @@ type ErrorEvent struct {
 }
 
 func (e ErrorEvent) Error() string {
-	return fmt.Sprintf("error while %s a %v Event\n\t%v", e.Action, e.Event, e.Err)
+	return fmt.Errorf("EVENT ERROR: client %q: event %q: action: %q, error: %w",
+		e.ClientID, e.Event, e.Action, e.Err).Error()
+}
+
+// ErrorSession represents a WebSocket Session error that occurs during an active session.
+type ErrorSession struct {
+	// SessionID represents the ID of the Session.
+	SessionID string
+
+	// Err represents the error that occurred.
+	Err error
+}
+
+func (e ErrorSession) Error() string {
+	return fmt.Errorf("SESSION ERROR: session %q: error: %w", e.SessionID, e.Err).Error()
 }
 
 const (
-	ErrorEventActionUnmarshal = "unmarshalling"
-	ErrorEventActionMarshal   = "marshalling"
-	ErrorEventActionRead      = "reading"
-	ErrorEventActionWrite     = "writing"
+	ErrConnectionSession = "Discord Gateway"
 )
 
-// DisconnectError represents a WebSocket disconnection error that occurs when
-// a WebSocket attempt to gracefully disconnect fails.
-type DisconnectError struct {
-	// SessionID represents the ID of the Session that is disconnecting.
-	SessionID string
-
-	// Err represents the error that occurred while disconnecting.
-	Err error
+// ErrorDisconnect represents a disconnection error that occurs when
+// an attempt to gracefully disconnect from a connection fails.
+type ErrorDisconnect struct {
+	// Connection represents the name of the connection.
+	Connection string
 
 	// Action represents the error that prompted the disconnection (if applicable).
 	Action error
+
+	// Err represents the error that occurred while disconnecting.
+	Err error
 }
 
-func (e DisconnectError) Error() string {
-	return fmt.Sprintf("error disconnecting the session %q from the Discord Gateway\n"+
+func (e ErrorDisconnect) Error() string {
+	return fmt.Errorf("error disconnecting from %q\n"+
 		"\tDisconnect(): %v\n"+
-		"\treason: %v\n",
-		e.SessionID, e.Err, e.Action)
+		"\treason: %w\n",
+		e.Connection, e.Err, e.Action).Error()
 }

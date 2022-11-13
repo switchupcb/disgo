@@ -5,7 +5,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rs/zerolog"
 	"github.com/switchupcb/disgo/wrapper/internal/socket"
 )
 
@@ -21,10 +20,7 @@ func (s *Session) listen(bot *Client) error {
 			break
 		}
 
-		Logger.Info().Timestamp().Str(logCtxSession, s.ID).Dict(logCtxPayload, zerolog.Dict().
-			Int(logCtxPayloadOpcode, payload.Op).
-			Bytes(logCtxPayloadData, payload.Data),
-		).Msg("received payload")
+		logPayload(logSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received payload")
 
 		if err = s.onPayload(bot, *payload); err != nil {
 			break

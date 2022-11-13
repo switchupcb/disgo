@@ -2,11 +2,11 @@ package wrapper
 
 import (
 	"encoding/base64"
-	"fmt"
 	"net/url"
 	"strconv"
 	"strings"
 
+	"github.com/rs/xid"
 	"github.com/valyala/fasthttp"
 )
 
@@ -237,16 +237,33 @@ func WebhookAuthorization(bot *Client, ru *RedirectURL) (*AccessTokenResponse, *
 		RedirectURI:  bot.Authorization.RedirectURI,
 	}
 
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[1]("1")
 	query, err := EndpointQueryString(exchange)
 	if err != nil {
-		return nil, nil, fmt.Errorf(ErrQueryString, "WebhookAuthorization", err)
+		return nil, nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
 	}
+	endpoint := EndpointTokenURL() + "?" + query
 
 	result := new(WebhookTokenResponse)
-	routeid, resourceid := RateLimitHashFuncs[1]("1")
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, ContentTypeURLQueryString, nil, result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeURLQueryString, nil, result)
 	if err != nil {
-		return nil, nil, fmt.Errorf(ErrSendRequest, "WebhookAuthorization", err)
+		return nil, nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
 	}
 
 	// convert the webhook token response to an access token response (and webhook).
@@ -263,16 +280,33 @@ func WebhookAuthorization(bot *Client, ru *RedirectURL) (*AccessTokenResponse, *
 
 // Send sends an AccessTokenExchange request to Discord and returns an AccessTokenResponse.
 func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[1]("1")
 	query, err := EndpointQueryString(r)
 	if err != nil {
-		return nil, fmt.Errorf(ErrQueryString, "AccessTokenExchange", err)
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
 	}
+	endpoint := EndpointTokenURL() + "?" + query
 
 	result := new(AccessTokenResponse)
-	routeid, resourceid := RateLimitHashFuncs[1]("1")
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, ContentTypeURLQueryString, nil, result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeURLQueryString, nil, result)
 	if err != nil {
-		return nil, fmt.Errorf(ErrSendRequest, "AccessTokenExchange", err)
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
 	}
 
 	return result, nil
@@ -282,16 +316,33 @@ func (r *AccessTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 //
 // Uses the RefreshTokenExchange ClientID and ClientSecret.
 func (r *RefreshTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[1]("1")
 	query, err := EndpointQueryString(r)
 	if err != nil {
-		return nil, fmt.Errorf(ErrQueryString, "RefreshTokenExchange", err)
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
 	}
+	endpoint := EndpointTokenURL() + "?" + query
 
 	result := new(AccessTokenResponse)
-	routeid, resourceid := RateLimitHashFuncs[1]("1")
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, ContentTypeURLQueryString, nil, result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeURLQueryString, nil, result)
 	if err != nil {
-		return nil, fmt.Errorf(ErrSendRequest, "RefreshTokenExchange", err)
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
 	}
 
 	return result, nil
@@ -299,16 +350,33 @@ func (r *RefreshTokenExchange) Send(bot *Client) (*AccessTokenResponse, error) {
 
 // Send sends a ClientCredentialsTokenRequest to Discord and returns a ClientCredentialsTokenRequest.
 func (r *ClientCredentialsTokenRequest) Send(bot *Client) (*AccessTokenResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[1]("1")
 	query, err := EndpointQueryString(r)
 	if err != nil {
-		return nil, fmt.Errorf(ErrQueryString, "ClientCredentialsTokenRequest", err)
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
 	}
+	endpoint := EndpointTokenURL() + "?" + query
 
 	result := new(AccessTokenResponse)
-	routeid, resourceid := RateLimitHashFuncs[1]("1")
-	err = SendRequest(bot, routeid, resourceid, fasthttp.MethodPost, EndpointTokenURL()+"?"+query, ContentTypeURLQueryString, nil, result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeURLQueryString, nil, result)
 	if err != nil {
-		return nil, fmt.Errorf(ErrSendRequest, "ClientCredentialsTokenRequest", err)
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
 	}
 
 	return result, nil

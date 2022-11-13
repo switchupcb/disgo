@@ -134,20 +134,36 @@ func generateBody(function *models.Function) string {
 	response := function.To[0].Field
 	uniquetags := uniqueTags(request)
 
-	// write the function body.
 	var body strings.Builder
-	errDecl := ":="
 
+	// Write logged variables.
+	body.WriteString("var err error\n")
+	body.WriteString("xid := xid.New().String()\n")
+	body.WriteString("routeid, resourceid := " + generateHashCall(request, routeid) + "\n")
+
+	endpoint := generateEndpointCall(request)
+	if len(uniquetags["url"]) != 0 {
+		body.WriteString("query, err := EndpointQueryString(r)\n")
+		body.WriteString("if err != nil {\n")
+		body.WriteString(generateQueryStringErrReturn(function, requestName) + "\n")
+		body.WriteString("}\n")
+		endpoint = endpoint + "+" + "\"?\"" + "+ query"
+	}
+
+	body.WriteString("endpoint := " + endpoint + "\n")
+	body.WriteString("\n")
+
+	// Write the function body.
+	//
 	// marshal the request.
 	httpbody := "nil"
 	if len(uniquetags["json"]) != 0 {
-		body.WriteString("body, err " + errDecl + " json.Marshal(r)\n")
+		body.WriteString("body, err := json.Marshal(r)\n")
 		body.WriteString("if err != nil {\n")
-		body.WriteString(generateMarshalErrReturn(function, requestName))
+		body.WriteString(generateMarshalErrReturn(function, requestName) + "\n")
 		body.WriteString("}\n")
 		body.WriteString("\n")
 		httpbody = "body"
-		errDecl = "="
 	}
 
 	// add file upload support (if applicable).
@@ -159,7 +175,7 @@ func generateBody(function *models.Function) string {
 		body.WriteString("if len(r.Files) != 0 {\n")
 		body.WriteString("var multipartErr error\n")
 		body.WriteString("if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {\n")
-		body.WriteString(generateMultipartErrReturn(function, requestName))
+		body.WriteString(generateMultipartErrReturn(function, requestName) + "\n")
 		body.WriteString("}\n")
 		body.WriteString("}\n")
 		body.WriteString("\n")
@@ -169,21 +185,9 @@ func generateBody(function *models.Function) string {
 		body.WriteString("var contentType []byte\n")
 		body.WriteString("var multipartErr error\n")
 		body.WriteString("if contentType, body, multipartErr = createMultipartForm(body, &r.File); multipartErr != nil {\n")
-		body.WriteString(generateMultipartErrReturn(function, requestName))
+		body.WriteString(generateMultipartErrReturn(function, requestName) + "\n")
 		body.WriteString("}\n")
 		body.WriteString("\n")
-	}
-
-	// call the endpoint's function.
-	endpoint := generateEndpointCall(function.From[0].Field)
-	if len(uniquetags["url"]) != 0 {
-		body.WriteString("query, err := EndpointQueryString(r)\n")
-		body.WriteString("if err != nil {\n")
-		body.WriteString(generateQueryStringErrReturn(function, requestName))
-		body.WriteString("}\n")
-		body.WriteString("\n")
-		endpoint = endpoint + "+" + "\"?\"" + "+ query"
-		errDecl = "="
 	}
 
 	// declare result.
@@ -201,16 +205,13 @@ func generateBody(function *models.Function) string {
 		body.WriteString("result := new(" + response.FullDefinitionWithoutPointer() + ")\n")
 	}
 
-	// determine the request hash.
-	body.WriteString("routeid, resourceid := " + generateHashCall(function.From[0].Field, routeid) + "\n")
-
 	// send the request.
-	body.WriteString("err " + errDecl +
-		" SendRequest(bot, routeid, resourceid, " + generateHTTPMethod(function) + ", " +
-		endpoint + ", " + contentType + ", " + httpbody + ", " + result + ")\n",
+	body.WriteString("err = SendRequest(bot, xid, routeid, resourceid, " +
+		generateHTTPMethod(function) + ", endpoint, " +
+		contentType + ", " + httpbody + ", " + result + ")\n",
 	)
 	body.WriteString("if err != nil {\n")
-	body.WriteString(generateSendRequestErrReturn(function, requestName))
+	body.WriteString(generateSendRequestErrReturn(function, requestName) + "\n")
 	body.WriteString("}\n")
 
 	// map the route to the route id.
@@ -276,6 +277,8 @@ func generateHTTPMethod(function *models.Function) string {
 }
 
 // generateEndpointCall generates the endpoint function call for a SendRequest(..., endpoint) call.
+//
+// NOTE: must be run prior to ./_gen clean operation.
 func generateEndpointCall(request *models.Field) string {
 	var parameters strings.Builder
 
@@ -345,55 +348,64 @@ func uniqueTags(request *models.Field) map[string][]string {
 // Return
 ////////////////////////////////////////////////////////////////////////////////
 
-// generateMarshalErrReturn generates a return statement for the function.
-func generateMarshalErrReturn(function *models.Function, request string) string {
-	errorf := "fmt.Errorf(ErrSendMarshal" + ",\"" + request + "\"" + ", err)"
-	switch len(function.To) {
-	case 1:
-		return "return " + errorf + "\n"
-	case 2:
-		return "return nil, " + errorf + "\n"
-	default:
-		return "return nil, " + errorf + "\n"
-	}
-}
-
-// generateSendRequestErrReturn generates a return statement for the function.
-func generateSendRequestErrReturn(function *models.Function, request string) string {
-	errorf := "fmt.Errorf(ErrSendRequest" + ",\"" + request + "\"" + ", err)"
-	switch len(function.To) {
-	case 1:
-		return "return " + errorf + "\n"
-	case 2:
-		return "return nil, " + errorf + "\n"
-	default:
-		return "return nil, " + errorf + "\n"
-	}
-}
+var requestError = `ErrorRequest{
+	ClientID:      bot.ApplicationID,
+	CorrelationID: xid,
+	RouteID:       routeid,
+	ResourceID:    resourceid,
+	Endpoint:      %s,
+	Err:           %s,
+}`
 
 // generateQueryStringErrReturn generates a return statement for the function.
 func generateQueryStringErrReturn(function *models.Function, request string) string {
-	errorf := "fmt.Errorf(ErrQueryString" + ",\"" + request + "\"" + ", err)"
+	err := fmt.Sprintf(requestError, "\"\"", "err")
 	switch len(function.To) {
 	case 1:
-		return "return " + errorf + "\n"
+		return "return " + err
 	case 2:
-		return "return nil, " + errorf + "\n"
+		return "return nil, " + err
 	default:
-		return "return nil, " + errorf + "\n"
+		return "return nil, " + err
+	}
+}
+
+// generateMarshalErrReturn generates a return statement for the function.
+func generateMarshalErrReturn(function *models.Function, request string) string {
+	err := fmt.Sprintf(requestError, "endpoint", "fmt.Errorf(errSendMarshal, err)")
+	switch len(function.To) {
+	case 1:
+		return "return " + err
+	case 2:
+		return "return nil, " + err
+	default:
+		return "return nil, " + err
 	}
 }
 
 // generateMultipartErrReturn generates a return statement for the function.
 func generateMultipartErrReturn(function *models.Function, request string) string {
-	errorf := "fmt.Errorf(ErrMultipart" + ", err)"
+	err := fmt.Sprintf(requestError, "\"\"", "err")
 	switch len(function.To) {
 	case 1:
-		return "return " + errorf + "\n"
+		return "return " + err
 	case 2:
-		return "return nil, " + errorf + "\n"
+		return "return nil, " + err
 	default:
-		return "return nil, " + errorf + "\n"
+		return "return nil, " + err
+	}
+}
+
+// generateSendRequestErrReturn generates a return statement for the function.
+func generateSendRequestErrReturn(function *models.Function, request string) string {
+	err := fmt.Sprintf(requestError, "endpoint", "err")
+	switch len(function.To) {
+	case 1:
+		return "return " + err
+	case 2:
+		return "return nil, " + err
+	default:
+		return "return nil, " + err
 	}
 }
 

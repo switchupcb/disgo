@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/goccy/go-json v0.9.11
 	github.com/gorilla/schema v1.2.0
+	github.com/rs/xid v1.4.0
 	github.com/rs/zerolog v1.28.0
 	github.com/switchupcb/websocket v1.8.8
 	github.com/valyala/fasthttp v1.41.0
