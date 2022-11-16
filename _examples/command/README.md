@@ -67,6 +67,7 @@ Program exited successfully.
 
 # Read More
 
-| Example                                        | Description                                                                     |
-| :--------------------------------------------- | :------------------------------------------------------------------------------ |
-| [`subcommand`](/_examples/command/subcommand/) | Create an application command with subcommand groups, subcommands, and options. |
+| Example                                           | Description                                                                     |
+| :------------------------------------------------ | :------------------------------------------------------------------------------ |
+| [`subcommand`](/_examples/command/subcommand/)    | Create an application command with subcommand groups, subcommands, and options. |
+| [`localiztion`](/_examples/command/localization/) | Create an application command with a localized name and description.            |
