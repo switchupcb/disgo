@@ -671,7 +671,19 @@ func (r *CreateInteractionResponse) Send(bot *Client) error {
 	routeid, resourceid := RateLimitHashFuncs[18]("18", "beb3d0e6"+r.InteractionID, "cb69bb28"+r.InteractionToken)
 	endpoint := EndpointCreateInteractionResponse(r.InteractionID, r.InteractionToken)
 
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, nil, nil, nil)
+	body, err := json.Marshal(r)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, nil)
 	if err != nil {
 		return ErrorRequest{
 			ClientID:      bot.ApplicationID,
@@ -5288,160 +5300,4 @@ func (r *GetCurrentAuthorizationInformation) Send(bot *Client) (*CurrentAuthoriz
 	}
 
 	return result, nil
-}
-
-func (r *EditOriginalInteractionResponse) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Content         *string          `json:"content"`
-		Embeds          []*Embed         `json:"embeds"`
-		Components      []*Component     `json:"components"`
-		AllowedMentions *AllowedMentions `json:"allowed_mentions"`
-		Attachments     []*Attachment    `json:"attachments"`
-	}{
-		Content:         r.Content,
-		Embeds:          r.Embeds,
-		Components:      r.Components,
-		AllowedMentions: r.AllowedMentions,
-		Attachments:     r.Attachments,
-	})
-}
-
-func (r *CreateFollowupMessage) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Content         string           `json:"content"`
-		Username        string           `json:"username,omitempty"`
-		AvatarURL       string           `json:"avatar_url,omitempty"`
-		TTS             bool             `json:"tts"`
-		Embeds          []*Embed         `json:"embeds"`
-		AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
-		Components      []Component      `json:"components,omitempty"`
-		Attachments     []*Attachment    `json:"attachments,omitempty"`
-		Flags           BitFlag          `json:"flags,omitempty"`
-		ThreadName      string           `json:"thread_name,omitempty"`
-	}{
-		Content:         r.Content,
-		Username:        r.Username,
-		AvatarURL:       r.AvatarURL,
-		TTS:             r.TTS,
-		Embeds:          r.Embeds,
-		AllowedMentions: r.AllowedMentions,
-		Components:      r.Components,
-		Attachments:     r.Attachments,
-		Flags:           r.Flags,
-		ThreadName:      r.ThreadName,
-	})
-}
-
-func (r *EditFollowupMessage) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Content         *string          `json:"content"`
-		Embeds          []*Embed         `json:"embeds"`
-		Components      []*Component     `json:"components"`
-		AllowedMentions *AllowedMentions `json:"allowed_mentions"`
-		Attachments     []*Attachment    `json:"attachments"`
-	}{
-		Content:         r.Content,
-		Embeds:          r.Embeds,
-		Components:      r.Components,
-		AllowedMentions: r.AllowedMentions,
-		Attachments:     r.Attachments,
-	})
-}
-
-func (r *CreateMessage) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Content          *string           `json:"content,omitempty"`
-		Nonce            interface{}       `json:"nonce,omitempty"`
-		TTS              *bool             `json:"tts,omitempty"`
-		Embeds           []*Embed          `json:"embeds,omitempty"`
-		AllowedMentions  *AllowedMentions  `json:"allowed_mentions,omitempty"`
-		MessageReference *MessageReference `json:"message_reference,omitempty"`
-		Components       []*Component      `json:"components,omitempty"`
-		StickerIDS       []*string         `json:"sticker_ids,omitempty"`
-		Attachments      []*Attachment     `json:"attachments,omitempty"`
-		Flags            *BitFlag          `json:"flags,omitempty"`
-	}{
-		Content:          r.Content,
-		Nonce:            r.Nonce,
-		TTS:              r.TTS,
-		Embeds:           r.Embeds,
-		AllowedMentions:  r.AllowedMentions,
-		MessageReference: r.MessageReference,
-		Components:       r.Components,
-		StickerIDS:       r.StickerIDS,
-		Attachments:      r.Attachments,
-		Flags:            r.Flags,
-	})
-}
-
-func (r *EditMessage) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Content         *string          `json:"content"`
-		Embeds          []*Embed         `json:"embeds"`
-		Flags           *BitFlag         `json:"flags"`
-		AllowedMentions *AllowedMentions `json:"allowed_mentions"`
-		Components      []*Component     `json:"components"`
-		Attachments     []*Attachment    `json:"attachments"`
-	}{
-		Content:         r.Content,
-		Embeds:          r.Embeds,
-		Flags:           r.Flags,
-		AllowedMentions: r.AllowedMentions,
-		Components:      r.Components,
-		Attachments:     r.Attachments,
-	})
-}
-
-func (r *CreateGuildSticker) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Name        string  `json:"name"`
-		Description string  `json:"description"`
-		Tags        *string `json:"tags"`
-	}{
-		Name:        r.Name,
-		Description: r.Description,
-		Tags:        r.Tags,
-	})
-}
-
-func (r *ExecuteWebhook) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Content         string           `json:"content"`
-		Username        string           `json:"username,omitempty"`
-		AvatarURL       string           `json:"avatar_url,omitempty"`
-		TTS             bool             `json:"tts"`
-		Embeds          []*Embed         `json:"embeds"`
-		AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
-		Components      []Component      `json:"components,omitempty"`
-		Attachments     []*Attachment    `json:"attachments,omitempty"`
-		Flags           BitFlag          `json:"flags,omitempty"`
-		ThreadName      string           `json:"thread_name,omitempty"`
-	}{
-		Content:         r.Content,
-		Username:        r.Username,
-		AvatarURL:       r.AvatarURL,
-		TTS:             r.TTS,
-		Embeds:          r.Embeds,
-		AllowedMentions: r.AllowedMentions,
-		Components:      r.Components,
-		Attachments:     r.Attachments,
-		Flags:           r.Flags,
-		ThreadName:      r.ThreadName,
-	})
-}
-
-func (r *EditWebhookMessage) MarshalJSON() ([]byte, error) {
-	return json.Marshal(&struct {
-		Content         *string          `json:"content"`
-		Embeds          []*Embed         `json:"embeds"`
-		Components      []*Component     `json:"components"`
-		AllowedMentions *AllowedMentions `json:"allowed_mentions"`
-		Attachments     []*Attachment    `json:"attachments"`
-	}{
-		Content:         r.Content,
-		Embeds:          r.Embeds,
-		Components:      r.Components,
-		AllowedMentions: r.AllowedMentions,
-		Attachments:     r.Attachments,
-	})
 }

@@ -128,6 +128,7 @@ func (s *Session) connect(bot *Client) error {
 	// handle the incoming Hello event upon connecting to the Gateway.
 	hello := new(Hello)
 	if err := readEvent(s, FlagGatewayEventNameHello, hello); err != nil {
+		err = fmt.Errorf("error reading initial Hello event: %w", err)
 		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorDisconnect{
@@ -269,7 +270,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 		case *payload.EventName == FlagGatewayEventNameReady:
 			ready := new(Ready)
 			if err := json.Unmarshal(payload.Data, ready); err != nil {
-				return fmt.Errorf("%w", err)
+				return fmt.Errorf("error reading ready event: %w", err)
 			}
 
 			s.ID = ready.SessionID

@@ -11,11 +11,12 @@ import (
 // init is called at the start of the application.
 func init() {
 	zerolog.TimeFieldFormat = time.RFC3339Nano
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 var (
 	// Logger represents the Disgo Logger used to log information.
-	Logger = zerolog.New(os.Stdout).Level(zerolog.Disabled)
+	Logger = zerolog.New(os.Stdout)
 )
 
 // Logger Contexts

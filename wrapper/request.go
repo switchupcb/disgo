@@ -280,12 +280,15 @@ SEND:
 
 	// handle the response.
 	switch response.StatusCode() {
-	case fasthttp.StatusOK:
+	case fasthttp.StatusOK, fasthttp.StatusCreated:
 		// parse the response data.
 		if err := json.Unmarshal(response.Body(), dst); err != nil {
-			return fmt.Errorf("%w", err)
+			return fmt.Errorf(errUnmarshal, dst, err)
 		}
 
+		return nil
+
+	case fasthttp.StatusNoContent:
 		return nil
 
 	// process the rate limit.

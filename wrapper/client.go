@@ -22,14 +22,14 @@ type Client struct {
 	// Authorization contains parameters required to authorize a client's access to resources.
 	Authorization *Authorization
 
-	// Sessions contains sessions a bot uses to interact with the Discord Gateway.
-	Sessions []*Session
+	// Config represents parameters used to perform various actions by the client.
+	Config *Config
 
 	// Handlers represents a bot's event handlers.
 	Handlers *Handlers
 
-	// Config represents parameters used to perform various actions by the client.
-	Config *Config
+	// Sessions contains sessions a bot uses to interact with the Discord Gateway.
+	Sessions []*Session
 }
 
 // Authentication represents authentication parameters required to authenticate the bot.

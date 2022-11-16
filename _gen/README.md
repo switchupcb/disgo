@@ -11,7 +11,7 @@ Disgo sources Discord API objects from [dasgo](https://github.com/switchupcb/das
 | download  | Download an updated version of `dasgo` for modification (`-d`).                            |
 | endpoints | `dasgo` endpoints _(which must be removed)_ are converted into `disgo` endpoint functions. |
 | xstruct   | `dasgo` structs are extracted into one file. Uses option to include `var` and `const`.     |
-| snowflake | `Snowflake` fields are converted to `string`.                                              |
+| typefix   | `Snowflake`, `Nonce`, and `Value` fields are converted to `string`.                        |
 
 ## Disgo
 
