@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -17,7 +18,7 @@ var (
 
 	// appid represents the bot's ApplicationID.
 	//
-	// Use Developer Mode to find it, or call GetCurrentUser (request) in your application
+	// Use Developer Mode to find it, or call GetCurrentUser (request) in your program
 	// and set it programmatically.
 	appid = os.Getenv("APPID")
 )
@@ -42,13 +43,13 @@ func main() {
 		Sessions:       []*disgo.Session{disgo.NewSession()},
 	}
 
+	log.Println("Creating an application command...")
+
 	// Create a Create Global Application Command request.
 	request := disgo.CreateGlobalApplicationCommand{
 		Name:        "main",
 		Description: "A basic command.",
 	}
-
-	log.Println("Creating an application command...")
 
 	// Register the new command by sending the request to Discord using the bot.
 	//
@@ -67,11 +68,11 @@ func main() {
 		log.Printf("main called by %s.", i.Interaction.User.Username)
 
 		// see func declaration below.
-		if err := onInteraction(bot, i, newCommand); err != nil {
+		if err := onInteraction(bot, i.Interaction, newCommand); err != nil {
 			log.Println(err)
 		}
 
-		// This call unblocks the main goroutine of the program from wg.Wait() [Line 88].
+		// This call unblocks the main goroutine of the program from wg.Wait() [Line 97].
 		wg.Done()
 	})
 
@@ -102,15 +103,17 @@ func main() {
 // onInteraction deletes the Global Application Command, then disconnects the bot.
 //
 // In this example, onInteraction is called when a user sends a `/main` interaction to the bot.
-func onInteraction(bot *disgo.Client, interaction *disgo.InteractionCreate, command *disgo.ApplicationCommand) error {
+func onInteraction(bot *disgo.Client, interaction *disgo.Interaction, command *disgo.ApplicationCommand) error {
+	log.Println("Creating a response to the interaction...")
+
 	// send an interaction response to reply to the user.
 	requestCreateInteractionResponse := &disgo.CreateInteractionResponse{
-		InteractionID: interaction.Interaction.ID,
+		InteractionID: interaction.ID,
 
 		// Interaction tokens are valid for 15 minutes,
 		// but an initial response to an interaction must be sent within 3 seconds (of receiving it),
 		// otherwise the token is invalidated.
-		InteractionToken: interaction.Interaction.Token,
+		InteractionToken: interaction.Token,
 
 		// https://discord.com/developers/docs/interactions/receiving-and-responding#responding-to-an-interaction
 		InteractionResponse: &disgo.InteractionResponse{
@@ -132,12 +135,8 @@ func onInteraction(bot *disgo.Client, interaction *disgo.InteractionCreate, comm
 		},
 	}
 
-	log.Println("Creating a response to the interaction...")
-
 	if err := requestCreateInteractionResponse.Send(bot); err != nil {
-		log.Printf("error sending interaction response: %v", err)
-
-		return err
+		return fmt.Errorf("error sending interaction response: %w", err)
 	}
 
 	log.Println("Deleting the application command...")
@@ -147,18 +146,14 @@ func onInteraction(bot *disgo.Client, interaction *disgo.InteractionCreate, comm
 	// delete the Global Application Command.
 	requestDeleteGlobalApplicationCommand := &disgo.DeleteGlobalApplicationCommand{CommandID: command.ID}
 	if err := requestDeleteGlobalApplicationCommand.Send(bot); err != nil {
-		log.Printf("error deleting Global Application Command: %v", err)
-
-		return err
+		return fmt.Errorf("error deleting Global Application Command: %w", err)
 	}
 
 	log.Println("Disconnecting from the Discord Gateway...")
 
 	// Disconnect the session from the Discord Gateway (WebSocket Connection).
 	if err := bot.Sessions[0].Disconnect(); err != nil {
-		log.Printf("error closing connection to Discord Gateway: %v", err)
-
-		return err
+		return fmt.Errorf("error closing connection to Discord Gateway: %w", err)
 	}
 
 	return nil

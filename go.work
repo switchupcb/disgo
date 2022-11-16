@@ -5,5 +5,4 @@ use (
 	./_examples
 	./cache
 	./shard
-	./tools
 )

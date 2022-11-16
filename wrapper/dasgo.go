@@ -527,7 +527,7 @@ type Snowflake uint64
 type Flag uint8
 
 // BitFlag represents an alias for a Discord API Bitwise Flag denoted by 1 << x.
-type BitFlag uint32
+type BitFlag uint64
 
 // CodeFlag represents an alias for a Discord API Code ranging from 0 - 65535.
 type CodeFlag uint16
@@ -1847,7 +1847,7 @@ type GetChannelMessage struct {
 type CreateMessage struct {
 	ChannelID        string            `json:"-"`
 	Content          *string           `json:"content,omitempty"`
-	Nonce            string            `json:"nonce,omitempty"`
+	Nonce            json.Number       `json:"nonce,omitempty"`
 	TTS              *bool             `json:"tts,omitempty"`
 	Embeds           []*Embed          `json:"embeds,omitempty"`
 	AllowedMentions  *AllowedMentions  `json:"allowed_mentions,omitempty"`
@@ -3246,7 +3246,7 @@ const (
 type ApplicationCommandOptionChoice struct {
 	Name              string          `json:"name"`
 	NameLocalizations map[Flag]string `json:"name_localizations"`
-	Value             string          `json:"value"`
+	Value             json.Number     `json:"value"`
 }
 
 // Guild Application Command Permissions Object
@@ -3379,7 +3379,7 @@ type Interaction struct {
 	Token          string          `json:"token"`
 	Version        Flag            `json:"version"`
 	Message        *Message        `json:"message,omitempty"`
-	AppPermissions *BitFlag        `json:"app_permissions,omitempty"`
+	AppPermissions *BitFlag        `json:"app_permissions,omitempty,string"`
 	Locale         *string         `json:"locale,omitempty"`
 	GuildLocale    *string         `json:"guild_locale,omitempty"`
 }
@@ -3443,7 +3443,7 @@ type ResolvedData struct {
 type ApplicationCommandInteractionDataOption struct {
 	Name    string                                     `json:"name"`
 	Type    Flag                                       `json:"type"`
-	Value   string                                     `json:"value,omitempty"`
+	Value   json.Number                                `json:"value,omitempty"`
 	Options []*ApplicationCommandInteractionDataOption `json:"options,omitempty"`
 	Focused *bool                                      `json:"focused,omitempty"`
 }
@@ -3831,7 +3831,7 @@ type Message struct {
 	Attachments       []*Attachment     `json:"attachments"`
 	Embeds            []*Embed          `json:"embeds"`
 	Reactions         []*Reaction       `json:"reactions,omitempty"`
-	Nonce             string            `json:"nonce,omitempty"`
+	Nonce             json.Number       `json:"nonce,omitempty"`
 	Pinned            bool              `json:"pinned"`
 	WebhookID         string            `json:"webhook_id,omitempty"`
 	Type              Flag              `json:"type"`
