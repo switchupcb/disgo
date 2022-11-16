@@ -75,7 +75,7 @@ func (r *RateLimit) SetBucketID(routeid string, bucketid string) {
 				delete(r.entries, currentBucketID)
 				delete(r.buckets, currentBucketID)
 
-				Logger.Info().Timestamp().Str(logCtxRequest, routeid).Str(logCtxBucket, currentBucketID).Msg("deleted bucket")
+				Logger.Info().Timestamp().Str(LogCtxRequest, routeid).Str(LogCtxBucket, currentBucketID).Msg("deleted bucket")
 			}
 		}
 
@@ -85,7 +85,7 @@ func (r *RateLimit) SetBucketID(routeid string, bucketid string) {
 		// update the entries for the new Bucket ID.
 		r.entries[bucketid]++
 
-		Logger.Info().Timestamp().Str(logCtxRequest, routeid).Str(logCtxBucket, bucketid).Msg("set route to bucket")
+		Logger.Info().Timestamp().Str(LogCtxRequest, routeid).Str(LogCtxBucket, bucketid).Msg("set route to bucket")
 	}
 }
 
@@ -96,7 +96,7 @@ func (r *RateLimit) GetBucketID(routeid string) string {
 func (r *RateLimit) SetBucketFromID(bucketid string, bucket *Bucket) {
 	r.buckets[bucketid] = bucket
 
-	Logger.Info().Timestamp().Str(logCtxBucket, bucketid).Msgf("set bucket to object %p", bucket)
+	Logger.Info().Timestamp().Str(LogCtxBucket, bucketid).Msgf("set bucket to object %p", bucket)
 }
 
 func (r *RateLimit) GetBucketFromID(bucketid string) *Bucket {

@@ -142,7 +142,7 @@ RATELIMIT:
 	// a single request or response is PROCESSED at any point in time.
 	bot.Config.Request.RateLimiter.Lock()
 
-	logRequest(Logger.Trace(), bot.ApplicationID, xid, routeid, resourceid, uri).Msg("processing request")
+	LogRequest(Logger.Trace(), bot.ApplicationID, xid, routeid, resourceid, uri).Msg("processing request")
 
 	// check Global and Route Rate Limit Buckets prior to sending the current request.
 	for {
@@ -203,14 +203,14 @@ RATELIMIT:
 	bot.Config.Request.RateLimiter.Unlock()
 
 SEND:
-	logRequest(Logger.Trace(), bot.ApplicationID, xid, routeid, resourceid, uri).Msg("sending request")
+	LogRequest(Logger.Trace(), bot.ApplicationID, xid, routeid, resourceid, uri).Msg("sending request")
 
 	// send the request.
 	if err := bot.Config.Request.Client.DoTimeout(request, response, bot.Config.Request.Timeout); err != nil {
 		return fmt.Errorf("%w", err)
 	}
 
-	logResponse(logRequest(Logger.Info(), bot.ApplicationID, xid, routeid, resourceid, uri),
+	LogResponse(LogRequest(Logger.Info(), bot.ApplicationID, xid, routeid, resourceid, uri),
 		response.Header.String(), string(response.Body()),
 	).Msg("")
 
@@ -331,8 +331,8 @@ SEND:
 			reset = time.Now().Add(time.Millisecond * time.Duration(retryafter*msPerSecond))
 		}
 
-		logRequest(Logger.Debug(), bot.ApplicationID, xid, routeid, resourceid, uri).
-			Time(logCtxReset, reset).Msg("")
+		LogRequest(Logger.Debug(), bot.ApplicationID, xid, routeid, resourceid, uri).
+			Time(LogCtxReset, reset).Msg("")
 
 		switch header.Global {
 		// when the global request rate limit is encountered.

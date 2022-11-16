@@ -82,7 +82,7 @@ func generateHandle(functions []*models.Function) string {
 		Event: eventname,
 		Err: fmt.Errorf("%s", errHandleNotRemoved),
 	}` + "\n")
-	fn.WriteString("logEventHandler(Logger.Error(), bot.ApplicationID, eventname)." +
+	fn.WriteString("LogEventHandler(Logger.Error(), bot.ApplicationID, eventname)." +
 		"Err(err)." +
 		"Msg(\"\")\n")
 
@@ -109,7 +109,7 @@ func generateHandleCase(eventname string, flag string) string {
 	// add the event handler.
 	c.WriteString("if f, ok := function.(func(*" + eventname + ")); ok {\n")
 	c.WriteString("bot.Handlers." + eventname + " = append(bot.Handlers." + eventname + ", f)\n")
-	c.WriteString("logEventHandler(Logger.Info(), bot.ApplicationID, eventname)." +
+	c.WriteString("LogEventHandler(Logger.Info(), bot.ApplicationID, eventname)." +
 		"Msg(\"added event handler\")\n")
 
 	c.WriteString("return nil\n")
@@ -154,7 +154,7 @@ func generateRemove(functions []*models.Function) string {
 	fn.WriteString("}\n")
 	fn.WriteString("\n")
 
-	fn.WriteString("logEventHandler(Logger.Info(), bot.ApplicationID, eventname)." +
+	fn.WriteString("LogEventHandler(Logger.Info(), bot.ApplicationID, eventname)." +
 		"Msg(\"removed event handler\")\n")
 	fn.WriteString("\n")
 
@@ -175,7 +175,7 @@ func generateRemoveCase(eventname string) string {
 		Event: eventname,
 		Err: fmt.Errorf(errRemoveInvalidIndex, index),
 	}` + "\n")
-	c.WriteString("logEventHandler(Logger.Error(), bot.ApplicationID, eventname)." +
+	c.WriteString("LogEventHandler(Logger.Error(), bot.ApplicationID, eventname)." +
 		"Err(err)." +
 		"Msg(\"\")\n")
 
@@ -224,7 +224,7 @@ func generatehandleCase(eventname string) string {
 	c.WriteString("case FlagGatewayEventName" + eventname + ":\n")
 	c.WriteString("event := new(" + eventname + ")\n")
 	c.WriteString("if err := json.Unmarshal(data, event); err != nil {\n")
-	c.WriteString("logEventHandler(Logger.Error(), bot.ApplicationID, eventname)." +
+	c.WriteString("LogEventHandler(Logger.Error(), bot.ApplicationID, eventname)." +
 		"Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventName" + eventname + ", Err: err, Action: ErrorEventActionUnmarshal})." +
 		"Msg(\"\")\n")
 	c.WriteString("return\n")

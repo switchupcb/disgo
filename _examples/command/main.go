@@ -72,7 +72,7 @@ func main() {
 			log.Println(err)
 		}
 
-		// This call unblocks the main goroutine of the program from wg.Wait() [Line 97].
+		// This call unblocks the main goroutine of the program from wg.Wait() [Line 100].
 		wg.Done()
 	})
 
@@ -94,6 +94,8 @@ func main() {
 	// which removes a tick from the wait group counter (such that the counter = 0).
 	//
 	// Alternatively, end the program using a SIGINT call via `Ctrl + C` from the terminal.
+	//
+	// The following code is equivalent to tools.InterceptSignal(tools.Signals, bot.Sessions...)
 	interceptSIGINT(bot.Sessions[0])
 	wg.Wait()
 
@@ -184,9 +186,6 @@ func interceptSIGINT(session *disgo.Session) {
 		log.Println("Exiting program due to signal...")
 
 		// Disconnect the session from the Discord Gateway (WebSocket Connection).
-		//
-		// Note: a mutex COULD be used to prevent the case where the session disconnects
-		// at the same time that a SIGINT is called (by the user).
 		if err := session.Disconnect(); err != nil {
 			log.Printf("error closing connection to Discord Gateway: %v", err)
 

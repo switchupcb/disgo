@@ -52,19 +52,19 @@ func main() {
 	// which provides a subcommand group "add" (with usable commands "int", "string"),
 	// and subcommand "subtract" (usable).
 	//
-	// 	COMMAND /calculate
-	//  	GROUP "add"
-	// 			SUBCOMMAND "int"	   (adds two integers)
-	//  			OPTION 1: The first integer.
-	//				OPTION 2: The second integer.
+	//COMMAND /calculate
+	//  GROUP "add"
+	//    SUBCOMMAND "int"     (adds two integers)
+	//      OPTION 1: The first integer.
+	//      OPTION 2: The second integer.
 	//
-	// 			SUBCOMMAND "string"    (adds two strings)
-	//				OPTION 1: The first string.
-	//				OPTION 2: The second string.
+	//  SUBCOMMAND "string"    (adds two strings)
+	//    OPTION 1: The first string.
+	//    OPTION 2: The second string.
 	//
-	//		SUBCOMMAND "subtract"	   (adds two doubles)
-	//				OPTION 1: The first double.
-	//				OPTION 2: The second double.
+	//  SUBCOMMAND "subtract"  (adds two doubles)
+	//    OPTION 1: The first double.
+	//    OPTION 2: The second double.
 	//
 	request := &disgo.CreateGlobalApplicationCommand{
 		Name:        "calculate",
@@ -198,6 +198,8 @@ func main() {
 	// End the program using a SIGINT call via `Ctrl + C` from the terminal.
 	//
 	// a blocking call (<-signalChannel) is made to prevent the main thread from returning.
+	//
+	// The following code is equivalent to tools.InterceptSignal(tools.Signals, bot.Sessions...)
 	interceptSIGINT(bot, newCommand)
 
 	log.Printf("Program executed successfully.")

@@ -102,7 +102,7 @@ func (s *Session) decrementPulses() {
 
 // logClose safely logs the close of a Session's goroutine.
 func (s *Session) logClose(routine string) {
-	logSession(Logger.Info(), s.ID).Msgf("closed %s routine", routine)
+	LogSession(Logger.Info(), s.ID).Msgf("closed %s routine", routine)
 }
 
 // reconnect spawns a goroutine for reconnection which prompts the manager
@@ -113,7 +113,7 @@ func (s *Session) reconnect(reason string) {
 		defer s.logClose("reconnect")
 		defer s.Unlock()
 
-		logSession(Logger.Info(), s.ID).Msg(reason)
+		LogSession(Logger.Info(), s.ID).Msg(reason)
 
 		s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalReconnect)
 		if err := s.disconnect(FlagClientCloseEventCodeReconnect); err != nil {
@@ -138,21 +138,21 @@ func (s *Session) manage(bot *Client) {
 
 	// log the reason for disconnection (if applicable).
 	if reason := s.manager.signal.Value(keyReason); reason != nil {
-		logSession(Logger.Info(), s.ID).Msgf("%v", reason)
+		LogSession(Logger.Info(), s.ID).Msgf("%v", reason)
 	}
 
 	// when a signal is provided, it indicates that the disconnection was purposeful.
 	signal := s.manager.signal.Value(keySignal)
 	switch signal {
 	case signalDisconnect:
-		logSession(Logger.Info(), s.ID).Msg("successfully disconnected")
+		LogSession(Logger.Info(), s.ID).Msg("successfully disconnected")
 
 		s.manager.err <- nil
 
 		return
 
 	case signalReconnect:
-		logSession(Logger.Info(), s.ID).Msg("successfully disconnected (while reconnecting)")
+		LogSession(Logger.Info(), s.ID).Msg("successfully disconnected (while reconnecting)")
 
 		// allow Discord to close the session.
 		<-time.After(time.Second)
@@ -201,7 +201,7 @@ func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.Close
 	switch ok {
 	// Gateway Close Event Code is known.
 	case true:
-		logSession(Logger.Info(), s.ID).
+		LogSession(Logger.Info(), s.ID).
 			Msgf("received Gateway Close Event Code %d %s: %s",
 				code.Code, code.Description, code.Explanation,
 			)
@@ -224,7 +224,7 @@ func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.Close
 			return nil
 		}
 
-		logSession(Logger.Info(), s.ID).
+		LogSession(Logger.Info(), s.ID).
 			Msgf("received unknown Gateway Close Event Code %d with reason %q",
 				closeErr.Code, closeErr.Reason,
 			)

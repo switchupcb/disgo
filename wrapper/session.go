@@ -76,7 +76,7 @@ func (s *Session) Connect(bot *Client) error {
 	s.Lock()
 	defer s.Unlock()
 
-	logSession(Logger.Info(), s.ID).Str(logCtxClient, bot.ApplicationID).Msg("connecting session")
+	LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msg("connecting session")
 
 	return s.connect(bot)
 }
@@ -261,7 +261,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 		return fmt.Errorf("error reading initial payload: %w", err)
 	}
 
-	logPayload(logSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received initial payload")
+	LogPayload(LogSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received initial payload")
 
 	switch payload.Op {
 	case FlagGatewayOpcodeDispatch:
@@ -279,7 +279,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = ready.Application.ID
 
-			logSession(Logger.Info(), s.ID).Msg("received Ready event")
+			LogSession(Logger.Info(), s.ID).Msg("received Ready event")
 
 			for _, handler := range bot.Handlers.Ready {
 				go handler(ready)
@@ -288,7 +288,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 		// When a reconnection is successful, the Discord Gateway will respond
 		// by replaying all missed events in order, finalized by a Resumed event.
 		case *payload.EventName == FlagGatewayEventNameResumed:
-			logSession(Logger.Info(), s.ID).Msg("received Resumed event")
+			LogSession(Logger.Info(), s.ID).Msg("received Resumed event")
 
 			for _, handler := range bot.Handlers.Resumed {
 				go handler(&Resumed{})
@@ -307,7 +307,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 				}
 
 				if replayed.Op == FlagGatewayOpcodeDispatch && *replayed.EventName == FlagGatewayEventNameResumed {
-					logSession(Logger.Info(), s.ID).Msg("received Resumed event")
+					LogSession(Logger.Info(), s.ID).Msg("received Resumed event")
 
 					for _, handler := range bot.Handlers.Resumed {
 						go handler(&Resumed{})
@@ -355,7 +355,7 @@ func (s *Session) Disconnect() error {
 	}
 
 	id := s.ID
-	logSession(Logger.Info(), id).Msgf("disconnecting session with code %d", FlagClientCloseEventCodeNormal)
+	LogSession(Logger.Info(), id).Msgf("disconnecting session with code %d", FlagClientCloseEventCodeNormal)
 
 	s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalDisconnect)
 
@@ -377,7 +377,7 @@ func (s *Session) Disconnect() error {
 
 	putSession(s)
 
-	logSession(Logger.Info(), id).Msgf("disconnected session with code %d", FlagClientCloseEventCodeNormal)
+	LogSession(Logger.Info(), id).Msgf("disconnected session with code %d", FlagClientCloseEventCodeNormal)
 
 	return nil
 }
@@ -431,7 +431,7 @@ RATELIMIT:
 	// a single command is PROCESSED at any point in time.
 	bot.Config.Gateway.RateLimiter.Lock()
 
-	logCommand(logSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("processing gateway command")
+	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("processing gateway command")
 
 	for {
 		bot.Config.Gateway.RateLimiter.StartTx()
@@ -512,7 +512,7 @@ RATELIMIT:
 SEND:
 	bot.Config.Gateway.RateLimiter.Unlock()
 
-	logCommand(logSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sending gateway command")
+	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sending gateway command")
 
 	// write the event to the WebSocket Connection.
 	event, err := json.Marshal(dst)
@@ -528,7 +528,7 @@ SEND:
 		return fmt.Errorf("writeEvent: %w", err)
 	}
 
-	logCommand(logSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sent gateway command")
+	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sent gateway command")
 
 	return nil
 }

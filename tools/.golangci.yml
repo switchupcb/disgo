@@ -9,6 +9,9 @@ linters:
     - deadcode
     - unused
     - gofumpt
+    - varnamelen
+    - gochecknoglobals
+    - wsl
 
     - golint # Deprecated
     - interfacer # Deprecated
