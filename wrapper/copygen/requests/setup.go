@@ -215,7 +215,7 @@ type Copygen interface {
 	// http DELETE
 	DeleteGuildRole(*disgo.DeleteGuildRole) error
 	// http POST
-	ModifyGuildMFALevel(*disgo.ModifyGuildMFALevel) (disgo.Flag, error)
+	ModifyGuildMFALevel(*disgo.ModifyGuildMFALevel) (*disgo.ModifyGuildMFALevelResponse, error)
 	// http GET
 	GetGuildPruneCount(*disgo.GetGuildPruneCount) error
 	// http POST

@@ -3294,8 +3294,8 @@ func (r *DeleteGuildRole) Send(bot *Client) error {
 	return nil
 }
 
-// Send sends a ModifyGuildMFALevel request to Discord and returns a Flag.
-func (r *ModifyGuildMFALevel) Send(bot *Client) (Flag, error) {
+// Send sends a ModifyGuildMFALevel request to Discord and returns a ModifyGuildMFALevelResponse.
+func (r *ModifyGuildMFALevel) Send(bot *Client) (*ModifyGuildMFALevelResponse, error) {
 	var err error
 	xid := xid.New().String()
 	routeid, resourceid := RateLimitHashFuncs[106]("106", "45892a5d"+r.GuildID)
@@ -3313,7 +3313,7 @@ func (r *ModifyGuildMFALevel) Send(bot *Client) (Flag, error) {
 		}
 	}
 
-	result := new(Flag)
+	result := new(ModifyGuildMFALevelResponse)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
 	if err != nil {
 		return nil, ErrorRequest{
