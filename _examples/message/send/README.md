@@ -53,6 +53,12 @@ _NOTE: Get the Channel ID by enabling **Developer Mode** from the settings of yo
 send -c 1041179872518737990 -m "This is a message."
 ```
 
+### Emoji
+
+```
+send -c 1041179872518737990 -m ":smile:"
+```
+
 ### File
 
 ```
@@ -68,6 +74,6 @@ send -c 1041179872518737990 -f https://assets-global.website-files.com/6257adef9
 ### Both
 
 ```
-send -c 1041179872518737990 -m "This is a message." -f file.png
+send -c 1041179872518737990 -m "This is a message. :smile:" -f file.png
 ```
 

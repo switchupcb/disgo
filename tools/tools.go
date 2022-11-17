@@ -1,55 +1,60 @@
 package tools
 
 import (
-	"encoding/base64"
-	"net/http"
+	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	disgo "github.com/switchupcb/disgo/wrapper"
+	"golang.org/x/sync/errgroup"
 )
 
-// DataURI returns a Data URI from the given HTTP Content Type Header and base64 encoded data.
+var (
+	// Signals represents common termination signals used to terminate the program.
+	//
+	// https://www.gnu.org/software/libc/manual/html_node/Termination-Signals.html
+	Signals = []os.Signal{
+		syscall.SIGTERM,
+		syscall.SIGINT,
+		syscall.SIGQUIT,
+		syscall.SIGHUP,
+	}
+)
+
+// InterceptSignal blocks until the provided signals are intercepted.
 //
-// https://en.wikipedia.org/wiki/Data_URI_scheme
-func DataURI(contentType, base64EncodedData string) string {
-	return "data:" + contentType + ";base64," + base64EncodedData
-}
+// Upon receiving a signal, the given sessions are gracefully disconnected.
+func InterceptSignal(signals []os.Signal, sessions ...*disgo.Session) {
+	signalChannel := make(chan os.Signal, 1)
 
-// ImageDataURI returns a Data URI from the given image data.
-func ImageDataURI(img []byte) string {
-	return DataURI(http.DetectContentType(img), base64.StdEncoding.EncodeToString(img))
-}
+	// set the syscalls that signalChannel is sent.
+	signal.Notify(signalChannel, signals...)
 
-// OptionsToMap parses an array of options and suboptions into an OptionMap.
-func OptionsToMap(
-	optionMap map[string]*disgo.ApplicationCommandInteractionDataOption,
-	options []*disgo.ApplicationCommandInteractionDataOption,
-	amount int,
-) map[string]*disgo.ApplicationCommandInteractionDataOption {
-	if optionMap == nil {
-		optionMap = make(map[string]*disgo.ApplicationCommandInteractionDataOption, amount)
+	// block the calling goroutine until a signal is received.
+	<-signalChannel
+
+	disgo.Logger.Info().Msg("Closing sessions due to signal...")
+
+	eg := errgroup.Group{}
+	for _, session := range sessions {
+		s := session
+
+		eg.Go(func() error {
+			if err := s.Disconnect(); err != nil {
+				err = fmt.Errorf("error closing connection to Discord Gateway: %w", err)
+				disgo.LogSession(disgo.Logger.Error(), s.ID).Err(err).Msg("")
+
+				return err
+			}
+
+			return nil
+		})
 	}
 
-	// add suboptions (slice by value is the most performant)
-	for _, option := range options {
-		optionMap[option.Name] = option
-		if len(option.Options) != 0 {
-			OptionsToMap(optionMap, option.Options, amount)
-		}
+	if err := eg.Wait(); err != nil {
+		disgo.Logger.Warn().Msg("Not all sessions were closed successfully.")
+	} else {
+		disgo.Logger.Info().Msg("Closed sessions successfully.")
 	}
-
-	return optionMap
-}
-
-// NumOptions determines the amount of options (and suboptions) in a given array of options.
-func NumOptions(options []*disgo.ApplicationCommandInteractionDataOption) int {
-	amount := len(options)
-
-	// count the amount of suboptions.
-	for _, option := range options {
-		if len(option.Options) != 0 {
-			amount += NumOptions(option.Options)
-		}
-	}
-
-	return amount
 }

@@ -24,16 +24,14 @@ func Generate(gen *models.Generator) (string, error) {
 	content.WriteString(string(gen.Keep) + "\n")
 	content.WriteString("import json \"github.com/goccy/go-json\"\n")
 
-	var funcs, json strings.Builder
+	var funcs strings.Builder
 	for i := range gen.Functions {
 		funcs.WriteString(Function(&gen.Functions[i]) + "\n")
-		json.WriteString(generateMarshalJSON(&gen.Functions[i]))
 	}
 
 	// call generateRouteIDs after the routeidMap is populated.
 	content.WriteString(generateRouteIDs() + "\n")
 	content.WriteString(funcs.String())
-	content.WriteString(json.String())
 
 	return content.String(), nil
 }
@@ -132,7 +130,7 @@ func generateBody(function *models.Function) string {
 	request := function.From[0].Field
 	requestName := request.FullDefinitionWithoutPointer()
 	response := function.To[0].Field
-	uniquetags := uniqueTags(request)
+	tags := requestTags(request)
 
 	var body strings.Builder
 
@@ -142,7 +140,7 @@ func generateBody(function *models.Function) string {
 	body.WriteString("routeid, resourceid := " + generateHashCall(request, routeid) + "\n")
 
 	endpoint := generateEndpointCall(request)
-	if len(uniquetags["url"]) != 0 {
+	if len(tags["url"]) != 0 {
 		body.WriteString("query, err := EndpointQueryString(r)\n")
 		body.WriteString("if err != nil {\n")
 		body.WriteString(generateQueryStringErrReturn(function, requestName) + "\n")
@@ -157,7 +155,7 @@ func generateBody(function *models.Function) string {
 	//
 	// marshal the request.
 	httpbody := "nil"
-	if len(uniquetags["json"]) != 0 {
+	if len(tags["json"]) != 0 {
 		body.WriteString("body, err := json.Marshal(r)\n")
 		body.WriteString("if err != nil {\n")
 		body.WriteString(generateMarshalErrReturn(function, requestName) + "\n")
@@ -167,7 +165,7 @@ func generateBody(function *models.Function) string {
 	}
 
 	// add file upload support (if applicable).
-	contentType := generateContentType(uniquetags)
+	contentType := generateContentType(tags)
 	if contentType == "varies" {
 		contentType = "contentType"
 
@@ -235,8 +233,8 @@ func generateHashCall(request *models.Field, routeid int) string {
 	tagCount := 0
 	for _, subfield := range request.Fields {
 
-		// subfields with no tags are endpoint parameters (i.e `GuildID`).
-		if len(subfield.Tags) == 0 {
+		// subfields without marshalled tags (i.e NOT `-`) are endpoint parameters (i.e `GuildID`).
+		if fieldTags(subfield) == 0 {
 			if subfield.Name == "ApplicationID" || subfield.Definition != "string" {
 				continue
 			} else {
@@ -278,7 +276,7 @@ func generateHTTPMethod(function *models.Function) string {
 
 // generateEndpointCall generates the endpoint function call for a SendRequest(..., endpoint) call.
 //
-// NOTE: must be run prior to ./_gen clean operation.
+// NOTE: must be run after the ./_gen clean operation.
 func generateEndpointCall(request *models.Field) string {
 	var parameters strings.Builder
 
@@ -288,8 +286,8 @@ func generateEndpointCall(request *models.Field) string {
 			continue
 		}
 
-		// subfields with no tags are endpoint parameters (i.e `GuildID`).
-		if len(subfield.Tags) == 0 {
+		// subfields without marshalled tags (i.e NOT `-`) are endpoint parameters (i.e `GuildID`).
+		if fieldTags(subfield) == 0 {
 			if tagCount != 0 {
 				parameters.WriteString(", ")
 			}
@@ -319,29 +317,58 @@ func generateContentType(tags map[string][]string) string {
 
 	case len(tags["json"]) != 0:
 		return "ContentTypeJSON"
+
 	case len(tags["url"]) != 0:
 		return "ContentTypeURLQueryString"
+
 	default:
 		return "nil"
 	}
 }
 
-// uniqueTags determines the unique tags of a request including all of its subfield tags.
-func uniqueTags(request *models.Field) map[string][]string {
-	uniquetags := make(map[string][]string)
+// requestTags determines the tags used in a request struct ('s subfields).
+func requestTags(request *models.Field) map[string][]string {
+	tags := make(map[string][]string)
 
 	for _, subfield := range request.Fields {
-		for tagKey := range subfield.Tags {
-			tags := make([]string, 0, len(subfield.Tags))
-			for tagName := range subfield.Tags[tagKey] {
-				tags = append(tags, tagName)
-			}
+		// check subfields of embedded fields.
+		if subfield.Embedded {
+			embedTags := requestTags(subfield)
 
-			uniquetags[tagKey] = tags
+			for tagKey, tagNames := range embedTags {
+				tags[tagKey] = append(tags[tagKey], tagNames...)
+			}
+		}
+
+		// tagKey (i.e `json`, `url`, `dasgo`)
+		for tagKey := range subfield.Tags {
+			// tagName (i.e `name`, `type`)
+			for tagName := range subfield.Tags[tagKey] {
+				if tagName != "-" {
+					tags[tagKey] = append(tags[tagKey], tagName)
+				}
+			}
 		}
 	}
 
-	return uniquetags
+	return tags
+}
+
+// fieldTags determines the tags a field uses.
+func fieldTags(field *models.Field) int {
+	tags := 0
+
+	// tagKey (i.e `json`, `url`, `dasgo`)
+	for tagKey := range field.Tags {
+		// tagName (i.e `name`, `type`)
+		for tagName := range field.Tags[tagKey] {
+			if tagName != "-" {
+				tags++
+			}
+		}
+	}
+
+	return tags
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -419,71 +446,4 @@ func generateReturn(function *models.Function) string {
 	default:
 		return "\nreturn result, nil\n}\n"
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// MarshalJSON
-////////////////////////////////////////////////////////////////////////////////
-
-// generateMarshalJSON generates a custom MarshalJSON function.
-func generateMarshalJSON(function *models.Function) string {
-	request := function.From[0].Field
-	requestObj := function.From[0].Field.FullDefinition()
-	uniquetags := uniqueTags(request)
-
-	// a custom MarshalJSON function is only necessary for requests
-	// that contain fields that shouldn't be marshalled.
-	if len(uniquetags) <= 1 {
-		return ""
-	}
-
-	// Write the function.
-	var json strings.Builder
-
-	// write the signature.
-	json.WriteString("func (r " + requestObj + ") MarshalJSON() ([]byte, error) {\n")
-
-	// write the function body.
-	var fill strings.Builder
-	json.WriteString("return json.Marshal(&struct{\n")
-
-	for _, subfield := range request.Fields {
-		jsonTag := ""
-
-		// reconstruct the json tag (i.e `json:"name,omitempty"`).
-		for tagKey := range subfield.Tags {
-			if tagKey == "json" {
-				jsonTag = "`json:\""
-
-				for tagName, options := range subfield.Tags["json"] {
-					jsonTag += tagName + ","
-
-					for _, option := range options {
-						jsonTag += option + ","
-					}
-
-					jsonTag = jsonTag[:len(jsonTag)-1] + "\"`"
-				}
-
-				break
-			}
-		}
-
-		if jsonTag != "" {
-			// i.e Field type `json:"name,omitempty"`
-			json.WriteString(fmt.Sprintf("%s %s %s\n", subfield.Name, subfield.FullDefinition(), jsonTag))
-
-			// i.e Field: r.Field,
-			fill.WriteString(fmt.Sprintf("%s: r.%s,\n", subfield.Name, subfield.Name))
-		}
-	}
-
-	json.WriteString("}{\n")
-	json.WriteString(fill.String() + "\n")
-	json.WriteString("})\n")
-
-	// write the function close.
-	json.WriteString("}\n\n")
-
-	return json.String()
 }

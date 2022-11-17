@@ -86,7 +86,7 @@ func createPayloadJSONForm(m *multipart.Writer) (io.Writer, error) {
 	h.Set("Content-Disposition", `form-data; name="payload_json"`)
 	h.Set("Content-Type", contentTypeJSONString)
 
-	return m.CreatePart(h) // nolint:wrapcheck
+	return m.CreatePart(h) //nolint:wrapcheck
 }
 
 // createFormFile creates a form-data header for file attachments in a multipart form.
@@ -101,5 +101,5 @@ func createFormFile(m *multipart.Writer, name, filename, contentType string) (io
 
 	h.Set("Content-Type", contentType)
 
-	return m.CreatePart(h) // nolint:wrapcheck
+	return m.CreatePart(h) //nolint:wrapcheck
 }

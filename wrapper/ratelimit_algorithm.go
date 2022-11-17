@@ -31,6 +31,7 @@ var (
 		RouteIDs["CreateGlobalApplicationCommand"]:         HashPerRoute,
 		RouteIDs["GetGlobalApplicationCommand"]:            HashPerRoute,
 		RouteIDs["EditGlobalApplicationCommand"]:           HashPerRoute,
+		RouteIDs["DeleteGlobalApplicationCommand"]:         HashPerRoute,
 		RouteIDs["BulkOverwriteGlobalApplicationCommands"]: HashPerRoute,
 		RouteIDs["GetGuildApplicationCommands"]:            HashPerRoute,
 		RouteIDs["CreateGuildApplicationCommand"]:          HashPerRoute,

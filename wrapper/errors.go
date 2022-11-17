@@ -7,6 +7,7 @@ import (
 // Send Request Error Messages.
 const (
 	errSendMarshal = "marshalling an HTTP body: %w"
+	errUnmarshal   = "error unmarshalling into %T: %w"
 	errRateLimit   = "error converting the HTTP rate limit header %q: %w"
 )
 

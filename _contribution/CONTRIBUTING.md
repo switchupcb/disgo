@@ -44,7 +44,7 @@ Resource GET, DELETE, POST, PUT, BULK _(GET, ...)_ `Send()` functions are genera
 
 #### Code Generation
 
-Disgo uses generators to easily update and maintain over 8000 lines of code. For more information, read [gen](/_gen/README.md).
+Disgo uses generators to easily update and maintain over 10,000 lines of code. For more information, read [gen](/_gen/README.md).
 
 #### Comments
 

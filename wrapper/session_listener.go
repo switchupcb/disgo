@@ -20,7 +20,7 @@ func (s *Session) listen(bot *Client) error {
 			break
 		}
 
-		logPayload(logSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received payload")
+		LogPayload(LogSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received payload")
 
 		if err = s.onPayload(bot, *payload); err != nil {
 			break

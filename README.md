@@ -12,7 +12,7 @@
 High quality code merits easy development. Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. Code generation is used to provide a clean implementation for every request and event. Data race detection is used with _an integration test that covers the entire Discord API_ in order to ensure that Disgo is safe for concurrent usage. In addition, Disgo provides the following **exclusive features**.
 
 - EVERY Rate Limit (Global, Per Route, Per Resource, Custom, Gateway)
-- Automatic Intent Calculation (Gateway)
+- Automatic Gateway Intent Calculation
 
 ## Table of Contents
 
@@ -51,7 +51,15 @@ Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full u
 
 ## Examples
 
-The **main example** creates a bot that creates an application command and handles it. Check out the [examples](/_examples/) directory for more examples.
+| Example                        | Description                                                |
+| :----------------------------- | :--------------------------------------------------------- |
+| [main](/_examples/command/)    | Create an application command and respond to interactions. |
+| [message](/_examples/message/) | Send a message with text, emojis, files and/or components. |
+| [image](/_examples/image/)     | Set the bot's avatar using an image.                       |
+
+_Check out the [examples](/_examples/) directory for more._
+
+The following **demo** shows you how to use the `disgo` module. For a working example, check out the [command example](/_examples/command/).
 
 ### Import
 
@@ -72,12 +80,12 @@ _NOTE: `v0.10.0` is a BETA version. For more information, read the [State of Dis
 Use the client to configure the bot's settings.
 ```go
 bot := &disgo.Client{
-    ApplicationID: "APPID", // optional
+    ApplicationID:  "APPID", // optional
     Authentication: disgo.BotToken("TOKEN"), // or BearerToken("TOKEN")
-    Authorization: &disgo.Authorization{ ... },
-    Config: disgo.DefaultConfig(),
+    Authorization:  &disgo.Authorization{ ... },
+    Config:         disgo.DefaultConfig(),
     Handlers:       new(disgo.Handlers),
-    Sessions:       []*disgo.Session{NewSession()},
+    Sessions:       []*disgo.Session{disgo.NewSession()},
 }
 ```
 
@@ -88,15 +96,18 @@ Create an application command **request** to add an application command.
 ```go
 // Create a Create Global Application Command request.
 request := disgo.CreateGlobalApplicationCommand{
-    Name: "main",
-    Description: "A basic command",
-} 
+    Name:        "main",
+    Description: "A basic command.",
+}
 
 // Register the new command by sending the request to Discord using the bot.
+//
 // returns a disgo.ApplicationCommand
 newCommand, err := request.Send(bot)
 if err != nil {
     log.Printf("failure sending command to Discord: %v", err)
+
+    return
 }
 ```
 
@@ -106,12 +117,12 @@ Create an **event handler** and add it to the **bot**.
 
 ```go
 // Add an event handler to the bot.
-bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i disgo.InteractionCreate) {
+bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i *disgo.InteractionCreate) {
 	log.Printf("main called by %s", i.User.Username)
 })
 ```
 
-_Disgo provides automatic intent calculation._
+_Disgo provides automatic [Gateway Intent](https://discord.com/developers/docs/topics/gateway#gateway-intents) calculation._
 
 ### Output
 
@@ -120,40 +131,48 @@ Open a WebSocket **Session** to receive events.
 ```go
 // Connect the session to the Discord Gateway (WebSocket Connection).
 if err := bot.Sessions[0].Connect(bot); err != nil {
-    log.Printf("can't open websocket session to Discord: %v", err)
+    log.Printf("can't open websocket session to Discord Gateway: %v", err)
+
+	return
 }
 ```
 
-The following message will be logged when a user creates an [`InteractionCreate`](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events) event by using `/main` in a Direct Message with the bot on Discord.
+The following message will be logged when a user creates an `InteractionCreate` event by using `/main` in a Direct Message with the bot on Discord.
 
 ```
-main called by SCB
+main called by SCB.
 ```
 
 ### Summary
 
 ```go
+// Use flags to specify options from Discord.
+disgo.Flag<Option><Name>
+
 // Use resources to represent Discord objects in your application.
 disgo.<API Resources>
 
 // Use events to represent Discord events in your application.
 disgo.<API Events>
 
-// Use the client to manage the bot's settings.
-disgo.Client.Config.Request.<Settings>
-disgo.Client.Config.Gateway.<Settings>
-disgo.Client.Authentication.<Settings>
-disgo.Client.Authorization.<Settings>
-
 // Use requests to exchange data with Discord's REST API.
 disgo.<Endpoint>.Send()
 
-// Use sessions to handle events from Discord's WebSocket Sessions (Gateways).
+// Use sessions to connect to the Discord Gateway.
+disgo.Session.Connect()
+disgo.Session.Disconnect()
+
+// Use event handlers to handle events from Discord's Gateway.
 disgo.Client.Handle(<event>, <handler>)
 disgo.Client.Remove(<event>, <index>)
+disgo.Client.Handlers.<Handler>
 
-// Use flags to specify options.
-disgo.Flag<Option><Name>
+// Use the client to manage the bot's settings.
+disgo.Client.ApplicationID
+disgo.Client.Authentication.<Settings>
+disgo.Client.Authorization.<Settings>
+disgo.Client.Config.Request.<Settings>
+disgo.Client.Config.Gateway.<Settings>
 
 // Use the client's shard manager to handle sharding automatically or manually.
 disgo.Client.Shard.<Settings>

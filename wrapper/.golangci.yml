@@ -21,6 +21,7 @@ linters:
 
     - ifshort # False Positive due to Manager Logic.
     - errname # ErrorDescription > DesErr
+    - ireturn # Required for UnmarshalJSON
 
     - contextcheck # To be re-evaluated.
 
@@ -32,6 +33,7 @@ linters:
     - wsl
     - goerr113
     - forbidigo
+    - nilnil
 
     - golint # Deprecated
     - interfacer # Deprecated

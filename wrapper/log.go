@@ -11,119 +11,120 @@ import (
 // init is called at the start of the application.
 func init() {
 	zerolog.TimeFieldFormat = time.RFC3339Nano
+	zerolog.SetGlobalLevel(zerolog.Disabled)
 }
 
 var (
 	// Logger represents the Disgo Logger used to log information.
-	Logger = zerolog.New(os.Stdout).Level(zerolog.Disabled)
+	Logger = zerolog.New(os.Stdout)
 )
 
 // Logger Contexts
-var (
-	// logCtxClient represents the log key for a Client (Bot) Application ID.
-	logCtxClient = "client"
+const (
+	// LogCtxClient represents the log key for a Client (Bot) Application ID.
+	LogCtxClient = "client"
 
-	// logCtxCorrelation represents the log key for a Correlation ID.
-	logCtxCorrelation = "xid"
+	// LogCtxCorrelation represents the log key for a Correlation ID.
+	LogCtxCorrelation = "xid"
 
-	// logCtxRequest represents the log key for a Request ID.
-	logCtxRequest = "request"
+	// LogCtxRequest represents the log key for a Request ID.
+	LogCtxRequest = "request"
 
-	// logCtxRoute represents the log key for a Route ID.
-	logCtxRoute = "route"
+	// LogCtxRoute represents the log key for a Route ID.
+	LogCtxRoute = "route"
 
-	// logCtxResource represents the log key for a Resource ID.
-	logCtxResource = "resource"
+	// LogCtxResource represents the log key for a Resource ID.
+	LogCtxResource = "resource"
 
-	// logCtxEndpoint represents the log key for an Endpoint.
-	logCtxEndpoint = "endpoint"
+	// LogCtxEndpoint represents the log key for an Endpoint.
+	LogCtxEndpoint = "endpoint"
 
-	// logCtxBucket represents the log key for a Rate Limit Bucket ID.
-	logCtxBucket = "bucket"
+	// LogCtxBucket represents the log key for a Rate Limit Bucket ID.
+	LogCtxBucket = "bucket"
 
-	// logCtxReset represents the log key for a Discord Bucket reset time.
-	logCtxReset = "reset"
+	// LogCtxReset represents the log key for a Discord Bucket reset time.
+	LogCtxReset = "reset"
 
-	// logCtxResponse represents the log key for an HTTP Request Response.
-	logCtxResponse = "response"
+	// LogCtxResponse represents the log key for an HTTP Request Response.
+	LogCtxResponse = "response"
 
-	// logCtxResponseHeader represents the log key for an HTTP Request Response header.
-	logCtxResponseHeader = "header"
+	// LogCtxResponseHeader represents the log key for an HTTP Request Response header.
+	LogCtxResponseHeader = "header"
 
-	// logCtxResponseBody represents the log key for an HTTP Request Response body.
-	logCtxResponseBody = "body"
+	// LogCtxResponseBody represents the log key for an HTTP Request Response body.
+	LogCtxResponseBody = "body"
 
-	// logCtxSession represents the log key for a Discord Session ID.
-	logCtxSession = "session"
+	// LogCtxSession represents the log key for a Discord Session ID.
+	LogCtxSession = "session"
 
-	// logCtxPayload represents the log key for a Discord Gateway Payload.
-	logCtxPayload = "payload"
+	// LogCtxPayload represents the log key for a Discord Gateway Payload.
+	LogCtxPayload = "payload"
 
-	// logCtxPayloadOpcode represents the log key for a Discord Gateway Payload opcode.
-	logCtxPayloadOpcode = "opcode"
+	// LogCtxPayloadOpcode represents the log key for a Discord Gateway Payload opcode.
+	LogCtxPayloadOpcode = "opcode"
 
-	// logCtxPayloadData represents the log key for Discord Gateway Payload data.
-	logCtxPayloadData = "data"
+	// LogCtxPayloadData represents the log key for Discord Gateway Payload data.
+	LogCtxPayloadData = "data"
 
-	// logCtxEvent represents the log key for a Discord Gateway Event.
-	logCtxEvent = "event"
+	// LogCtxEvent represents the log key for a Discord Gateway Event.
+	LogCtxEvent = "event"
 
-	// logCtxCommand represents the log key for a Discord Gateway command.
-	logCtxCommand = "command"
+	// LogCtxCommand represents the log key for a Discord Gateway command.
+	LogCtxCommand = "command"
 
-	// logCtxCommandOpcode represents the log key for a Discord Gateway command opcode.
-	logCtxCommandOpcode = "opcode"
+	// LogCtxCommandOpcode represents the log key for a Discord Gateway command opcode.
+	LogCtxCommandOpcode = "opcode"
 
-	// logCtxCommandName represents the log key for a Discord Gateway command name.
-	logCtxCommandName = "name"
+	// LogCtxCommandName represents the log key for a Discord Gateway command name.
+	LogCtxCommandName = "name"
 )
 
-// logRequest logs a request.
-func logRequest(log *zerolog.Event, clientid, xid, routeid, resourceid, endpoint string) *zerolog.Event {
+// LogRequest logs a request.
+func LogRequest(log *zerolog.Event, clientid, xid, routeid, resourceid, endpoint string) *zerolog.Event {
 	return log.Timestamp().
-		Str(logCtxClient, clientid).
-		Dict(logCtxRequest, zerolog.Dict().
-			Str(logCtxCorrelation, xid).
-			Str(logCtxRoute, routeid).
-			Str(logCtxResource, resourceid).
-			Str(logCtxEndpoint, endpoint),
+		Str(LogCtxClient, clientid).
+		Dict(LogCtxRequest, zerolog.Dict().
+			Str(LogCtxCorrelation, xid).
+			Str(LogCtxRoute, routeid).
+			Str(LogCtxResource, resourceid).
+			Str(LogCtxEndpoint, endpoint),
 		)
 }
 
-// logResponse logs a response (typically using a logRequest).
-func logResponse(log *zerolog.Event, header, body string) *zerolog.Event {
-	return log.Dict(logCtxResponse, zerolog.Dict().
-		Str(logCtxResponseHeader, header).
-		Str(logCtxResponseBody, body),
+// LogResponse logs a response (typically using LogRequest).
+func LogResponse(log *zerolog.Event, header, body string) *zerolog.Event {
+	return log.Dict(LogCtxResponse, zerolog.Dict().
+		Str(LogCtxResponseHeader, header).
+		Str(LogCtxResponseBody, body),
 	)
 }
 
-// logEventHandler logs an event handler action.
-func logEventHandler(log *zerolog.Event, clientid, event string) *zerolog.Event {
+// LogEventHandler logs an event handler action.
+func LogEventHandler(log *zerolog.Event, clientid, event string) *zerolog.Event {
 	return log.Timestamp().
-		Str(logCtxClient, clientid).
-		Str(logCtxEvent, event)
+		Str(LogCtxClient, clientid).
+		Str(LogCtxEvent, event)
 }
 
-// logSession logs a session.
-func logSession(log *zerolog.Event, sessionid string) *zerolog.Event {
+// LogSession logs a session.
+func LogSession(log *zerolog.Event, sessionid string) *zerolog.Event {
 	return log.Timestamp().
-		Str(logCtxSession, sessionid)
+		Str(LogCtxSession, sessionid)
 }
 
-// logPayload logs a Discord Gateway Payload (typically using a logSession).
-func logPayload(log *zerolog.Event, op int, data json.RawMessage) *zerolog.Event {
-	return log.Dict(logCtxPayload, zerolog.Dict().
-		Int(logCtxPayloadOpcode, op).
-		Bytes(logCtxPayloadData, data),
+// LogPayload logs a Discord Gateway Payload (typically using LogSession).
+func LogPayload(log *zerolog.Event, op int, data json.RawMessage) *zerolog.Event {
+	return log.Dict(LogCtxPayload, zerolog.Dict().
+		Int(LogCtxPayloadOpcode, op).
+		Bytes(LogCtxPayloadData, data),
 	)
 }
 
-// logCommand logs a Gateway Command (typically using a logSession).
-func logCommand(log *zerolog.Event, clientid string, op int, command string) *zerolog.Event {
-	return log.Str(logCtxClient, clientid).
-		Dict(logCtxCommand, zerolog.Dict().
-			Int(logCtxCommandOpcode, op).
-			Str(logCtxCommandName, command),
+// LogCommand logs a Gateway Command (typically using a LogSession).
+func LogCommand(log *zerolog.Event, clientid string, op int, command string) *zerolog.Event {
+	return log.Str(LogCtxClient, clientid).
+		Dict(LogCtxCommand, zerolog.Dict().
+			Int(LogCtxCommandOpcode, op).
+			Str(LogCtxCommandName, command),
 		)
 }

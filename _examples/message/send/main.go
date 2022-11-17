@@ -2,11 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"io/ioutil"
-	"net/http"
+	"log"
 	"os"
-	"path"
 
 	disgo "github.com/switchupcb/disgo/wrapper"
 )
@@ -25,41 +22,44 @@ var (
 )
 
 func main() {
+	// enable the logger for the API Wrapper.
+	// zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
 	// parse the command line flags.
 	flag.Parse()
 
 	// ensure that the program has the necessary data to succeed.
 	if token == "" {
-		fmt.Println("The bot's token must be set, but is currently empty.")
+		log.Println("The bot's token must be set, but is currently empty.")
 
 		return
 	}
 
 	if *channelID == "" {
-		fmt.Println("The channel to send the message to is not set.")
+		log.Println("The channel to send the message to is not set.")
 		flag.Usage()
 
 		return
 	}
 
 	if *msg == "" && *location == "" {
-		fmt.Println("The message has no content to send. Set the message, file location, or both.")
+		log.Println("The message has no content to send. Set the message, file location, or both.")
 		flag.Usage()
 
 		return
 	}
 
-	var files []disgo.File
+	var files []*disgo.File
 	if *location != "" {
 		file, err := getFile(*location)
 		if err != nil {
-			fmt.Printf("an error occurred getting the file: %v", err)
+			log.Printf("an error occurred getting the file: %v", err)
 
 			return
 		}
 
 		// The following code is equivalent to `files = []*disgo.File{file}`.
-		files = make([]disgo.File, 0)
+		files = make([]*disgo.File, 0)
 		files = append(files, file)
 	}
 
@@ -75,7 +75,7 @@ func main() {
 	getChannelRequest := disgo.GetChannel{ChannelID: *channelID}
 	_, err := getChannelRequest.Send(bot)
 	if err != nil {
-		fmt.Printf("error occurred getting channel %q: %v", *channelID, err)
+		log.Printf("error occurred getting channel %q: %v", *channelID, err)
 
 		return
 	}
@@ -88,7 +88,7 @@ func main() {
 	createMessageRequest := disgo.CreateMessage{
 		ChannelID:        *channelID,
 		Content:          msg,
-		Nonce:            nil,
+		Nonce:            "",
 		TTS:              nil,
 		Embeds:           nil,
 		AllowedMentions:  nil,
@@ -102,53 +102,10 @@ func main() {
 
 	message, err := createMessageRequest.Send(bot)
 	if err != nil {
-		fmt.Printf("error occurred sending a message to channel %q: %v", *channelID, err)
+		log.Printf("error occurred sending a message to channel %q: %v", *channelID, err)
 
 		return
 	}
 
-	fmt.Printf("Successfully sent message with ID %q", message.ID)
-}
-
-// getFile returns a disgo.File for usage in a message.
-func getFile(location string) (*disgo.File, error) {
-	// Determine if the provided location is a filepath or URL,
-	// by checking whether the file exists.
-	var isFile bool
-	if _, err := os.Stat(location); err == nil {
-		isFile = true
-	}
-
-	// In order to upload a file, you should set the File's Name, Content Type, and Data accordingly.
-	var data []byte
-	var err error
-	switch isFile {
-	case true:
-		// when the location is a filepath, load the file locally.
-		data, err = ioutil.ReadFile(location)
-		if err != nil {
-			return nil, fmt.Errorf("an error occurred reading the file: %v", err)
-		}
-
-	case false:
-		// when the location is a URL, fetch the file from the internet.
-		response, err := http.Get(location)
-		if err != nil {
-			return nil, fmt.Errorf("an error occurred fetching the file: %v", err)
-		}
-
-		// read the HTTP Response Body ([]bytes) to determine the file's Content Type and Data.
-		defer response.Body.Close()
-
-		data, err = ioutil.ReadAll(response.Body)
-		if err != nil {
-			return nil, fmt.Errorf("an error occurred reading the fetched file data: %v", err)
-		}
-	}
-
-	return &disgo.File{
-		Name:        path.Base(location),
-		ContentType: http.DetectContentType(data),
-		Data:        data,
-	}, nil
+	log.Printf("Successfully sent message with ID %q", message.ID)
 }

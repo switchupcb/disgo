@@ -141,10 +141,10 @@ func convert(abspath string) error {
 		return fmt.Errorf("xstruct error: %v", string(std))
 	}
 
-	// snowflake
-	std, err = tools.Snowflake(std)
+	// typefix
+	std, err = tools.TypeFix(std)
 	if err != nil {
-		return fmt.Errorf("snowflake error: %w", err)
+		return fmt.Errorf("typefix error: %w", err)
 	}
 
 	err = os.WriteFile(outputDasgo, std, filemodewrite)

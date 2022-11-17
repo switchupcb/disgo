@@ -22,3 +22,4 @@ _gen/input*
 
 # Examples
 _examples/**/*.png
+_examples/_debug*
