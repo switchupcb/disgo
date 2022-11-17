@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"os"
 
 	disgo "github.com/switchupcb/disgo/wrapper"
@@ -22,25 +22,28 @@ var (
 )
 
 func main() {
+	// enable the logger for the API Wrapper.
+	// zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
 	// parse the command line flags.
 	flag.Parse()
 
 	// ensure that the program has the necessary data to succeed.
 	if token == "" {
-		fmt.Println("The bot's token must be set, but is currently empty.")
+		log.Println("The bot's token must be set, but is currently empty.")
 
 		return
 	}
 
 	if *channelID == "" {
-		fmt.Println("The channel to send the message to is not set.")
+		log.Println("The channel to send the message to is not set.")
 		flag.Usage()
 
 		return
 	}
 
 	if *msg == "" && *location == "" {
-		fmt.Println("The message has no content to send. Set the message, file location, or both.")
+		log.Println("The message has no content to send. Set the message, file location, or both.")
 		flag.Usage()
 
 		return
@@ -50,7 +53,7 @@ func main() {
 	if *location != "" {
 		file, err := getFile(*location)
 		if err != nil {
-			fmt.Printf("an error occurred getting the file: %v", err)
+			log.Printf("an error occurred getting the file: %v", err)
 
 			return
 		}
@@ -72,7 +75,7 @@ func main() {
 	getChannelRequest := disgo.GetChannel{ChannelID: *channelID}
 	_, err := getChannelRequest.Send(bot)
 	if err != nil {
-		fmt.Printf("error occurred getting channel %q: %v", *channelID, err)
+		log.Printf("error occurred getting channel %q: %v", *channelID, err)
 
 		return
 	}
@@ -99,10 +102,10 @@ func main() {
 
 	message, err := createMessageRequest.Send(bot)
 	if err != nil {
-		fmt.Printf("error occurred sending a message to channel %q: %v", *channelID, err)
+		log.Printf("error occurred sending a message to channel %q: %v", *channelID, err)
 
 		return
 	}
 
-	fmt.Printf("Successfully sent message with ID %q", message.ID)
+	log.Printf("Successfully sent message with ID %q", message.ID)
 }

@@ -28,13 +28,15 @@ Includes: ApplicationCommandOptionChoice, ApplicationCommandInteractionDataOptio
 
 // unmarshalComponents unmarshals a JSON component array into a slice of Go Interface Components (with underlying structs).
 func unmarshalComponents(b []byte) ([]Component, error) {
-	// Components are always provided in a JSON array.
-	// Create a variable (of type []struct) that can read all of the Component Types.
-	var unmarshalledComponents []struct {
+	type unmarshalComponent struct {
 
 		// https://discord.com/developers/docs/interactions/message-components#component-object-example-component
 		Type uint `json:"type"`
 	}
+
+	// Components are always provided in a JSON array.
+	// Create a variable (of type []unmarshalComponent) that can read all of the Component Types.
+	var unmarshalledComponents []unmarshalComponent
 
 	// unmarshal the JSON (components.{component.Type}) into unmarshalledComponents.
 	if err := json.Unmarshal(b, &unmarshalledComponents); err != nil {
@@ -44,25 +46,23 @@ func unmarshalComponents(b []byte) ([]Component, error) {
 	// use the known component types to return a slice of Go Interface Components with underlying structs.
 	components := make([]Component, len(unmarshalledComponents))
 	for i, unmarshalledComponent := range unmarshalledComponents {
-		var component Component
-
 		// set the component (interface) to an underlying type.
 		switch unmarshalledComponent.Type {
 		case FlagComponentTypeActionRow:
-			component = &ActionsRow{} //nolint:exhaustruct
+			components[i] = &ActionsRow{} //nolint:exhaustruct
 
 		case FlagComponentTypeButton:
-			component = &Button{} //nolint:exhaustruct
+			components[i] = &Button{} //nolint:exhaustruct
 
 		case FlagComponentTypeSelectMenu,
 			FlagComponentTypeUserSelect,
 			FlagComponentTypeRoleSelect,
 			FlagComponentTypeMentionableSelect,
 			FlagComponentTypeChannelSelect:
-			component = &SelectMenu{} //nolint:exhaustruct
+			components[i] = &SelectMenu{} //nolint:exhaustruct
 
 		case FlagComponentTypeTextInput:
-			component = &TextInput{} //nolint:exhaustruct
+			components[i] = &TextInput{} //nolint:exhaustruct
 
 		default:
 			return nil, fmt.Errorf(
@@ -70,8 +70,6 @@ func unmarshalComponents(b []byte) ([]Component, error) {
 				unmarshalledComponent.Type,
 			)
 		}
-
-		components[i] = component
 	}
 
 	return components, nil
@@ -81,14 +79,18 @@ func (r *EditOriginalInteractionResponse) UnmarshalJSON(b []byte) error {
 	// The following pattern is present throughout this file
 	// in order to prevent a stack overflow (of r.UnmarshalJSON()).
 	type alias EditOriginalInteractionResponse
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -96,21 +98,25 @@ func (r *EditOriginalInteractionResponse) UnmarshalJSON(b []byte) error {
 		r = new(EditOriginalInteractionResponse)
 	}
 
-	*r = EditOriginalInteractionResponse(*d)
+	*r = EditOriginalInteractionResponse(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *CreateFollowupMessage) UnmarshalJSON(b []byte) error {
 	type alias CreateFollowupMessage
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -118,21 +124,25 @@ func (r *CreateFollowupMessage) UnmarshalJSON(b []byte) error {
 		r = new(CreateFollowupMessage)
 	}
 
-	*r = CreateFollowupMessage(*d)
+	*r = CreateFollowupMessage(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *EditFollowupMessage) UnmarshalJSON(b []byte) error {
 	type alias EditFollowupMessage
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -140,21 +150,25 @@ func (r *EditFollowupMessage) UnmarshalJSON(b []byte) error {
 		r = new(EditFollowupMessage)
 	}
 
-	*r = EditFollowupMessage(*d)
+	*r = EditFollowupMessage(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *EditMessage) UnmarshalJSON(b []byte) error {
 	type alias EditMessage
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -162,21 +176,25 @@ func (r *EditMessage) UnmarshalJSON(b []byte) error {
 		r = new(EditMessage)
 	}
 
-	*r = EditMessage(*d)
+	*r = EditMessage(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *ForumThreadMessageParams) UnmarshalJSON(b []byte) error {
 	type alias ForumThreadMessageParams
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -184,21 +202,25 @@ func (r *ForumThreadMessageParams) UnmarshalJSON(b []byte) error {
 		r = new(ForumThreadMessageParams)
 	}
 
-	*r = ForumThreadMessageParams(*d)
+	*r = ForumThreadMessageParams(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *ExecuteWebhook) UnmarshalJSON(b []byte) error {
 	type alias ExecuteWebhook
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -206,21 +228,25 @@ func (r *ExecuteWebhook) UnmarshalJSON(b []byte) error {
 		r = new(ExecuteWebhook)
 	}
 
-	*r = ExecuteWebhook(*d)
+	*r = ExecuteWebhook(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *EditWebhookMessage) UnmarshalJSON(b []byte) error {
 	type alias EditWebhookMessage
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -228,21 +254,25 @@ func (r *EditWebhookMessage) UnmarshalJSON(b []byte) error {
 		r = new(EditWebhookMessage)
 	}
 
-	*r = EditWebhookMessage(*d)
+	*r = EditWebhookMessage(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *ActionsRow) UnmarshalJSON(b []byte) error {
 	type alias ActionsRow
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -250,21 +280,25 @@ func (r *ActionsRow) UnmarshalJSON(b []byte) error {
 		r = new(ActionsRow)
 	}
 
-	*r = ActionsRow(*d)
+	*r = ActionsRow(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *ModalSubmitData) UnmarshalJSON(b []byte) error {
 	type alias ModalSubmitData
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -272,21 +306,25 @@ func (r *ModalSubmitData) UnmarshalJSON(b []byte) error {
 		r = new(ModalSubmitData)
 	}
 
-	*r = ModalSubmitData(*d)
+	*r = ModalSubmitData(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *Messages) UnmarshalJSON(b []byte) error {
 	type alias Messages
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -294,21 +332,25 @@ func (r *Messages) UnmarshalJSON(b []byte) error {
 		r = new(Messages)
 	}
 
-	*r = Messages(*d)
+	*r = Messages(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *Modal) UnmarshalJSON(b []byte) error {
 	type alias Modal
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -316,21 +358,25 @@ func (r *Modal) UnmarshalJSON(b []byte) error {
 		r = new(Modal)
 	}
 
-	*r = Modal(*d)
+	*r = Modal(unmarshalled.alias)
 
 	return nil
 }
 
 func (r *Message) UnmarshalJSON(b []byte) error {
 	type alias Message
-	d := new(alias)
+
+	var unmarshalled struct {
+		alias
+		Components json.RawMessage `json:"components"`
+	}
 
 	var err error
-	if d.Components, err = unmarshalComponents(b); err != nil {
+	if err = json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if err = json.Unmarshal(b, d); err != nil {
+	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -338,7 +384,7 @@ func (r *Message) UnmarshalJSON(b []byte) error {
 		r = new(Message)
 	}
 
-	*r = Message(*d)
+	*r = Message(unmarshalled.alias)
 
 	return nil
 }
