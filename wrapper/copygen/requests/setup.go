@@ -214,6 +214,8 @@ type Copygen interface {
 	ModifyGuildRole(*disgo.ModifyGuildRole) (*disgo.Role, error)
 	// http DELETE
 	DeleteGuildRole(*disgo.DeleteGuildRole) error
+	// http POST
+	ModifyGuildMFALevel(*disgo.ModifyGuildMFALevel) (disgo.Flag, error)
 	// http GET
 	GetGuildPruneCount(*disgo.GetGuildPruneCount) error
 	// http POST
@@ -308,6 +310,8 @@ type Copygen interface {
 	GetCurrentUserGuildMember(*disgo.GetCurrentUserGuildMember) (*disgo.GuildMember, error)
 	// http DELETE
 	LeaveGuild(*disgo.LeaveGuild) error
+	// http POST
+	CreateDM(*disgo.CreateDM) (*disgo.Channel, error)
 	// http POST
 	CreateGroupDM(*disgo.CreateGroupDM) (*disgo.Channel, error)
 	// http GET
