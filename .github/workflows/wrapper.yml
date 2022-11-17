@@ -105,4 +105,6 @@ jobs:
         env:
           TOKEN: ${{ secrets.TOKEN }}
           APPID: ${{ secrets.APPID }}
+          COVERAGE_TEST_TOKEN: ${{ secrets.COVERAGE_TEST_TOKEN }}
+          COVERAGE_TEST_GUILD: ${{ secrets.COVERAGE_TEST_GUILD }}
         run: go test ./wrapper/tests/integration -race
