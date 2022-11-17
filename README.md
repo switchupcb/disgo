@@ -53,7 +53,7 @@ Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full u
 
 | Example                        | Description                                                |
 | :----------------------------- | :--------------------------------------------------------- |
-| [main](/_examples/command/)    | Create application commands and respond to interactions.   |
+| [main](/_examples/command/)    | Create an application command and respond to interactions. |
 | [message](/_examples/message/) | Send a message with text, emojis, files and/or components. |
 | [image](/_examples/image/)     | Set the bot's avatar using an image.                       |
 

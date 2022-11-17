@@ -1,6 +1,10 @@
 # Generator
 
-Disgo uses generators to easily update and maintain over 10,000 lines of code.
+Disgo uses generators to easily update and maintain over 10,000 lines of code. 
+
+## Build
+
+Use `go build -o gen` to build the executable file for the generator. This may require you to set the `GOWORK` environment variable to `off`.
 
 ## Dasgo
 

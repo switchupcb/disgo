@@ -22,8 +22,11 @@ func TypeFix(data []byte) ([]byte, error) {
 		definitionValue = "type Value interface{}"
 	)
 
-	content = field(content, "Nonce", "json.Number", []string{commentNonce, definitionNonce}...)
-	content = field(content, "Value", "json.Number", []string{commentValue, definitionValue}...)
+	content = strings.Replace(content, definitionNonce, "type Nonce string", 1)
+	content = strings.Replace(content, definitionValue, "type Value string", 1)
+
+	// content = field(content, "Nonce", "Nonce", []string{commentNonce, definitionNonce}...)
+	// content = field(content, "Value", "Value", []string{commentValue, definitionValue}...)
 
 	// gofmt
 	contentdata := []byte(content)

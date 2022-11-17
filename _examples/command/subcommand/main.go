@@ -205,13 +205,15 @@ func main() {
 	log.Printf("Program executed successfully.")
 }
 
-// onInteraction deletes the Global Application Command, then disconnects the bot.
+// onInteraction calculates an operation based on the user's input, then responds to the interaction.
 //
 // In this example, onInteraction is called when a user sends a `/calculate` interaction to the bot.
 func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 	// access the interaction's options in the order provided by the user.
 	//
-	// The following commands assist with type converting into the respective data structs.
+	// The following commands assist with type converting Interaction Data
+	// into the respective data structs.
+	//
 	// 	ApplicationCommand()
 	//	MessageComponent()
 	// 	ModalSubmit()
@@ -220,7 +222,7 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 
 	// Alternatively, convert the option slice into a map (in an efficient manner).
 	//
-	// Note: It's recommended to specify the amount explicitly (i.e 3) when possible.
+	// Note: It's recommended to specify the amount explicitly when possible (i.e 5).
 	// Otherwise, the tools package provides an easy way to determine the amount of options.
 	optionMap := tools.OptionsToMap(nil, options, tools.NumOptions(options))
 

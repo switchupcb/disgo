@@ -1,6 +1,6 @@
 # Example: Create a Localized Command
 
-This example creates an application command with a name and description based on the locale of the user interacting with the bot. Once the command is created, it listens for an interaction _(while connected to the Discord Gateway)_, then responds to the interaction accordingly. The bot waits until the program receives a signal to terminate, then disconnects from the Discord Gateway and deletes the command. For more information about localization, read the [Discord API Documentation](https://discord.com/developers/docs/interactions/application-commands#localization).
+This example creates an application command with a name and description based on the locale of the user interacting with the bot. Once the command is created, it listens for an interaction _(while connected to the Discord Gateway)_, then responds to the interaction accordingly. The bot waits until the program receives a signal to terminate, then disconnects from the Discord Gateway and deletes the created command. For more information about localization, read the [Discord API Documentation](https://discord.com/developers/docs/interactions/application-commands#localization).
 
 _Use this example to create localized commands for users._
 

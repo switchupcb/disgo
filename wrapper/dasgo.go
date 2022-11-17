@@ -539,6 +539,12 @@ type File struct {
 	Data        []byte
 }
 
+// Nonce represents a Discord nonce (integer or string).
+type Nonce string
+
+// Value represents a value (string, integer, or double).
+type Value string
+
 // Gateway Events
 // https://discord.com/developers/docs/topics/gateway#gateway-events
 type Event interface{}
@@ -1847,7 +1853,7 @@ type GetChannelMessage struct {
 type CreateMessage struct {
 	ChannelID        string            `json:"-"`
 	Content          *string           `json:"content,omitempty"`
-	Nonce            json.Number       `json:"nonce,omitempty"`
+	Nonce            Nonce             `json:"nonce,omitempty"`
 	TTS              *bool             `json:"tts,omitempty"`
 	Embeds           []*Embed          `json:"embeds,omitempty"`
 	AllowedMentions  *AllowedMentions  `json:"allowed_mentions,omitempty"`
@@ -3246,7 +3252,7 @@ const (
 type ApplicationCommandOptionChoice struct {
 	Name              string          `json:"name"`
 	NameLocalizations map[Flag]string `json:"name_localizations"`
-	Value             json.Number     `json:"value"`
+	Value             Value           `json:"value"`
 }
 
 // Guild Application Command Permissions Object
@@ -3443,7 +3449,7 @@ type ResolvedData struct {
 type ApplicationCommandInteractionDataOption struct {
 	Name    string                                     `json:"name"`
 	Type    Flag                                       `json:"type"`
-	Value   json.Number                                `json:"value,omitempty"`
+	Value   Value                                      `json:"value,omitempty"`
 	Options []*ApplicationCommandInteractionDataOption `json:"options,omitempty"`
 	Focused *bool                                      `json:"focused,omitempty"`
 }
@@ -3831,7 +3837,7 @@ type Message struct {
 	Attachments       []*Attachment     `json:"attachments"`
 	Embeds            []*Embed          `json:"embeds"`
 	Reactions         []*Reaction       `json:"reactions,omitempty"`
-	Nonce             json.Number       `json:"nonce,omitempty"`
+	Nonce             Nonce             `json:"nonce,omitempty"`
 	Pinned            bool              `json:"pinned"`
 	WebhookID         string            `json:"webhook_id,omitempty"`
 	Type              Flag              `json:"type"`

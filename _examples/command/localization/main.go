@@ -38,6 +38,7 @@ func main() {
 
 	log.Println("Creating an application command...")
 
+	// Create a Create Global Application Command request.
 	request := &disgo.CreateGlobalApplicationCommand{
 		Name: "hello",
 
@@ -139,7 +140,7 @@ func main() {
 	log.Printf("Program executed successfully.")
 }
 
-// onInteraction deletes the Global Application Command, then disconnects the bot.
+// onInteraction responds to the user based on their locale.
 //
 // In this example, onInteraction is called when a user sends a `/hello` interaction to the bot.
 func onInteraction(bot *disgo.Client, interaction *disgo.Interaction, locales map[string]string) error {

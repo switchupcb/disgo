@@ -1,6 +1,9 @@
 package wrapper
 
-import "fmt"
+import (
+	"fmt"
+	"strconv"
+)
 
 /**unmarshal_convert.go contains type conversion functions for interfaces.
 
@@ -9,6 +12,32 @@ This enables users (developers) to easily type convert interfaces. */
 const (
 	errTypeConvert = "attempted to type convert InteractionData of type %v to type %s"
 )
+
+/* Nonce */
+
+func (n Nonce) String() string {
+	return string(n)
+}
+
+func (n Nonce) Int64() (int64, error) {
+	return strconv.ParseInt(string(n), base10, bit64) //nolint:wrapcheck
+}
+
+/* Value */
+
+func (n Value) String() string {
+	return string(n)
+}
+
+func (n Value) Float64() (float64, error) {
+	return strconv.ParseFloat(string(n), bit64) //nolint:wrapcheck
+}
+
+func (n Value) Int64() (int64, error) {
+	return strconv.ParseInt(string(n), base10, bit64) //nolint:wrapcheck
+}
+
+/* InteractionData */
 
 // ApplicationCommand type converts an InteractionData field into an ApplicationCommandData struct.
 func (i *Interaction) ApplicationCommand() *ApplicationCommandData {

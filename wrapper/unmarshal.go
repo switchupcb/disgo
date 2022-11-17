@@ -2,6 +2,7 @@ package wrapper
 
 import (
 	"fmt"
+	"strconv"
 
 	json "github.com/goccy/go-json"
 )
@@ -17,12 +18,55 @@ also implement UnmarshalJSON() to prevent null pointer dereferences. */
 /** Unused: Command, Event */
 
 /** Nonce
-Converted to string using ./_gen typefix operation.
 Includes: CreateMessage, Message */
 
+func (v *Nonce) UnmarshalJSON(b []byte) error {
+	var x interface{}
+
+	if err := json.Unmarshal(b, &x); err != nil {
+		return fmt.Errorf(errUnmarshal, x, err)
+	}
+
+	switch xValue := x.(type) {
+	case string:
+		*v = Nonce(xValue)
+
+	case int:
+		*v = Nonce(strconv.Itoa(xValue))
+
+	default:
+		return fmt.Errorf(errUnmarshal, v, fmt.Errorf("value is type %T", x))
+	}
+
+	return nil
+}
+
 /** Value
-Converted to string using ./_gen typefix operation.
 Includes: ApplicationCommandOptionChoice, ApplicationCommandInteractionDataOption */
+
+func (v *Value) UnmarshalJSON(b []byte) error {
+	var x interface{}
+
+	if err := json.Unmarshal(b, &x); err != nil {
+		return fmt.Errorf(errUnmarshal, x, err)
+	}
+
+	switch xValue := x.(type) {
+	case string:
+		*v = Value(xValue)
+
+	case int:
+		*v = Value(strconv.Itoa(xValue))
+
+	case float64:
+		*v = Value(strconv.FormatFloat(xValue, 'f', -1, bit64))
+
+	default:
+		return fmt.Errorf(errUnmarshal, v, fmt.Errorf("value is type %T", x))
+	}
+
+	return nil
+}
 
 /** Component */
 
