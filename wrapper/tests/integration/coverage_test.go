@@ -9,29 +9,24 @@ import (
 	"log"
 	"os"
 	"testing"
+	"time"
 
 	"golang.org/x/sync/errgroup"
 
+	"github.com/rs/zerolog"
 	. "github.com/switchupcb/disgo/wrapper"
 )
 
-// TestCoverage tests 150+ endpoints (requests) and respective events from the Discord API.
+// TestCoverage tests 100+ endpoints (requests) and respective events from the Discord API.
 func TestCoverage(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
 	bot := &Client{
-		Authentication: BotToken(os.Getenv("TEST_TOKEN_ADMIN")),
+		Authentication: BotToken(os.Getenv("COVERAGE_TEST_TOKEN")),
 		Config: DefaultConfig(),
 		Handlers: new(Handlers),
 		Sessions: []*Session{NewSession()},
 	}
-
-	user := &Client{
-		Authentication: BotToken(os.Getenv("TEST_TOKEN_USER")),
-		Config: DefaultConfig(),
-		Handlers: new(Handlers),
-		Sessions: []*Session{NewSession()},
-	}
-
-	var guild *Guild
 
 	initializeEventHandlers(bot)
 
@@ -44,7 +39,7 @@ func TestCoverage(t *testing.T) {
 
 	// Call endpoints with no dependencies.
 	//
-	// set the Admin Bot's application ID.
+	// set the bot's application ID.
 	eg.Go(func() error {
 		request := &GetCurrentBotApplicationInformation{}
 		app, err := request.Send(bot)
@@ -53,7 +48,6 @@ func TestCoverage(t *testing.T) {
 		}
 
 		bot.ApplicationID = app.ID
-
 		if err != nil {
 			return fmt.Errorf("GetCurrentBotApplicationInformation: %w", err)
 		}
@@ -61,34 +55,13 @@ func TestCoverage(t *testing.T) {
 		return nil
 	})
 
-	// set the User Bot's application ID.
-	eg.Go(func() error {
-		request := &GetCurrentUser{}
-		app, err := request.Send(user)
-
-		if app.ID == "" {
-			return fmt.Errorf("GetCurrentUser: expected non-null Application ID")
-		}
-
-		user.ApplicationID = app.ID
-
-		if err != nil {
-			return fmt.Errorf("GetCurrentUser: %w", err)
-		}
-
-		return nil
-	})
-
 	// create a global application command.
 	eg.Go(func() error {
-		// Create a Create Global Application Command request.
 		request := CreateGlobalApplicationCommand{
 			Name: "main",
 			Description: "A basic command",
 		} 
 
-		// Register the new command by sending the request to Discord using the bot.
-		// returns a disgo.ApplicationCommand
 		newCommand, err := request.Send(bot)
 		if err != nil {
 			log.Printf("failure sending command to Discord: %v", err)
@@ -119,25 +92,6 @@ func TestCoverage(t *testing.T) {
 		return nil
 	})
 
-	// Create a guild.
-	eg.Go(func() error {
-		requestCreateGuild := &CreateGuild{
-			Name: "Coverage",
-		}
-
-		var err error
-		guild, err = requestCreateGuild.Send(bot)
-		if guild.Name != "Coverage" {
-			return fmt.Errorf("CreateGuild: expected non-null Global Application Command")
-		}
-
-		if err != nil {
-			return fmt.Errorf("CreateGuild: %w", err)
-		}
-
-		return nil
-	})
-
 	// wait until all required requests have been processed.
 	select {
 	case <-ctx.Done():
@@ -151,21 +105,14 @@ func TestCoverage(t *testing.T) {
 
 	// Call endpoints with one or more dependencies.
 	//
-	//
+	// var guild *Guild
 
+	// ensure that the next test starts with a full bucket.
+	time.After(time.Second * 1)
 }
 
-// initializeEventHandlers initializes the event handles necessary for this test.
+// initializeEventHandlers initializes the event handlers necessary for this test.
 func initializeEventHandlers(bot *Client) {
-	// Handle Interactions from commands sent to admin from user.
-	bot.Handle(FlagGatewayEventNameInteractionCreate, func(i InteractionCreate) {
-		log.Printf("main called by %s", i.User.Username)
-
-		// CreateInteractionResponse sends a CreateInteractionResponse request to the Discord Gateway.
-		requestCreateInteractionResponse := CreateInteractionResponse{InteractionID: i.ID, InteractionToken: i.Token}
-		if err := requestCreateInteractionResponse.Send(bot); err != nil {
-			return
-		}
-	})
+	
 }
 

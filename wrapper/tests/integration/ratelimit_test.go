@@ -58,8 +58,8 @@ func TestGlobalRateLimit(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	// ensure that the next test starts from a full bucket.
-	time.After(time.Second * 2)
+	// ensure that the next test starts with a full bucket.
+	time.After(time.Second * 1)
 }
 
 // TestRouteRateLimit tests the per-route rate limit mechanism (with the Default Bucket mechanism enabled).
@@ -110,4 +110,7 @@ func TestRouteRateLimit(t *testing.T) {
 	if err := eg.Wait(); err != nil {
 		t.Fatalf("%v", err)
 	}
+
+	// ensure that the next test starts with a full bucket.
+	time.After(time.Second * 1)
 }

@@ -211,6 +211,10 @@ var (
 		"EditFollowupMessage":               true,
 		"DeleteFollowupMessage":             true,
 
+		// OAuth2 (Requires Bearer Token)
+		"GetCurrentAuthorizationInformation": true,
+		"GetUserConnections":                 true,
+
 		// Resources (Requires Complex State Management)
 		"CreateGuild":                  true,
 		"ModifyGuild":                  true,
@@ -234,6 +238,7 @@ var (
 		"GetGatewayBot": true,
 
 		// User (Requires User State)
+		"GetCurrentUser":         true,
 		"CreateGuildBan":         true,
 		"RemoveGuildBan":         true,
 		"ModifyCurrentUser":      true,
