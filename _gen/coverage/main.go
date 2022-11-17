@@ -108,6 +108,7 @@ var (
 		"CreateGuildRole":                        {"CreateGuild"},
 		"ModifyGuildRolePositions":               {"CreateGuild", "CreateGuildRole"},
 		"ModifyGuildRole":                        {"CreateGuildRole"},
+		"ModifyGuildMFALevel":                    {"CreateGuild"},
 		"DeleteGuildRole":                        {"CreateGuildRole"},
 		"GetGuildPruneCount":                     {"CreateGuild"},
 		"BeginGuildPrune":                        {"CreateGuild"},
@@ -156,6 +157,7 @@ var (
 		"GetCurrentUserGuilds":                   {"GetUser"},
 		"GetCurrentUserGuildMember":              {"CreateGuild"},
 		"LeaveGuild":                             {"CreateGuild"},
+		"CreateDM":                               {},
 		"CreateGroupDM":                          {},
 		"GetUserConnections":                     {},
 		"ListVoiceRegions":                       {},
@@ -182,18 +184,64 @@ var (
 
 	// unused represents a map of unused endpoints.
 	unused = map[string]bool{
+		// Batch, Bulk
 		"BulkOverwriteGlobalApplicationCommands": true,
 		"BulkOverwriteGuildApplicationCommands":  true,
-		"BatchEditApplicationCommandPermissions": true,
-		"ModifyChannelGroupDM":                   true,
 		"BulkDeleteMessages":                     true,
-		"TriggerTypingIndicator":                 true,
-		"GroupDMAddRecipient":                    true,
-		"GroupDMRemoveRecipient":                 true,
-		"GetGuildIntegration":                    true,
-		"DeleteGuildIntegration":                 true,
-		"ListNitroStickerPacks":                  true,
-		"CreateGroupDM":                          true,
+		"BatchEditApplicationCommandPermissions": true,
+
+		// Files
+		"ListNitroStickerPacks": true,
+		"ListGuildStickers":     true,
+		"GetGuildSticker":       true,
+		"CreateGuildSticker":    true,
+		"ModifyGuildSticker":    true,
+		"DeleteGuildSticker":    true,
+		"CreateGuildEmoji":      true,
+		"ModifyGuildEmoji":      true,
+		"DeleteGuildEmoji":      true,
+
+		// Interactions (Requires User State)
+		"CreateInteractionResponse":         true,
+		"GetOriginalInteractionResponse":    true,
+		"EditOriginalInteractionResponse":   true,
+		"DeleteOriginalInteractionResponse": true,
+		"CreateFollowupMessage":             true,
+		"GetFollowupMessage":                true,
+		"EditFollowupMessage":               true,
+		"DeleteFollowupMessage":             true,
+
+		// Resources (Requires Complex State Management)
+		"CreateGuild":                  true,
+		"ModifyGuild":                  true,
+		"DeleteGuild":                  true,
+		"ModifyGuildMFALevel":          true,
+		"GetGuildIntegration":          true,
+		"DeleteGuildIntegration":       true,
+		"CreateGuildfromGuildTemplate": true,
+		"CreateGuildTemplate":          true,
+		"SyncGuildTemplate":            true,
+		"ModifyGuildTemplate":          true,
+		"DeleteGuildTemplate":          true,
+		"FollowAnnouncementChannel":    true,
+		"TriggerTypingIndicator":       true,
+		"ModifyChannelGroupDM":         true,
+
+		// Tests
+		//
+		// Ratelimit, Session
+		"GetGateway":    true,
+		"GetGatewayBot": true,
+
+		// User (Requires User State)
+		"CreateGuildBan":         true,
+		"RemoveGuildBan":         true,
+		"ModifyCurrentUser":      true,
+		"LeaveGuild":             true,
+		"CreateDM":               true,
+		"CreateGroupDM":          true,
+		"GroupDMAddRecipient":    true,
+		"GroupDMRemoveRecipient": true,
 
 		// Webhooks
 		"CreateWebhook":                  true,
@@ -211,10 +259,6 @@ var (
 		"GetWebhookMessage":              true,
 		"EditWebhookMessage":             true,
 		"DeleteWebhookMessage":           true,
-
-		// Session Test
-		"GetGateway":    true,
-		"GetGatewayBot": true,
 	}
 )
 
