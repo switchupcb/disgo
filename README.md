@@ -3,9 +3,9 @@
 [![Go Doc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge&logo=appveyor&logo=appveyor)](https://pkg.go.dev/github.com/switchupcb/disgo)
 [![License](https://img.shields.io/github/license/switchupcb/disgo.svg?style=for-the-badge)](https://github.com/switchupcb/disgo/blob/main/LICENSE)
 
-**This repository is USABLE. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).**
+**This repository is ALMOST STABLE. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).**
 
-**Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional caching, shard management, rate limiting, and logging. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
+**Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional rate limiting, structured logging, shard management, and caching. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
 
 **A Next Generation Discord API Wrapper**
 
@@ -18,7 +18,7 @@ High quality code merits easy development. Disgo uses developer operations to st
 
 | Topic                           | Categories                                                                                                                                                             |
 | :------------------------------ | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Using the API](#using-the-api) | [Breakdown](#using-the-api), [Sharding](#sharding), [Caching](#caching)                                                                                                |
+| [Using the API](#using-the-api) | [Breakdown](#using-the-api), [Logging](#logging), [Sharding](#sharding), [Caching](#caching)                                                                           |
 | [Examples](#examples)           | [Import](#import), [Configuration](#configuration), [Create a Command](#create-a-command), [Handle an Event](#handle-an-event), [Output](#output), [Summary](#Summary) |
 | [Features](#features)           | [Why Go?](#why-go), [Comparison](#comparison), [Contributing](#contributing)                                                                                           |
 | [Ecosystem](#ecosystem)         | [License](#license), [Libraries](#libraries), [Credits](#credits)                                                                                                      |
@@ -41,6 +41,10 @@ You create a **Client** that calls for **Resources** using **Requests** and hand
 
 A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides. All flags are denoted by `Flag` in disgo: For example, `disgo.FlagUserSTAFF`, `disgo.FlagVerificationLevelHIGH`, `disgo.FlagPremiumTierNONE`, etc.
 
+### Logging
+
+Read [What is a Log](/_contribution/concepts/LOG.md) for a simple yet full understanding of logging with Disgo. Disgo provides leveled logging of the API Wrapper via the `disgo.Logger` global variable _(which is disabled by default)_. Enable it using `zerolog.SetGlobalLevel(zerolog.LEVEL)`.
+
 ### Sharding
 
 Read [What is a Discord Shard](/_contribution/concepts/SHARD.md) for a simple yet full understanding of sharding on Discord. Using the [Shard Manager](/_contribution/concepts/SHARD.md#the-shard-manager) is **optional**. You can manually implement a shard manager through the `disgo.Client.Sessions` array.
@@ -53,25 +57,24 @@ Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full u
 
 | Example                        | Description                                                |
 | :----------------------------- | :--------------------------------------------------------- |
-| [main](/_examples/command/)    | Create an application command and respond to interactions. |
+| main                           | Learn how to use `disgo`.                                  |
+| [command](/_examples/command/) | Create an application command and respond to interactions. |
 | [message](/_examples/message/) | Send a message with text, emojis, files and/or components. |
 | [image](/_examples/image/)     | Set the bot's avatar using an image.                       |
 
 _Check out the [examples](/_examples/) directory for more._
-
-The following **demo** shows you how to use the `disgo` module. For a working example, check out the [command example](/_examples/command/).
 
 ### Import
 
 Get a specific version of `disgo` by specifying a tag or branch.
 
 ```
-go get github.com/switchupcb/disgo@v0.10.0
+go get github.com/switchupcb/disgo@v0.10.1
 ```
 
 _Disgo branches are referenced by API version (i.e `v10`)._
 
-_NOTE: `v0.10.0` is a BETA version. For more information, read the [State of Disgo (v0.10.0)](https://github.com/switchupcb/disgo/discussions/28)._
+_DISCLAIMER: `v0.10.1` is a pre-release version. For more information, read the [State of Disgo (v0.10.1)](https://github.com/switchupcb/disgo/discussions/40)._
 
 ### Configuration
 
@@ -137,12 +140,6 @@ if err := bot.Sessions[0].Connect(bot); err != nil {
 }
 ```
 
-The following message will be logged when a user creates an `InteractionCreate` event by using `/main` in a Direct Message with the bot on Discord.
-
-```
-main called by SCB.
-```
-
 ### Summary
 
 ```go
@@ -204,17 +201,11 @@ Every struct uses [fieldalignment](https://pkg.go.dev/golang.org/x/tools/go/anal
 
 ### Storage
 
-Disgo adds **3.5 MB** to a compiled binary.
+Disgo adds **6.5 MB** to a compiled binary.
 
 ### Contributing
 
 Disgo is the easiest Discord Go API for developers to use and contribute to. You can contribute to this repository by viewing the [Project Structure, Code Specifications, and Roadmap](/_contribution/CONTRIBUTING.md).
-
-| Library   | Contribution                                                                                                                                                                                                                              | Lines of Code to Maintain |
-| :-------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------ |
-| Disgo     | [Contribution Guidelines](contribution/CONTRIBUTING.md), [Project Architecture](contribution/CONTRIBUTING.md#project-structure), [Linting](contribution/CONTRIBUTING.md#static-code-analysis), [Tests](contribution/CONTRIBUTING.md#test) | 6K/15K                    |
-| DiscordGo | Contribution Guidelines, No Architecture, No Linter, Not Feature Complete                                                                                                                                                                 | 12K/12K                   |
-| Disgord   | Contribution Guidelines, No Linter, ORM, Not Feature Complete                                                                                                                                                                             | ?/30K                     |
 
 ## Ecosystem
 
@@ -233,10 +224,10 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 
 ### Credits
 
-| Name                                      | Contributions                                             |
-| :---------------------------------------- | :-------------------------------------------------------- |
-| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Dasgo, Requests, WebSockets, Events |
-| [Thomas Rogers](https://github.com/t-rog) | Dasgo, WebSockets                                         |
-| [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                                     |
+| Name                                      | Contributions                                                         |
+| :---------------------------------------- | :-------------------------------------------------------------------- |
+| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Generators, Dasgo, Requests, WebSockets, Events |
+| [Thomas Rogers](https://github.com/t-rog) | Dasgo, WebSockets                                                     |
+| [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                                                 |
 
 _Earn a credit! [Contribute Now](_contribution/CONTRIBUTING.md)._

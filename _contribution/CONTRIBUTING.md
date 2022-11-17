@@ -62,7 +62,7 @@ If you receive `File is not ... with -...`, use `golangci-lint run --disable-all
  | `_gen`    | `golangci-lint run ./_gen`    | Perform static code analysis on the generator.     |
  | `cache`   | `golangci-lint run ./cache`   | Perform static code analysis on the Disgo Cache.   |
  | `shard`   | `golangci-lint run ./shard`   | Perform static code analysis on the Shard Manager. |
- | `tools`   | `golangci-lint run ./tools`   | Perform static code analysis on the Tools Module. |
+ | `tools`   | `golangci-lint run ./tools`   | Perform static code analysis on the Tools Module.  |
 
 #### Fieldalignment
 
@@ -76,7 +76,7 @@ Unit tests are used to test logic.
 
 #### Integration Tests
 
-Integration tests are used to ensure functionality between the API and Discord.
+Integration tests are used to ensure functionality between the API Wrapper and Discord.
 
 #### Running Tests
 
@@ -84,13 +84,13 @@ Use `go test` to run the tests in the current directory. Use `go test ./<dir>` t
 
 # Roadmap
 
-Disgo is **USABLE**. Here are the steps required in order to complete it:
+Disgo is **ALMOST STABLE**. Here are the steps required in order to complete it.
 
-1. **Finish Coverage Testing** _[STABLE]_.
+1. **Finish Full Coverage Test** _[STABLE]_.
 2. Bundle Disgo (with `fieldalignment`) _[v10.0.0]_.
-3. Implement [Sharding](https://github.com/switchupcb/disgo/issues/26).
-4. Implement Cache.
 
-In addition, we must make [decisions](/_contribution/libraries/) for the following:
-1. UDP connections (Voice)
-2. [Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice)
+In addition, the following features are being worked on.
+
+1. Voice Connections: [Decision (UDP)](/_contribution/libraries/), [Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice)
+2. Implement [Sharding](https://github.com/switchupcb/disgo/issues/26).
+3. Implement [Cache](https://github.com/switchupcb/disgo/issues/39).
