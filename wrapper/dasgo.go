@@ -4938,6 +4938,12 @@ const (
 	FlagOAuth2ScopeWebhookIncoming                       = "webhook.incoming"
 )
 
+// Modify Guild MFA Level Response
+// https://discord.com/developers/docs/resources/guild#modify-guild-mfa-level
+type ModifyGuildMFALevelResponse struct {
+	Level Flag `json:"level"`
+}
+
 // List Public Archived Threads Response Body
 // https://discord.com/developers/docs/resources/channel#list-public-archived-threads-response-body
 type ListPublicArchivedThreadsResponse struct {

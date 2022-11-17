@@ -62,7 +62,7 @@ If you receive `File is not ... with -...`, use `golangci-lint run --disable-all
  | `_gen`    | `golangci-lint run ./_gen`    | Perform static code analysis on the generator.     |
  | `cache`   | `golangci-lint run ./cache`   | Perform static code analysis on the Disgo Cache.   |
  | `shard`   | `golangci-lint run ./shard`   | Perform static code analysis on the Shard Manager. |
- | `tools`   | `golangci-lint run ./tools`   | Perform static code analysis on the Shard Manager. |
+ | `tools`   | `golangci-lint run ./tools`   | Perform static code analysis on the Tools Module. |
 
 #### Fieldalignment
 
@@ -86,11 +86,10 @@ Use `go test` to run the tests in the current directory. Use `go test ./<dir>` t
 
 Disgo is **USABLE**. Here are the steps required in order to complete it:
 
-1. Implement Structured Logging.
+1. **Finish Coverage Testing** _[STABLE]_.
 2. Bundle Disgo (with `fieldalignment`) _[v10.0.0]_.
-3. **Finish [Coverage Testing](https://github.com/switchupcb/disgo/pull/19)** _[STABLE]_.
-4. Implement [Sharding](https://github.com/switchupcb/disgo/issues/26).
-5. Implement Cache.
+3. Implement [Sharding](https://github.com/switchupcb/disgo/issues/26).
+4. Implement Cache.
 
 In addition, we must make [decisions](/_contribution/libraries/) for the following:
 1. UDP connections (Voice)
