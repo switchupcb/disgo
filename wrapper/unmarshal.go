@@ -72,6 +72,10 @@ func (v *Value) UnmarshalJSON(b []byte) error {
 
 // unmarshalComponents unmarshals a JSON component array into a slice of Go Interface Components (with underlying structs).
 func unmarshalComponents(b []byte) ([]Component, error) {
+	if len(b) == 0 {
+		return nil, nil
+	}
+
 	type unmarshalComponent struct {
 
 		// https://discord.com/developers/docs/interactions/message-components#component-object-example-component
@@ -438,6 +442,10 @@ func (r *Message) UnmarshalJSON(b []byte) error {
 // unmarshalInteractionData unmarshals a JSON InteractionData object into
 // a Go Interface InteractionData (with an underlying struct).
 func unmarshalInteractionData(b json.RawMessage, x uint8) (InteractionData, error) {
+	if len(b) == 0 {
+		return nil, nil
+	}
+
 	var interactionData InteractionData
 
 	// use the known Interaction Data type to return
@@ -501,6 +509,10 @@ func (r *Interaction) UnmarshalJSON(b []byte) error {
 // unmarshalInteractionCallbackData unmarshals a JSON InteractionCallbackData object into
 // a Go Interface InteractionCallbackData (with an underlying struct).
 func unmarshalInteractionCallbackData(b []byte, x uint8) (InteractionCallbackData, error) {
+	if len(b) == 0 {
+		return nil, nil
+	}
+
 	var interactionCallbackData InteractionCallbackData
 
 	// use the known Interaction Callback Data type to return

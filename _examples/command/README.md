@@ -72,6 +72,7 @@ Program exited successfully.
 | [`subcommand`](/_examples/command/subcommand/)     | Create an application command with subcommand groups, subcommands, and options.                                 |
 | [`localization`](/_examples/command/localization/) | Create an application command with a localized name and description.                                            |
 | [`autocomplete`](/_examples/command/autocomplete/) | Create an application command with required option choices and send autocompletion choices based on user input. |
+| [`followup`](/_examples/command/followup/)         | Create interaction responses and followup messages.                                                             |
 
 ## FAQ
 

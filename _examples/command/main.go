@@ -176,7 +176,6 @@ func interceptSIGINT(session *disgo.Session) {
 		syscall.SIGTERM,
 		syscall.SIGINT,
 		syscall.SIGQUIT,
-		syscall.SIGKILL,
 		syscall.SIGHUP,
 	)
 

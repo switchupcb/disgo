@@ -338,7 +338,6 @@ func interceptSIGINT(bot *disgo.Client, command *disgo.ApplicationCommand) {
 		syscall.SIGTERM,
 		syscall.SIGINT,
 		syscall.SIGQUIT,
-		syscall.SIGKILL,
 		syscall.SIGHUP,
 	)
 

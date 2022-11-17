@@ -1614,7 +1614,7 @@ type CreateInteractionResponse struct {
 // https://discord.com/developers/docs/interactions/receiving-and-responding#get-original-interaction-response
 type GetOriginalInteractionResponse struct {
 	InteractionToken string `url:"-"`
-	ThreadID         string `url:"thread_id"`
+	ThreadID         string `url:"thread_id,omitempty"`
 }
 
 // Edit Original Interaction Response
@@ -1623,7 +1623,7 @@ type GetOriginalInteractionResponse struct {
 type EditOriginalInteractionResponse struct {
 	ApplicationID    string           `json:"-" url:"-"`
 	InteractionToken string           `json:"-" url:"-"`
-	ThreadID         string           `json:"-" url:"thread_id"`
+	ThreadID         string           `json:"-" url:"thread_id,omitempty"`
 	Content          *string          `json:"content" url:"-"`
 	Embeds           []*Embed         `json:"embeds" url:"-"`
 	Components       []Component      `json:"components" url:"-"`
@@ -1645,7 +1645,7 @@ type DeleteOriginalInteractionResponse struct {
 type CreateFollowupMessage struct {
 	ApplicationID    string           `json:"-" url:"-"`
 	InteractionToken string           `json:"-" url:"-"`
-	ThreadID         string           `json:"-" url:"thread_id"`
+	ThreadID         string           `json:"-" url:"thread_id,omitempty"`
 	Content          string           `json:"content" url:"-"`
 	Username         string           `json:"username,omitempty" url:"-"`
 	AvatarURL        string           `json:"avatar_url,omitempty" url:"-"`
@@ -1665,7 +1665,7 @@ type CreateFollowupMessage struct {
 type GetFollowupMessage struct {
 	InteractionToken string `url:"-"`
 	MessageID        string `url:"-"`
-	ThreadID         string `url:"thread_id"`
+	ThreadID         string `url:"thread_id,omitempty"`
 }
 
 // Edit Followup Message
@@ -1675,7 +1675,7 @@ type EditFollowupMessage struct {
 	ApplicationID    string           `json:"-" url:"-"`
 	InteractionToken string           `json:"-" url:"-"`
 	MessageID        string           `json:"-" url:"-"`
-	ThreadID         string           `json:"-" url:"thread_id"`
+	ThreadID         string           `json:"-" url:"thread_id,omitempty"`
 	Content          *string          `json:"content" url:"-"`
 	Embeds           []*Embed         `json:"embeds" url:"-"`
 	Components       []Component      `json:"components" url:"-"`
@@ -2357,8 +2357,8 @@ type GetGuildMember struct {
 // https://discord.com/developers/docs/resources/guild#list-guild-members
 type ListGuildMembers struct {
 	GuildID string  `url:"-"`
-	Limit   *int    `url:"limit"`
-	After   *string `url:"after"`
+	Limit   *int    `url:"limit,omitempty"`
+	After   *string `url:"after,omitempty"`
 }
 
 // Search Guild Members
@@ -2367,7 +2367,7 @@ type ListGuildMembers struct {
 type SearchGuildMembers struct {
 	GuildID string  `url:"-"`
 	Query   *string `url:"query"`
-	Limit   *int    `url:"limit"`
+	Limit   *int    `url:"limit,omitempty"`
 }
 
 // Add Guild Member
@@ -2532,8 +2532,8 @@ type DeleteGuildRole struct {
 // https://discord.com/developers/docs/resources/guild#get-guild-prune-count
 type GetGuildPruneCount struct {
 	GuildID      string   `url:"-"`
-	Days         int      `url:"days"`
-	IncludeRoles []string `url:"include_roles"`
+	Days         int      `url:"days,omitempty"`
+	IncludeRoles []string `url:"include_roles,omitempty"`
 }
 
 // Begin Guild Prune
@@ -2745,7 +2745,7 @@ type GetGuildTemplate struct {
 // POST /guilds/templates/{template.code}
 // https://discord.com/developers/docs/resources/guild-template#create-guild-from-guild-template
 type CreateGuildfromGuildTemplate struct {
-	TemplateCode string `url:"-"`
+	TemplateCode string `json:"-"`
 	Name         string `json:"name"`
 	Icon         string `json:"icon,omitempty"`
 }
@@ -3047,7 +3047,7 @@ type ExecuteWebhook struct {
 	WebhookID       string           `json:"-" url:"-"`
 	WebhookToken    string           `json:"-" url:"-"`
 	Wait            bool             `json:"-" url:"wait"`
-	ThreadID        string           `json:"-" url:"thread_id"`
+	ThreadID        string           `json:"-" url:"thread_id,omitempty"`
 	Content         string           `json:"content" url:"-"`
 	Username        string           `json:"username,omitempty" url:"-"`
 	AvatarURL       string           `json:"avatar_url,omitempty" url:"-"`
@@ -3067,8 +3067,8 @@ type ExecuteWebhook struct {
 type ExecuteSlackCompatibleWebhook struct {
 	WebhookID    string `url:"-"`
 	WebhookToken string `url:"-"`
-	ThreadID     string `url:"thread_id"`
-	Wait         bool   `url:"wait"`
+	ThreadID     string `url:"thread_id,omitempty"`
+	Wait         bool   `url:"wait,omitempty"`
 }
 
 // Execute GitHub-Compatible Webhook
@@ -3077,8 +3077,8 @@ type ExecuteSlackCompatibleWebhook struct {
 type ExecuteGitHubCompatibleWebhook struct {
 	WebhookID    string `url:"-"`
 	WebhookToken string `url:"-"`
-	ThreadID     string `url:"thread_id"`
-	Wait         bool   `url:"wait"`
+	ThreadID     string `url:"thread_id,omitempty"`
+	Wait         bool   `url:"wait,omitempty"`
 }
 
 // Get Webhook Message
@@ -3088,7 +3088,7 @@ type GetWebhookMessage struct {
 	WebhookID    string `url:"-"`
 	WebhookToken string `url:"-"`
 	MessageID    string `url:"-"`
-	ThreadID     string `url:"thread_id"`
+	ThreadID     string `url:"thread_id,omitempty"`
 }
 
 // Edit Webhook Message
@@ -3098,7 +3098,7 @@ type EditWebhookMessage struct {
 	WebhookID       string           `json:"-" url:"-"`
 	WebhookToken    string           `json:"-" url:"-"`
 	MessageID       string           `json:"-" url:"-"`
-	ThreadID        string           `json:"-" url:"thread_id"`
+	ThreadID        string           `json:"-" url:"thread_id,omitempty"`
 	Content         *string          `json:"content" url:"-"`
 	Embeds          []*Embed         `json:"embeds" url:"-"`
 	Components      []Component      `json:"components" url:"-"`
@@ -3114,7 +3114,7 @@ type DeleteWebhookMessage struct {
 	WebhookID    string  `url:"-"`
 	WebhookToken string  `url:"-"`
 	MessageID    string  `url:"-"`
-	ThreadID     *string `url:"thread_id"`
+	ThreadID     *string `url:"thread_id,omitempty"`
 }
 
 // Get Current Bot Application Information
