@@ -52,7 +52,7 @@ func main() {
 	// which provides a subcommand group "add" (with usable commands "int", "string"),
 	// and subcommand "subtract" (usable).
 	//
-	//COMMAND /calculate
+	// COMMAND /calculate
 	//  GROUP "add"
 	//    SUBCOMMAND "int"     (adds two integers)
 	//      OPTION 1: The first integer.
@@ -324,6 +324,8 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 		return fmt.Errorf("error sending interaction response: %w", err)
 	}
 
+	log.Println("Sent a response to the interaction.")
+
 	return nil
 }
 
@@ -354,8 +356,6 @@ func interceptSIGINT(bot *disgo.Client, command *disgo.ApplicationCommand) {
 		requestDeleteGlobalApplicationCommand := &disgo.DeleteGlobalApplicationCommand{CommandID: command.ID}
 		if err := requestDeleteGlobalApplicationCommand.Send(bot); err != nil {
 			log.Printf("error deleting Global Application Command: %v", err)
-
-			os.Exit(0)
 		}
 	}
 
@@ -365,10 +365,6 @@ func interceptSIGINT(bot *disgo.Client, command *disgo.ApplicationCommand) {
 	if err := bot.Sessions[0].Disconnect(); err != nil {
 		log.Printf("error closing connection to Discord Gateway: %v", err)
 
-		os.Exit(0)
+		os.Exit(1)
 	}
-
-	log.Println("Program exited successfully.")
-
-	os.Exit(0)
 }

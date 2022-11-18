@@ -140,6 +140,12 @@ if err := bot.Sessions[0].Connect(bot); err != nil {
 }
 ```
 
+The following message will be logged when a user creates an `InteractionCreate` event by using `/main` in a Direct Message with the Bot on Discord.
+
+```
+main called by SCB.
+```
+
 ### Summary
 
 ```go

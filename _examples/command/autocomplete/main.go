@@ -110,7 +110,9 @@ func main() {
 	log.Println("Successfully connected to the Discord Gateway. Waiting for an interaction...")
 
 	// end the program using a SIGINT call via `Ctrl + C` from the terminal.
-	tools.InterceptSignal(tools.Signals, bot.Sessions...)
+	if err := tools.InterceptSignal(tools.Signals, bot.Sessions...); err != nil {
+		log.Printf("error exiting program: %v", err)
+	}
 
 	log.Println("Deleting the application command...")
 

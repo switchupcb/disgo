@@ -123,7 +123,9 @@ func main() {
 	log.Println("Successfully connected to the Discord Gateway. Waiting for an interaction...")
 
 	// end the program using a SIGINT call via `Ctrl + C` from the terminal.
-	tools.InterceptSignal(tools.Signals, bot.Sessions...)
+	if err := tools.InterceptSignal(tools.Signals, bot.Sessions...); err != nil {
+		log.Printf("error exiting program: %v", err)
+	}
 
 	log.Println("Deleting the application command...")
 
@@ -188,6 +190,8 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction, locales ma
 	if err := requestCreateInteractionResponse.Send(bot); err != nil {
 		return fmt.Errorf("error sending interaction response: %w", err)
 	}
+
+	log.Println("Sent a response to the interaction.")
 
 	return nil
 }

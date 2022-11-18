@@ -25,7 +25,7 @@ var (
 // InterceptSignal blocks until the provided signals are intercepted.
 //
 // Upon receiving a signal, the given sessions are gracefully disconnected.
-func InterceptSignal(signals []os.Signal, sessions ...*disgo.Session) {
+func InterceptSignal(signals []os.Signal, sessions ...*disgo.Session) error {
 	signalChannel := make(chan os.Signal, 1)
 
 	// set the syscalls that signalChannel is sent.
@@ -54,7 +54,11 @@ func InterceptSignal(signals []os.Signal, sessions ...*disgo.Session) {
 
 	if err := eg.Wait(); err != nil {
 		disgo.Logger.Warn().Msg("Not all sessions were closed successfully.")
-	} else {
-		disgo.Logger.Info().Msg("Closed sessions successfully.")
+
+		return fmt.Errorf("error during signal intercept for termination: %w", err)
 	}
+
+	disgo.Logger.Info().Msg("Closed sessions successfully.")
+
+	return nil
 }

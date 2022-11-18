@@ -1,6 +1,6 @@
 # Example: Create an Application Command
 
-This example creates an application command, listens for an interaction _(while connected to the Discord Gateway)_, then responds to the interaction. Following this response, the bot deletes the application command, then disconnects from the Discord Gateway. For more information about Application Commands, read the [Discord API Documentation](https://discord.com/developers/docs/interactions/application-commands#application-commands).
+This example creates an application command, listens for an interaction _(while connected to the Discord Gateway)_, then responds to the interaction. The bot waits until the program receives a signal to terminate, then disconnects from the Discord Gateway and deletes the created command. For more information about Application Commands, read the [Discord API Documentation](https://discord.com/developers/docs/interactions/application-commands#application-commands).
 
 _Use this example to create commands users can interact with._
 
@@ -35,8 +35,6 @@ _NOTE: Get the Application ID by enabling **Developer Mode** from the settings o
 
 Use `go build` to build the executable binary. Use `command` to run it from the command line.
 
-### /main
-
 ```
 > command
 Program is started.
@@ -44,11 +42,14 @@ Creating an application command...
 Adding an event handler.
 Connecting to the Discord Gateway...
 Successfully connected to the Discord Gateway. Waiting for an interaction...
+```
+
+### /main
+
+```
 main called by SCB.
 Creating a response to the interaction...
-Deleting the application command...
-Disconnecting from the Discord Gateway...
-Program executed successfully.
+Sent a response to the interaction.
 ```
 
 ### SIGINT
@@ -56,13 +57,10 @@ Program executed successfully.
 Use `ctrl + C` or `cmd + C` in the terminal.
 
 ```
-Program is started.
-Creating an application command...
-Adding an event handler.
-Connecting to the Discord Gateway...
-Successfully connected to the Discord Gateway. Waiting for an interaction...
 Exiting program due to signal...
-Program exited successfully.
+Deleting the application command...
+Disconnecting from the Discord Gateway...
+Program executed successfully.
 ```
 
 # Read More
