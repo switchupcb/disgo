@@ -191,7 +191,7 @@ disgo.Client.Cache.<...>
 
 ### Why Go?
 
-Go is a statically typed language with a garbage collector. As a result, it performs computationally better compared to most languages that provide [Discord API Wrappers](https://discord.com/developers/docs/topics/community-resources#libraries). Go maintains superior asynchronous handling due to the use of [Goroutines](https://gobyexample.com/goroutines) and [Channels](https://gobyexample.com/channels). This is useful since **a Discord Bot is a server-side software**.
+Go is a statically typed, compiled programming language _(with a garbage collector)_. As a result, it performs computationally better compared to _most_ languages that provide [Discord API Wrappers](https://discord.com/developers/docs/topics/community-resources#libraries). Go maintains superior asynchronous handling due to the use of [Goroutines](https://gobyexample.com/goroutines) and [Channels](https://gobyexample.com/channels). This is useful since **a Discord Bot is a server-side software**.
 
 ### Comparison
 
