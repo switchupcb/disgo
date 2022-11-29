@@ -46,7 +46,7 @@ func removeApplicationID(line string) bool {
 
 			n := len(linefields)
 			for j := i + 1; j < n; j++ {
-				if strings.Contains(linefields[j], "json") {
+				if linefields[j] != "`json:\"-\"`" && strings.Contains(linefields[j], "json") {
 					keep = true
 				}
 			}

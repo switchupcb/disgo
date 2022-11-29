@@ -264,6 +264,9 @@ var (
 		"GetWebhookMessage":              true,
 		"EditWebhookMessage":             true,
 		"DeleteWebhookMessage":           true,
+
+		// PENDING (BREAKING CHANGES OR DEPRECATION)
+		"EditApplicationCommandPermissions": true,
 	}
 )
 

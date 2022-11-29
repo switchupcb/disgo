@@ -1447,7 +1447,6 @@ type GetGlobalApplicationCommands struct {
 // POST /applications/{application.id}/commands
 // https://discord.com/developers/docs/interactions/application-commands#create-global-application-command
 type CreateGlobalApplicationCommand struct {
-	ApplicationID            string                      `json:"-"`
 	Name                     string                      `json:"name,omitempty"`
 	NameLocalizations        map[string]string           `json:"name_localizations,omitempty"`
 	Description              string                      `json:"description,omitempty"`
@@ -1469,7 +1468,6 @@ type GetGlobalApplicationCommand struct {
 // PATCH /applications/{application.id}/commands/{command.id}
 // https://discord.com/developers/docs/interactions/application-commands#edit-global-application-command
 type EditGlobalApplicationCommand struct {
-	ApplicationID            string                      `json:"-"`
 	CommandID                string                      `json:"-"`
 	Name                     string                      `json:"name,omitempty"`
 	NameLocalizations        map[string]string           `json:"name_localizations"`
@@ -1491,7 +1489,6 @@ type DeleteGlobalApplicationCommand struct {
 // PUT /applications/{application.id}/commands
 // https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-global-application-commands
 type BulkOverwriteGlobalApplicationCommands struct {
-	ApplicationID       string                `json:"-"`
 	ApplicationCommands []*ApplicationCommand `json:"commands,omitempty"`
 }
 
@@ -1507,7 +1504,6 @@ type GetGuildApplicationCommands struct {
 // POST /applications/{application.id}/guilds/{guild.id}/commands
 // https://discord.com/developers/docs/interactions/application-commands#create-guild-application-command
 type CreateGuildApplicationCommand struct {
-	ApplicationID            string                      `json:"-"`
 	GuildID                  string                      `json:"-"`
 	Name                     string                      `json:"name"`
 	NameLocalizations        map[string]string           `json:"name_localization"`
@@ -1531,7 +1527,6 @@ type GetGuildApplicationCommand struct {
 // PATCH /applications/{application.id}/guilds/{guild.id}/commands/{command.id}
 // https://discord.com/developers/docs/interactions/application-commands#edit-guild-application-command
 type EditGuildApplicationCommand struct {
-	ApplicationID            string                      `json:"-"`
 	GuildID                  string                      `json:"-"`
 	CommandID                string                      `json:"-"`
 	Name                     string                      `json:"name,omitempty"`
@@ -1555,7 +1550,6 @@ type DeleteGuildApplicationCommand struct {
 // PUT /applications/{application.id}/guilds/{guild.id}/commands
 // https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-guild-application-commands
 type BulkOverwriteGuildApplicationCommands struct {
-	ApplicationID            string                      `json:"-"`
 	GuildID                  string                      `json:"-"`
 	ID                       string                      `json:"id,omitempty"`
 	Name                     string                      `json:"name"`
@@ -1587,10 +1581,9 @@ type GetApplicationCommandPermissions struct {
 // PUT /applications/{application.id}/guilds/{guild.id}/commands/{command.id}/permissions
 // https://discord.com/developers/docs/interactions/application-commands#edit-application-command-permissions
 type EditApplicationCommandPermissions struct {
-	ApplicationID string                           `json:"-"`
-	GuildID       string                           `json:"-"`
-	CommandID     string                           `json:"-"`
-	Permissions   []*ApplicationCommandPermissions `json:"permissions,omitempty"`
+	GuildID     string                           `json:"-"`
+	CommandID   string                           `json:"-"`
+	Permissions []*ApplicationCommandPermissions `json:"permissions,omitempty"`
 }
 
 // Batch Edit Application Command Permissions
