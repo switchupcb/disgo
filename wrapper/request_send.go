@@ -4325,27 +4325,15 @@ func (r *GetSticker) Send(bot *Client) (*Sticker, error) {
 	return result, nil
 }
 
-// Send sends a ListNitroStickerPacks request to Discord and returns a []*StickerPack.
-func (r *ListNitroStickerPacks) Send(bot *Client) ([]*StickerPack, error) {
+// Send sends a ListNitroStickerPacks request to Discord and returns a ListNitroStickerPacksResponse.
+func (r *ListNitroStickerPacks) Send(bot *Client) (*ListNitroStickerPacksResponse, error) {
 	var err error
 	xid := xid.New().String()
 	routeid, resourceid := RateLimitHashFuncs[142]("142")
 	endpoint := EndpointListNitroStickerPacks()
 
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := make([]*StickerPack, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeJSON, body, &result)
+	result := new(ListNitroStickerPacksResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,

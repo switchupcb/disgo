@@ -287,7 +287,7 @@ type Copygen interface {
 	// http GET
 	GetSticker(*disgo.GetSticker) (*disgo.Sticker, error)
 	// http GET
-	ListNitroStickerPacks(*disgo.ListNitroStickerPacks) ([]*disgo.StickerPack, error)
+	ListNitroStickerPacks(*disgo.ListNitroStickerPacks) (*disgo.ListNitroStickerPacksResponse, error)
 	// http GET
 	ListGuildStickers(*disgo.ListGuildStickers) ([]*disgo.Sticker, error)
 	// http GET

@@ -62,6 +62,14 @@ func TestCoverage(t *testing.T) {
 		return nil
 	})
 
+	eg.Go(func() error {
+		if _, err := new(ListNitroStickerPacks).Send(bot); err != nil {
+			return fmt.Errorf("ListNitroStickerPacks: %w", err)
+		}
+
+		return nil
+	})
+
 	// Call endpoints with one or more dependencies.
 	eg.Go(func() error {
 		return testCommands(bot)

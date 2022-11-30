@@ -190,8 +190,14 @@ var (
 		"BulkDeleteMessages":                     true,
 		"BatchEditApplicationCommandPermissions": true,
 
-		// Examples
-		"ModifyCurrentUser": true, // image/avatar
+		// Example (Image)
+		"ModifyCurrentUser": true, // avatar
+
+		// Example (Command)
+		"CreateInteractionResponse":       true, // followup
+		"EditOriginalInteractionResponse": true, // followup
+		"CreateFollowupMessage":           true, // followup
+		"EditFollowupMessage":             true, // followup
 
 		// Files
 		"CreateGuildEmoji":   true,
@@ -204,13 +210,9 @@ var (
 		"DeleteGuildSticker": true,
 
 		// Interactions (Requires User State)
-		"CreateInteractionResponse":         true,
 		"GetOriginalInteractionResponse":    true,
-		"EditOriginalInteractionResponse":   true,
 		"DeleteOriginalInteractionResponse": true,
-		"CreateFollowupMessage":             true,
 		"GetFollowupMessage":                true,
-		"EditFollowupMessage":               true,
 		"DeleteFollowupMessage":             true,
 
 		// OAuth2 (Requires Bearer Token)
@@ -260,6 +262,7 @@ var (
 		// Tests
 		//
 		// Ratelimit, Session
+		"GetUser":       true,
 		"GetGateway":    true,
 		"GetGatewayBot": true,
 
@@ -272,7 +275,6 @@ var (
 		"GetGuildApplicationCommandPermissions": true,
 
 		// User (Requires User State)
-		"ListNitroStickerPacks":  true,
 		"AddGuildMember":         true,
 		"ModifyGuildMember":      true,
 		"RemoveGuildMember":      true,

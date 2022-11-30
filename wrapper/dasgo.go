@@ -2849,9 +2849,7 @@ type GetSticker struct {
 // List Nitro Sticker Packs
 // GET /sticker-packs
 // https://discord.com/developers/docs/resources/sticker#list-nitro-sticker-packs
-type ListNitroStickerPacks struct {
-	StickerPacks []*StickerPack `json:"sticker_packs"`
-}
+type ListNitroStickerPacks struct{}
 
 // List Guild Stickers
 // GET /guilds/{guild.id}/stickers
@@ -4978,6 +4976,12 @@ type GetGuildPruneCountResponse struct {
 // https://discord.com/developers/docs/resources/guild#modify-guild-mfa-level
 type ModifyGuildMFALevelResponse struct {
 	Level Flag `json:"level"`
+}
+
+// List Nitro Sticker Packs Response
+// https://discord.com/developers/docs/resources/sticker#list-nitro-sticker-packs
+type ListNitroStickerPacksResponse struct {
+	StickerPacks []*StickerPack `json:"sticker_packs"`
 }
 
 // Current Authorization Information Response Structure
