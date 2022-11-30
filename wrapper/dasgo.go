@@ -1384,6 +1384,12 @@ const (
 	VersionDiscordAPI = "10"
 )
 
+// Timestamp Format
+// https://discord.com/developers/docs/reference#iso8601-datetime
+const (
+	TimestampFormatISO8601 = time.RFC3339
+)
+
 // Image Formats
 // https://discord.com/developers/docs/reference#image-formatting-image-formats
 const (
@@ -1721,7 +1727,7 @@ type CreateAutoModerationRule struct {
 	Name            string                  `json:"name"`
 	EventType       Flag                    `json:"event_type"`
 	TriggerType     Flag                    `json:"trigger_type"`
-	TriggerMetadata TriggerMetadata         `json:"trigger_metadata"`
+	TriggerMetadata *TriggerMetadata        `json:"trigger_metadata"`
 	Actions         []*AutoModerationAction `json:"actions"`
 	Enabled         bool                    `json:"enabled"`
 	ExemptRoles     []string                `json:"exempt_roles,omitempty"`
@@ -1734,14 +1740,14 @@ type CreateAutoModerationRule struct {
 type ModifyAutoModerationRule struct {
 	GuildID              string                  `json:"-"`
 	AutoModerationRuleID string                  `json:"-"`
-	Name                 string                  `json:"name"`
-	EventType            Flag                    `json:"event_type"`
-	TriggerType          Flag                    `json:"trigger_type"`
-	TriggerMetadata      TriggerMetadata         `json:"trigger_metadata"`
-	Actions              []*AutoModerationAction `json:"actions"`
-	Enabled              bool                    `json:"enabled"`
-	ExemptRoles          []string                `json:"exempt_roles"`
-	ExemptChannels       []string                `json:"exempt_channels"`
+	Name                 string                  `json:"name,omitempty"`
+	EventType            Flag                    `json:"event_type,omitempty"`
+	TriggerType          Flag                    `json:"trigger_type,omitempty"`
+	TriggerMetadata      *TriggerMetadata        `json:"trigger_metadata,omitempty"`
+	Actions              []*AutoModerationAction `json:"actions,omitempty"`
+	Enabled              *bool                   `json:"enabled,omitempty"`
+	ExemptRoles          []string                `json:"exempt_roles,omitempty"`
+	ExemptChannels       []string                `json:"exempt_channels,omitempty"`
 }
 
 // Delete Auto Moderation Rule
@@ -1771,47 +1777,48 @@ type ModifyChannel struct {
 // https://discord.com/developers/docs/resources/channel#modify-channel-json-params-group-dm
 type ModifyChannelGroupDM struct {
 	ChannelID string `json:"-"`
-	Name      string `json:"name"`
-	Icon      int    `json:"icon"`
+	Name      string `json:"name,omitempty"`
+	Icon      string `json:"icon,omitempty"`
 }
 
 // Modify Channel Guild
 // PATCH /channels/{channel.id}
 // https://discord.com/developers/docs/resources/channel#modify-channel-json-params-guild-channel
 type ModifyChannelGuild struct {
-	ChannelID                     string                 `json:"-"`
-	Name                          *string                `json:"name"`
-	Type                          *Flag                  `json:"type"`
-	Position                      *int                   `json:"position"`
-	Topic                         *string                `json:"topic"`
-	NSFW                          bool                   `json:"nsfw"`
-	RateLimitPerUser              *int                   `json:"rate_limit_per_user"`
-	Bitrate                       *int                   `json:"bitrate"`
-	UserLimit                     *int                   `json:"user_limit"`
-	PermissionOverwrites          *[]PermissionOverwrite `json:"permission_overwrites"`
-	ParentID                      *string                `json:"parent_id"`
-	RTCRegion                     *string                `json:"rtc_region"`
-	VideoQualityMode              *Flag                  `json:"video_quality_mode"`
-	DefaultAutoArchiveDuration    *int                   `json:"default_auto_archive_duration"`
-	Flags                         BitFlag                `json:"flags,omitempty"`
-	AvailableTags                 []*ForumTag            `json:"available_tags,omitempty"`
-	DefaultReactionEmoji          *DefaultReaction       `json:"default_reaction_emoji"`
-	DefaultThreadRateLimitPerUser int                    `json:"default_thread_rate_limit_per_user,omitempty"`
-	DefaultSortOrder              *int                   `json:"default_sort_order"`
+	ChannelID                     string                `json:"-"`
+	Name                          string                `json:"name,omitempty"`
+	Type                          *Flag                 `json:"type,omitempty"`
+	Position                      *int                  `json:"position"`
+	Topic                         *string               `json:"topic"`
+	NSFW                          bool                  `json:"nsfw"`
+	RateLimitPerUser              *int                  `json:"rate_limit_per_user"`
+	Bitrate                       *int                  `json:"bitrate"`
+	UserLimit                     *int                  `json:"user_limit"`
+	PermissionOverwrites          []PermissionOverwrite `json:"permission_overwrites"`
+	ParentID                      *string               `json:"parent_id"`
+	RTCRegion                     *string               `json:"rtc_region"`
+	VideoQualityMode              *Flag                 `json:"video_quality_mode"`
+	DefaultAutoArchiveDuration    *int                  `json:"default_auto_archive_duration"`
+	Flags                         BitFlag               `json:"flags,omitempty"`
+	AvailableTags                 []*ForumTag           `json:"available_tags,omitempty"`
+	DefaultReactionEmoji          *DefaultReaction      `json:"default_reaction_emoji"`
+	DefaultThreadRateLimitPerUser int                   `json:"default_thread_rate_limit_per_user,omitempty"`
+	DefaultSortOrder              *int                  `json:"default_sort_order"`
 }
 
 // Modify Channel
 // PATCH /channels/{channel.id}
 // https://discord.com/developers/docs/resources/channel#modify-channel-json-params-thread
 type ModifyChannelThread struct {
-	ChannelID           string  `json:"-"`
-	Name                string  `json:"name"`
-	Archived            bool    `json:"archived"`
-	AutoArchiveDuration int     `json:"auto_archive_duration"`
-	Locked              bool    `json:"locked"`
-	Invitable           bool    `json:"invitable"`
-	RateLimitPerUser    *int    `json:"rate_limit_per_user"`
-	Flags               BitFlag `json:"flags,omitempty"`
+	ChannelID           string   `json:"-"`
+	Name                string   `json:"name,omitempty"`
+	Archived            *bool    `json:"archived,omitempty"`
+	AutoArchiveDuration int      `json:"auto_archive_duration,omitempty"`
+	Locked              *bool    `json:"locked,omitempty"`
+	Invitable           *bool    `json:"invitable,omitempty"`
+	RateLimitPerUser    *int     `json:"rate_limit_per_user"`
+	Flags               BitFlag  `json:"flags,omitempty"`
+	AppliedTags         []string `json:"applied_tags,omitempty"`
 }
 
 // Delete/Close Channel
@@ -2208,7 +2215,7 @@ type CreateGuildEmoji struct {
 type ModifyGuildEmoji struct {
 	GuildID string    `json:"-"`
 	EmojiID string    `json:"-"`
-	Name    string    `json:"name"`
+	Name    string    `json:"name,omitempty"`
 	Roles   []*string `json:"roles"`
 }
 
@@ -2258,24 +2265,23 @@ type GetGuildPreview struct {
 // https://discord.com/developers/docs/resources/guild#modify-guild
 type ModifyGuild struct {
 	GuildID                     string    `json:"-"`
-	Name                        string    `json:"name"`
-	Region                      string    `json:"region"`
-	VerificationLevel           *Flag     `json:"verification_lvl"`
+	Name                        string    `json:"name,omitempty"`
+	VerificationLevel           *Flag     `json:"verification_level"`
 	DefaultMessageNotifications *Flag     `json:"default_message_notifications"`
 	ExplicitContentFilter       *Flag     `json:"explicit_content_filter"`
-	AFKChannelID                string    `json:"afk_channel_id"`
-	AfkTimeout                  int       `json:"afk_timeout"`
+	AFKChannelID                *string   `json:"afk_channel_id"`
+	AfkTimeout                  int       `json:"afk_timeout,omitempty"`
 	Icon                        *string   `json:"icon"`
-	OwnerID                     string    `json:"owner_id"`
+	OwnerID                     string    `json:"owner_id,omitempty"`
 	Splash                      *string   `json:"splash"`
 	DiscoverySplash             *string   `json:"discovery_splash"`
 	Banner                      *string   `json:"banner"`
 	SystemChannelID             *string   `json:"system_channel_id"`
-	SystemChannelFlags          BitFlag   `json:"system_channel_flags"`
+	SystemChannelFlags          BitFlag   `json:"system_channel_flags,omitempty"`
 	RulesChannelID              *string   `json:"rules_channel_id"`
 	PublicUpdatesChannelID      *string   `json:"public_updates_channel_id"`
 	PreferredLocale             *string   `json:"preferred_locale"`
-	Features                    []*string `json:"features"`
+	Features                    []*string `json:"features,omitempty"`
 	Description                 *string   `json:"description"`
 	PremiumProgressBarEnabled   bool      `json:"premium_progress_bar_enabled"`
 }
@@ -2323,8 +2329,8 @@ type CreateGuildChannel struct {
 type ModifyGuildChannelPositions struct {
 	GuildID         string  `json:"-"`
 	ID              string  `json:"id"`
-	Position        int     `json:"position"`
-	LockPermissions bool    `json:"lock_permissions"`
+	Position        *int    `json:"position"`
+	LockPermissions *bool   `json:"lock_permissions"`
 	ParentID        *string `json:"parent_id"`
 }
 
@@ -2332,9 +2338,7 @@ type ModifyGuildChannelPositions struct {
 // GET /guilds/{guild.id}/threads/active
 // https://discord.com/developers/docs/resources/guild#list-active-guild-threads
 type ListActiveGuildThreads struct {
-	GuildID string          `json:"-"`
-	Threads []*Channel      `json:"threads"`
-	Members []*ThreadMember `json:"members"`
+	GuildID string `json:"-"`
 }
 
 // Get Guild Member
@@ -2382,11 +2386,11 @@ type AddGuildMember struct {
 type ModifyGuildMember struct {
 	GuildID                    string     `json:"-"`
 	UserID                     string     `json:"-"`
-	Nick                       string     `json:"nick"`
+	Nick                       *string    `json:"nick"`
 	Roles                      []string   `json:"roles"`
-	Mute                       bool       `json:"mute"`
-	Deaf                       bool       `json:"deaf"`
-	ChannelID                  string     `json:"channel_id"`
+	Mute                       *bool      `json:"mute"`
+	Deaf                       *bool      `json:"deaf"`
+	ChannelID                  *string    `json:"channel_id"`
 	CommunicationDisabledUntil *time.Time `json:"communication_disabled_until"`
 }
 
@@ -2395,7 +2399,7 @@ type ModifyGuildMember struct {
 // https://discord.com/developers/docs/resources/guild#modify-current-member
 type ModifyCurrentMember struct {
 	GuildID string  `json:"-"`
-	Nick    *string `json:"nick,omitempty"`
+	Nick    *string `json:"nick"`
 }
 
 // Add Guild Member Role
@@ -2471,13 +2475,13 @@ type GetGuildRoles struct {
 // https://discord.com/developers/docs/resources/guild#create-guild-role
 type CreateGuildRole struct {
 	GuildID      string  `json:"-"`
-	Name         string  `json:"name"`
-	Permissions  string  `json:"permissions"`
-	Color        *int    `json:"color"`
-	Hoist        bool    `json:"hoist"`
+	Name         string  `json:"name,omitempty"`
+	Permissions  string  `json:"permissions,omitempty"`
+	Color        int     `json:"color,omitempty"`
+	Hoist        *bool   `json:"hoist,omitempty"`
 	Icon         *string `json:"icon"`
 	UnicodeEmoji *string `json:"unicode_emoji"`
-	Mentionable  bool    `json:"mentionable"`
+	Mentionable  bool    `json:"mentionable,omitempty"`
 }
 
 // Modify Guild Role Positions
@@ -2486,7 +2490,7 @@ type CreateGuildRole struct {
 type ModifyGuildRolePositions struct {
 	GuildID  string `json:"-"`
 	ID       string `json:"id"`
-	Position *int   `json:"position,omitempty"`
+	Position *int   `json:"position"`
 }
 
 // Modify Guild Role
@@ -2495,13 +2499,13 @@ type ModifyGuildRolePositions struct {
 type ModifyGuildRole struct {
 	GuildID      string  `json:"-"`
 	RoleID       string  `json:"-"`
-	Name         string  `json:"name"`
-	Permissions  BitFlag `json:"permissions"`
+	Name         *string `json:"name"`
+	Permissions  *string `json:"permissions"`
 	Color        *int    `json:"color"`
-	Hoist        bool    `json:"hoist"`
+	Hoist        *bool   `json:"hoist"`
 	Icon         *string `json:"icon"`
 	UnicodeEmoji *string `json:"unicode_emoji"`
-	Mentionable  bool    `json:"mentionable"`
+	Mentionable  *bool   `json:"mentionable"`
 }
 
 // Modify Guild MFA Level
@@ -2631,7 +2635,7 @@ type GetGuildWelcomeScreen struct {
 // https://discord.com/developers/docs/resources/guild#modify-guild-welcome-screen
 type ModifyGuildWelcomeScreen struct {
 	GuildID         string                  `json:"-"`
-	Enabled         bool                    `json:"enabled"`
+	Enabled         *bool                   `json:"enabled"`
 	WelcomeChannels []*WelcomeScreenChannel `json:"welcome_channels"`
 	Description     *string                 `json:"description"`
 }
@@ -2642,8 +2646,8 @@ type ModifyGuildWelcomeScreen struct {
 type ModifyCurrentUserVoiceState struct {
 	GuildID                 string     `json:"-"`
 	ChannelID               string     `json:"channel_id,omitempty"`
-	Suppress                bool       `json:"suppress,omitempty"`
-	RequestToSpeakTimestamp *time.Time `json:"request_to_speak_timestamp,omitempty"`
+	Suppress                *bool      `json:"suppress,omitempty"`
+	RequestToSpeakTimestamp *time.Time `json:"request_to_speak_timestamp"`
 }
 
 // Modify User Voice State
@@ -2652,7 +2656,7 @@ type ModifyCurrentUserVoiceState struct {
 type ModifyUserVoiceState struct {
 	GuildID   string `json:"-"`
 	UserID    string `json:"-"`
-	ChannelID string `json:"channel_id,omitempty"`
+	ChannelID string `json:"channel_id"`
 	Suppress  *bool  `json:"suppress,omitempty"`
 }
 
@@ -2671,7 +2675,7 @@ type CreateGuildScheduledEvent struct {
 	GuildID            string                             `json:"-"`
 	ChannelID          *string                            `json:"channel_id,omitempty"`
 	EntityMetadata     *GuildScheduledEventEntityMetadata `json:"entity_metadata,omitempty"`
-	Name               *string                            `json:"name"`
+	Name               string                             `json:"name"`
 	PrivacyLevel       Flag                               `json:"privacy_level"`
 	ScheduledStartTime string                             `json:"scheduled_start_time"`
 	ScheduledEndTime   string                             `json:"scheduled_end_time,omitempty"`
@@ -2695,16 +2699,16 @@ type GetGuildScheduledEvent struct {
 type ModifyGuildScheduledEvent struct {
 	GuildID               string                             `json:"-"`
 	GuildScheduledEventID string                             `json:"-"`
-	ChannelID             *string                            `json:"channel_id,omitempty"`
-	EntityMetadata        *GuildScheduledEventEntityMetadata `json:"entity_metadata,omitempty"`
-	Name                  *string                            `json:"name,omitempty"`
+	ChannelID             *string                            `json:"channel_id,"`
+	EntityMetadata        *GuildScheduledEventEntityMetadata `json:"entity_metadata"`
+	Name                  *string                            `json:"name"`
 	PrivacyLevel          Flag                               `json:"privacy_level,omitempty"`
 	ScheduledStartTime    string                             `json:"scheduled_start_time,omitempty"`
 	ScheduledEndTime      string                             `json:"scheduled_end_time,omitempty"`
-	Description           *string                            `json:"description,omitempty"`
-	EntityType            *Flag                              `json:"entity_type,omitempty"`
+	Description           *string                            `json:"description"`
+	EntityType            Flag                               `json:"entity_type,omitempty"`
 	Status                Flag                               `json:"status,omitempty"`
-	Image                 *string                            `json:"image,omitempty"`
+	Image                 string                             `json:"image,omitempty"`
 }
 
 // Delete Guild Scheduled Event
@@ -2774,7 +2778,7 @@ type ModifyGuildTemplate struct {
 	GuildID      string
 	TemplateCode string  `json:"-"`
 	Name         string  `json:"name,omitempty"`
-	Description  *string `json:"description,omitempty"`
+	Description  *string `json:"description"`
 }
 
 // Delete Guild Template
@@ -2882,8 +2886,8 @@ type ModifyGuildSticker struct {
 	GuildID     string  `json:"-"`
 	StickerID   string  `json:"-"`
 	Name        string  `json:"name,omitempty"`
-	Description string  `json:"description,omitempty"`
-	Tags        *string `json:"tags,omitempty"`
+	Description *string `json:"description"`
+	Tags        string  `json:"tags,omitempty"`
 }
 
 // Delete Guild Sticker
@@ -2911,7 +2915,7 @@ type GetUser struct {
 // https://discord.com/developers/docs/resources/user#modify-current-user
 type ModifyCurrentUser struct {
 	Username string  `json:"username,omitempty"`
-	Avatar   *string `json:"avatar,omitempty"`
+	Avatar   *string `json:"avatar"`
 }
 
 // Get Current User Guilds
@@ -3004,10 +3008,10 @@ type GetWebhookwithToken struct {
 // PATCH /webhooks/{webhook.id}
 // https://discord.com/developers/docs/resources/webhook#modify-webhook
 type ModifyWebhook struct {
-	WebhookID string `json:"-"`
-	Name      string `json:"name"`
-	Avatar    string `json:"avatar"`
-	ChannelID string `json:"channel_id"`
+	WebhookID string  `json:"-"`
+	Name      string  `json:"name,omitempty"`
+	Avatar    *string `json:"avatar"`
+	ChannelID string  `json:"channel_id,omitempty"`
 }
 
 // Modify Webhook with Token
@@ -3016,6 +3020,8 @@ type ModifyWebhook struct {
 type ModifyWebhookwithToken struct {
 	WebhookID    string
 	WebhookToken string
+	Name         string  `json:"name,omitempty"`
+	Avatar       *string `json:"avatar"`
 }
 
 // Delete Webhook
@@ -3749,8 +3755,8 @@ type Channel struct {
 	Topic                         *string               `json:"topic,omitempty"`
 	NSFW                          *bool                 `json:"nsfw,omitempty"`
 	LastMessageID                 *string               `json:"last_message_id"`
-	Bitrate                       *Flag                 `json:"bitrate,omitempty"`
-	UserLimit                     *Flag                 `json:"user_limit,omitempty"`
+	Bitrate                       int                   `json:"bitrate,omitempty"`
+	UserLimit                     *int                  `json:"user_limit,omitempty"`
 	RateLimitPerUser              *int                  `json:"rate_limit_per_user,omitempty"`
 	Recipients                    []*User               `json:"recipients,omitempty"`
 	Icon                          *string               `json:"icon"`
@@ -4931,12 +4937,6 @@ const (
 	FlagOAuth2ScopeWebhookIncoming                       = "webhook.incoming"
 )
 
-// Modify Guild MFA Level Response
-// https://discord.com/developers/docs/resources/guild#modify-guild-mfa-level
-type ModifyGuildMFALevelResponse struct {
-	Level Flag `json:"level"`
-}
-
 // List Public Archived Threads Response Body
 // https://discord.com/developers/docs/resources/channel#list-public-archived-threads-response-body
 type ListPublicArchivedThreadsResponse struct {
@@ -4966,6 +4966,18 @@ type ListJoinedPrivateArchivedThreadsResponse struct {
 type ListActiveGuildThreadsResponse struct {
 	Threads []*Channel      `json:"threads"`
 	Members []*ThreadMember `json:"members"`
+}
+
+// Get Guild Prune Count Response Body
+// https://discord.com/developers/docs/resources/guild#get-guild-prune-count
+type GetGuildPruneCountResponse struct {
+	Pruned int `json:"pruned"`
+}
+
+// Modify Guild MFA Level Response
+// https://discord.com/developers/docs/resources/guild#modify-guild-mfa-level
+type ModifyGuildMFALevelResponse struct {
+	Level Flag `json:"level"`
 }
 
 // Current Authorization Information Response Structure

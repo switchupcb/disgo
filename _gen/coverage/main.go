@@ -91,7 +91,7 @@ var (
 		"CreateGuildChannel":                     {"CreateGuild"},
 		"ModifyGuildChannelPositions":            {"CreateGuild", "CreateGuildChannel"},
 		"ListActiveGuildThreads":                 {"CreateGuild"},
-		"GetGuildMember":                         {"AddGuildMember"},
+		"GetGuildMember":                         {"AddGuildMember", "GetUser"},
 		"ListGuildMembers":                       {"CreateGuild"},
 		"SearchGuildMembers":                     {"CreateGuild"},
 		"AddGuildMember":                         {"CreateGuild"},
@@ -190,16 +190,18 @@ var (
 		"BulkDeleteMessages":                     true,
 		"BatchEditApplicationCommandPermissions": true,
 
+		// Examples
+		"ModifyCurrentUser": true, // image/avatar
+
 		// Files
-		"ListNitroStickerPacks": true,
-		"ListGuildStickers":     true,
-		"GetGuildSticker":       true,
-		"CreateGuildSticker":    true,
-		"ModifyGuildSticker":    true,
-		"DeleteGuildSticker":    true,
-		"CreateGuildEmoji":      true,
-		"ModifyGuildEmoji":      true,
-		"DeleteGuildEmoji":      true,
+		"CreateGuildEmoji":   true,
+		"GetGuildEmoji":      true,
+		"ModifyGuildEmoji":   true,
+		"DeleteGuildEmoji":   true,
+		"GetGuildSticker":    true,
+		"CreateGuildSticker": true,
+		"ModifyGuildSticker": true,
+		"DeleteGuildSticker": true,
 
 		// Interactions (Requires User State)
 		"CreateInteractionResponse":         true,
@@ -213,20 +215,44 @@ var (
 
 		// OAuth2 (Requires Bearer Token)
 		"GetCurrentAuthorizationInformation": true,
+		"GetCurrentUserGuilds":               true,
+		"GetCurrentUserGuildMember":          true,
 		"GetUserConnections":                 true,
+
+		// Permission Required (KICK, BAN, TIMEOUT)
+		"GetGuildPruneCount": true,
+		"GetGuildBans":       true,
+		"GetGuildBan":        true,
+		"CreateGuildBan":     true,
+		"RemoveGuildBan":     true,
+
+		// Privileged Intent Required
+		"ListGuildMembers": true,
 
 		// Resources (Requires Complex State Management)
 		"CreateGuild":                  true,
 		"ModifyGuild":                  true,
 		"DeleteGuild":                  true,
+		"ModifyGuildChannelPositions":  true,
+		"ModifyGuildRolePositions":     true,
 		"ModifyGuildMFALevel":          true,
-		"GetGuildIntegration":          true,
+		"BeginGuildPrune":              true,
+		"GetGuildIntegrations":         true,
 		"DeleteGuildIntegration":       true,
+		"ModifyGuildWidget":            true,
+		"GetGuildWidget":               true,
+		"GetGuildVanityURL":            true,
+		"GetGuildWidgetImage":          true,
+		"GetGuildWelcomeScreen":        true,
+		"ModifyGuildWelcomeScreen":     true,
+		"GetGuildTemplate":             true,
 		"CreateGuildfromGuildTemplate": true,
 		"CreateGuildTemplate":          true,
 		"SyncGuildTemplate":            true,
 		"ModifyGuildTemplate":          true,
 		"DeleteGuildTemplate":          true,
+		"GetInvite":                    true,
+		"DeleteInvite":                 true,
 		"FollowAnnouncementChannel":    true,
 		"TriggerTypingIndicator":       true,
 		"ModifyChannelGroupDM":         true,
@@ -237,11 +263,20 @@ var (
 		"GetGateway":    true,
 		"GetGatewayBot": true,
 
+		// Redundant (Similar Logic Tested)
+		"GetGuildApplicationCommands":           true,
+		"CreateGuildApplicationCommand":         true,
+		"GetGuildApplicationCommand":            true,
+		"EditGuildApplicationCommand":           true,
+		"DeleteGuildApplicationCommand":         true,
+		"GetGuildApplicationCommandPermissions": true,
+
 		// User (Requires User State)
-		"GetCurrentUser":         true,
-		"CreateGuildBan":         true,
-		"RemoveGuildBan":         true,
-		"ModifyCurrentUser":      true,
+		"ListNitroStickerPacks":  true,
+		"AddGuildMember":         true,
+		"ModifyGuildMember":      true,
+		"RemoveGuildMember":      true,
+		"ModifyCurrentMember":    true,
 		"LeaveGuild":             true,
 		"CreateDM":               true,
 		"CreateGroupDM":          true,
@@ -379,6 +414,8 @@ func contains(s []string, x string) bool {
 }
 
 func main() {
+	fmt.Println(len(unused), "unused endpoints.\n")
+
 	for i, endpoint := range filterOutput(findOrder(endpoints)) {
 		fmt.Printf("%d. %v\n", i, endpoint)
 	}

@@ -217,11 +217,11 @@ type Copygen interface {
 	// http POST
 	ModifyGuildMFALevel(*disgo.ModifyGuildMFALevel) (*disgo.ModifyGuildMFALevelResponse, error)
 	// http GET
-	GetGuildPruneCount(*disgo.GetGuildPruneCount) error
+	GetGuildPruneCount(*disgo.GetGuildPruneCount) (*disgo.GetGuildPruneCountResponse, error)
 	// http POST
 	BeginGuildPrune(*disgo.BeginGuildPrune) error
 	// http GET
-	GetGuildVoiceRegions(*disgo.GetGuildVoiceRegions) (*disgo.VoiceRegion, error)
+	GetGuildVoiceRegions(*disgo.GetGuildVoiceRegions) ([]*disgo.VoiceRegion, error)
 	// http GET
 	GetGuildInvites(*disgo.GetGuildInvites) ([]*disgo.Invite, error)
 	// http GET

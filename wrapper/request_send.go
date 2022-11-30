@@ -2741,20 +2741,8 @@ func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsRespo
 	routeid, resourceid := RateLimitHashFuncs[87]("87", "45892a5d"+r.GuildID)
 	endpoint := EndpointListActiveGuildThreads(r.GuildID)
 
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
 	result := new(ListActiveGuildThreadsResponse)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeJSON, body, result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
@@ -3329,14 +3317,14 @@ func (r *ModifyGuildMFALevel) Send(bot *Client) (*ModifyGuildMFALevelResponse, e
 	return result, nil
 }
 
-// Send sends a GetGuildPruneCount request to Discord and returns a error.
-func (r *GetGuildPruneCount) Send(bot *Client) error {
+// Send sends a GetGuildPruneCount request to Discord and returns a GetGuildPruneCountResponse.
+func (r *GetGuildPruneCount) Send(bot *Client) (*GetGuildPruneCountResponse, error) {
 	var err error
 	xid := xid.New().String()
 	routeid, resourceid := RateLimitHashFuncs[107]("107", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
-		return ErrorRequest{
+		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
 			CorrelationID: xid,
 			RouteID:       routeid,
@@ -3347,9 +3335,10 @@ func (r *GetGuildPruneCount) Send(bot *Client) error {
 	}
 	endpoint := EndpointGetGuildPruneCount(r.GuildID) + "?" + query
 
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, nil)
+	result := new(GetGuildPruneCountResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
 	if err != nil {
-		return ErrorRequest{
+		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
 			CorrelationID: xid,
 			RouteID:       routeid,
@@ -3359,7 +3348,7 @@ func (r *GetGuildPruneCount) Send(bot *Client) error {
 		}
 	}
 
-	return nil
+	return result, nil
 }
 
 // Send sends a BeginGuildPrune request to Discord and returns a error.
@@ -3396,15 +3385,15 @@ func (r *BeginGuildPrune) Send(bot *Client) error {
 	return nil
 }
 
-// Send sends a GetGuildVoiceRegions request to Discord and returns a VoiceRegion.
-func (r *GetGuildVoiceRegions) Send(bot *Client) (*VoiceRegion, error) {
+// Send sends a GetGuildVoiceRegions request to Discord and returns a []*VoiceRegion.
+func (r *GetGuildVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 	var err error
 	xid := xid.New().String()
 	routeid, resourceid := RateLimitHashFuncs[109]("109", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildVoiceRegions(r.GuildID)
 
-	result := new(VoiceRegion)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	result := make([]*VoiceRegion, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
@@ -4968,8 +4957,20 @@ func (r *ModifyWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 	routeid, resourceid := RateLimitHashFuncs[164]("164", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	endpoint := EndpointModifyWebhookwithToken(r.WebhookID, r.WebhookToken)
 
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
 	result := new(Webhook)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, nil, nil, result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
