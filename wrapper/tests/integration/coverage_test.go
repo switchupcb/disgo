@@ -609,7 +609,7 @@ func testChannel(bot *Client) error {
 		NSFW:                       nil,
 		RTCRegion:                  "",
 		VideoQualityMode:           nil,
-		DefaultAutoArchiveDuration: 0,
+		DefaultAutoArchiveDuration: nil,
 		DefaultReactionEmoji:       nil,
 		AvailableTags:              nil,
 		DefaultSortOrder:           nil,
@@ -706,7 +706,7 @@ func testVoiceChannel(bot *Client) error {
 		NSFW:                       nil,
 		RTCRegion:                  "",
 		VideoQualityMode:           nil,
-		DefaultAutoArchiveDuration: 0,
+		DefaultAutoArchiveDuration: nil,
 		DefaultReactionEmoji:       nil,
 		AvailableTags:              nil,
 		DefaultSortOrder:           nil,
@@ -842,7 +842,7 @@ func testStageInstance(bot *Client) error {
 		NSFW:                       nil,
 		RTCRegion:                  "",
 		VideoQualityMode:           nil,
-		DefaultAutoArchiveDuration: 0,
+		DefaultAutoArchiveDuration: nil,
 		DefaultReactionEmoji:       nil,
 		AvailableTags:              nil,
 		DefaultSortOrder:           nil,
@@ -860,7 +860,7 @@ func testStageInstance(bot *Client) error {
 	createStageInstance := &CreateStageInstance{
 		ChannelID:    channel.ID,
 		Topic:        "Test",
-		PrivacyLevel: FlagPrivacyLevelGUILD_ONLY,
+		PrivacyLevel: FlagStageInstancePrivacyLevelGUILD_ONLY,
 	}
 
 	stage, err := createStageInstance.Send(bot)
@@ -998,7 +998,7 @@ func testMessage(bot *Client, channel *Channel) error {
 			ChannelID: channel.ID,
 			MessageID: message.ID,
 		}
-		
+
 		got, err := getChannelMessage.Send(bot)
 		if err != nil {
 			return fmt.Errorf("GetChannelMessage: %w", err)

@@ -1134,85 +1134,85 @@ const (
 	// STAGE_INSTANCE_CREATE
 	// STAGE_INSTANCE_UPDATE
 	// STAGE_INSTANCE_DELETE
-	FlagIntentGUILDS = 1 << 0
+	FlagIntentGUILDS BitFlag = 1 << 0
 
 	// GUILD_MEMBER_ADD
 	// GUILD_MEMBER_UPDATE
 	// GUILD_MEMBER_REMOVE
 	// THREAD_MEMBERS_UPDATE *
-	FlagIntentGUILD_MEMBERS = 1 << 1
+	FlagIntentGUILD_MEMBERS BitFlag = 1 << 1
 
 	// GUILD_BAN_ADD
 	// GUILD_BAN_REMOVE
-	FlagIntentGUILD_BANS = 1 << 2
+	FlagIntentGUILD_BANS BitFlag = 1 << 2
 
 	// GUILD_EMOJIS_UPDATE
 	// GUILD_STICKERS_UPDATE
-	FlagIntentGUILD_EMOJIS_AND_STICKERS = 1 << 3
+	FlagIntentGUILD_EMOJIS_AND_STICKERS BitFlag = 1 << 3
 
 	// GUILD_INTEGRATIONS_UPDATE
 	// INTEGRATION_CREATE
 	// INTEGRATION_UPDATE
 	// INTEGRATION_DELETE
-	FlagIntentGUILD_INTEGRATIONS = 1 << 4
+	FlagIntentGUILD_INTEGRATIONS BitFlag = 1 << 4
 
 	// WEBHOOKS_UPDATE
-	FlagIntentGUILD_WEBHOOKS = 1 << 5
+	FlagIntentGUILD_WEBHOOKS BitFlag = 1 << 5
 
 	// INVITE_CREATE
 	// INVITE_DELETE
-	FlagIntentGUILD_INVITES = 1 << 6
+	FlagIntentGUILD_INVITES BitFlag = 1 << 6
 
 	// VOICE_STATE_UPDATE
-	FlagIntentGUILD_VOICE_STATES = 1 << 7
+	FlagIntentGUILD_VOICE_STATES BitFlag = 1 << 7
 
 	// PRESENCE_UPDATE
-	FlagIntentGUILD_PRESENCES = 1 << 8
+	FlagIntentGUILD_PRESENCES BitFlag = 1 << 8
 
 	// MESSAGE_CREATE
 	// MESSAGE_UPDATE
 	// MESSAGE_DELETE
 	// MESSAGE_DELETE_BULK
-	FlagIntentGUILD_MESSAGES = 1 << 9
+	FlagIntentGUILD_MESSAGES BitFlag = 1 << 9
 
 	// MESSAGE_REACTION_ADD
 	// MESSAGE_REACTION_REMOVE
 	// MESSAGE_REACTION_REMOVE_ALL
 	// MESSAGE_REACTION_REMOVE_EMOJI
-	FlagIntentGUILD_MESSAGE_REACTIONS = 1 << 10
+	FlagIntentGUILD_MESSAGE_REACTIONS BitFlag = 1 << 10
 
 	// TYPING_START
-	FlagIntentGUILD_MESSAGE_TYPING  = 1 << 11
-	FlagIntentDIRECT_MESSAGE_TYPING = 1 << 14
+	FlagIntentGUILD_MESSAGE_TYPING  BitFlag = 1 << 11
+	FlagIntentDIRECT_MESSAGE_TYPING BitFlag = 1 << 14
 
 	// MESSAGE_CREATE
 	// MESSAGE_UPDATE
 	// MESSAGE_DELETE
 	// CHANNEL_PINS_UPDATE
-	FlagIntentDIRECT_MESSAGES = 1 << 12
+	FlagIntentDIRECT_MESSAGES BitFlag = 1 << 12
 
 	// MESSAGE_REACTION_ADD
 	// MESSAGE_REACTION_REMOVE
 	// MESSAGE_REACTION_REMOVE_ALL
 	// MESSAGE_REACTION_REMOVE_EMOJI
-	FlagIntentDIRECT_MESSAGE_REACTIONS = 1 << 13
+	FlagIntentDIRECT_MESSAGE_REACTIONS BitFlag = 1 << 13
 
-	FlagIntentMESSAGE_CONTENT = 1 << 15
+	FlagIntentMESSAGE_CONTENT BitFlag = 1 << 15
 
 	// GUILD_SCHEDULED_EVENT_CREATE
 	// GUILD_SCHEDULED_EVENT_UPDATE
 	// GUILD_SCHEDULED_EVENT_DELETE
 	// GUILD_SCHEDULED_EVENT_USER_ADD
 	// GUILD_SCHEDULED_EVENT_USER_REMOVE
-	FlagIntentGUILD_SCHEDULED_EVENTS = 1 << 16
+	FlagIntentGUILD_SCHEDULED_EVENTS BitFlag = 1 << 16
 
 	// AUTO_MODERATION_RULE_CREATE
 	// AUTO_MODERATION_RULE_UPDATE
 	// AUTO_MODERATION_RULE_DELETE
-	FlagIntentAUTO_MODERATION_CONFIGURATION = 1 << 20
+	FlagIntentAUTO_MODERATION_CONFIGURATION BitFlag = 1 << 20
 
 	// AUTO_MODERATION_ACTION_EXECUTION
-	FlagIntentAUTO_MODERATION_EXECUTION = 1 << 21
+	FlagIntentAUTO_MODERATION_EXECUTION BitFlag = 1 << 21
 )
 
 // Gateway Commands
@@ -1785,25 +1785,25 @@ type ModifyChannelGroupDM struct {
 // PATCH /channels/{channel.id}
 // https://discord.com/developers/docs/resources/channel#modify-channel-json-params-guild-channel
 type ModifyChannelGuild struct {
-	ChannelID                     string                `json:"-"`
-	Name                          string                `json:"name,omitempty"`
-	Type                          *Flag                 `json:"type,omitempty"`
-	Position                      *int                  `json:"position"`
-	Topic                         *string               `json:"topic"`
-	NSFW                          bool                  `json:"nsfw"`
-	RateLimitPerUser              *int                  `json:"rate_limit_per_user"`
-	Bitrate                       *int                  `json:"bitrate"`
-	UserLimit                     *int                  `json:"user_limit"`
-	PermissionOverwrites          []PermissionOverwrite `json:"permission_overwrites"`
-	ParentID                      *string               `json:"parent_id"`
-	RTCRegion                     *string               `json:"rtc_region"`
-	VideoQualityMode              *Flag                 `json:"video_quality_mode"`
-	DefaultAutoArchiveDuration    *int                  `json:"default_auto_archive_duration"`
-	Flags                         BitFlag               `json:"flags,omitempty"`
-	AvailableTags                 []*ForumTag           `json:"available_tags,omitempty"`
-	DefaultReactionEmoji          *DefaultReaction      `json:"default_reaction_emoji"`
-	DefaultThreadRateLimitPerUser int                   `json:"default_thread_rate_limit_per_user,omitempty"`
-	DefaultSortOrder              *int                  `json:"default_sort_order"`
+	ChannelID                     string                 `json:"-"`
+	Name                          string                 `json:"name,omitempty"`
+	Type                          *Flag                  `json:"type,omitempty"`
+	Position                      *int                   `json:"position"`
+	Topic                         *string                `json:"topic"`
+	NSFW                          bool                   `json:"nsfw"`
+	RateLimitPerUser              *int                   `json:"rate_limit_per_user"`
+	Bitrate                       *int                   `json:"bitrate"`
+	UserLimit                     *int                   `json:"user_limit"`
+	PermissionOverwrites          []*PermissionOverwrite `json:"permission_overwrites"`
+	ParentID                      *string                `json:"parent_id"`
+	RTCRegion                     *string                `json:"rtc_region"`
+	VideoQualityMode              *Flag                  `json:"video_quality_mode"`
+	DefaultAutoArchiveDuration    *int                   `json:"default_auto_archive_duration"`
+	Flags                         BitFlag                `json:"flags,omitempty"`
+	AvailableTags                 []*ForumTag            `json:"available_tags,omitempty"`
+	DefaultReactionEmoji          *DefaultReaction       `json:"default_reaction_emoji"`
+	DefaultThreadRateLimitPerUser int                    `json:"default_thread_rate_limit_per_user,omitempty"`
+	DefaultSortOrder              *int                   `json:"default_sort_order"`
 }
 
 // Modify Channel
@@ -2306,21 +2306,21 @@ type GetGuildChannels struct {
 type CreateGuildChannel struct {
 	GuildID                    string                 `json:"-"`
 	Name                       string                 `json:"name"`
-	Type                       *Flag                  `json:"type,omitempty"`
-	Topic                      *string                `json:"topic,omitempty"`
-	Bitrate                    *int                   `json:"bitrate,omitempty"`
-	UserLimit                  *int                   `json:"user_limit,omitempty"`
-	RateLimitPerUser           *int                   `json:"rate_limit_per_user,omitempty"`
-	Position                   *int                   `json:"position,omitempty"`
-	PermissionOverwrites       []*PermissionOverwrite `json:"permission_overwrites,omitempty"`
-	ParentID                   *string                `json:"parent_id,omitempty"`
-	NSFW                       *bool                  `json:"nsfw,omitempty"`
-	RTCRegion                  string                 `json:"rtc_region,omitempty"`
-	VideoQualityMode           *Flag                  `json:"video_quality_mode,omitempty"`
-	DefaultAutoArchiveDuration int                    `json:"default_auto_archive_duration,omitempty"`
-	DefaultReactionEmoji       *DefaultReaction       `json:"default_reaction_emoji,omitempty"`
-	AvailableTags              []*ForumTag            `json:"available_tags,omitempty"`
-	DefaultSortOrder           *int                   `json:"default_sort_order,omitempty"`
+	Type                       *Flag                  `json:"type"`
+	Topic                      *string                `json:"topic"`
+	Bitrate                    *int                   `json:"bitrate"`
+	UserLimit                  *int                   `json:"user_limit"`
+	RateLimitPerUser           *int                   `json:"rate_limit_per_user"`
+	Position                   *int                   `json:"position"`
+	PermissionOverwrites       []*PermissionOverwrite `json:"permission_overwrites"`
+	ParentID                   *string                `json:"parent_id"`
+	NSFW                       *bool                  `json:"nsfw"`
+	RTCRegion                  string                 `json:"rtc_region"`
+	VideoQualityMode           *Flag                  `json:"video_quality_mode"`
+	DefaultAutoArchiveDuration *int                   `json:"default_auto_archive_duration"`
+	DefaultReactionEmoji       *DefaultReaction       `json:"default_reaction_emoji"`
+	AvailableTags              []*ForumTag            `json:"available_tags"`
+	DefaultSortOrder           *int                   `json:"default_sort_order"`
 }
 
 // Modify Guild Channel Positions
@@ -3206,9 +3206,9 @@ type ApplicationCommand struct {
 // Application Command Types
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types
 const (
-	FlagApplicationCommandTypeCHAT_INPUT = 1
-	FlagApplicationCommandTypeUSER       = 2
-	FlagApplicationCommandTypeMESSAGE    = 3
+	FlagApplicationCommandTypeCHAT_INPUT Flag = 1
+	FlagApplicationCommandTypeUSER       Flag = 2
+	FlagApplicationCommandTypeMESSAGE    Flag = 3
 )
 
 // Application Command Option Structure
@@ -3231,17 +3231,17 @@ type ApplicationCommandOption struct {
 // Application Command Option Type
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-option-type
 const (
-	FlagApplicationCommandOptionTypeSUB_COMMAND       = 1
-	FlagApplicationCommandOptionTypeSUB_COMMAND_GROUP = 2
-	FlagApplicationCommandOptionTypeSTRING            = 3
-	FlagApplicationCommandOptionTypeINTEGER           = 4
-	FlagApplicationCommandOptionTypeBOOLEAN           = 5
-	FlagApplicationCommandOptionTypeUSER              = 6
-	FlagApplicationCommandOptionTypeCHANNEL           = 7
-	FlagApplicationCommandOptionTypeROLE              = 8
-	FlagApplicationCommandOptionTypeMENTIONABLE       = 9
-	FlagApplicationCommandOptionTypeNUMBER            = 10
-	FlagApplicationCommandOptionTypeATTACHMENT        = 11
+	FlagApplicationCommandOptionTypeSUB_COMMAND       Flag = 1
+	FlagApplicationCommandOptionTypeSUB_COMMAND_GROUP Flag = 2
+	FlagApplicationCommandOptionTypeSTRING            Flag = 3
+	FlagApplicationCommandOptionTypeINTEGER           Flag = 4
+	FlagApplicationCommandOptionTypeBOOLEAN           Flag = 5
+	FlagApplicationCommandOptionTypeUSER              Flag = 6
+	FlagApplicationCommandOptionTypeCHANNEL           Flag = 7
+	FlagApplicationCommandOptionTypeROLE              Flag = 8
+	FlagApplicationCommandOptionTypeMENTIONABLE       Flag = 9
+	FlagApplicationCommandOptionTypeNUMBER            Flag = 10
+	FlagApplicationCommandOptionTypeATTACHMENT        Flag = 11
 )
 
 // Application Command Option Choice
@@ -3272,8 +3272,8 @@ type ApplicationCommandPermissions struct {
 // Application Command Permission Type
 // https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-application-command-permission-type
 const (
-	FlagApplicationCommandPermissionTypeROLE = 1
-	FlagApplicationCommandPermissionTypeUSER = 2
+	FlagApplicationCommandPermissionTypeROLE Flag = 1
+	FlagApplicationCommandPermissionTypeUSER Flag = 2
 )
 
 // Component Object
@@ -3285,14 +3285,14 @@ type Component interface {
 // Component Types
 // https://discord.com/developers/docs/interactions/message-components#component-object-component-types
 const (
-	FlagComponentTypeActionRow         = 1
-	FlagComponentTypeButton            = 2
-	FlagComponentTypeSelectMenu        = 3
-	FlagComponentTypeTextInput         = 4
-	FlagComponentTypeUserSelect        = 5
-	FlagComponentTypeRoleSelect        = 6
-	FlagComponentTypeMentionableSelect = 7
-	FlagComponentTypeChannelSelect     = 8
+	FlagComponentTypeActionRow         Flag = 1
+	FlagComponentTypeButton            Flag = 2
+	FlagComponentTypeSelectMenu        Flag = 3
+	FlagComponentTypeTextInput         Flag = 4
+	FlagComponentTypeUserSelect        Flag = 5
+	FlagComponentTypeRoleSelect        Flag = 6
+	FlagComponentTypeMentionableSelect Flag = 7
+	FlagComponentTypeChannelSelect     Flag = 8
 )
 
 // https://discord.com/developers/docs/interactions/message-components#component-object
@@ -3314,15 +3314,15 @@ type Button struct {
 // Button Styles
 // https://discord.com/developers/docs/interactions/message-components#button-object-button-styles
 const (
-	FlagButtonStylePRIMARY   = 1
-	FlagButtonStyleBLURPLE   = 1
-	FlagButtonStyleSecondary = 2
-	FlagButtonStyleGREY      = 2
-	FlagButtonStyleSuccess   = 3
-	FlagButtonStyleGREEN     = 3
-	FlagButtonStyleDanger    = 4
-	FlagButtonStyleRED       = 4
-	FlagButtonStyleLINK      = 5
+	FlagButtonStylePRIMARY   Flag = 1
+	FlagButtonStyleBLURPLE   Flag = 1
+	FlagButtonStyleSecondary Flag = 2
+	FlagButtonStyleGREY      Flag = 2
+	FlagButtonStyleSuccess   Flag = 3
+	FlagButtonStyleGREEN     Flag = 3
+	FlagButtonStyleDanger    Flag = 4
+	FlagButtonStyleRED       Flag = 4
+	FlagButtonStyleLINK      Flag = 5
 )
 
 // Select Menu Structure
@@ -3364,8 +3364,8 @@ type TextInput struct {
 // Text Input Styles
 // https://discord.com/developers/docs/interactions/message-components#text-inputs-text-input-styles
 const (
-	FlagTextInputStyleShort     = 1
-	FlagTextInputStyleParagraph = 2
+	FlagTextInputStyleShort     Flag = 1
+	FlagTextInputStyleParagraph Flag = 2
 )
 
 // Interaction Object
@@ -3390,11 +3390,11 @@ type Interaction struct {
 // Interaction Type
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-type
 const (
-	FlagInteractionTypePING                             = 1
-	FlagInteractionTypeAPPLICATION_COMMAND              = 2
-	FlagInteractionTypeMESSAGE_COMPONENT                = 3
-	FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE = 4
-	FlagInteractionTypeMODAL_SUBMIT                     = 5
+	FlagInteractionTypePING                             Flag = 1
+	FlagInteractionTypeAPPLICATION_COMMAND              Flag = 2
+	FlagInteractionTypeMESSAGE_COMPONENT                Flag = 3
+	FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE Flag = 4
+	FlagInteractionTypeMODAL_SUBMIT                     Flag = 5
 )
 
 // Interaction Data
@@ -3471,13 +3471,13 @@ type InteractionResponse struct {
 // Interaction Callback Type
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-response-object-interaction-callback-type
 const (
-	FlagInteractionCallbackTypePONG                                    = 1
-	FlagInteractionCallbackTypeCHANNEL_MESSAGE_WITH_SOURCE             = 4
-	FlagInteractionCallbackTypeDEFERRED_CHANNEL_MESSAGE_WITH_SOURCE    = 5
-	FlagInteractionCallbackTypeDEFERRED_UPDATE_MESSAGE                 = 6
-	FlagInteractionCallbackTypeUPDATE_MESSAGE                          = 7
-	FlagInteractionCallbackTypeAPPLICATION_COMMAND_AUTOCOMPLETE_RESULT = 8
-	FlagInteractionCallbackTypeMODAL                                   = 9
+	FlagInteractionCallbackTypePONG                                    Flag = 1
+	FlagInteractionCallbackTypeCHANNEL_MESSAGE_WITH_SOURCE             Flag = 4
+	FlagInteractionCallbackTypeDEFERRED_CHANNEL_MESSAGE_WITH_SOURCE    Flag = 5
+	FlagInteractionCallbackTypeDEFERRED_UPDATE_MESSAGE                 Flag = 6
+	FlagInteractionCallbackTypeUPDATE_MESSAGE                          Flag = 7
+	FlagInteractionCallbackTypeAPPLICATION_COMMAND_AUTOCOMPLETE_RESULT Flag = 8
+	FlagInteractionCallbackTypeMODAL                                   Flag = 9
 )
 
 // Interaction Callback Data Structure
@@ -3540,15 +3540,15 @@ type Application struct {
 // Application Flags
 // https://discord.com/developers/docs/resources/application#application-object-application-flags
 const (
-	FlagApplicationGATEWAY_PRESENCE                 = 1 << 12
-	FlagApplicationGATEWAY_PRESENCE_LIMITED         = 1 << 13
-	FlagApplicationGATEWAY_GUILD_MEMBERS            = 1 << 14
-	FlagApplicationGATEWAY_GUILD_MEMBERS_LIMITED    = 1 << 15
-	FlagApplicationVERIFICATION_PENDING_GUILD_LIMIT = 1 << 16
-	FlagApplicationEMBEDDED                         = 1 << 17
-	FlagApplicationGATEWAY_MESSAGE_CONTENT          = 1 << 18
-	FlagApplicationGATEWAY_MESSAGE_CONTENT_LIMITED  = 1 << 19
-	FlagApplicationAPPLICATION_COMMAND_BADGE        = 1 << 23
+	FlagApplicationGATEWAY_PRESENCE                 BitFlag = 1 << 12
+	FlagApplicationGATEWAY_PRESENCE_LIMITED         BitFlag = 1 << 13
+	FlagApplicationGATEWAY_GUILD_MEMBERS            BitFlag = 1 << 14
+	FlagApplicationGATEWAY_GUILD_MEMBERS_LIMITED    BitFlag = 1 << 15
+	FlagApplicationVERIFICATION_PENDING_GUILD_LIMIT BitFlag = 1 << 16
+	FlagApplicationEMBEDDED                         BitFlag = 1 << 17
+	FlagApplicationGATEWAY_MESSAGE_CONTENT          BitFlag = 1 << 18
+	FlagApplicationGATEWAY_MESSAGE_CONTENT_LIMITED  BitFlag = 1 << 19
+	FlagApplicationAPPLICATION_COMMAND_BADGE        BitFlag = 1 << 23
 )
 
 // Install Params Object
@@ -3585,60 +3585,60 @@ type AuditLogEntry struct {
 // Audit Log Events
 // https://discord.com/developers/docs/resources/audit-log#audit-log-entry-object-audit-log-events
 const (
-	FlagAuditLogEventGUILD_UPDATE                                = 1
-	FlagAuditLogEventCHANNEL_CREATE                              = 10
-	FlagAuditLogEventCHANNEL_UPDATE                              = 11
-	FlagAuditLogEventCHANNEL_DELETE                              = 12
-	FlagAuditLogEventCHANNEL_OVERWRITE_CREATE                    = 13
-	FlagAuditLogEventCHANNEL_OVERWRITE_UPDATE                    = 14
-	FlagAuditLogEventCHANNEL_OVERWRITE_DELETE                    = 15
-	FlagAuditLogEventMEMBER_KICK                                 = 20
-	FlagAuditLogEventMEMBER_PRUNE                                = 21
-	FlagAuditLogEventMEMBER_BAN_ADD                              = 22
-	FlagAuditLogEventMEMBER_BAN_REMOVE                           = 23
-	FlagAuditLogEventMEMBER_UPDATE                               = 24
-	FlagAuditLogEventMEMBER_ROLE_UPDATE                          = 25
-	FlagAuditLogEventMEMBER_MOVE                                 = 26
-	FlagAuditLogEventMEMBER_DISCONNECT                           = 27
-	FlagAuditLogEventBOT_ADD                                     = 28
-	FlagAuditLogEventROLE_CREATE                                 = 30
-	FlagAuditLogEventROLE_UPDATE                                 = 31
-	FlagAuditLogEventROLE_DELETE                                 = 32
-	FlagAuditLogEventINVITE_CREATE                               = 40
-	FlagAuditLogEventINVITE_UPDATE                               = 41
-	FlagAuditLogEventINVITE_DELETE                               = 42
-	FlagAuditLogEventWEBHOOK_CREATE                              = 50
-	FlagAuditLogEventWEBHOOK_UPDATE                              = 51
-	FlagAuditLogEventWEBHOOK_DELETE                              = 52
-	FlagAuditLogEventEMOJI_CREATE                                = 60
-	FlagAuditLogEventEMOJI_UPDATE                                = 61
-	FlagAuditLogEventEMOJI_DELETE                                = 62
-	FlagAuditLogEventMESSAGE_DELETE                              = 72
-	FlagAuditLogEventMESSAGE_BULK_DELETE                         = 73
-	FlagAuditLogEventMESSAGE_PIN                                 = 74
-	FlagAuditLogEventMESSAGE_UNPIN                               = 75
-	FlagAuditLogEventINTEGRATION_CREATE                          = 80
-	FlagAuditLogEventINTEGRATION_UPDATE                          = 81
-	FlagAuditLogEventINTEGRATION_DELETE                          = 82
-	FlagAuditLogEventSTAGE_INSTANCE_CREATE                       = 83
-	FlagAuditLogEventSTAGE_INSTANCE_UPDATE                       = 84
-	FlagAuditLogEventSTAGE_INSTANCE_DELETE                       = 85
-	FlagAuditLogEventSTICKER_CREATE                              = 90
-	FlagAuditLogEventSTICKER_UPDATE                              = 91
-	FlagAuditLogEventSTICKER_DELETE                              = 92
-	FlagAuditLogEventGUILD_SCHEDULED_EVENT_CREATE                = 100
-	FlagAuditLogEventGUILD_SCHEDULED_EVENT_UPDATE                = 101
-	FlagAuditLogEventGUILD_SCHEDULED_EVENT_DELETE                = 102
-	FlagAuditLogEventTHREAD_CREATE                               = 110
-	FlagAuditLogEventTHREAD_UPDATE                               = 111
-	FlagAuditLogEventTHREAD_DELETE                               = 112
-	FlagAuditLogEventAPPLICATION_COMMAND_PERMISSION_UPDATE       = 121
-	FlagAuditLogEventAUTO_MODERATION_RULE_CREATE                 = 140
-	FlagAuditLogEventAUTO_MODERATION_RULE_UPDATE                 = 141
-	FlagAuditLogEventAUTO_MODERATION_RULE_DELETE                 = 142
-	FlagAuditLogEventAUTO_MODERATION_BLOCK_MESSAGE               = 143
-	FlagAuditLogEventAUTO_MODERATION_FLAG_TO_CHANNEL             = 144
-	FlagAuditLogEventAUTO_MODERATION_USER_COMMUNICATION_DISABLED = 145
+	FlagAuditLogEventGUILD_UPDATE                                Flag = 1
+	FlagAuditLogEventCHANNEL_CREATE                              Flag = 10
+	FlagAuditLogEventCHANNEL_UPDATE                              Flag = 11
+	FlagAuditLogEventCHANNEL_DELETE                              Flag = 12
+	FlagAuditLogEventCHANNEL_OVERWRITE_CREATE                    Flag = 13
+	FlagAuditLogEventCHANNEL_OVERWRITE_UPDATE                    Flag = 14
+	FlagAuditLogEventCHANNEL_OVERWRITE_DELETE                    Flag = 15
+	FlagAuditLogEventMEMBER_KICK                                 Flag = 20
+	FlagAuditLogEventMEMBER_PRUNE                                Flag = 21
+	FlagAuditLogEventMEMBER_BAN_ADD                              Flag = 22
+	FlagAuditLogEventMEMBER_BAN_REMOVE                           Flag = 23
+	FlagAuditLogEventMEMBER_UPDATE                               Flag = 24
+	FlagAuditLogEventMEMBER_ROLE_UPDATE                          Flag = 25
+	FlagAuditLogEventMEMBER_MOVE                                 Flag = 26
+	FlagAuditLogEventMEMBER_DISCONNECT                           Flag = 27
+	FlagAuditLogEventBOT_ADD                                     Flag = 28
+	FlagAuditLogEventROLE_CREATE                                 Flag = 30
+	FlagAuditLogEventROLE_UPDATE                                 Flag = 31
+	FlagAuditLogEventROLE_DELETE                                 Flag = 32
+	FlagAuditLogEventINVITE_CREATE                               Flag = 40
+	FlagAuditLogEventINVITE_UPDATE                               Flag = 41
+	FlagAuditLogEventINVITE_DELETE                               Flag = 42
+	FlagAuditLogEventWEBHOOK_CREATE                              Flag = 50
+	FlagAuditLogEventWEBHOOK_UPDATE                              Flag = 51
+	FlagAuditLogEventWEBHOOK_DELETE                              Flag = 52
+	FlagAuditLogEventEMOJI_CREATE                                Flag = 60
+	FlagAuditLogEventEMOJI_UPDATE                                Flag = 61
+	FlagAuditLogEventEMOJI_DELETE                                Flag = 62
+	FlagAuditLogEventMESSAGE_DELETE                              Flag = 72
+	FlagAuditLogEventMESSAGE_BULK_DELETE                         Flag = 73
+	FlagAuditLogEventMESSAGE_PIN                                 Flag = 74
+	FlagAuditLogEventMESSAGE_UNPIN                               Flag = 75
+	FlagAuditLogEventINTEGRATION_CREATE                          Flag = 80
+	FlagAuditLogEventINTEGRATION_UPDATE                          Flag = 81
+	FlagAuditLogEventINTEGRATION_DELETE                          Flag = 82
+	FlagAuditLogEventSTAGE_INSTANCE_CREATE                       Flag = 83
+	FlagAuditLogEventSTAGE_INSTANCE_UPDATE                       Flag = 84
+	FlagAuditLogEventSTAGE_INSTANCE_DELETE                       Flag = 85
+	FlagAuditLogEventSTICKER_CREATE                              Flag = 90
+	FlagAuditLogEventSTICKER_UPDATE                              Flag = 91
+	FlagAuditLogEventSTICKER_DELETE                              Flag = 92
+	FlagAuditLogEventGUILD_SCHEDULED_EVENT_CREATE                Flag = 100
+	FlagAuditLogEventGUILD_SCHEDULED_EVENT_UPDATE                Flag = 101
+	FlagAuditLogEventGUILD_SCHEDULED_EVENT_DELETE                Flag = 102
+	FlagAuditLogEventTHREAD_CREATE                               Flag = 110
+	FlagAuditLogEventTHREAD_UPDATE                               Flag = 111
+	FlagAuditLogEventTHREAD_DELETE                               Flag = 112
+	FlagAuditLogEventAPPLICATION_COMMAND_PERMISSION_UPDATE       Flag = 121
+	FlagAuditLogEventAUTO_MODERATION_RULE_CREATE                 Flag = 140
+	FlagAuditLogEventAUTO_MODERATION_RULE_UPDATE                 Flag = 141
+	FlagAuditLogEventAUTO_MODERATION_RULE_DELETE                 Flag = 142
+	FlagAuditLogEventAUTO_MODERATION_BLOCK_MESSAGE               Flag = 143
+	FlagAuditLogEventAUTO_MODERATION_FLAG_TO_CHANNEL             Flag = 144
+	FlagAuditLogEventAUTO_MODERATION_USER_COMMUNICATION_DISABLED Flag = 145
 )
 
 // Optional Audit Entry Info
@@ -3687,11 +3687,11 @@ type AutoModerationRule struct {
 // Trigger Types
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-trigger-types
 const (
-	FlagTriggerTypeKEYWORD        = 1
-	FlagTriggerTypeHARMFUL_LINK   = 2
-	FlagTriggerTypeSPAM           = 3
-	FlagTriggerTypeKEYWORD_PRESET = 4
-	FlagTriggerTypeMENTION_SPAM   = 5
+	FlagTriggerTypeKEYWORD        Flag = 1
+	FlagTriggerTypeHARMFUL_LINK   Flag = 2
+	FlagTriggerTypeSPAM           Flag = 3
+	FlagTriggerTypeKEYWORD_PRESET Flag = 4
+	FlagTriggerTypeMENTION_SPAM   Flag = 5
 )
 
 // Trigger Metadata
@@ -3708,15 +3708,15 @@ type TriggerMetadata struct {
 // Keyword Preset Types
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-keyword-preset-types
 const (
-	FlagKeywordPresetTypePROFANITY      = 1
-	FlagKeywordPresetTypeSEXUAL_CONTENT = 2
-	FlagKeywordPresetTypeSLURS          = 3
+	FlagKeywordPresetTypePROFANITY      Flag = 1
+	FlagKeywordPresetTypeSEXUAL_CONTENT Flag = 2
+	FlagKeywordPresetTypeSLURS          Flag = 3
 )
 
 // Event Types
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-event-types
 const (
-	FlagEventTypeMESSAGE_SEND = 1
+	FlagEventTypeMESSAGE_SEND Flag = 1
 )
 
 // Auto Moderation Action Structure
@@ -3729,9 +3729,9 @@ type AutoModerationAction struct {
 // Action Types
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-action-object-action-types
 const (
-	FlagActionTypeBLOCK_MESSAGE      = 1
-	FlagActionTypeSEND_ALERT_MESSAGE = 2
-	FlagActionTypeTIMEOUT            = 3
+	FlagActionTypeBLOCK_MESSAGE      Flag = 1
+	FlagActionTypeSEND_ALERT_MESSAGE Flag = 2
+	FlagActionTypeTIMEOUT            Flag = 3
 )
 
 // Action Metadata
@@ -3744,77 +3744,77 @@ type ActionMetadata struct {
 // Channel Object
 // https://discord.com/developers/docs/resources/channel
 type Channel struct {
-	ID                            string                `json:"id"`
-	Type                          *Flag                 `json:"type"`
-	GuildID                       string                `json:"guild_id,omitempty"`
-	Position                      *int                  `json:"position,omitempty"`
-	PermissionOverwrites          []PermissionOverwrite `json:"permission_overwrites,omitempty"`
-	Name                          string                `json:"name,omitempty"`
-	Topic                         *string               `json:"topic,omitempty"`
-	NSFW                          *bool                 `json:"nsfw,omitempty"`
-	LastMessageID                 *string               `json:"last_message_id"`
-	Bitrate                       int                   `json:"bitrate,omitempty"`
-	UserLimit                     *int                  `json:"user_limit,omitempty"`
-	RateLimitPerUser              *int                  `json:"rate_limit_per_user,omitempty"`
-	Recipients                    []*User               `json:"recipients,omitempty"`
-	Icon                          *string               `json:"icon"`
-	OwnerID                       string                `json:"owner_id,omitempty"`
-	ApplicationID                 string                `json:"application_id,omitempty"`
-	ParentID                      *string               `json:"parent_id"`
-	LastPinTimestamp              time.Time             `json:"last_pin_timestamp"`
-	RTCRegion                     *string               `json:"rtc_region"`
-	VideoQualityMode              Flag                  `json:"video_quality_mode,omitempty"`
-	MessageCount                  *int                  `json:"message_count,omitempty"`
-	MemberCount                   *int                  `json:"member_count,omitempty"`
-	ThreadMetadata                *ThreadMetadata       `json:"thread_metadata,omitempty"`
-	Member                        *ThreadMember         `json:"member,omitempty"`
-	DefaultAutoArchiveDuration    int                   `json:"default_auto_archive_duration,omitempty"`
-	Permissions                   *string               `json:"permissions,omitempty"`
-	Flags                         BitFlag               `json:"flags,omitempty"`
-	TotalMessageSent              int                   `json:"total_message_sent,omitempty"`
-	AvailableTags                 []*ForumTag           `json:"available_tags,omitempty"`
-	AppliedTags                   []string              `json:"applied_tags,omitempty"`
-	DefaultReactionEmoji          *DefaultReaction      `json:"default_reaction_emoji"`
-	DefaultThreadRateLimitPerUser int                   `json:"default_thread_rate_limit_per_user,omitempty"`
-	DefaultSortOrder              *int                  `json:"default_sort_order"`
+	ID                            string                 `json:"id"`
+	Type                          *Flag                  `json:"type"`
+	GuildID                       string                 `json:"guild_id,omitempty"`
+	Position                      *int                   `json:"position,omitempty"`
+	PermissionOverwrites          []*PermissionOverwrite `json:"permission_overwrites,omitempty"`
+	Name                          string                 `json:"name,omitempty"`
+	Topic                         *string                `json:"topic,omitempty"`
+	NSFW                          *bool                  `json:"nsfw,omitempty"`
+	LastMessageID                 *string                `json:"last_message_id"`
+	Bitrate                       int                    `json:"bitrate,omitempty"`
+	UserLimit                     *int                   `json:"user_limit,omitempty"`
+	RateLimitPerUser              *int                   `json:"rate_limit_per_user,omitempty"`
+	Recipients                    []*User                `json:"recipients,omitempty"`
+	Icon                          *string                `json:"icon"`
+	OwnerID                       string                 `json:"owner_id,omitempty"`
+	ApplicationID                 string                 `json:"application_id,omitempty"`
+	ParentID                      *string                `json:"parent_id"`
+	LastPinTimestamp              time.Time              `json:"last_pin_timestamp"`
+	RTCRegion                     *string                `json:"rtc_region"`
+	VideoQualityMode              Flag                   `json:"video_quality_mode,omitempty"`
+	MessageCount                  *int                   `json:"message_count,omitempty"`
+	MemberCount                   *int                   `json:"member_count,omitempty"`
+	ThreadMetadata                *ThreadMetadata        `json:"thread_metadata,omitempty"`
+	Member                        *ThreadMember          `json:"member,omitempty"`
+	DefaultAutoArchiveDuration    int                    `json:"default_auto_archive_duration,omitempty"`
+	Permissions                   *string                `json:"permissions,omitempty"`
+	Flags                         BitFlag                `json:"flags,omitempty"`
+	TotalMessageSent              int                    `json:"total_message_sent,omitempty"`
+	AvailableTags                 []*ForumTag            `json:"available_tags,omitempty"`
+	AppliedTags                   []string               `json:"applied_tags,omitempty"`
+	DefaultReactionEmoji          *DefaultReaction       `json:"default_reaction_emoji"`
+	DefaultThreadRateLimitPerUser int                    `json:"default_thread_rate_limit_per_user,omitempty"`
+	DefaultSortOrder              *int                   `json:"default_sort_order"`
 }
 
 // Channel Types
 // https://discord.com/developers/docs/resources/channel#channel-object-channel-types
 const (
 	FlagChannelTypeGUILD_TEXT          Flag = 0
-	FlagChannelTypeDM                       = 1
+	FlagChannelTypeDM                  Flag = 1
 	FlagChannelTypeGUILD_VOICE         Flag = 2
-	FlagChannelTypeGROUP_DM                 = 3
-	FlagChannelTypeGUILD_CATEGORY           = 4
-	FlagChannelTypeGUILD_ANNOUNCEMENT       = 5
-	FlagChannelTypeANNOUNCEMENT_THREAD      = 10
-	FlagChannelTypePUBLIC_THREAD            = 11
-	FlagChannelTypePRIVATE_THREAD           = 12
+	FlagChannelTypeGROUP_DM            Flag = 3
+	FlagChannelTypeGUILD_CATEGORY      Flag = 4
+	FlagChannelTypeGUILD_ANNOUNCEMENT  Flag = 5
+	FlagChannelTypeANNOUNCEMENT_THREAD Flag = 10
+	FlagChannelTypePUBLIC_THREAD       Flag = 11
+	FlagChannelTypePRIVATE_THREAD      Flag = 12
 	FlagChannelTypeGUILD_STAGE_VOICE   Flag = 13
-	FlagChannelTypeGUILD_DIRECTORY          = 14
-	FlagChannelTypeGUILD_FORUM              = 15
+	FlagChannelTypeGUILD_DIRECTORY     Flag = 14
+	FlagChannelTypeGUILD_FORUM         Flag = 15
 )
 
 // Video Quality Modes
 // https://discord.com/developers/docs/resources/channel#channel-object-video-quality-modes
 const (
-	FlagVideoQualityModeAUTO = 1
-	FlagVideoQualityModeFULL = 2
+	FlagVideoQualityModeAUTO Flag = 1
+	FlagVideoQualityModeFULL Flag = 2
 )
 
 // Channel Flags
 // https://discord.com/developers/docs/resources/channel#channel-object-channel-flags
 const (
-	FlagChannelPINNED      = 1 << 1
-	FlagChannelREQUIRE_TAG = 1 << 4
+	FlagChannelPINNED      BitFlag = 1 << 1
+	FlagChannelREQUIRE_TAG BitFlag = 1 << 4
 )
 
 // Sort Order Types
 // https://discord.com/developers/docs/resources/channel#channel-object-sort-order-types
 const (
-	FlagSortOrderTypeLATEST_ACTIVITY = 0
-	FlagSortOrderTypeCREATION_DATE   = 1
+	FlagSortOrderTypeLATEST_ACTIVITY Flag = 0
+	FlagSortOrderTypeCREATION_DATE   Flag = 1
 )
 
 // Message Object
@@ -3860,30 +3860,30 @@ type Message struct {
 // Message Types
 // https://discord.com/developers/docs/resources/channel#message-object-message-types
 const (
-	FlagMessageTypeDEFAULT                                      = 0
-	FlagMessageTypeRECIPIENT_ADD                                = 1
-	FlagMessageTypeRECIPIENT_REMOVE                             = 2
-	FlagMessageTypeCALL                                         = 3
-	FlagMessageTypeCHANNEL_NAME_CHANGE                          = 4
-	FlagMessageTypeCHANNEL_ICON_CHANGE                          = 5
-	FlagMessageTypeCHANNEL_PINNED_MESSAGE                       = 6
-	FlagMessageTypeUSER_JOIN                                    = 7
-	FlagMessageTypeGUILD_BOOST                                  = 8
-	FlagMessageTypeGUILD_BOOST_TIER_1                           = 9
-	FlagMessageTypeGUILD_BOOST_TIER_2                           = 10
-	FlagMessageTypeGUILD_BOOST_TIER_3                           = 11
-	FlagMessageTypeCHANNEL_FOLLOW_ADD                           = 12
-	FlagMessageTypeGUILD_DISCOVERY_DISQUALIFIED                 = 14
-	FlagMessageTypeGUILD_DISCOVERY_REQUALIFIED                  = 15
-	FlagMessageTypeGUILD_DISCOVERY_GRACE_PERIOD_INITIAL_WARNING = 16
-	FlagMessageTypeGUILD_DISCOVERY_GRACE_PERIOD_FINAL_WARNING   = 17
-	FlagMessageTypeTHREAD_CREATED                               = 18
-	FlagMessageTypeREPLY                                        = 19
-	FlagMessageTypeCHAT_INPUT_COMMAND                           = 20
-	FlagMessageTypeTHREAD_STARTER_MESSAGE                       = 21
-	FlagMessageTypeGUILD_INVITE_REMINDER                        = 22
-	FlagMessageTypeCONTEXT_MENU_COMMAND                         = 23
-	FlagMessageTypeAUTO_MODERATION_ACTION                       = 24
+	FlagMessageTypeDEFAULT                                      Flag = 0
+	FlagMessageTypeRECIPIENT_ADD                                Flag = 1
+	FlagMessageTypeRECIPIENT_REMOVE                             Flag = 2
+	FlagMessageTypeCALL                                         Flag = 3
+	FlagMessageTypeCHANNEL_NAME_CHANGE                          Flag = 4
+	FlagMessageTypeCHANNEL_ICON_CHANGE                          Flag = 5
+	FlagMessageTypeCHANNEL_PINNED_MESSAGE                       Flag = 6
+	FlagMessageTypeUSER_JOIN                                    Flag = 7
+	FlagMessageTypeGUILD_BOOST                                  Flag = 8
+	FlagMessageTypeGUILD_BOOST_TIER_1                           Flag = 9
+	FlagMessageTypeGUILD_BOOST_TIER_2                           Flag = 10
+	FlagMessageTypeGUILD_BOOST_TIER_3                           Flag = 11
+	FlagMessageTypeCHANNEL_FOLLOW_ADD                           Flag = 12
+	FlagMessageTypeGUILD_DISCOVERY_DISQUALIFIED                 Flag = 14
+	FlagMessageTypeGUILD_DISCOVERY_REQUALIFIED                  Flag = 15
+	FlagMessageTypeGUILD_DISCOVERY_GRACE_PERIOD_INITIAL_WARNING Flag = 16
+	FlagMessageTypeGUILD_DISCOVERY_GRACE_PERIOD_FINAL_WARNING   Flag = 17
+	FlagMessageTypeTHREAD_CREATED                               Flag = 18
+	FlagMessageTypeREPLY                                        Flag = 19
+	FlagMessageTypeCHAT_INPUT_COMMAND                           Flag = 20
+	FlagMessageTypeTHREAD_STARTER_MESSAGE                       Flag = 21
+	FlagMessageTypeGUILD_INVITE_REMINDER                        Flag = 22
+	FlagMessageTypeCONTEXT_MENU_COMMAND                         Flag = 23
+	FlagMessageTypeAUTO_MODERATION_ACTION                       Flag = 24
 )
 
 // Message Activity Structure
@@ -3896,24 +3896,24 @@ type MessageActivity struct {
 // Message Activity Types
 // https://discord.com/developers/docs/resources/channel#message-object-message-activity-types
 const (
-	FlagMessageActivityTypeJOIN         = 1
-	FlagMessageActivityTypeSPECTATE     = 2
-	FlagMessageActivityTypeLISTEN       = 3
-	FlagMessageActivityTypeJOIN_REQUEST = 5
+	FlagMessageActivityTypeJOIN         Flag = 1
+	FlagMessageActivityTypeSPECTATE     Flag = 2
+	FlagMessageActivityTypeLISTEN       Flag = 3
+	FlagMessageActivityTypeJOIN_REQUEST Flag = 5
 )
 
 // Message Flags
 // https://discord.com/developers/docs/resources/channel#message-object-message-flags
 const (
-	FlagMessageCROSSPOSTED                            = 1 << 0
-	FlagMessageIS_CROSSPOST                           = 1 << 1
-	FlagMessageSUPPRESS_EMBEDS                        = 1 << 2
-	FlagMessageSOURCE_MESSAGE_DELETED                 = 1 << 3
-	FlagMessageURGENT                                 = 1 << 4
-	FlagMessageHAS_THREAD                             = 1 << 5
-	FlagMessageEPHEMERAL                              = 1 << 6
-	FlagMessageLOADING                                = 1 << 7
-	FlagMessageFAILED_TO_MENTION_SOME_ROLES_IN_THREAD = 1 << 8
+	FlagMessageCROSSPOSTED                            BitFlag = 1 << 0
+	FlagMessageIS_CROSSPOST                           BitFlag = 1 << 1
+	FlagMessageSUPPRESS_EMBEDS                        BitFlag = 1 << 2
+	FlagMessageSOURCE_MESSAGE_DELETED                 BitFlag = 1 << 3
+	FlagMessageURGENT                                 BitFlag = 1 << 4
+	FlagMessageHAS_THREAD                             BitFlag = 1 << 5
+	FlagMessageEPHEMERAL                              BitFlag = 1 << 6
+	FlagMessageLOADING                                BitFlag = 1 << 7
+	FlagMessageFAILED_TO_MENTION_SOME_ROLES_IN_THREAD BitFlag = 1 << 8
 )
 
 // Message Reference Object
@@ -4181,90 +4181,88 @@ type Guild struct {
 // Default Message Notification Level
 // https://discord.com/developers/docs/resources/guild#guild-object-default-message-notification-level
 const (
-	FlagDefaultMessageNotificationLevelALL_MESSAGES  = 0
-	FlagDefaultMessageNotificationLevelONLY_MENTIONS = 1
+	FlagDefaultMessageNotificationLevelALL_MESSAGES  Flag = 0
+	FlagDefaultMessageNotificationLevelONLY_MENTIONS Flag = 1
 )
 
 // Explicit Content Filter Level
 // https://discord.com/developers/docs/resources/guild#guild-object-explicit-content-filter-level
 const (
-	FlagExplicitContentFilterLevelDISABLED              = 0
-	FlagExplicitContentFilterLevelMEMBERS_WITHOUT_ROLES = 1
-	FlagExplicitContentFilterLevelALL_MEMBERS           = 2
+	FlagExplicitContentFilterLevelDISABLED              Flag = 0
+	FlagExplicitContentFilterLevelMEMBERS_WITHOUT_ROLES Flag = 1
+	FlagExplicitContentFilterLevelALL_MEMBERS           Flag = 2
 )
 
 // MFA Level
 // https://discord.com/developers/docs/resources/guild#guild-object-mfa-level
 const (
-	FlagMFALevelNONE     = 0
-	FlagMFALevelELEVATED = 1
+	FlagMFALevelNONE     Flag = 0
+	FlagMFALevelELEVATED Flag = 1
 )
 
 // Verification Level
 // https://discord.com/developers/docs/resources/guild#guild-object-verification-level
 const (
-	FlagVerificationLevelNONE      = 0
-	FlagVerificationLevelLOW       = 1
-	FlagVerificationLevelMEDIUM    = 2
-	FlagVerificationLevelHIGH      = 3
-	FlagVerificationLevelVERY_HIGH = 4
+	FlagVerificationLevelNONE      Flag = 0
+	FlagVerificationLevelLOW       Flag = 1
+	FlagVerificationLevelMEDIUM    Flag = 2
+	FlagVerificationLevelHIGH      Flag = 3
+	FlagVerificationLevelVERY_HIGH Flag = 4
 )
 
 // Guild NSFW Level
 // https://discord.com/developers/docs/resources/guild#guild-object-guild-nsfw-level
 const (
-	FlagGuildNSFWLevelDEFAULT        = 0
-	FlagGuildNSFWLevelEXPLICIT       = 1
-	FlagGuildNSFWLevelSAFE           = 2
-	FlagGuildNSFWLevelAGE_RESTRICTED = 3
+	FlagGuildNSFWLevelDEFAULT        Flag = 0
+	FlagGuildNSFWLevelEXPLICIT       Flag = 1
+	FlagGuildNSFWLevelSAFE           Flag = 2
+	FlagGuildNSFWLevelAGE_RESTRICTED Flag = 3
 )
 
 // Premium Tier
 // https://discord.com/developers/docs/resources/guild#guild-object-premium-tier
 const (
-	FlagPremiumTierNONE  = 0
-	FlagPremiumTierONE   = 1
-	FlagPremiumTierTWO   = 2
-	FlagPremiumTierTHREE = 3
+	FlagPremiumTierNONE  Flag = 0
+	FlagPremiumTierONE   Flag = 1
+	FlagPremiumTierTWO   Flag = 2
+	FlagPremiumTierTHREE Flag = 3
 )
 
 // System Channel Flags
 // https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags
 const (
-	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATIONS           = 1 << 0
-	FlagSystemChannelSUPPRESS_PREMIUM_SUBSCRIPTIONS        = 1 << 1
-	FlagSystemChannelSUPPRESS_GUILD_REMINDER_NOTIFICATIONS = 1 << 2
-	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATION_REPLIES    = 1 << 3
+	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATIONS           BitFlag = 1 << 0
+	FlagSystemChannelSUPPRESS_PREMIUM_SUBSCRIPTIONS        BitFlag = 1 << 1
+	FlagSystemChannelSUPPRESS_GUILD_REMINDER_NOTIFICATIONS BitFlag = 1 << 2
+	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATION_REPLIES    BitFlag = 1 << 3
 )
 
 // Guild Features
 // https://discord.com/developers/docs/resources/guild#guild-object-guild-features
 const (
-	FlagGuildFeatureANIMATED_BANNER                  = "ANIMATED_BANNER"
-	FlagGuildFeatureANIMATED_ICON                    = "ANIMATED_ICON"
-	FlagGuildFeatureBANNER                           = "BANNER"
-	FlagGuildFeatureCOMMERCE                         = "COMMERCE"
-	FlagGuildFeatureCOMMUNITY                        = "COMMUNITY"
-	FlagGuildFeatureDEVELOPER_SUPPORT_SERVER         = "DEVELOPER_SUPPORT_SERVER"
-	FlagGuildFeatureDISCOVERABLE                     = "DISCOVERABLE"
-	FlagGuildFeatureFEATURABLE                       = "FEATURABLE"
-	FlagGuildFeatureINVITES_DISABLED                 = "INVITES_DISABLED"
-	FlagGuildFeatureINVITE_SPLASH                    = "INVITE_SPLASH"
-	FlagGuildFeatureMEMBER_VERIFICATION_GATE_ENABLED = "MEMBER_VERIFICATION_GATE_ENABLED"
-	FlagGuildFeatureMONETIZATION_ENABLED             = "MONETIZATION_ENABLED"
-	FlagGuildFeatureMORE_STICKERS                    = "MORE_STICKERS"
-	FlagGuildFeatureNEWS                             = "NEWS"
-	FlagGuildFeaturePARTNERED                        = "PARTNERED"
-	FlagGuildFeaturePREVIEW_ENABLED                  = "PREVIEW_ENABLED"
-	FlagGuildFeaturePRIVATE_THREADS                  = "PRIVATE_THREADS"
-	FlagGuildFeatureROLE_ICONS                       = "ROLE_ICONS"
-	FlagGuildFeatureSEVEN_DAY_THREAD_ARCHIVE         = "SEVEN_DAY_THREAD_ARCHIVE"
-	FlagGuildFeatureTHREE_DAY_THREAD_ARCHIVE         = "THREE_DAY_THREAD_ARCHIVE"
-	FlagGuildFeatureTICKETED_EVENTS_ENABLED          = "TICKETED_EVENTS_ENABLED"
-	FlagGuildFeatureVANITY_URL                       = "VANITY_URL"
-	FlagGuildFeatureVERIFIED                         = "VERIFIED"
-	FlagGuildFeatureVIP_REGIONS                      = "VIP_REGIONS"
-	FlagGuildFeatureWELCOME_SCREEN_ENABLED           = "WELCOME_SCREEN_ENABLED"
+	FlagGuildFeatureANIMATED_BANNER                    = "ANIMATED_BANNER"
+	FlagGuildFeatureANIMATED_ICON                      = "ANIMATED_ICON"
+	FlagGuildFeatureAPPLICATION_COMMAND_PERMISSIONS_V2 = "APPLICATION_COMMAND_PERMISSIONS_V2"
+	FlagGuildFeatureAUTO_MODERATION                    = "AUTO_MODERATION"
+	FlagGuildFeatureBANNER                             = "BANNER"
+	FlagGuildFeatureCOMMUNITY                          = "COMMUNITY"
+	FlagGuildFeatureDEVELOPER_SUPPORT_SERVER           = "DEVELOPER_SUPPORT_SERVER"
+	FlagGuildFeatureDISCOVERABLE                       = "DISCOVERABLE"
+	FlagGuildFeatureFEATURABLE                         = "FEATURABLE"
+	FlagGuildFeatureINVITES_DISABLED                   = "INVITES_DISABLED"
+	FlagGuildFeatureINVITE_SPLASH                      = "INVITE_SPLASH"
+	FlagGuildFeatureMEMBER_VERIFICATION_GATE_ENABLED   = "MEMBER_VERIFICATION_GATE_ENABLED"
+	FlagGuildFeatureMONETIZATION_ENABLED               = "MONETIZATION_ENABLED"
+	FlagGuildFeatureMORE_STICKERS                      = "MORE_STICKERS"
+	FlagGuildFeatureNEWS                               = "NEWS"
+	FlagGuildFeaturePARTNERED                          = "PARTNERED"
+	FlagGuildFeaturePREVIEW_ENABLED                    = "PREVIEW_ENABLED"
+	FlagGuildFeatureROLE_ICONS                         = "ROLE_ICONS"
+	FlagGuildFeatureTICKETED_EVENTS_ENABLED            = "TICKETED_EVENTS_ENABLED"
+	FlagGuildFeatureVANITY_URL                         = "VANITY_URL"
+	FlagGuildFeatureVERIFIED                           = "VERIFIED"
+	FlagGuildFeatureVIP_REGIONS                        = "VIP_REGIONS"
+	FlagGuildFeatureWELCOME_SCREEN_ENABLED             = "WELCOME_SCREEN_ENABLED"
 )
 
 // Mutable Guild Features
@@ -4353,8 +4351,8 @@ type Integration struct {
 // Integration Expire Behaviors
 // https://discord.com/developers/docs/resources/guild#integration-object-integration-expire-behaviors
 const (
-	FlagIntegrationExpireBehaviorREMOVEROLE = 0
-	FlagIntegrationExpireBehaviorKICK       = 1
+	FlagIntegrationExpireBehaviorREMOVEROLE Flag = 0
+	FlagIntegrationExpireBehaviorKICK       Flag = 1
 )
 
 // Integration Account Object
@@ -4421,24 +4419,24 @@ type GuildScheduledEvent struct {
 // Guild Scheduled Event Privacy Level
 // https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-privacy-level
 const (
-	FlagGuildScheduledEventPrivacyLevelGUILD_ONLY = 2
+	FlagGuildScheduledEventPrivacyLevelGUILD_ONLY Flag = 2
 )
 
 // Guild Scheduled Event Entity Types
 // https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-entity-types
 const (
-	FlagGuildScheduledEventEntityTypeSTAGE_INSTANCE = 1
-	FlagGuildScheduledEventEntityTypeVOICE          = 2
-	FlagGuildScheduledEventEntityTypeEXTERNAL       = 3
+	FlagGuildScheduledEventEntityTypeSTAGE_INSTANCE Flag = 1
+	FlagGuildScheduledEventEntityTypeVOICE          Flag = 2
+	FlagGuildScheduledEventEntityTypeEXTERNAL       Flag = 3
 )
 
 // Guild Scheduled Event Status
 // https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-status
 const (
-	FlagGuildScheduledEventStatusSCHEDULED = 1
-	FlagGuildScheduledEventStatusACTIVE    = 2
-	FlagGuildScheduledEventStatusCOMPLETED = 3
-	FlagGuildScheduledEventStatusCANCELED  = 4
+	FlagGuildScheduledEventStatusSCHEDULED Flag = 1
+	FlagGuildScheduledEventStatusACTIVE    Flag = 2
+	FlagGuildScheduledEventStatusCOMPLETED Flag = 3
+	FlagGuildScheduledEventStatusCANCELED  Flag = 4
 )
 
 // Guild Scheduled Event Entity Metadata
@@ -4491,8 +4489,8 @@ type Invite struct {
 // Invite Target Types
 // https://discord.com/developers/docs/resources/invite#invite-object-invite-target-types
 const (
-	FlagInviteTargetTypeSTREAM               = 1
-	FlagInviteTargetTypeEMBEDDED_APPLICATION = 2
+	FlagInviteTargetTypeSTREAM               Flag = 1
+	FlagInviteTargetTypeEMBEDDED_APPLICATION Flag = 2
 )
 
 // Invite Metadata Object
@@ -4517,11 +4515,10 @@ type StageInstance struct {
 	GuildScheduledEventID *string `json:"guild_scheduled_event_id"`
 }
 
-// Privacy Level
+// Stage Instance Privacy Level
 // https://discord.com/developers/docs/resources/stage-instance#stage-instance-object-privacy-level
 const (
-	FlagPrivacyLevelPUBLIC     = 1
-	FlagPrivacyLevelGUILD_ONLY = 2
+	FlagStageInstancePrivacyLevelGUILD_ONLY Flag = 2
 )
 
 // Sticker Structure
@@ -4544,16 +4541,16 @@ type Sticker struct {
 // Sticker Types
 // https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-types
 const (
-	FlagStickerTypeSTANDARD = 1
-	FlagStickerTypeGUILD    = 2
+	FlagStickerTypeSTANDARD Flag = 1
+	FlagStickerTypeGUILD    Flag = 2
 )
 
 // Sticker Format Types
 // https://discord.com/developers/docs/resources/sticker#sticker-object-sticker-format-types
 const (
-	FlagStickerFormatTypePNG    = 1
-	FlagStickerFormatTypeAPNG   = 2
-	FlagStickerFormatTypeLOTTIE = 3
+	FlagStickerFormatTypePNG    Flag = 1
+	FlagStickerFormatTypeAPNG   Flag = 2
+	FlagStickerFormatTypeLOTTIE Flag = 3
 )
 
 // Sticker Item Object
@@ -4599,31 +4596,31 @@ type User struct {
 // User Flags
 // https://discord.com/developers/docs/resources/user#user-object-user-flags
 const (
-	FlagUserNONE                         = 0
-	FlagUserSTAFF                        = 1 << 0
-	FlagUserPARTNER                      = 1 << 1
-	FlagUserHYPESQUAD                    = 1 << 2
-	FlagUserBUG_HUNTER_LEVEL_1           = 1 << 3
-	FlagUserHYPESQUAD_ONLINE_HOUSE_ONE   = 1 << 6
-	FlagUserHYPESQUAD_ONLINE_HOUSE_TWO   = 1 << 7
-	FlagUserHYPESQUAD_ONLINE_HOUSE_THREE = 1 << 8
-	FlagUserPREMIUM_EARLY_SUPPORTER      = 1 << 9
-	FlagUserTEAM_PSEUDO_USER             = 1 << 10
-	FlagUserBUG_HUNTER_LEVEL_2           = 1 << 14
-	FlagUserVERIFIED_BOT                 = 1 << 16
-	FlagUserVERIFIED_DEVELOPER           = 1 << 17
-	FlagUserCERTIFIED_MODERATOR          = 1 << 18
-	FlagUserBOT_HTTP_INTERACTIONS        = 1 << 19
-	FlagUserACTIVE_DEVELOPER             = 1 << 22
+	FlagUserNONE                         BitFlag = 0
+	FlagUserSTAFF                        BitFlag = 1 << 0
+	FlagUserPARTNER                      BitFlag = 1 << 1
+	FlagUserHYPESQUAD                    BitFlag = 1 << 2
+	FlagUserBUG_HUNTER_LEVEL_1           BitFlag = 1 << 3
+	FlagUserHYPESQUAD_ONLINE_HOUSE_ONE   BitFlag = 1 << 6
+	FlagUserHYPESQUAD_ONLINE_HOUSE_TWO   BitFlag = 1 << 7
+	FlagUserHYPESQUAD_ONLINE_HOUSE_THREE BitFlag = 1 << 8
+	FlagUserPREMIUM_EARLY_SUPPORTER      BitFlag = 1 << 9
+	FlagUserTEAM_PSEUDO_USER             BitFlag = 1 << 10
+	FlagUserBUG_HUNTER_LEVEL_2           BitFlag = 1 << 14
+	FlagUserVERIFIED_BOT                 BitFlag = 1 << 16
+	FlagUserVERIFIED_DEVELOPER           BitFlag = 1 << 17
+	FlagUserCERTIFIED_MODERATOR          BitFlag = 1 << 18
+	FlagUserBOT_HTTP_INTERACTIONS        BitFlag = 1 << 19
+	FlagUserACTIVE_DEVELOPER             BitFlag = 1 << 22
 )
 
 // Premium Types
 // https://discord.com/developers/docs/resources/user#user-object-premium-types
 const (
-	FlagPremiumTypeNONE         = 0
-	FlagPremiumTypeNITROCLASSIC = 1
-	FlagPremiumTypeNITRO        = 2
-	FlagPremiumTypeNITROBASIC   = 3
+	FlagPremiumTypeNONE         Flag = 0
+	FlagPremiumTypeNITROCLASSIC Flag = 1
+	FlagPremiumTypeNITRO        Flag = 2
+	FlagPremiumTypeNITROBASIC   Flag = 3
 )
 
 // User Connection Object
@@ -4644,8 +4641,8 @@ type Connection struct {
 // Visibility Types
 // https://discord.com/developers/docs/resources/user#connection-object-visibility-types
 const (
-	FlagVisibilityTypeNONE     = 0
-	FlagVisibilityTypeEVERYONE = 1
+	FlagVisibilityTypeNONE     Flag = 0
+	FlagVisibilityTypeEVERYONE Flag = 1
 )
 
 // Voice State Object
@@ -4696,61 +4693,61 @@ type Webhook struct {
 // Webhook Types
 // https://discord.com/developers/docs/resources/webhook#webhook-object-webhook-types
 const (
-	FlagWebhookTypeINCOMING        = 1
-	FlagWebhookTypeCHANNELFOLLOWER = 2
-	FlagWebhookTypeAPPLICATION     = 3
+	FlagWebhookTypeINCOMING        Flag = 1
+	FlagWebhookTypeCHANNELFOLLOWER Flag = 2
+	FlagWebhookTypeAPPLICATION     Flag = 3
 )
 
 // Bitwise Permission Flags
 // https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags
 const (
-	FlagBitwisePermissionCREATE_INSTANT_INVITE      = 1 << 0
-	FlagBitwisePermissionKICK_MEMBERS               = 1 << 1
-	FlagBitwisePermissionBAN_MEMBERS                = 1 << 2
-	FlagBitwisePermissionADMINISTRATOR              = 1 << 3
-	FlagBitwisePermissionMANAGE_CHANNELS            = 1 << 4
-	FlagBitwisePermissionMANAGE_GUILD               = 1 << 5
-	FlagBitwisePermissionADD_REACTIONS              = 1 << 6
-	FlagBitwisePermissionVIEW_AUDIT_LOG             = 1 << 7
-	FlagBitwisePermissionPRIORITY_SPEAKER           = 1 << 8
-	FlagBitwisePermissionSTREAM                     = 1 << 9
-	FlagBitwisePermissionVIEW_CHANNEL               = 1 << 10
-	FlagBitwisePermissionSEND_MESSAGES              = 1 << 11
-	FlagBitwisePermissionSEND_TTS_MESSAGES          = 1 << 12
-	FlagBitwisePermissionMANAGE_MESSAGES            = 1 << 13
-	FlagBitwisePermissionEMBED_LINKS                = 1 << 14
-	FlagBitwisePermissionATTACH_FILES               = 1 << 15
-	FlagBitwisePermissionREAD_MESSAGE_HISTORY       = 1 << 16
-	FlagBitwisePermissionMENTION_EVERYONE           = 1 << 17
-	FlagBitwisePermissionUSE_EXTERNAL_EMOJIS        = 1 << 18
-	FlagBitwisePermissionVIEW_GUILD_INSIGHTS        = 1 << 19
-	FlagBitwisePermissionCONNECT                    = 1 << 20
-	FlagBitwisePermissionSPEAK                      = 1 << 21
-	FlagBitwisePermissionMUTE_MEMBERS               = 1 << 22
-	FlagBitwisePermissionDEAFEN_MEMBERS             = 1 << 23
-	FlagBitwisePermissionMOVE_MEMBERS               = 1 << 24
-	FlagBitwisePermissionUSE_VAD                    = 1 << 25
-	FlagBitwisePermissionCHANGE_NICKNAME            = 1 << 26
-	FlagBitwisePermissionMANAGE_NICKNAMES           = 1 << 27
-	FlagBitwisePermissionMANAGE_ROLES               = 1 << 28
-	FlagBitwisePermissionMANAGE_WEBHOOKS            = 1 << 29
-	FlagBitwisePermissionMANAGE_EMOJIS_AND_STICKERS = 1 << 30
-	FlagBitwisePermissionUSE_APPLICATION_COMMANDS   = 1 << 31
-	FlagBitwisePermissionREQUEST_TO_SPEAK           = 1 << 32
-	FlagBitwisePermissionMANAGE_EVENTS              = 1 << 33
-	FlagBitwisePermissionMANAGE_THREADS             = 1 << 34
-	FlagBitwisePermissionCREATE_PUBLIC_THREADS      = 1 << 35
-	FlagBitwisePermissionCREATE_PRIVATE_THREADS     = 1 << 36
-	FlagBitwisePermissionUSE_EXTERNAL_STICKERS      = 1 << 37
-	FlagBitwisePermissionSEND_MESSAGES_IN_THREADS   = 1 << 38
-	FlagBitwisePermissionUSE_EMBEDDED_ACTIVITIES    = 1 << 39
-	FlagBitwisePermissionMODERATE_MEMBERS           = 1 << 40
+	FlagBitwisePermissionCREATE_INSTANT_INVITE      BitFlag = 1 << 0
+	FlagBitwisePermissionKICK_MEMBERS               BitFlag = 1 << 1
+	FlagBitwisePermissionBAN_MEMBERS                BitFlag = 1 << 2
+	FlagBitwisePermissionADMINISTRATOR              BitFlag = 1 << 3
+	FlagBitwisePermissionMANAGE_CHANNELS            BitFlag = 1 << 4
+	FlagBitwisePermissionMANAGE_GUILD               BitFlag = 1 << 5
+	FlagBitwisePermissionADD_REACTIONS              BitFlag = 1 << 6
+	FlagBitwisePermissionVIEW_AUDIT_LOG             BitFlag = 1 << 7
+	FlagBitwisePermissionPRIORITY_SPEAKER           BitFlag = 1 << 8
+	FlagBitwisePermissionSTREAM                     BitFlag = 1 << 9
+	FlagBitwisePermissionVIEW_CHANNEL               BitFlag = 1 << 10
+	FlagBitwisePermissionSEND_MESSAGES              BitFlag = 1 << 11
+	FlagBitwisePermissionSEND_TTS_MESSAGES          BitFlag = 1 << 12
+	FlagBitwisePermissionMANAGE_MESSAGES            BitFlag = 1 << 13
+	FlagBitwisePermissionEMBED_LINKS                BitFlag = 1 << 14
+	FlagBitwisePermissionATTACH_FILES               BitFlag = 1 << 15
+	FlagBitwisePermissionREAD_MESSAGE_HISTORY       BitFlag = 1 << 16
+	FlagBitwisePermissionMENTION_EVERYONE           BitFlag = 1 << 17
+	FlagBitwisePermissionUSE_EXTERNAL_EMOJIS        BitFlag = 1 << 18
+	FlagBitwisePermissionVIEW_GUILD_INSIGHTS        BitFlag = 1 << 19
+	FlagBitwisePermissionCONNECT                    BitFlag = 1 << 20
+	FlagBitwisePermissionSPEAK                      BitFlag = 1 << 21
+	FlagBitwisePermissionMUTE_MEMBERS               BitFlag = 1 << 22
+	FlagBitwisePermissionDEAFEN_MEMBERS             BitFlag = 1 << 23
+	FlagBitwisePermissionMOVE_MEMBERS               BitFlag = 1 << 24
+	FlagBitwisePermissionUSE_VAD                    BitFlag = 1 << 25
+	FlagBitwisePermissionCHANGE_NICKNAME            BitFlag = 1 << 26
+	FlagBitwisePermissionMANAGE_NICKNAMES           BitFlag = 1 << 27
+	FlagBitwisePermissionMANAGE_ROLES               BitFlag = 1 << 28
+	FlagBitwisePermissionMANAGE_WEBHOOKS            BitFlag = 1 << 29
+	FlagBitwisePermissionMANAGE_EMOJIS_AND_STICKERS BitFlag = 1 << 30
+	FlagBitwisePermissionUSE_APPLICATION_COMMANDS   BitFlag = 1 << 31
+	FlagBitwisePermissionREQUEST_TO_SPEAK           BitFlag = 1 << 32
+	FlagBitwisePermissionMANAGE_EVENTS              BitFlag = 1 << 33
+	FlagBitwisePermissionMANAGE_THREADS             BitFlag = 1 << 34
+	FlagBitwisePermissionCREATE_PUBLIC_THREADS      BitFlag = 1 << 35
+	FlagBitwisePermissionCREATE_PRIVATE_THREADS     BitFlag = 1 << 36
+	FlagBitwisePermissionUSE_EXTERNAL_STICKERS      BitFlag = 1 << 37
+	FlagBitwisePermissionSEND_MESSAGES_IN_THREADS   BitFlag = 1 << 38
+	FlagBitwisePermissionUSE_EMBEDDED_ACTIVITIES    BitFlag = 1 << 39
+	FlagBitwisePermissionMODERATE_MEMBERS           BitFlag = 1 << 40
 )
 
 // Permission Overwrite Types
 const (
-	FlagPermissionOverwriteTypeRole   = 0
-	FlagPermissionOverwriteTypeMember = 1
+	FlagPermissionOverwriteTypeRole   Flag = 0
+	FlagPermissionOverwriteTypeMember Flag = 1
 )
 
 // Role Object
@@ -4800,8 +4797,8 @@ type TeamMember struct {
 // Membership State Enum
 // https://discord.com/developers/docs/topics/teams#data-models-membership-state-enum
 const (
-	FlagMembershipStateEnumINVITED  = 1
-	FlagMembershipStateEnumACCEPTED = 2
+	FlagMembershipStateEnumINVITED  Flag = 1
+	FlagMembershipStateEnumACCEPTED Flag = 2
 )
 
 // Client Status Object
@@ -4835,12 +4832,12 @@ type Activity struct {
 // Activity Types
 // https://discord.com/developers/docs/topics/gateway#activity-object-activity-types
 const (
-	FlagActivityTypePlaying   = 0
-	FlagActivityTypeStreaming = 1
-	FlagActivityTypeListening = 2
-	FlagActivityTypeWatching  = 3
-	FlagActivityTypeCustom    = 4
-	FlagActivityTypeCompeting = 5
+	FlagActivityTypePlaying   Flag = 0
+	FlagActivityTypeStreaming Flag = 1
+	FlagActivityTypeListening Flag = 2
+	FlagActivityTypeWatching  Flag = 3
+	FlagActivityTypeCustom    Flag = 4
+	FlagActivityTypeCompeting Flag = 5
 )
 
 // Activity Timestamps Struct
@@ -4892,15 +4889,15 @@ type ActivitySecrets struct {
 // Activity Flags
 // https://discord.com/developers/docs/topics/gateway#activity-object-activity-flags
 const (
-	FlagActivityINSTANCE                    = 1 << 0
-	FlagActivityJOIN                        = 1 << 1
-	FlagActivitySPECTATE                    = 1 << 2
-	FlagActivityJOIN_REQUEST                = 1 << 3
-	FlagActivitySYNC                        = 1 << 4
-	FlagActivityPLAY                        = 1 << 5
-	FlagActivityPARTY_PRIVACY_FRIENDS       = 1 << 6
-	FlagActivityPARTY_PRIVACY_VOICE_CHANNEL = 1 << 7
-	FlagActivityEMBEDDED                    = 1 << 8
+	FlagActivityINSTANCE                    BitFlag = 1 << 0
+	FlagActivityJOIN                        BitFlag = 1 << 1
+	FlagActivitySPECTATE                    BitFlag = 1 << 2
+	FlagActivityJOIN_REQUEST                BitFlag = 1 << 3
+	FlagActivitySYNC                        BitFlag = 1 << 4
+	FlagActivityPLAY                        BitFlag = 1 << 5
+	FlagActivityPARTY_PRIVACY_FRIENDS       BitFlag = 1 << 6
+	FlagActivityPARTY_PRIVACY_VOICE_CHANNEL BitFlag = 1 << 7
+	FlagActivityEMBEDDED                    BitFlag = 1 << 8
 )
 
 // OAuth2 Scopes

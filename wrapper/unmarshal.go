@@ -79,7 +79,7 @@ func unmarshalComponents(b []byte) ([]Component, error) {
 	type unmarshalComponent struct {
 
 		// https://discord.com/developers/docs/interactions/message-components#component-object-example-component
-		Type uint `json:"type"`
+		Type Flag `json:"type"`
 	}
 
 	// Components are always provided in a JSON array.
@@ -441,7 +441,7 @@ func (r *Message) UnmarshalJSON(b []byte) error {
 
 // unmarshalInteractionData unmarshals a JSON InteractionData object into
 // a Go Interface InteractionData (with an underlying struct).
-func unmarshalInteractionData(b json.RawMessage, x uint8) (InteractionData, error) {
+func unmarshalInteractionData(b json.RawMessage, x Flag) (InteractionData, error) {
 	if len(b) == 0 {
 		return nil, nil
 	}
@@ -491,7 +491,7 @@ func (r *Interaction) UnmarshalJSON(b []byte) error {
 	}
 
 	if unmarshalledInteraction.alias.Data, err =
-		unmarshalInteractionData(unmarshalledInteraction.Data, uint8(unmarshalledInteraction.Type)); err != nil {
+		unmarshalInteractionData(unmarshalledInteraction.Data, unmarshalledInteraction.Type); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
@@ -508,7 +508,7 @@ func (r *Interaction) UnmarshalJSON(b []byte) error {
 
 // unmarshalInteractionCallbackData unmarshals a JSON InteractionCallbackData object into
 // a Go Interface InteractionCallbackData (with an underlying struct).
-func unmarshalInteractionCallbackData(b []byte, x uint8) (InteractionCallbackData, error) {
+func unmarshalInteractionCallbackData(b []byte, x Flag) (InteractionCallbackData, error) {
 	if len(b) == 0 {
 		return nil, nil
 	}
@@ -567,8 +567,7 @@ func (r *InteractionResponse) UnmarshalJSON(b []byte) error {
 
 	if unmarshalledInteractionResponse.alias.Data, err =
 		unmarshalInteractionCallbackData(
-			unmarshalledInteractionResponse.Data,
-			uint8(unmarshalledInteractionResponse.Type)); err != nil {
+			unmarshalledInteractionResponse.Data, unmarshalledInteractionResponse.Type); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
