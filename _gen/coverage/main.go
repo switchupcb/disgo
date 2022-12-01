@@ -215,6 +215,12 @@ var (
 		"GetFollowupMessage":                true,
 		"DeleteFollowupMessage":             true,
 
+		// Invites (Unsafe)
+		"GetInvite":           true,
+		"DeleteInvite":        true,
+		"CreateChannelInvite": true,
+		"GetChannelInvites":   true,
+
 		// OAuth2 (Requires Bearer Token)
 		"GetCurrentAuthorizationInformation": true,
 		"GetCurrentUserGuilds":               true,
@@ -229,7 +235,8 @@ var (
 		"RemoveGuildBan":     true,
 
 		// Privileged Intent Required
-		"ListGuildMembers": true,
+		"ListGuildMembers":  true,
+		"ListThreadMembers": true,
 
 		// Resources (Requires Complex State Management)
 		"CreateGuild":                  true,
@@ -253,11 +260,11 @@ var (
 		"SyncGuildTemplate":            true,
 		"ModifyGuildTemplate":          true,
 		"DeleteGuildTemplate":          true,
-		"GetInvite":                    true,
-		"DeleteInvite":                 true,
+		"CrosspostMessage":             true,
 		"FollowAnnouncementChannel":    true,
 		"TriggerTypingIndicator":       true,
-		"ModifyChannelGroupDM":         true,
+		"EditChannelPermissions":       true,
+		"DeleteChannelPermission":      true,
 
 		// Tests
 		//
@@ -273,6 +280,17 @@ var (
 		"EditGuildApplicationCommand":           true,
 		"DeleteGuildApplicationCommand":         true,
 		"GetGuildApplicationCommandPermissions": true,
+		"ModifyChannel":                         true,
+		"ModifyChannelGroupDM":                  true,
+		"ModifyChannelThread":                   true,
+		"DeleteOwnReaction":                     true,
+		"DeleteUserReaction":                    true,
+		"DeleteAllReactionsforEmoji":            true,
+		"StartThreadfromMessage":                true,
+		"StartThreadinForumChannel":             true,
+		"AddThreadMember":                       true,
+		"RemoveThreadMember":                    true,
+		"GetCurrentUser": true,
 
 		// User (Requires User State)
 		"AddGuildMember":         true,

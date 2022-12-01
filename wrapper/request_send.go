@@ -4223,16 +4223,17 @@ func (r *CreateStageInstance) Send(bot *Client) (*StageInstance, error) {
 	return result, nil
 }
 
-// Send sends a GetStageInstance request to Discord and returns a error.
-func (r *GetStageInstance) Send(bot *Client) error {
+// Send sends a GetStageInstance request to Discord and returns a StageInstance.
+func (r *GetStageInstance) Send(bot *Client) (*StageInstance, error) {
 	var err error
 	xid := xid.New().String()
 	routeid, resourceid := RateLimitHashFuncs[138]("138", "e5416649"+r.ChannelID)
 	endpoint := EndpointGetStageInstance(r.ChannelID)
 
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, nil)
+	result := new(StageInstance)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
 	if err != nil {
-		return ErrorRequest{
+		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
 			CorrelationID: xid,
 			RouteID:       routeid,
@@ -4242,7 +4243,7 @@ func (r *GetStageInstance) Send(bot *Client) error {
 		}
 	}
 
-	return nil
+	return result, nil
 }
 
 // Send sends a ModifyStageInstance request to Discord and returns a StageInstance.

@@ -2306,21 +2306,21 @@ type GetGuildChannels struct {
 type CreateGuildChannel struct {
 	GuildID                    string                 `json:"-"`
 	Name                       string                 `json:"name"`
-	Type                       *Flag                  `json:"type"`
-	Topic                      *string                `json:"topic"`
-	Bitrate                    *int                   `json:"bitrate"`
-	UserLimit                  *int                   `json:"user_limit"`
-	RateLimitPerUser           *int                   `json:"rate_limit_per_user"`
-	Position                   *int                   `json:"position"`
-	PermissionOverwrites       []*PermissionOverwrite `json:"permission_overwrites"`
-	ParentID                   *string                `json:"parent_id"`
-	NSFW                       *bool                  `json:"nsfw"`
-	RTCRegion                  string                 `json:"rtc_region"`
-	VideoQualityMode           *Flag                  `json:"video_quality_mode"`
-	DefaultAutoArchiveDuration int                    `json:"default_auto_archive_duration"`
-	DefaultReactionEmoji       *DefaultReaction       `json:"default_reaction_emoji"`
-	AvailableTags              []*ForumTag            `json:"available_tags"`
-	DefaultSortOrder           *int                   `json:"default_sort_order"`
+	Type                       *Flag                  `json:"type,omitempty"`
+	Topic                      *string                `json:"topic,omitempty"`
+	Bitrate                    *int                   `json:"bitrate,omitempty"`
+	UserLimit                  *int                   `json:"user_limit,omitempty"`
+	RateLimitPerUser           *int                   `json:"rate_limit_per_user,omitempty"`
+	Position                   *int                   `json:"position,omitempty"`
+	PermissionOverwrites       []*PermissionOverwrite `json:"permission_overwrites,omitempty"`
+	ParentID                   *string                `json:"parent_id,omitempty"`
+	NSFW                       *bool                  `json:"nsfw,omitempty"`
+	RTCRegion                  string                 `json:"rtc_region,omitempty"`
+	VideoQualityMode           *Flag                  `json:"video_quality_mode,omitempty"`
+	DefaultAutoArchiveDuration int                    `json:"default_auto_archive_duration,omitempty"`
+	DefaultReactionEmoji       *DefaultReaction       `json:"default_reaction_emoji,omitempty"`
+	AvailableTags              []*ForumTag            `json:"available_tags,omitempty"`
+	DefaultSortOrder           *int                   `json:"default_sort_order,omitempty"`
 }
 
 // Modify Guild Channel Positions
@@ -3782,18 +3782,18 @@ type Channel struct {
 // Channel Types
 // https://discord.com/developers/docs/resources/channel#channel-object-channel-types
 const (
-	FlagChannelTypeGUILD_TEXT          = 0
-	FlagChannelTypeDM                  = 1
-	FlagChannelTypeGUILD_VOICE         = 2
-	FlagChannelTypeGROUP_DM            = 3
-	FlagChannelTypeGUILD_CATEGORY      = 4
-	FlagChannelTypeGUILD_ANNOUNCEMENT  = 5
-	FlagChannelTypeANNOUNCEMENT_THREAD = 10
-	FlagChannelTypePUBLIC_THREAD       = 11
-	FlagChannelTypePRIVATE_THREAD      = 12
-	FlagChannelTypeGUILD_STAGE_VOICE   = 13
-	FlagChannelTypeGUILD_DIRECTORY     = 14
-	FlagChannelTypeGUILD_FORUM         = 15
+	FlagChannelTypeGUILD_TEXT          Flag = 0
+	FlagChannelTypeDM                       = 1
+	FlagChannelTypeGUILD_VOICE         Flag = 2
+	FlagChannelTypeGROUP_DM                 = 3
+	FlagChannelTypeGUILD_CATEGORY           = 4
+	FlagChannelTypeGUILD_ANNOUNCEMENT       = 5
+	FlagChannelTypeANNOUNCEMENT_THREAD      = 10
+	FlagChannelTypePUBLIC_THREAD            = 11
+	FlagChannelTypePRIVATE_THREAD           = 12
+	FlagChannelTypeGUILD_STAGE_VOICE   Flag = 13
+	FlagChannelTypeGUILD_DIRECTORY          = 14
+	FlagChannelTypeGUILD_FORUM              = 15
 )
 
 // Video Quality Modes

@@ -56,7 +56,7 @@ func TestCoverage(t *testing.T) {
 		}
 
 		if len(regions) == 0 {
-			return fmt.Errorf("ListVoiceRegions: expected non-empty Voice Regions Array")
+			return fmt.Errorf("ListVoiceRegions: expected non-empty Voice Regions slice")
 		}
 
 		return nil
@@ -81,10 +81,6 @@ func TestCoverage(t *testing.T) {
 
 	eg.Go(func() error {
 		return testChannel(bot)
-	})
-
-	eg.Go(func() error {
-		return testMessage(bot)
 	})
 
 	// wait until all required requests have been processed.
@@ -176,7 +172,7 @@ func testCommands(bot *Client) error {
 		return nil
 	})
 
-	// wait until all requests have been processed.
+	// wait until all Application Command requests have been processed.
 	select {
 	case <-ctx.Done():
 		return fmt.Errorf("%w", eg.Wait())
@@ -333,7 +329,7 @@ func testGuild(bot *Client) error {
 		return nil
 	})
 
-	// wait until all requests have been processed.
+	// wait until all Guild requests have been processed.
 	select {
 	case <-ctx.Done():
 		return fmt.Errorf("%w", eg.Wait())
@@ -349,22 +345,16 @@ func testGuild(bot *Client) error {
 
 // testGuildMember tests all endpoints involving a Guild Member.
 func testGuildMember(bot *Client, guild *Guild) error {
-	// get the User ID of the bot.
-	user, err := new(GetCurrentUser).Send(bot)
-	if err != nil {
-		return fmt.Errorf("Guild.GetCurrentUser: %w", err)
-	}
-
-	if user.ID == "" {
-		return fmt.Errorf("GetCurrentUser: expected non-empty Guild ID.")
-	}
-
 	eg, ctx := errgroup.WithContext(context.Background())
+
+	eg.Go(func() error {
+		return testGuildRole(bot, guild)
+	})
 
 	eg.Go(func() error {
 		getGuildMember := &GetGuildMember{
 			GuildID: guild.ID,
-			UserID:  user.ID,
+			UserID:  bot.ApplicationID,
 		}
 
 		member, err := getGuildMember.Send(bot)
@@ -379,101 +369,7 @@ func testGuildMember(bot *Client, guild *Guild) error {
 		return nil
 	})
 
-	// test all endpoints involving a Guild Role.
-	eg.Go(func() error {
-		createGuildRole := &CreateGuildRole{
-			GuildID: guild.ID,
-			Name:    "testing",
-			Hoist:   Pointer(true),
-		}
-
-		role, err := createGuildRole.Send(bot)
-		if err != nil {
-			return fmt.Errorf("CreateGuildRole: %w", err)
-		}
-
-		if role == nil {
-			return fmt.Errorf("CreateGuildRole: expected non-null Role object")
-		}
-
-		rEG, rCTX := errgroup.WithContext(context.Background())
-
-		rEG.Go(func() error {
-			getGuildRoles := &GetGuildRoles{GuildID: guild.ID}
-			roles, err := getGuildRoles.Send(bot)
-			if err != nil {
-				return fmt.Errorf("GetGuildRoles: %w", err)
-			}
-
-			if len(roles) == 0 {
-				return fmt.Errorf("GetGuildRoles: expected non-empty roles slice")
-			}
-
-			return nil
-		})
-
-		rEG.Go(func() error {
-			modifyGuildRole := &ModifyGuildRole{
-				GuildID: guild.ID,
-				RoleID:  role.ID,
-				Name:    Pointer("testing..."),
-			}
-
-			if _, err := modifyGuildRole.Send(bot); err != nil {
-				return fmt.Errorf("ModifyGuildRole: %w", err)
-			}
-
-			return nil
-		})
-
-		rEG.Go(func() error {
-			addGuildMemberRole := &AddGuildMemberRole{
-				GuildID: guild.ID,
-				UserID:  user.ID,
-				RoleID:  role.ID,
-			}
-
-			if err := addGuildMemberRole.Send(bot); err != nil {
-				return fmt.Errorf("AddGuildMemberRole: %w", err)
-			}
-
-			removeGuildMemberRole := &RemoveGuildMemberRole{
-				GuildID: guild.ID,
-				UserID:  user.ID,
-				RoleID:  role.ID,
-			}
-
-			if err := removeGuildMemberRole.Send(bot); err != nil {
-				return fmt.Errorf("RemoveGuildMemberRole: %w", err)
-			}
-
-			return nil
-		})
-
-		// wait until role requests have been processed.
-		select {
-		case <-rCTX.Done():
-			return fmt.Errorf("%w", rEG.Wait())
-		default:
-		}
-
-		if err := rEG.Wait(); err != nil {
-			return fmt.Errorf("%w", rEG.Wait())
-		}
-
-		deleteGuildRole := &DeleteGuildRole{
-			GuildID: guild.ID,
-			RoleID:  role.ID,
-		}
-
-		if err := deleteGuildRole.Send(bot); err != nil {
-			return fmt.Errorf("DeleteGuildRole: %w", err)
-		}
-
-		return nil
-	})
-
-	// wait until all requests have been processed.
+	// wait until all Guild Member requests have been processed.
 	select {
 	case <-ctx.Done():
 		return fmt.Errorf("%w", eg.Wait())
@@ -482,6 +378,100 @@ func testGuildMember(bot *Client, guild *Guild) error {
 
 	if err := eg.Wait(); err != nil {
 		return fmt.Errorf("%w", eg.Wait())
+	}
+
+	return nil
+}
+
+// testGuildRole tests all endpoints involving a guild role.
+func testGuildRole(bot *Client, guild *Guild) error {
+	createGuildRole := &CreateGuildRole{
+		GuildID: guild.ID,
+		Name:    "testing",
+		Hoist:   Pointer(true),
+	}
+
+	role, err := createGuildRole.Send(bot)
+	if err != nil {
+		return fmt.Errorf("CreateGuildRole: %w", err)
+	}
+
+	if role == nil {
+		return fmt.Errorf("CreateGuildRole: expected non-null Role object")
+	}
+
+	eg, ctx := errgroup.WithContext(context.Background())
+
+	eg.Go(func() error {
+		getGuildRoles := &GetGuildRoles{GuildID: guild.ID}
+		roles, err := getGuildRoles.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetGuildRoles: %w", err)
+		}
+
+		if len(roles) == 0 {
+			return fmt.Errorf("GetGuildRoles: expected non-empty roles slice")
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		modifyGuildRole := &ModifyGuildRole{
+			GuildID: guild.ID,
+			RoleID:  role.ID,
+			Name:    Pointer("testing..."),
+		}
+
+		if _, err := modifyGuildRole.Send(bot); err != nil {
+			return fmt.Errorf("ModifyGuildRole: %w", err)
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		addGuildMemberRole := &AddGuildMemberRole{
+			GuildID: guild.ID,
+			UserID:  bot.ApplicationID,
+			RoleID:  role.ID,
+		}
+
+		if err := addGuildMemberRole.Send(bot); err != nil {
+			return fmt.Errorf("AddGuildMemberRole: %w", err)
+		}
+
+		removeGuildMemberRole := &RemoveGuildMemberRole{
+			GuildID: guild.ID,
+			UserID:  bot.ApplicationID,
+			RoleID:  role.ID,
+		}
+
+		if err := removeGuildMemberRole.Send(bot); err != nil {
+			return fmt.Errorf("RemoveGuildMemberRole: %w", err)
+		}
+
+		return nil
+	})
+
+	// wait until Guild Role requests have been processed.
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%w", eg.Wait())
+	default:
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("%w", eg.Wait())
+	}
+
+	deleteGuildRole := &DeleteGuildRole{
+		GuildID: guild.ID,
+		RoleID:  role.ID,
+	}
+
+	if err := deleteGuildRole.Send(bot); err != nil {
+		return fmt.Errorf("DeleteGuildRole: %w", err)
 	}
 
 	return nil
@@ -580,7 +570,7 @@ func testGuildScheduledEvent(bot *Client, guild *Guild) error {
 		return nil
 	})
 
-	// wait until all requests have been processed.
+	// wait until all Guild Scheduled Event requests have been processed.
 	select {
 	case <-ctx.Done():
 		return fmt.Errorf("%w", eg.Wait())
@@ -605,40 +595,512 @@ func testGuildScheduledEvent(bot *Client, guild *Guild) error {
 
 // testChannel tests all endpoints dependent on a channel.
 func testChannel(bot *Client) error {
-	/*
-		CreateGuildChannel
-		GetChannel
-		ModifyChannelGuild
-		ModifyChannel
-		DeleteCloseChannel
-		EditChannelPermissions
-		DeleteChannelPermission
-		CreateChannelInvite
-		GetChannelInvites
+	createGuildChannel := &CreateGuildChannel{
+		GuildID:                    os.Getenv("COVERAGE_TEST_GUILD"),
+		Name:                       "Test",
+		Type:                       Pointer(FlagChannelTypeGUILD_TEXT),
+		Topic:                      nil,
+		Bitrate:                    nil,
+		UserLimit:                  nil,
+		RateLimitPerUser:           nil,
+		Position:                   nil,
+		PermissionOverwrites:       nil,
+		ParentID:                   Pointer(os.Getenv("COVERAGE_TEST_CATEGORY")),
+		NSFW:                       nil,
+		RTCRegion:                  "",
+		VideoQualityMode:           nil,
+		DefaultAutoArchiveDuration: 0,
+		DefaultReactionEmoji:       nil,
+		AvailableTags:              nil,
+		DefaultSortOrder:           nil,
+	}
 
-		StartThreadfromMessage
-		ListPublicArchivedThreads
-		ListPrivateArchivedThreads
-		ListJoinedPrivateArchivedThreads
+	channel, err := createGuildChannel.Send(bot)
+	if err != nil {
+		return fmt.Errorf("Channel.CreateGuildChannel: %w", err)
+	}
 
-		ModifyCurrentUserVoiceState
-		ModifyUserVoiceState
+	if channel.ID == "" {
+		return fmt.Errorf("Channel.CreateGuildChannel: expected non-empty Channel ID.")
+	}
 
-		CreateStageInstance
-		ModifyStageInstance
-		DeleteStageInstance
-		GetStageInstance
-	*/
+	eg, ctx := errgroup.WithContext(context.Background())
+
+	eg.Go(func() error {
+		return testVoiceChannel(bot)
+	})
+
+	eg.Go(func() error {
+		return testStageInstance(bot)
+	})
+
+	eg.Go(func() error {
+		return testThread(bot, channel)
+	})
+
+	eg.Go(func() error {
+		return testMessage(bot, channel)
+	})
+
+	eg.Go(func() error {
+		getChannel := &GetChannel{ChannelID: channel.ID}
+		got, err := getChannel.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetChannel: %w", err)
+		}
+
+		if got == nil {
+			return fmt.Errorf("GetChannel: expected non-null Channel object")
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		modifyChannel := &ModifyChannelGuild{
+			ChannelID: channel.ID,
+			Name:      "Testing",
+			Type:      Pointer(FlagChannelTypeGUILD_TEXT),
+			ParentID:  Pointer(os.Getenv("COVERAGE_TEST_CATEGORY")),
+		}
+
+		if _, err := modifyChannel.Send(bot); err != nil {
+			return fmt.Errorf("ModifyChannelGuild: %w", err)
+		}
+
+		return nil
+	})
+
+	// wait until all Channel requests have been processed.
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%w", eg.Wait())
+	default:
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("%w", eg.Wait())
+	}
+
+	deleteChannel := &DeleteCloseChannel{ChannelID: channel.ID}
+	if _, err := deleteChannel.Send(bot); err != nil {
+		return fmt.Errorf("Channel.DeleteCloseChannel: %w", err)
+	}
 
 	return nil
 }
 
-// testMessage tests all endpoints dependent on a message.
-func testMessage(bot *Client) error {
+// testVoiceChannel tests all endpoints involving a voice channel.
+func testVoiceChannel(bot *Client) error {
+	createVoiceChannel := &CreateGuildChannel{
+		GuildID:                    os.Getenv("COVERAGE_TEST_GUILD"),
+		Name:                       "Test",
+		Type:                       Pointer(FlagChannelTypeGUILD_VOICE),
+		Topic:                      nil,
+		Bitrate:                    nil,
+		UserLimit:                  nil,
+		RateLimitPerUser:           nil,
+		Position:                   nil,
+		PermissionOverwrites:       nil,
+		ParentID:                   Pointer(os.Getenv("COVERAGE_TEST_CATEGORY")),
+		NSFW:                       nil,
+		RTCRegion:                  "",
+		VideoQualityMode:           nil,
+		DefaultAutoArchiveDuration: 0,
+		DefaultReactionEmoji:       nil,
+		AvailableTags:              nil,
+		DefaultSortOrder:           nil,
+	}
+
+	channel, err := createVoiceChannel.Send(bot)
+	if err != nil {
+		return fmt.Errorf("VoiceChannel.CreateGuildChannel: %w", err)
+	}
+
+	if channel.ID == "" {
+		return fmt.Errorf("VoiceChannel.CreateGuildChannel: expected non-empty Channel ID.")
+	}
+
 	/*
-		CreateMessage
-		GetChannelMessages
+		JoinChannel (Gateway Voice)
+		ModifyCurrentUserVoiceState (Mute)
+		ModifyUserVoiceState (Unmute)
 	*/
+
+	deleteChannel := &DeleteCloseChannel{ChannelID: channel.ID}
+	if _, err := deleteChannel.Send(bot); err != nil {
+		return fmt.Errorf("Voice.DeleteCloseChannel: %w", err)
+	}
+
+	return nil
+}
+
+// testThread tests all endpoints involving a thread.
+func testThread(bot *Client, channel *Channel) error {
+	startThread := &StartThreadwithoutMessage{
+		ChannelID:           channel.ID,
+		Name:                "Test",
+		AutoArchiveDuration: 0,
+		Type:                FlagChannelTypePRIVATE_THREAD,
+		Invitable:           false,
+		RateLimitPerUser:    0,
+	}
+
+	thread, err := startThread.Send(bot)
+	if err != nil {
+		return fmt.Errorf("StartThreadwithoutMessage: %w", err)
+	}
+
+	if thread.ID == "" {
+		return fmt.Errorf("StartThreadwithoutMessage: expected non-empty Channel ID.")
+	}
+
+	eg, ctx := errgroup.WithContext(context.Background())
+
+	eg.Go(func() error {
+		joinThread := &JoinThread{ChannelID: thread.ID}
+		if err := joinThread.Send(bot); err != nil {
+			return fmt.Errorf("JoinThread: %w", err)
+		}
+
+		getThreadMember := &GetThreadMember{
+			ChannelID: thread.ID,
+			UserID:    bot.ApplicationID,
+		}
+
+		member, err := getThreadMember.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetThreadMember: %w", err)
+		}
+
+		if member == nil {
+			return fmt.Errorf("GetThreadMember: expected non-null ThreadMember object")
+		}
+
+		leaveThread := &LeaveThread{ChannelID: thread.ID}
+		if err := leaveThread.Send(bot); err != nil {
+			return fmt.Errorf("LeaveThread: %w", err)
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		listPublicArchivedThreads := &ListPublicArchivedThreads{ChannelID: channel.ID}
+		if _, err := listPublicArchivedThreads.Send(bot); err != nil {
+			return fmt.Errorf("ListPublicArchivedThreads: %w", err)
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		listPrivateArchivedThreads := &ListPrivateArchivedThreads{ChannelID: channel.ID}
+		if _, err := listPrivateArchivedThreads.Send(bot); err != nil {
+			return fmt.Errorf("ListPrivateArchivedThreads: %w", err)
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		listJoinedPrivateArchivedThreads := &ListJoinedPrivateArchivedThreads{ChannelID: channel.ID}
+		if _, err := listJoinedPrivateArchivedThreads.Send(bot); err != nil {
+			return fmt.Errorf("ListJoinedPrivateArchivedThreads: %w", err)
+		}
+
+		return nil
+	})
+
+	// wait until all Thread requests have been processed.
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%w", eg.Wait())
+	default:
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("%w", eg.Wait())
+	}
+
+	return nil
+}
+
+// testStageInstance tests all endpoints involving a stage instance.
+func testStageInstance(bot *Client) error {
+	createStageChannel := &CreateGuildChannel{
+		GuildID:                    os.Getenv("COVERAGE_TEST_GUILD"),
+		Name:                       "Test",
+		Type:                       Pointer(FlagChannelTypeGUILD_STAGE_VOICE),
+		Topic:                      nil,
+		Bitrate:                    nil,
+		UserLimit:                  nil,
+		RateLimitPerUser:           nil,
+		Position:                   nil,
+		PermissionOverwrites:       nil,
+		ParentID:                   Pointer(os.Getenv("COVERAGE_TEST_CATEGORY")),
+		NSFW:                       nil,
+		RTCRegion:                  "",
+		VideoQualityMode:           nil,
+		DefaultAutoArchiveDuration: 0,
+		DefaultReactionEmoji:       nil,
+		AvailableTags:              nil,
+		DefaultSortOrder:           nil,
+	}
+
+	channel, err := createStageChannel.Send(bot)
+	if err != nil {
+		return fmt.Errorf("StageInstance.CreateGuildChannel: %w", err)
+	}
+
+	if channel.ID == "" {
+		return fmt.Errorf("StageInstance.CreateGuildChannel: expected non-empty Channel ID.")
+	}
+
+	createStageInstance := &CreateStageInstance{
+		ChannelID:    channel.ID,
+		Topic:        "Test",
+		PrivacyLevel: FlagPrivacyLevelGUILD_ONLY,
+	}
+
+	stage, err := createStageInstance.Send(bot)
+	if err != nil {
+		return fmt.Errorf("CreateStageInstance: %w", err)
+	}
+
+	if stage == nil {
+		return fmt.Errorf("CreateStageInstance: expected non-null StageInstance object")
+	}
+
+	eg, ctx := errgroup.WithContext(context.Background())
+
+	eg.Go(func() error {
+		getStageInstance := &GetStageInstance{ChannelID: channel.ID}
+		got, err := getStageInstance.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetStageInstance: %w", err)
+		}
+
+		if got == nil {
+			return fmt.Errorf("GetStageInstance: expected non-null StageInstance object")
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		modifyStageInstance := &ModifyStageInstance{
+			ChannelID: channel.ID,
+			Topic:     "Testing",
+		}
+
+		if _, err := modifyStageInstance.Send(bot); err != nil {
+			return fmt.Errorf("ModifyStageInstance: %w", err)
+		}
+
+		return nil
+	})
+
+	// wait until all Stage Instance requests have been processed.
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%w", eg.Wait())
+	default:
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("%w", eg.Wait())
+	}
+
+	deleteStageInstance := &DeleteStageInstance{ChannelID: channel.ID}
+	if err := deleteStageInstance.Send(bot); err != nil {
+		return fmt.Errorf("DeleteStageInstance: %w", err)
+	}
+
+	deleteChannel := &DeleteCloseChannel{ChannelID: channel.ID}
+	if _, err := deleteChannel.Send(bot); err != nil {
+		return fmt.Errorf("StageInstance.DeleteCloseChannel: %w", err)
+	}
+
+	return nil
+}
+
+// testMessage tests all endpoints involving a message.
+func testMessage(bot *Client, channel *Channel) error {
+	createMessage := &CreateMessage{
+		ChannelID: channel.ID,
+		Content:   Pointer("Test."),
+	}
+
+	message, err := createMessage.Send(bot)
+	if err != nil {
+		return fmt.Errorf("CreateMessage: %w", err)
+	}
+
+	if message.ID == "" {
+		return fmt.Errorf("CreateMessage: expected non-empty Message ID.")
+	}
+
+	eg, ctx := errgroup.WithContext(context.Background())
+
+	eg.Go(func() error {
+		return testReaction(bot, channel, message)
+	})
+
+	eg.Go(func() error {
+		pinMessage := &PinMessage{
+			ChannelID: channel.ID,
+			MessageID: message.ID,
+		}
+
+		if err := pinMessage.Send(bot); err != nil {
+			return fmt.Errorf("PinMessage: %w", err)
+		}
+
+		getPinnedMessages := &GetPinnedMessages{ChannelID: channel.ID}
+		messages, err := getPinnedMessages.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetPinnedMessages: %w", err)
+		}
+
+		if len(messages) == 0 {
+			return fmt.Errorf("GetPinnedMessages: expected non-empty Message slice")
+		}
+
+		unpinMessage := &UnpinMessage{
+			ChannelID: channel.ID,
+			MessageID: message.ID,
+		}
+
+		if err := unpinMessage.Send(bot); err != nil {
+			return fmt.Errorf("UnpinMessage: %w", err)
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		getChannelMessages := &GetChannelMessages{ChannelID: channel.ID}
+		messages, err := getChannelMessages.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetChannelMessages: %w", err)
+		}
+
+		if len(messages) == 0 {
+			return fmt.Errorf("GetChannelMessages: expected non-empty Message slice")
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		getChannelMessage := &GetChannelMessage{
+			ChannelID: channel.ID,
+			MessageID: message.ID,
+		}
+		
+		got, err := getChannelMessage.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetChannelMessage: %w", err)
+		}
+
+		if got == nil {
+			return fmt.Errorf("GetChannelMessage: expected non-null Message object")
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		editMessage := &EditMessage{
+			ChannelID: channel.ID,
+			MessageID: message.ID,
+			Content:   Pointer("Testing..."),
+		}
+
+		if _, err := editMessage.Send(bot); err != nil {
+			return fmt.Errorf("EditMessage: %w", err)
+		}
+
+		return nil
+	})
+
+	// wait until all Message requests have been processed.
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%w", eg.Wait())
+	default:
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("%w", eg.Wait())
+	}
+
+	deleteMessage := &DeleteMessage{
+		ChannelID: channel.ID,
+		MessageID: message.ID,
+	}
+
+	if err := deleteMessage.Send(bot); err != nil {
+		return fmt.Errorf("DeleteMessage: %w", err)
+	}
+
+	return nil
+}
+
+// testReaction tests all endpoints involving a reaction.
+func testReaction(bot *Client, channel *Channel, message *Message) error {
+	emoji := "✅"
+	createReaction := &CreateReaction{
+		ChannelID: channel.ID,
+		MessageID: message.ID,
+		Emoji:     emoji,
+	}
+
+	if err := createReaction.Send(bot); err != nil {
+		return fmt.Errorf("CreateReaction: %w", err)
+	}
+
+	eg, ctx := errgroup.WithContext(context.Background())
+
+	eg.Go(func() error {
+		getReactions := &GetReactions{
+			ChannelID: channel.ID,
+			MessageID: message.ID,
+			Emoji:     emoji,
+		}
+
+		users, err := getReactions.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetReactions: %w", err)
+		}
+
+		if len(users) == 0 {
+			return fmt.Errorf("GetReactions: expected non-empty User slice")
+		}
+
+		return nil
+	})
+
+	// wait until all Reaction requests have been processed.
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%w", eg.Wait())
+	default:
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("%w", eg.Wait())
+	}
+
+	deleteReaction := &DeleteAllReactions{
+		ChannelID: channel.ID,
+		MessageID: message.ID,
+	}
+
+	if err := deleteReaction.Send(bot); err != nil {
+		return fmt.Errorf("DeleteAllReactions: %w", err)
+	}
 
 	return nil
 }

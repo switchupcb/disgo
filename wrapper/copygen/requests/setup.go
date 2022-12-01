@@ -279,7 +279,7 @@ type Copygen interface {
 	// http POST
 	CreateStageInstance(*disgo.CreateStageInstance) (*disgo.StageInstance, error)
 	// http GET
-	GetStageInstance(*disgo.GetStageInstance) error
+	GetStageInstance(*disgo.GetStageInstance) (*disgo.StageInstance, error)
 	// http PATCH
 	ModifyStageInstance(*disgo.ModifyStageInstance) (*disgo.StageInstance, error)
 	// http DELETE
