@@ -452,71 +452,6 @@ func EndpointDeleteGuildEmoji(guildid, emojiid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + emojis + slash + emojiid
 }
 
-// EndpointListScheduledEventsforGuild builds a query for an HTTP request.
-func EndpointListScheduledEventsforGuild(guildid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
-}
-
-// EndpointCreateGuildScheduledEvent builds a query for an HTTP request.
-func EndpointCreateGuildScheduledEvent(guildid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
-}
-
-// EndpointGetGuildScheduledEvent builds a query for an HTTP request.
-func EndpointGetGuildScheduledEvent(guildid, guildscheduledeventid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid
-}
-
-// EndpointModifyGuildScheduledEvent builds a query for an HTTP request.
-func EndpointModifyGuildScheduledEvent(guildid, guildscheduledeventid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid
-}
-
-// EndpointDeleteGuildScheduledEvent builds a query for an HTTP request.
-func EndpointDeleteGuildScheduledEvent(guildid, guildscheduledeventid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid
-}
-
-// EndpointGetGuildScheduledEventUsers builds a query for an HTTP request.
-func EndpointGetGuildScheduledEventUsers(guildid, guildscheduledeventid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid + slash + users
-}
-
-// EndpointGetGuildTemplate builds a query for an HTTP request.
-func EndpointGetGuildTemplate(templatecode string) string {
-	return EndpointBaseURL + guilds + slash + templates + slash + templatecode
-}
-
-// EndpointCreateGuildfromGuildTemplate builds a query for an HTTP request.
-func EndpointCreateGuildfromGuildTemplate(templatecode string) string {
-	return EndpointBaseURL + guilds + slash + templates + slash + templatecode
-}
-
-// EndpointGetGuildTemplates builds a query for an HTTP request.
-func EndpointGetGuildTemplates(guildid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + templates
-}
-
-// EndpointCreateGuildTemplate builds a query for an HTTP request.
-func EndpointCreateGuildTemplate(guildid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + templates
-}
-
-// EndpointSyncGuildTemplate builds a query for an HTTP request.
-func EndpointSyncGuildTemplate(guildid, templatecode string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
-}
-
-// EndpointModifyGuildTemplate builds a query for an HTTP request.
-func EndpointModifyGuildTemplate(guildid, templatecode string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
-}
-
-// EndpointDeleteGuildTemplate builds a query for an HTTP request.
-func EndpointDeleteGuildTemplate(guildid, templatecode string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
-}
-
 // EndpointCreateGuild builds a query for an HTTP request.
 func EndpointCreateGuild() string {
 	return EndpointBaseURL + guilds
@@ -735,6 +670,71 @@ func EndpointModifyCurrentUserVoiceState(guildid string) string {
 // EndpointModifyUserVoiceState builds a query for an HTTP request.
 func EndpointModifyUserVoiceState(guildid, userid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + userid
+}
+
+// EndpointListScheduledEventsforGuild builds a query for an HTTP request.
+func EndpointListScheduledEventsforGuild(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
+}
+
+// EndpointCreateGuildScheduledEvent builds a query for an HTTP request.
+func EndpointCreateGuildScheduledEvent(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
+}
+
+// EndpointGetGuildScheduledEvent builds a query for an HTTP request.
+func EndpointGetGuildScheduledEvent(guildid, guildscheduledeventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid
+}
+
+// EndpointModifyGuildScheduledEvent builds a query for an HTTP request.
+func EndpointModifyGuildScheduledEvent(guildid, guildscheduledeventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid
+}
+
+// EndpointDeleteGuildScheduledEvent builds a query for an HTTP request.
+func EndpointDeleteGuildScheduledEvent(guildid, guildscheduledeventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid
+}
+
+// EndpointGetGuildScheduledEventUsers builds a query for an HTTP request.
+func EndpointGetGuildScheduledEventUsers(guildid, guildscheduledeventid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents + slash + guildscheduledeventid + slash + users
+}
+
+// EndpointGetGuildTemplate builds a query for an HTTP request.
+func EndpointGetGuildTemplate(templatecode string) string {
+	return EndpointBaseURL + guilds + slash + templates + slash + templatecode
+}
+
+// EndpointCreateGuildfromGuildTemplate builds a query for an HTTP request.
+func EndpointCreateGuildfromGuildTemplate(templatecode string) string {
+	return EndpointBaseURL + guilds + slash + templates + slash + templatecode
+}
+
+// EndpointGetGuildTemplates builds a query for an HTTP request.
+func EndpointGetGuildTemplates(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates
+}
+
+// EndpointCreateGuildTemplate builds a query for an HTTP request.
+func EndpointCreateGuildTemplate(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates
+}
+
+// EndpointSyncGuildTemplate builds a query for an HTTP request.
+func EndpointSyncGuildTemplate(guildid, templatecode string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
+}
+
+// EndpointModifyGuildTemplate builds a query for an HTTP request.
+func EndpointModifyGuildTemplate(guildid, templatecode string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
+}
+
+// EndpointDeleteGuildTemplate builds a query for an HTTP request.
+func EndpointDeleteGuildTemplate(guildid, templatecode string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + templates + slash + templatecode
 }
 
 // EndpointGetInvite builds a query for an HTTP request.

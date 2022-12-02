@@ -184,11 +184,13 @@ var (
 
 	// unused represents a map of unused endpoints.
 	unused = map[string]bool{
-		// Batch, Bulk
+		// Batch, Bulk (Custom Marshal)
 		"BulkOverwriteGlobalApplicationCommands": true,
 		"BulkOverwriteGuildApplicationCommands":  true,
 		"BulkDeleteMessages":                     true,
 		"BatchEditApplicationCommandPermissions": true,
+		"ModifyGuildChannelPositions":            true,
+		"ModifyGuildRolePositions":               true,
 
 		// Example (Image)
 		"ModifyCurrentUser": true, // avatar
@@ -242,8 +244,6 @@ var (
 		"CreateGuild":                  true,
 		"ModifyGuild":                  true,
 		"DeleteGuild":                  true,
-		"ModifyGuildChannelPositions":  true,
-		"ModifyGuildRolePositions":     true,
 		"ModifyGuildMFALevel":          true,
 		"BeginGuildPrune":              true,
 		"GetGuildIntegrations":         true,
@@ -290,7 +290,7 @@ var (
 		"StartThreadinForumChannel":             true,
 		"AddThreadMember":                       true,
 		"RemoveThreadMember":                    true,
-		"GetCurrentUser": true,
+		"GetCurrentUser":                        true,
 
 		// User (Requires User State)
 		"AddGuildMember":         true,
