@@ -40,12 +40,12 @@ func Function(function *models.Function) string {
 
 // generateComment generates a function comment.
 func generateComment(function *models.Function) string {
-	return "// Command sends an Opcode " + function.Options.Custom["opcode"][0] + " " + function.Name + " command to the Discord Gateway."
+	return "// SendEvent sends an Opcode " + function.Options.Custom["opcode"][0] + " " + function.Name + " event to the Discord Gateway."
 }
 
 // generateSignature generates a function's signature.
 func generateSignature(function *models.Function) string {
-	return "func (c " + function.From[0].Field.FullDefinition() + ") Command(bot *Client, session *Session) (" +
+	return "func (c " + function.From[0].Field.FullDefinition() + ") SendEvent(bot *Client, session *Session) (" +
 		generateResultParameters(function) + ") {"
 }
 
@@ -87,6 +87,7 @@ func generateParameters(function *models.Function) string {
 func generateBody(function *models.Function) string {
 	var body strings.Builder
 	name := function.From[0].Field.FullDefinitionWithoutPointer()
+	flag := "FlagGatewaySendEventName" + function.Name
 
 	// rename GatewayPresenceUpdate to PresenceUpdate.
 	if name == "GatewayPresenceUpdate" {
@@ -94,7 +95,7 @@ func generateBody(function *models.Function) string {
 	}
 
 	body.WriteString("if err := writeEvent(bot, session, FlagGatewayOpcode" + name + ", " +
-		"FlagGatewayCommandName" + name + ", c); err != nil {\n")
+		flag + ", c); err != nil {\n")
 	body.WriteString("return err\n")
 	body.WriteString("}\n\n")
 	body.WriteString("return nil\n")

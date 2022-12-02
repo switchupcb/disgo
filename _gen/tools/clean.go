@@ -46,7 +46,7 @@ func removeApplicationID(line string) bool {
 
 			n := len(linefields)
 			for j := i + 1; j < n; j++ {
-				if strings.Contains(linefields[j], "json") {
+				if linefields[j] != "`json:\"-\"`" && strings.Contains(linefields[j], "json") {
 					keep = true
 				}
 			}
@@ -73,10 +73,20 @@ func removePayloadJSON(line string) bool {
 	return keep
 }
 
-// fixPointerFunc fixes the generated pointer function in dasgo.
+var (
+	lines = map[string]string{
+		"func Pointer(v T) *T {":                       "func Pointer[T any](v T) *T {",
+		"func Pointer2(v T, null ...bool) **T {":       "func Pointer2[T any](v T, null ...bool) **T {",
+		"func IsValue(p *T) bool {":                    "func IsValue[T any](p *T) bool {",
+		"func IsValue2(dp **T) bool {":                 "func IsValue2[T any](dp **T) bool {",
+		"func PointerCheck(dp **T) PointerIndicator {": "func PointerCheck[T any](dp **T) PointerIndicator {",
+	}
+)
+
+// fixPointerFunc fixes the generated pointer functions in dasgo.
 func fixPointerFunc(line string) string {
-	if "func Pointer(v T) *T {" == line {
-		return "func Pointer[T any](v T) *T {"
+	if fixed, ok := lines[line]; ok {
+		return fixed
 	}
 
 	return ""

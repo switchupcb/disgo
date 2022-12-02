@@ -100,7 +100,7 @@ Create an application command **request** to add an application command.
 // Create a Create Global Application Command request.
 request := disgo.CreateGlobalApplicationCommand{
     Name:        "main",
-    Description: "A basic command.",
+    Description: disgo.Pointer("A basic command."),
 }
 
 // Register the new command by sending the request to Discord using the bot.
@@ -233,7 +233,7 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 | Name                                      | Contributions                                                         |
 | :---------------------------------------- | :-------------------------------------------------------------------- |
 | [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Generators, Dasgo, Requests, WebSockets, Events |
-| [Thomas Rogers](https://github.com/t-rog) | Dasgo, WebSockets                                                     |
+| [Thomas Rogers](https://github.com/t-rog) | Dasgo                                                                 |
 | [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                                                 |
 
 _Earn a credit! [Contribute Now](_contribution/CONTRIBUTING.md)._

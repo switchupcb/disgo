@@ -138,9 +138,6 @@ type Request struct {
 const (
 	// defaultRequestTimeout represents the default amount of time to wait on a request.
 	defaultRequestTimeout = time.Second
-
-	// totalRoutes represents the total amount of Discord HTTP Routes (174) + the Global Route (1).
-	totalRoutes = 175
 )
 
 // DefaultRequest returns a Default Request configuration.
@@ -151,9 +148,9 @@ func DefaultRequest() Request {
 
 	// configure the rate limiter.
 	ratelimiter := &RateLimit{ //nolint:exhaustruct
-		ids:     make(map[string]string, totalRoutes),
-		buckets: make(map[string]*Bucket, totalRoutes),
-		entries: make(map[string]int, totalRoutes),
+		ids:     make(map[string]string, len(RouteIDs)),
+		buckets: make(map[string]*Bucket, len(RouteIDs)),
+		entries: make(map[string]int, len(RouteIDs)),
 	}
 
 	ratelimiter.DefaultBucket = &Bucket{ //nolint:exhaustruct

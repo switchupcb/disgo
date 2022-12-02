@@ -91,7 +91,7 @@ var (
 		"CreateGuildChannel":                     {"CreateGuild"},
 		"ModifyGuildChannelPositions":            {"CreateGuild", "CreateGuildChannel"},
 		"ListActiveGuildThreads":                 {"CreateGuild"},
-		"GetGuildMember":                         {"AddGuildMember"},
+		"GetGuildMember":                         {"AddGuildMember", "GetUser"},
 		"ListGuildMembers":                       {"CreateGuild"},
 		"SearchGuildMembers":                     {"CreateGuild"},
 		"AddGuildMember":                         {"CreateGuild"},
@@ -184,64 +184,119 @@ var (
 
 	// unused represents a map of unused endpoints.
 	unused = map[string]bool{
-		// Batch, Bulk
+		// Batch, Bulk (Custom Marshal)
 		"BulkOverwriteGlobalApplicationCommands": true,
 		"BulkOverwriteGuildApplicationCommands":  true,
 		"BulkDeleteMessages":                     true,
 		"BatchEditApplicationCommandPermissions": true,
+		"ModifyGuildChannelPositions":            true,
+		"ModifyGuildRolePositions":               true,
+
+		// Example (Image)
+		"ModifyCurrentUser": true, // avatar
+
+		// Example (Command)
+		"CreateInteractionResponse":       true, // followup
+		"EditOriginalInteractionResponse": true, // followup
+		"CreateFollowupMessage":           true, // followup
+		"EditFollowupMessage":             true, // followup
 
 		// Files
-		"ListNitroStickerPacks": true,
-		"ListGuildStickers":     true,
-		"GetGuildSticker":       true,
-		"CreateGuildSticker":    true,
-		"ModifyGuildSticker":    true,
-		"DeleteGuildSticker":    true,
-		"CreateGuildEmoji":      true,
-		"ModifyGuildEmoji":      true,
-		"DeleteGuildEmoji":      true,
+		"CreateGuildEmoji":   true,
+		"GetGuildEmoji":      true,
+		"ModifyGuildEmoji":   true,
+		"DeleteGuildEmoji":   true,
+		"GetGuildSticker":    true,
+		"CreateGuildSticker": true,
+		"ModifyGuildSticker": true,
+		"DeleteGuildSticker": true,
 
 		// Interactions (Requires User State)
-		"CreateInteractionResponse":         true,
 		"GetOriginalInteractionResponse":    true,
-		"EditOriginalInteractionResponse":   true,
 		"DeleteOriginalInteractionResponse": true,
-		"CreateFollowupMessage":             true,
 		"GetFollowupMessage":                true,
-		"EditFollowupMessage":               true,
 		"DeleteFollowupMessage":             true,
+
+		// Invites (Unsafe)
+		"GetInvite":           true,
+		"DeleteInvite":        true,
+		"CreateChannelInvite": true,
+		"GetChannelInvites":   true,
 
 		// OAuth2 (Requires Bearer Token)
 		"GetCurrentAuthorizationInformation": true,
+		"GetCurrentUserGuilds":               true,
+		"GetCurrentUserGuildMember":          true,
 		"GetUserConnections":                 true,
+
+		// Permission Required (KICK, BAN, TIMEOUT)
+		"GetGuildPruneCount": true,
+		"GetGuildBans":       true,
+		"GetGuildBan":        true,
+		"CreateGuildBan":     true,
+		"RemoveGuildBan":     true,
+
+		// Privileged Intent Required
+		"ListGuildMembers":  true,
+		"ListThreadMembers": true,
 
 		// Resources (Requires Complex State Management)
 		"CreateGuild":                  true,
 		"ModifyGuild":                  true,
 		"DeleteGuild":                  true,
 		"ModifyGuildMFALevel":          true,
-		"GetGuildIntegration":          true,
+		"BeginGuildPrune":              true,
+		"GetGuildIntegrations":         true,
 		"DeleteGuildIntegration":       true,
+		"ModifyGuildWidget":            true,
+		"GetGuildWidget":               true,
+		"GetGuildVanityURL":            true,
+		"GetGuildWidgetImage":          true,
+		"GetGuildWelcomeScreen":        true,
+		"ModifyGuildWelcomeScreen":     true,
+		"GetGuildTemplate":             true,
 		"CreateGuildfromGuildTemplate": true,
 		"CreateGuildTemplate":          true,
 		"SyncGuildTemplate":            true,
 		"ModifyGuildTemplate":          true,
 		"DeleteGuildTemplate":          true,
+		"CrosspostMessage":             true,
 		"FollowAnnouncementChannel":    true,
 		"TriggerTypingIndicator":       true,
-		"ModifyChannelGroupDM":         true,
+		"EditChannelPermissions":       true,
+		"DeleteChannelPermission":      true,
 
 		// Tests
 		//
 		// Ratelimit, Session
+		"GetUser":       true,
 		"GetGateway":    true,
 		"GetGatewayBot": true,
 
+		// Redundant (Similar Logic Tested)
+		"GetGuildApplicationCommands":           true,
+		"CreateGuildApplicationCommand":         true,
+		"GetGuildApplicationCommand":            true,
+		"EditGuildApplicationCommand":           true,
+		"DeleteGuildApplicationCommand":         true,
+		"GetGuildApplicationCommandPermissions": true,
+		"ModifyChannel":                         true,
+		"ModifyChannelGroupDM":                  true,
+		"ModifyChannelThread":                   true,
+		"DeleteOwnReaction":                     true,
+		"DeleteUserReaction":                    true,
+		"DeleteAllReactionsforEmoji":            true,
+		"StartThreadfromMessage":                true,
+		"StartThreadinForumChannel":             true,
+		"AddThreadMember":                       true,
+		"RemoveThreadMember":                    true,
+		"GetCurrentUser":                        true,
+
 		// User (Requires User State)
-		"GetCurrentUser":         true,
-		"CreateGuildBan":         true,
-		"RemoveGuildBan":         true,
-		"ModifyCurrentUser":      true,
+		"AddGuildMember":         true,
+		"ModifyGuildMember":      true,
+		"RemoveGuildMember":      true,
+		"ModifyCurrentMember":    true,
 		"LeaveGuild":             true,
 		"CreateDM":               true,
 		"CreateGroupDM":          true,
@@ -264,6 +319,9 @@ var (
 		"GetWebhookMessage":              true,
 		"EditWebhookMessage":             true,
 		"DeleteWebhookMessage":           true,
+
+		// PENDING (BREAKING CHANGES OR DEPRECATION)
+		"EditApplicationCommandPermissions": true,
 	}
 )
 
@@ -376,6 +434,8 @@ func contains(s []string, x string) bool {
 }
 
 func main() {
+	fmt.Println(len(unused), "unused endpoints.\n")
+
 	for i, endpoint := range filterOutput(findOrder(endpoints)) {
 		fmt.Printf("%d. %v\n", i, endpoint)
 	}

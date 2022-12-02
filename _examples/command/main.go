@@ -42,11 +42,11 @@ func main() {
 	// Create a Create Global Application Command request.
 	request := &disgo.CreateGlobalApplicationCommand{
 		Name:        "main",
-		Description: "A basic command.",
+		Description: disgo.Pointer("A basic command."),
 
 		// The following field is not required, but useful to understand.
 		// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types
-		Type: disgo.FlagApplicationCommandTypeCHAT_INPUT,
+		Type: disgo.Pointer(disgo.FlagApplicationCommandTypeCHAT_INPUT),
 	}
 
 	// Register the new command by sending the request to Discord using the bot.

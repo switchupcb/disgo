@@ -73,7 +73,7 @@ func main() {
 	}
 }
 
-// check checks that the current
+// check checks that the current working directory is `disgo/_gen`.
 func check() error {
 	cwd, err := os.Getwd()
 	if err != nil {

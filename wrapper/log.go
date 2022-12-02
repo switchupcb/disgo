@@ -39,6 +39,9 @@ const (
 	// LogCtxEndpoint represents the log key for an Endpoint.
 	LogCtxEndpoint = "endpoint"
 
+	// LogCtxRequestBody represents the log key for an HTTP Request Body.
+	LogCtxRequestBody = "body"
+
 	// LogCtxBucket represents the log key for a Rate Limit Bucket ID.
 	LogCtxBucket = "bucket"
 
@@ -88,6 +91,19 @@ func LogRequest(log *zerolog.Event, clientid, xid, routeid, resourceid, endpoint
 			Str(LogCtxRoute, routeid).
 			Str(LogCtxResource, resourceid).
 			Str(LogCtxEndpoint, endpoint),
+		)
+}
+
+// LogRequestBody logs a request with its body.
+func LogRequestBody(log *zerolog.Event, clientid, xid, routeid, resourceid, endpoint, body string) *zerolog.Event {
+	return log.Timestamp().
+		Str(LogCtxClient, clientid).
+		Dict(LogCtxRequest, zerolog.Dict().
+			Str(LogCtxCorrelation, xid).
+			Str(LogCtxRoute, routeid).
+			Str(LogCtxResource, resourceid).
+			Str(LogCtxEndpoint, endpoint).
+			Str(LogCtxRequestBody, body),
 		)
 }
 

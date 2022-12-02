@@ -68,7 +68,7 @@ func main() {
 	//
 	request := &disgo.CreateGlobalApplicationCommand{
 		Name:        "calculate",
-		Description: "Calculate an operation using two values.",
+		Description: disgo.Pointer("Calculate an operation using two values."),
 
 		// create the `/calculate <group>` subcommand groups.
 		Options: []*disgo.ApplicationCommandOption{

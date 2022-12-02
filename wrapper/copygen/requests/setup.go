@@ -217,11 +217,11 @@ type Copygen interface {
 	// http POST
 	ModifyGuildMFALevel(*disgo.ModifyGuildMFALevel) (*disgo.ModifyGuildMFALevelResponse, error)
 	// http GET
-	GetGuildPruneCount(*disgo.GetGuildPruneCount) error
+	GetGuildPruneCount(*disgo.GetGuildPruneCount) (*disgo.GetGuildPruneCountResponse, error)
 	// http POST
 	BeginGuildPrune(*disgo.BeginGuildPrune) error
 	// http GET
-	GetGuildVoiceRegions(*disgo.GetGuildVoiceRegions) (*disgo.VoiceRegion, error)
+	GetGuildVoiceRegions(*disgo.GetGuildVoiceRegions) ([]*disgo.VoiceRegion, error)
 	// http GET
 	GetGuildInvites(*disgo.GetGuildInvites) ([]*disgo.Invite, error)
 	// http GET
@@ -279,7 +279,7 @@ type Copygen interface {
 	// http POST
 	CreateStageInstance(*disgo.CreateStageInstance) (*disgo.StageInstance, error)
 	// http GET
-	GetStageInstance(*disgo.GetStageInstance) error
+	GetStageInstance(*disgo.GetStageInstance) (*disgo.StageInstance, error)
 	// http PATCH
 	ModifyStageInstance(*disgo.ModifyStageInstance) (*disgo.StageInstance, error)
 	// http DELETE
@@ -287,7 +287,7 @@ type Copygen interface {
 	// http GET
 	GetSticker(*disgo.GetSticker) (*disgo.Sticker, error)
 	// http GET
-	ListNitroStickerPacks(*disgo.ListNitroStickerPacks) ([]*disgo.StickerPack, error)
+	ListNitroStickerPacks(*disgo.ListNitroStickerPacks) (*disgo.ListNitroStickerPacksResponse, error)
 	// http GET
 	ListGuildStickers(*disgo.ListGuildStickers) ([]*disgo.Sticker, error)
 	// http GET

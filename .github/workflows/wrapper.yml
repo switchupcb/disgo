@@ -107,4 +107,5 @@ jobs:
           APPID: ${{ secrets.APPID }}
           COVERAGE_TEST_TOKEN: ${{ secrets.COVERAGE_TEST_TOKEN }}
           COVERAGE_TEST_GUILD: ${{ secrets.COVERAGE_TEST_GUILD }}
+          COVERAGE_TEST_CATEGORY: ${{ secrets.COVERAGE_TEST_CATEGORY }}
         run: go test ./wrapper/tests/integration -race

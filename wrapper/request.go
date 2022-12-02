@@ -6,6 +6,7 @@ import (
 	"time"
 
 	json "github.com/goccy/go-json"
+	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 )
 
@@ -143,6 +144,9 @@ RATELIMIT:
 	bot.Config.Request.RateLimiter.Lock()
 
 	LogRequest(Logger.Trace(), bot.ApplicationID, xid, routeid, resourceid, uri).Msg("processing request")
+	if Logger.GetLevel() == zerolog.TraceLevel {
+		LogRequestBody(Logger.Trace(), bot.ApplicationID, xid, routeid, resourceid, uri, string(body)).Msg("")
+	}
 
 	// check Global and Route Rate Limit Buckets prior to sending the current request.
 	for {

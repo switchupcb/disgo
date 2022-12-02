@@ -44,7 +44,7 @@ func main() {
 
 		// Be sure to adhere to Application Command Naming rules.
 		// https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-naming
-		NameLocalizations: map[string]string{
+		NameLocalizations: &map[string]string{
 			// Top 10. Locales by Population
 			//
 			// Discord doesn't support every locale.
@@ -63,8 +63,8 @@ func main() {
 			// 11. Pronouns
 		},
 
-		Description: "Say hello.",
-		DescriptionLocalizations: map[string]string{
+		Description: disgo.Pointer("Say hello."),
+		DescriptionLocalizations: &map[string]string{
 			disgo.FlagLocalesEnglishUS:           "Say hello.",
 			disgo.FlagLocalesEnglishUK:           "Say hello.",
 			disgo.FlagLocalesChineseChina:        "问好。",
@@ -106,7 +106,7 @@ func main() {
 		log.Printf("hello called by %s.", i.Interaction.User.Username)
 
 		// see func declaration below.
-		if err := onInteraction(bot, i.Interaction, locales); err != nil {
+		if err := onInteraction(bot, i.Interaction, *locales); err != nil {
 			log.Println(err)
 		}
 	})
