@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -12,6 +13,26 @@ import (
 	"github.com/rs/zerolog"
 	. "github.com/switchupcb/disgo/wrapper"
 )
+
+// Error Format Strings
+const (
+	errEmptyID    = "%v: expected non-empty %v ID"
+	errNullObject = "%v: expected non-null %v object"
+	errEmptySlice = "%v: expected non-empty %v slice"
+)
+
+// eventErrorGroup represents an error group for event handlers.
+type eventErrorGroup struct {
+	errors []error
+	*sync.Mutex
+}
+
+// append appends an error the event error group.
+func (e *eventErrorGroup) append(err error) {
+	e.Lock()
+	e.errors = append(e.errors, err)
+	e.Unlock()
+}
 
 // TestCoverage tests 100+ endpoints (requests) and respective events from the Discord API.
 func TestCoverage(t *testing.T) {
@@ -35,10 +56,13 @@ func TestCoverage(t *testing.T) {
 
 	bot.ApplicationID = app.ID
 	if app.ID == "" {
-		t.Fatal("GetCurrentBotApplicationInformation: expected non-empty Application ID")
+		t.Fatalf(errEmptyID, "GetCurrentBotApplicationInformation", "Application")
 	}
 
-	initializeEventHandlers(bot)
+	eventHandlerErrorGroup, err := initializeEventHandlers(bot)
+	if err != nil {
+		t.Fatal(fmt.Errorf("error setting up event handlers: %w", err))
+	}
 
 	// Connect the session to the Discord Gateway (WebSocket Connection).
 	if err := bot.Sessions[0].Connect(bot); err != nil {
@@ -56,7 +80,7 @@ func TestCoverage(t *testing.T) {
 		}
 
 		if len(regions) == 0 {
-			return fmt.Errorf("ListVoiceRegions: expected non-empty Voice Regions slice")
+			return fmt.Errorf(errEmptySlice, "ListVoiceRegions", "Voice Regions")
 		}
 
 		return nil
@@ -94,6 +118,10 @@ func TestCoverage(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
+	for _, err := range eventHandlerErrorGroup.errors {
+		t.Errorf("%v", err)
+	}
+
 	// Disconnect the session from the Discord Gateway (WebSocket Connection).
 	if err := bot.Sessions[0].Disconnect(); err != nil {
 		t.Fatalf("%v", err)
@@ -101,11 +129,6 @@ func TestCoverage(t *testing.T) {
 
 	// allow Discord to close the session.
 	<-time.After(time.Second * 5)
-}
-
-// initializeEventHandlers initializes the event handlers necessary for this test.
-func initializeEventHandlers(bot *Client) {
-
 }
 
 // testCommands tests all endpoints that are dependent on a global command.
@@ -121,7 +144,7 @@ func testCommands(bot *Client) error {
 	}
 
 	if command.ID == "" {
-		return fmt.Errorf("CreateGlobalApplicationCommand: expected non-null ApplicationCommand object")
+		return fmt.Errorf(errNullObject, "CreateGlobalApplicationCommand", "ApplicationCommand")
 	}
 
 	eg, ctx := errgroup.WithContext(context.Background())
@@ -133,7 +156,7 @@ func testCommands(bot *Client) error {
 		}
 
 		if len(commands) == 0 {
-			return fmt.Errorf("GetGlobalApplicationCommands: expected non-empty Global Application Command List")
+			return fmt.Errorf(errEmptySlice, "GetGlobalApplicationCommands", "ApplicationCommand")
 		}
 
 		return nil
@@ -147,7 +170,7 @@ func testCommands(bot *Client) error {
 		}
 
 		if got == nil {
-			return fmt.Errorf("GetGlobalApplicationCommand: expected non-null ApplicationCommand object")
+			return fmt.Errorf(errNullObject, "GetGlobalApplicationCommand", "ApplicationCommand")
 		}
 
 		return nil
@@ -166,7 +189,7 @@ func testCommands(bot *Client) error {
 		}
 
 		if editedCommand.ID == "" {
-			return fmt.Errorf("EditGlobalApplicationCommand: expected non-null ApplicationCommand object")
+			return fmt.Errorf(errEmptyID, "EditGlobalApplicationCommand", "ApplicationCommand")
 		}
 
 		return nil
@@ -204,7 +227,7 @@ func testGuild(bot *Client) error {
 	}
 
 	if guild.ID == "" {
-		return fmt.Errorf("GetGuild: expected non-empty Guild ID.")
+		return fmt.Errorf(errEmptyID, "GetGuild", "Guild")
 	}
 
 	eg, ctx := errgroup.WithContext(context.Background())
@@ -214,16 +237,11 @@ func testGuild(bot *Client) error {
 	})
 
 	eg.Go(func() error {
-		return testGuildScheduledEvent(bot, guild)
+		return testGuildAutoModeration(bot, guild)
 	})
 
 	eg.Go(func() error {
-		/*
-			ListAutoModerationRulesForGuild
-			CreateAutoModerationRule
-		*/
-
-		return nil
+		return testGuildScheduledEvent(bot, guild)
 	})
 
 	eg.Go(func() error {
@@ -363,7 +381,7 @@ func testGuildMember(bot *Client, guild *Guild) error {
 		}
 
 		if member == nil {
-			return fmt.Errorf("GetGuildMember: expected non-null GuildMember object")
+			return fmt.Errorf(errNullObject, "GetGuildMember", "GuildMember")
 		}
 
 		return nil
@@ -397,7 +415,7 @@ func testGuildRole(bot *Client, guild *Guild) error {
 	}
 
 	if role == nil {
-		return fmt.Errorf("CreateGuildRole: expected non-null Role object")
+		return fmt.Errorf(errNullObject, "CreateGuildRole", "Role")
 	}
 
 	eg, ctx := errgroup.WithContext(context.Background())
@@ -410,7 +428,7 @@ func testGuildRole(bot *Client, guild *Guild) error {
 		}
 
 		if len(roles) == 0 {
-			return fmt.Errorf("GetGuildRoles: expected non-empty roles slice")
+			return fmt.Errorf(errEmptySlice, "GetGuildRoles", "Role")
 		}
 
 		return nil
@@ -423,8 +441,13 @@ func testGuildRole(bot *Client, guild *Guild) error {
 			Name:    Pointer2("testing..."),
 		}
 
-		if _, err := modifyGuildRole.Send(bot); err != nil {
+		modifiedRole, err := modifyGuildRole.Send(bot)
+		if err != nil {
 			return fmt.Errorf("ModifyGuildRole: %w", err)
+		}
+
+		if modifiedRole.ID == "" {
+			return fmt.Errorf(errEmptyID, "ModifyGuildRole", "Role")
 		}
 
 		return nil
@@ -477,6 +500,116 @@ func testGuildRole(bot *Client, guild *Guild) error {
 	return nil
 }
 
+// testGuildAutoModeration tests all endpoints involving AutoModeration.
+func testGuildAutoModeration(bot *Client, guild *Guild) error {
+	createAutoModerationRule := &CreateAutoModerationRule{
+		GuildID:     guild.ID,
+		Name:        "Test",
+		EventType:   FlagEventTypeMESSAGE_SEND,
+		TriggerType: FlagTriggerTypeKEYWORD,
+		TriggerMetadata: &TriggerMetadata{
+			KeywordFilter:     []string{"!@#$%^&*"},
+			RegexPatterns:     []Flag{},
+			Presets:           []Flag{},
+			AllowList:         []string{},
+			MentionTotalLimit: 0,
+		},
+		Actions: []*AutoModerationAction{
+			{
+				Type:     FlagActionTypeBLOCK_MESSAGE,
+				Metadata: nil,
+			},
+		},
+		Enabled:        Pointer(false),
+		ExemptRoles:    nil,
+		ExemptChannels: nil,
+	}
+
+	rule, err := createAutoModerationRule.Send(bot)
+	if err != nil {
+		return fmt.Errorf("CreateAutoModerationRule: %w", err)
+	}
+
+	if rule == nil {
+		return fmt.Errorf(errNullObject, "CreateAutoModerationRule", "AutoModerationRule")
+	}
+
+	eg, ctx := errgroup.WithContext(context.Background())
+
+	eg.Go(func() error {
+		listAutoModerationRules := &ListAutoModerationRulesForGuild{GuildID: guild.ID}
+		rules, err := listAutoModerationRules.Send(bot)
+		if err != nil {
+			return fmt.Errorf("ListAutoModerationRulesForGuild: %w", err)
+		}
+
+		if len(rules) == 0 {
+			return fmt.Errorf(errEmptySlice, "ListAutoModerationRulesForGuild", "AutoModerationRule")
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		getAutoModerationRule := &GetAutoModerationRule{
+			GuildID:              guild.ID,
+			AutoModerationRuleID: rule.ID,
+		}
+
+		got, err := getAutoModerationRule.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetAutoModerationRule: %w", err)
+		}
+
+		if got == nil {
+			return fmt.Errorf(errNullObject, "GetAutoModerationRule", "AutoModerationRule")
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		modifyAutoModerationRule := &ModifyAutoModerationRule{
+			GuildID:              guild.ID,
+			AutoModerationRuleID: rule.ID,
+			Name:                 Pointer("Testing..."),
+		}
+
+		modifiedRule, err := modifyAutoModerationRule.Send(bot)
+		if err != nil {
+			return fmt.Errorf("ModifyAutoModerationRule: %w", err)
+		}
+
+		if modifiedRule.ID == "" {
+			return fmt.Errorf(errEmptyID, "ModifyAutoModerationRule", "AutoModerationRule")
+		}
+
+		return nil
+	})
+
+	// wait until all Guild Scheduled Event requests have been processed.
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%w", eg.Wait())
+	default:
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("%w", eg.Wait())
+	}
+
+	deleteAutoModerationRule := &DeleteAutoModerationRule{
+		GuildID:              guild.ID,
+		AutoModerationRuleID: rule.ID,
+	}
+
+	if err := deleteAutoModerationRule.Send(bot); err != nil {
+		return fmt.Errorf("DeleteAutoModerationRule: %w", err)
+	}
+
+	return nil
+}
+
 // testGuildScheduledEvent tests all endpoints involving a scheduled event.
 func testGuildScheduledEvent(bot *Client, guild *Guild) error {
 	day := time.Hour * time.Duration(24)
@@ -504,7 +637,7 @@ func testGuildScheduledEvent(bot *Client, guild *Guild) error {
 	}
 
 	if event == nil {
-		return fmt.Errorf("CreateGuildScheduledEvent: expected non-null GuildScheduledEvent object")
+		return fmt.Errorf(errNullObject, "CreateGuildScheduledEvent", "GuildScheduledEvent")
 	}
 
 	eg, ctx := errgroup.WithContext(context.Background())
@@ -517,7 +650,7 @@ func testGuildScheduledEvent(bot *Client, guild *Guild) error {
 		}
 
 		if len(events) == 0 {
-			return fmt.Errorf("ListScheduledEventsforGuild: expected non-empty GuildScheduledEvent slice")
+			return fmt.Errorf(errEmptySlice, "ListScheduledEventsforGuild", "GuildScheduledEvent")
 		}
 
 		return nil
@@ -529,8 +662,13 @@ func testGuildScheduledEvent(bot *Client, guild *Guild) error {
 			GuildScheduledEventID: event.ID,
 		}
 
-		if _, err := getGuildScheduledEvent.Send(bot); err != nil {
+		got, err := getGuildScheduledEvent.Send(bot)
+		if err != nil {
 			return fmt.Errorf("GetGuildScheduledEvent: %w", err)
+		}
+
+		if got == nil {
+			return fmt.Errorf(errNullObject, "GetGuildScheduledEvent", "GuildScheduledEvent")
 		}
 
 		return nil
@@ -544,13 +682,13 @@ func testGuildScheduledEvent(bot *Client, guild *Guild) error {
 			Name:                  Pointer("Test Event Modified"),
 		}
 
-		event, err := modifyGuildScheduledEvent.Send(bot)
+		modifiedEvent, err := modifyGuildScheduledEvent.Send(bot)
 		if err != nil {
 			return fmt.Errorf("ModifyGuildScheduledEvent: %w", err)
 		}
 
-		if event == nil {
-			return fmt.Errorf("ModifyGuildScheduledEvent: expected non-null GuildScheduledEvent object")
+		if modifiedEvent.ID == "" {
+			return fmt.Errorf(errEmptyID, "ModifyGuildScheduledEvent", "GuildScheduledEvent")
 		}
 
 		return nil
@@ -621,7 +759,7 @@ func testChannel(bot *Client) error {
 	}
 
 	if channel.ID == "" {
-		return fmt.Errorf("Channel.CreateGuildChannel: expected non-empty Channel ID.")
+		return fmt.Errorf(errEmptyID, "Channel.CreateGuildChannel", "Channel")
 	}
 
 	eg, ctx := errgroup.WithContext(context.Background())
@@ -650,7 +788,7 @@ func testChannel(bot *Client) error {
 		}
 
 		if got == nil {
-			return fmt.Errorf("GetChannel: expected non-null Channel object")
+			return fmt.Errorf(errNullObject, "GetChannel", "Channel")
 		}
 
 		return nil
@@ -664,8 +802,13 @@ func testChannel(bot *Client) error {
 			ParentID:  Pointer2(os.Getenv("COVERAGE_TEST_CATEGORY")),
 		}
 
-		if _, err := modifyChannel.Send(bot); err != nil {
-			return fmt.Errorf("ModifyChannelGuild: %w", err)
+		modifiedChannel, err := modifyChannel.Send(bot)
+		if err != nil {
+			return fmt.Errorf("Channel.ModifyChannelGuild: %w", err)
+		}
+
+		if modifiedChannel.ID == "" {
+			return fmt.Errorf(errEmptyID, "Channel.ModifyChannelGuild", "Channel")
 		}
 
 		return nil
@@ -752,7 +895,7 @@ func testThread(bot *Client, channel *Channel) error {
 	}
 
 	if thread.ID == "" {
-		return fmt.Errorf("StartThreadwithoutMessage: expected non-empty Channel ID.")
+		return fmt.Errorf(errEmptyID, "StartThreadwithoutMessage", "Channel")
 	}
 
 	eg, ctx := errgroup.WithContext(context.Background())
@@ -774,7 +917,7 @@ func testThread(bot *Client, channel *Channel) error {
 		}
 
 		if member == nil {
-			return fmt.Errorf("GetThreadMember: expected non-null ThreadMember object")
+			return fmt.Errorf(errNullObject, "GetThreadMember", "ThreadMember")
 		}
 
 		leaveThread := &LeaveThread{ChannelID: thread.ID}
@@ -854,7 +997,7 @@ func testStageInstance(bot *Client) error {
 	}
 
 	if channel.ID == "" {
-		return fmt.Errorf("StageInstance.CreateGuildChannel: expected non-empty Channel ID.")
+		return fmt.Errorf(errEmptyID, "StageInstance.CreateGuildChannel", "Channel")
 	}
 
 	createStageInstance := &CreateStageInstance{
@@ -869,7 +1012,7 @@ func testStageInstance(bot *Client) error {
 	}
 
 	if stage == nil {
-		return fmt.Errorf("CreateStageInstance: expected non-null StageInstance object")
+		return fmt.Errorf(errNullObject, "CreateStageInstance", "StageInstance")
 	}
 
 	eg, ctx := errgroup.WithContext(context.Background())
@@ -882,7 +1025,7 @@ func testStageInstance(bot *Client) error {
 		}
 
 		if got == nil {
-			return fmt.Errorf("GetStageInstance: expected non-null StageInstance object")
+			return fmt.Errorf(errNullObject, "GetStageInstance", "StageInstance")
 		}
 
 		return nil
@@ -894,8 +1037,13 @@ func testStageInstance(bot *Client) error {
 			Topic:     Pointer("Testing"),
 		}
 
-		if _, err := modifyStageInstance.Send(bot); err != nil {
+		modifiedStage, err := modifyStageInstance.Send(bot)
+		if err != nil {
 			return fmt.Errorf("ModifyStageInstance: %w", err)
+		}
+
+		if modifiedStage.ID == "" {
+			return fmt.Errorf(errEmptyID, "ModifyStageInstance", "StageInstance")
 		}
 
 		return nil
@@ -938,7 +1086,7 @@ func testMessage(bot *Client, channel *Channel) error {
 	}
 
 	if message.ID == "" {
-		return fmt.Errorf("CreateMessage: expected non-empty Message ID.")
+		return fmt.Errorf(errEmptyID, "CreateMessage", "Message")
 	}
 
 	eg, ctx := errgroup.WithContext(context.Background())
@@ -964,7 +1112,7 @@ func testMessage(bot *Client, channel *Channel) error {
 		}
 
 		if len(messages) == 0 {
-			return fmt.Errorf("GetPinnedMessages: expected non-empty Message slice")
+			return fmt.Errorf(errEmptySlice, "GetPinnedMessages", "Message")
 		}
 
 		unpinMessage := &UnpinMessage{
@@ -987,7 +1135,7 @@ func testMessage(bot *Client, channel *Channel) error {
 		}
 
 		if len(messages) == 0 {
-			return fmt.Errorf("GetChannelMessages: expected non-empty Message slice")
+			return fmt.Errorf(errEmptySlice, "GetChannelMessages", "Message")
 		}
 
 		return nil
@@ -1005,7 +1153,7 @@ func testMessage(bot *Client, channel *Channel) error {
 		}
 
 		if got == nil {
-			return fmt.Errorf("GetChannelMessage: expected non-null Message object")
+			return fmt.Errorf(errNullObject, "GetChannelMessage", "Message")
 		}
 
 		return nil
@@ -1076,7 +1224,7 @@ func testReaction(bot *Client, channel *Channel, message *Message) error {
 		}
 
 		if len(users) == 0 {
-			return fmt.Errorf("GetReactions: expected non-empty User slice")
+			return fmt.Errorf(errEmptySlice, "GetReactions", "User")
 		}
 
 		return nil
@@ -1103,4 +1251,236 @@ func testReaction(bot *Client, channel *Channel, message *Message) error {
 	}
 
 	return nil
+}
+
+// initializeEventHandlers initializes the event handlers necessary for this test.
+func initializeEventHandlers(bot *Client) (*eventErrorGroup, error) {
+	eg := new(eventErrorGroup)
+	category := "Handler"
+
+	// Connection to WebSocket.
+	if err := bot.Handle(FlagGatewayEventNameGuildCreate, func(e *GuildCreate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "GuildCreate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// CreateGuildRole
+	if err := bot.Handle(FlagGatewayEventNameGuildRoleCreate, func(e *GuildRoleCreate) {
+		if e.Role.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "GuildRoleCreate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// ModifyGuildRole
+	if err := bot.Handle(FlagGatewayEventNameGuildRoleUpdate, func(e *GuildRoleUpdate) {
+		if e.Role.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "GuildRoleUpdate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// DeleteGuildRole
+	if err := bot.Handle(FlagGatewayEventNameGuildRoleDelete, func(e *GuildRoleDelete) {
+		if e.RoleID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "GuildRoleCreate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// CreateAutoModerationRule
+	if err := bot.Handle(FlagGatewayEventNameAutoModerationRuleCreate, func(e *AutoModerationRuleCreate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "AutoModerationRuleCreate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// ModifyAutoModerationRule
+	if err := bot.Handle(FlagGatewayEventNameAutoModerationRuleUpdate, func(e *AutoModerationRuleUpdate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "AutoModerationRuleUpdate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// DeleteAutoModerationRule
+	if err := bot.Handle(FlagGatewayEventNameAutoModerationRuleDelete, func(e *AutoModerationRuleDelete) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "AutoModerationRuleDelete"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// CreateGuildScheduledEvent
+	if err := bot.Handle(FlagGatewayEventNameGuildScheduledEventCreate, func(e *GuildScheduledEventCreate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "GuildScheduledEventCreate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// ModifyGuildScheduledEvent
+	if err := bot.Handle(FlagGatewayEventNameGuildScheduledEventUpdate, func(e *GuildScheduledEventUpdate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "GuildScheduledEventUpdate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// DeleteGuildScheduledEvent
+	if err := bot.Handle(FlagGatewayEventNameGuildScheduledEventDelete, func(e *GuildScheduledEventDelete) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "GuildScheduledEventDelete"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// CreateGuildChannel
+	if err := bot.Handle(FlagGatewayEventNameChannelCreate, func(e *ChannelCreate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "ChannelCreate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// ModifyChannel
+	if err := bot.Handle(FlagGatewayEventNameChannelUpdate, func(e *ChannelUpdate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "ChannelUpdate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// DeleteCloseChannel
+	if err := bot.Handle(FlagGatewayEventNameChannelDelete, func(e *ChannelDelete) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "ChannelDelete"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	if err := bot.Handle(FlagGatewayEventNameThreadDelete, func(e *ThreadDelete) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "ThreadDelete"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// StartThreadwithoutMessage
+	if err := bot.Handle(FlagGatewayEventNameThreadCreate, func(e *ThreadCreate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "ThreadCreate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// JoinThread, LeaveThread
+	if err := bot.Handle(FlagGatewayEventNameThreadMembersUpdate, func(e *ThreadMembersUpdate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "ThreadMembersUpdate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// CreateStageInstance
+	if err := bot.Handle(FlagGatewayEventNameStageInstanceCreate, func(e *StageInstanceCreate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "StageInstanceCreate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// ModifyStageInstance
+	if err := bot.Handle(FlagGatewayEventNameStageInstanceUpdate, func(e *StageInstanceUpdate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "StageInstanceUpdate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// DeleteStageInstance
+	if err := bot.Handle(FlagGatewayEventNameStageInstanceDelete, func(e *StageInstanceDelete) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "StageInstanceDelete"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// CreateMessage
+	if err := bot.Handle(FlagGatewayEventNameMessageCreate, func(e *MessageCreate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "MessageCreate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// EditMessage
+	if err := bot.Handle(FlagGatewayEventNameMessageUpdate, func(e *MessageUpdate) {
+		if e.ID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "MessageUpdate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// DeleteMessage
+	if err := bot.Handle(FlagGatewayEventNameMessageDelete, func(e *MessageDelete) {
+		if e.MessageID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "MessageDelete"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// PinMessage, UnpinMessage
+	if err := bot.Handle(FlagGatewayEventNameChannelPinsUpdate, func(e *ChannelPinsUpdate) {
+		if e.ChannelID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "ChannelPinsUpdate"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// CreateReaction
+	if err := bot.Handle(FlagGatewayEventNameMessageReactionAdd, func(e *MessageReactionAdd) {
+		if e.ChannelID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "MessageReactionAdd"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	// DeleteAllReactions
+	if err := bot.Handle(FlagGatewayEventNameMessageReactionRemoveAll, func(e *MessageReactionRemoveAll) {
+		if e.ChannelID == "" {
+			eg.append(fmt.Errorf(errEmptyID, category, "MessageReactionRemoveAll"))
+		}
+	}); err != nil {
+		return nil, err
+	}
+
+	return eg, nil
 }

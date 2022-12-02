@@ -4,6 +4,7 @@
 package template
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/switchupcb/copygen/cli/models"
@@ -68,7 +69,7 @@ func generateHandle(functions []*models.Function) string {
 	// write cases.
 	cases := len(functions)
 	for i, function := range functions {
-		fn.WriteString(generateHandleCase(function.Name, generateIntentFlag(function.Options)))
+		fn.WriteString(generateHandleCase(function.Name, generateIntentFlags(function.Options)))
 
 		if i+1 != cases {
 			fn.WriteString("\n")
@@ -93,12 +94,12 @@ func generateHandle(functions []*models.Function) string {
 }
 
 // generateHandleCase generates the switch case statement for the Handle function.
-func generateHandleCase(eventname string, flag string) string {
+func generateHandleCase(eventname string, flags []string) string {
 	var c strings.Builder
 	c.WriteString("case FlagGatewayEventName" + eventname + ":\n")
 
 	// add automatic intent calculation.
-	if flag != "" {
+	for _, flag := range flags {
 		c.WriteString("if !bot.Config.Gateway.IntentSet[" + flag + "] {\n")
 		c.WriteString("bot.Config.Gateway.IntentSet[" + flag + "] = true\n")
 		c.WriteString("bot.Config.Gateway.Intents |= " + flag + "\n")
@@ -117,14 +118,21 @@ func generateHandleCase(eventname string, flag string) string {
 	return c.String()
 }
 
-// generateIntentFlag generates the Intent Flag string for automatic intent calculation.
-func generateIntentFlag(options models.FunctionOptions) string {
+// generateIntentFlags generates the Intent Flag strings for automatic intent calculation.
+func generateIntentFlags(options models.FunctionOptions) []string {
+	var intents []string
+
 	if v, ok := options.Custom["intents"]; ok {
-		intents := v[0]
-		return strings.ReplaceAll(intents, " ", " | ")
+		for _, flags := range v {
+			intents = append(intents, strings.Fields(flags)...)
+		}
 	}
 
-	return ""
+	sort.Slice(intents, func(i, j int) bool {
+		return intents[i] < intents[j]
+	})
+
+	return intents
 }
 
 ////////////////////////////////////////////////////////////////////////////////
