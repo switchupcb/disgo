@@ -100,7 +100,7 @@ Create an application command **request** to add an application command.
 // Create a Create Global Application Command request.
 request := disgo.CreateGlobalApplicationCommand{
     Name:        "main",
-    Description: "A basic command.",
+    Description: disgo.Pointer("A basic command."),
 }
 
 // Register the new command by sending the request to Discord using the bot.

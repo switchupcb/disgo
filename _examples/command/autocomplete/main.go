@@ -42,7 +42,7 @@ func main() {
 	// Create a Create Global Application Command request.
 	request := &disgo.CreateGlobalApplicationCommand{
 		Name:        "autocomplete",
-		Description: "Learn about autocompletion.",
+		Description: disgo.Pointer("Learn about autocompletion."),
 
 		Options: []*disgo.ApplicationCommandOption{
 			{

@@ -88,7 +88,7 @@ func main() {
 	createMessageRequest := disgo.CreateMessage{
 		ChannelID:        *channelID,
 		Content:          msg,
-		Nonce:            "",
+		Nonce:            nil,
 		TTS:              nil,
 		Embeds:           nil,
 		AllowedMentions:  nil,

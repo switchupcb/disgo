@@ -42,7 +42,7 @@ func main() {
 	// Create a Create Global Application Command request.
 	request := &disgo.CreateGlobalApplicationCommand{
 		Name:        "followup",
-		Description: "Showcase multiple types of interaction responses.",
+		Description: disgo.Pointer("Showcase multiple types of interaction responses."),
 	}
 
 	// Register the new command by sending the request to Discord using the bot.
@@ -148,7 +148,7 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 	requestEditInteractionResponse := &disgo.EditOriginalInteractionResponse{
 		ApplicationID:    bot.ApplicationID,
 		InteractionToken: interaction.Token,
-		Content:          disgo.Pointer("This response is edited now."),
+		Content:          disgo.Pointer2("This response is edited now."),
 	}
 
 	if _, err := requestEditInteractionResponse.Send(bot); err != nil {
@@ -166,7 +166,7 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 	requestCreateFollowupMessage := &disgo.CreateFollowupMessage{
 		ApplicationID:    bot.ApplicationID,
 		InteractionToken: interaction.Token,
-		Content:          "This is a followup message. Wait...",
+		Content:          disgo.Pointer("This is a followup message. Wait..."),
 	}
 
 	followupMessage, err := requestCreateFollowupMessage.Send(bot)
@@ -186,7 +186,7 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 		ApplicationID:    bot.ApplicationID,
 		InteractionToken: interaction.Token,
 		MessageID:        followupMessage.ID,
-		Content:          disgo.Pointer("This followup message is edited now."),
+		Content:          disgo.Pointer2("This followup message is edited now."),
 	}
 
 	if _, err := requestEditFollowupMessage.Send(bot); err != nil {
