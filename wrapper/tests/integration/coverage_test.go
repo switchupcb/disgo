@@ -214,16 +214,11 @@ func testGuild(bot *Client) error {
 	})
 
 	eg.Go(func() error {
-		return testGuildScheduledEvent(bot, guild)
+		return testGuildAutoModeration(bot, guild)
 	})
 
 	eg.Go(func() error {
-		/*
-			ListAutoModerationRulesForGuild
-			CreateAutoModerationRule
-		*/
-
-		return nil
+		return testGuildScheduledEvent(bot, guild)
 	})
 
 	eg.Go(func() error {
@@ -472,6 +467,111 @@ func testGuildRole(bot *Client, guild *Guild) error {
 
 	if err := deleteGuildRole.Send(bot); err != nil {
 		return fmt.Errorf("DeleteGuildRole: %w", err)
+	}
+
+	return nil
+}
+
+// testGuildAutoModeration tests all endpoints involving AutoModeration.
+func testGuildAutoModeration(bot *Client, guild *Guild) error {
+	createAutoModerationRule := &CreateAutoModerationRule{
+		GuildID:     guild.ID,
+		Name:        "Test",
+		EventType:   FlagEventTypeMESSAGE_SEND,
+		TriggerType: FlagTriggerTypeKEYWORD,
+		TriggerMetadata: &TriggerMetadata{
+			KeywordFilter:     []string{"!@#$%^&*"},
+			RegexPatterns:     []Flag{},
+			Presets:           []Flag{},
+			AllowList:         []string{},
+			MentionTotalLimit: 0,
+		},
+		Actions: []*AutoModerationAction{
+			{
+				Type:     FlagActionTypeBLOCK_MESSAGE,
+				Metadata: nil,
+			},
+		},
+		Enabled:        Pointer(false),
+		ExemptRoles:    nil,
+		ExemptChannels: nil,
+	}
+
+	rule, err := createAutoModerationRule.Send(bot)
+	if err != nil {
+		return fmt.Errorf("CreateAutoModerationRule: %w", err)
+	}
+
+	if rule == nil {
+		return fmt.Errorf("CreateAutoModerationRule: expected non-null AutoModerationRule object")
+	}
+
+	eg, ctx := errgroup.WithContext(context.Background())
+
+	eg.Go(func() error {
+		listAutoModerationRules := &ListAutoModerationRulesForGuild{GuildID: guild.ID}
+		rules, err := listAutoModerationRules.Send(bot)
+		if err != nil {
+			return fmt.Errorf("ListAutoModerationRulesForGuild: %w", err)
+		}
+
+		if len(rules) == 0 {
+			return fmt.Errorf("ListAutoModerationRulesForGuild: expected non-empty AutoModerationRule slice")
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		getAutoModerationRule := &GetAutoModerationRule{
+			GuildID:              guild.ID,
+			AutoModerationRuleID: rule.ID,
+		}
+
+		if _, err := getAutoModerationRule.Send(bot); err != nil {
+			return fmt.Errorf("GetAutoModerationRule: %w", err)
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		modifyAutoModerationRule := &ModifyAutoModerationRule{
+			GuildID:              guild.ID,
+			AutoModerationRuleID: rule.ID,
+			Name:                 Pointer("Testing..."),
+		}
+
+		rule, err := modifyAutoModerationRule.Send(bot)
+		if err != nil {
+			return fmt.Errorf("ModifyAutoModerationRule: %w", err)
+		}
+
+		if rule == nil {
+			return fmt.Errorf("ModifyAutoModerationRule: expected non-null AutoModerationRule object")
+		}
+
+		return nil
+	})
+
+	// wait until all Guild Scheduled Event requests have been processed.
+	select {
+	case <-ctx.Done():
+		return fmt.Errorf("%w", eg.Wait())
+	default:
+	}
+
+	if err := eg.Wait(); err != nil {
+		return fmt.Errorf("%w", eg.Wait())
+	}
+
+	deleteAutoModerationRule := &DeleteAutoModerationRule{
+		GuildID:              guild.ID,
+		AutoModerationRuleID: rule.ID,
+	}
+
+	if err := deleteAutoModerationRule.Send(bot); err != nil {
+		return fmt.Errorf("DeleteAutoModerationRule: %w", err)
 	}
 
 	return nil
