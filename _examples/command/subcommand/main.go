@@ -175,14 +175,21 @@ func main() {
 	log.Println("Adding an event handler.")
 
 	// Add an event handler to the bot.
-	bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i *disgo.InteractionCreate) {
+	//
+	// ensure that the event handler is added to the bot.
+	if err := bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i *disgo.InteractionCreate) {
 		log.Printf("calculate called by %s.", i.Interaction.User.Username)
 
 		// see func declaration below.
 		if err := onInteraction(bot, i.Interaction); err != nil {
 			log.Println(err)
 		}
-	})
+	}); err != nil {
+		// when the Handle(eventname, function) parameters are not configured correctly.
+		log.Printf("Failed to add event handler to bot: %v", err)
+
+		os.Exit(1)
+	}
 
 	log.Println("Connecting to the Discord Gateway...")
 

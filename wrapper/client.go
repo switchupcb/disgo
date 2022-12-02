@@ -101,7 +101,7 @@ type Config struct {
 func DefaultConfig() *Config {
 	c := new(Config)
 	c.Request = DefaultRequest()
-	c.Gateway = DefaultGateway(false)
+	c.Gateway = DefaultGateway()
 
 	return c
 }
@@ -178,13 +178,13 @@ func DefaultRequest() Request {
 type Gateway struct {
 	// Intents represents a Discord Gateway Intent.
 	//
-	// You must specify a Gateway Intent in order to gain access to Events.
+	// You must specify a Gateway Intent in order to receive specific information from an event.
 	//
 	// https://discord.com/developers/docs/topics/gateway#gateway-intents
 	Intents BitFlag
 
 	// IntentSet represents a set of Discord Gateway Intents, that a bot needs
-	// to gain access to Events (and specific Event Information).
+	// to receive specific information from an event.
 	//
 	// IntentSet is used for automatic intent calculation when a user adds an event handler.
 	IntentSet map[BitFlag]bool
@@ -210,13 +210,9 @@ const (
 
 // DefaultGateway returns a default Gateway configuration.
 //
-// When privileged intents are enabled, the MESSAGE_CONTENT intent will be included.
-//
-// MESSAGE_CONTENT is required to receive message content fields
-// (content, attachments, embeds, and components).
-//
+// Privileged Intents are disabled by default.
 // https://discord.com/developers/docs/topics/gateway#privileged-intents
-func DefaultGateway(privileged bool) Gateway {
+func DefaultGateway() Gateway {
 	// configure the rate limiter.
 	ratelimiter := &RateLimit{ //nolint:exhaustruct
 		ids:     make(map[string]string, totalGatewayBuckets),
@@ -236,22 +232,36 @@ func DefaultGateway(privileged bool) Gateway {
 		},
 	)
 
-	if privileged {
-		is := make(map[BitFlag]bool, totalIntents)
-		is[FlagIntentMESSAGE_CONTENT] = true
-
-		return Gateway{
-			Intents:               FlagIntentMESSAGE_CONTENT,
-			IntentSet:             is,
-			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
-			RateLimiter:           ratelimiter,
-		}
-	} else {
-		return Gateway{
-			Intents:               0,
-			IntentSet:             make(map[BitFlag]bool, totalIntents),
-			GatewayPresenceUpdate: new(GatewayPresenceUpdate),
-			RateLimiter:           ratelimiter,
-		}
+	// disable Privileged Intents.
+	// https://discord.com/developers/docs/topics/gateway#privileged-intents
+	intentSet := make(map[BitFlag]bool, totalIntents)
+	for privilegedIntent := range PrivilegedIntents {
+		intentSet[privilegedIntent] = true
 	}
+
+	return Gateway{
+		Intents:               0,
+		IntentSet:             intentSet,
+		GatewayPresenceUpdate: new(GatewayPresenceUpdate),
+		RateLimiter:           ratelimiter,
+	}
+}
+
+// EnableIntent enables an intent.
+//
+// This function does NOT check whether the intent is already enabled.
+// Use the Gateway.IntentSet to check whether the intent is already enabled.
+func (g *Gateway) EnableIntent(intent BitFlag) {
+	g.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+	g.Intents |= intent
+}
+
+// DisableIntent disables an intent.
+//
+// Disclaimer: The Bitwise OR operation (used) to add an intent is a DESTRUCTIVE operation.
+//
+// This means that it can NOT be reversed. As a result, this function will NOT remove
+// an intent that is already enabled.
+func (g Gateway) DisableIntent(intent BitFlag) {
+	g.IntentSet[intent] = true
 }

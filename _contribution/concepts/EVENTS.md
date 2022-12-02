@@ -16,7 +16,11 @@ Opening a connection to a Discord WebSocket Session (Gateway) allows Discord to 
 
 ### What is a Gateway Intent?
 
-[Gateway Intents](https://discord.com/developers/docs/topics/gateway#gateway-intents) are required to receive certain events. Disgo makes managing a bot's Gateway Intents easy by automatically setting the `Client.Config.Gateway.Intents` when an event handler is added to the bot using the `Handle(event, handler)` function. When a bot's Session connects to the Discord Gateway, the bot's current `Intents` value will be used to identify which events to receive.
+[Gateway Intents](https://discord.com/developers/docs/topics/gateway#gateway-intents) are required to receive certain events. Disgo makes managing a bot's Gateway Intents easy by **automatically** setting the `Client.Config.Gateway.Intents` when an event handler is added to the bot using the `Handle(event, handler)` function. When a bot's Session connects to the Discord Gateway, the bot's current `Intents` value will be used to identify which events to receive.
+
+As a reminder, Disgo already provides **Automatic Intent Calculation**. However, intents can be managed from the `Client.Config.Gateway` using the `Gateway.EnableIntent(intent)` and `Gateway.Disable(intent)` functions. Intents are added using a [Bitwise OR operation](https://en.wikipedia.org/wiki/Bitwise_operation) which is a DESTRUCTIVE operation. As a result, an intent that is added to a bot can't be removed using `Gateway.Disable(intent)`. Instead, the `Gateway.Intents` value must be reset.
+
+**_[Privileged Intents](https://discord.com/developers/docs/topics/gateway#privileged-intents) must be added using `EnableIntent` or `EnableIntentsPrivileged`._**
 
 ### When should I add or remove my event handler?
 
@@ -26,9 +30,16 @@ In order to add an event handler, use the `Client.Handle(event, handler)` functi
 
 ```go
 // Add an event handler to the bot.
-bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i disgo.InteractionCreate) {
+err := bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i disgo.InteractionCreate) {
 	log.Printf("InteractionCreate event from %s", i.User.Username)
 })
+
+// It's recommended to check the error of the Event Handler functions Handle() and Remove().
+// 	Handle() will fail when the (eventname, function) parameters are not configured correctly.
+// 	Remove() will fail when there is no event handler to remove at the given index.
+if err != nil {
+	log.Printf("Failed to add event handler to bot: %v", err)
+}
 ```
 
 In order to remove an event handler, use the `Client.Handlers.Remove(event, index)` function.

@@ -1229,6 +1229,16 @@ const (
 	FlagIntentAUTO_MODERATION_EXECUTION BitFlag = 1 << 21
 )
 
+// Privileged Intents
+// https://discord.com/developers/docs/topics/gateway#privileged-intents
+var (
+	PrivilegedIntents = map[BitFlag]bool{
+		FlagIntentGUILD_PRESENCES: true,
+		FlagIntentGUILD_MEMBERS:   true,
+		FlagIntentMESSAGE_CONTENT: true,
+	}
+)
+
 // Gateway SendEvent
 // https://discord.com/developers/docs/topics/gateway-events#send-events
 type SendEvent interface{}
