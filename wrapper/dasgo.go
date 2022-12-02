@@ -1519,7 +1519,7 @@ type DeleteGlobalApplicationCommand struct {
 // PUT /applications/{application.id}/commands
 // https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-global-application-commands
 type BulkOverwriteGlobalApplicationCommands struct {
-	ApplicationCommands []*ApplicationCommand `json:"commands,omitempty"`
+	ApplicationCommands []*ApplicationCommand `json:"commands"`
 }
 
 // Get Guild Application Commands
@@ -1579,7 +1579,7 @@ type DeleteGuildApplicationCommand struct {
 // https://discord.com/developers/docs/interactions/application-commands#bulk-overwrite-guild-application-commands
 type BulkOverwriteGuildApplicationCommands struct {
 	GuildID             string                `json:"-"`
-	ApplicationCommands []*ApplicationCommand `json:"commands,omitempty"`
+	ApplicationCommands []*ApplicationCommand `json:"commands"`
 }
 
 // Get Guild Application Command Permissions
@@ -2333,7 +2333,13 @@ type CreateGuildChannel struct {
 // PATCH /guilds/{guild.id}/channels
 // https://discord.com/developers/docs/resources/guild#modify-guild-channel-positions
 type ModifyGuildChannelPositions struct {
-	GuildID         string  `json:"-"`
+	GuildID    string                                  `json:"-"`
+	Parameters []*ModifyGuildChannelPositionParameters `json:"parameters"`
+}
+
+// Modify Guild Channel Position Parameters
+// https://discord.com/developers/docs/resources/guild#modify-guild-channel-positions-json-params
+type ModifyGuildChannelPositionParameters struct {
 	ID              string  `json:"id"`
 	Position        *int    `json:"position"`
 	LockPermissions *bool   `json:"lock_permissions"`
@@ -2494,7 +2500,13 @@ type CreateGuildRole struct {
 // PATCH /guilds/{guild.id}/roles
 // https://discord.com/developers/docs/resources/guild#modify-guild-role-positions
 type ModifyGuildRolePositions struct {
-	GuildID  string `json:"-"`
+	GuildID    string                               `json:"-"`
+	Parameters []*ModifyGuildRolePositionParameters `json:"parameters"`
+}
+
+// Modify Guild Role Position Parameters
+// https://discord.com/developers/docs/resources/guild#create-guild-role-json-params
+type ModifyGuildRolePositionParameters struct {
 	ID       string `json:"id"`
 	Position **int  `json:"position,omitempty"`
 }
