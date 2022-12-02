@@ -112,7 +112,7 @@ func initializeEventHandlers(bot *Client) {
 func testCommands(bot *Client) error {
 	createGlobalApplicationCommand := CreateGlobalApplicationCommand{
 		Name:        "main",
-		Description: "A basic command",
+		Description: Pointer("A basic command"),
 	}
 
 	command, err := createGlobalApplicationCommand.Send(bot)
@@ -156,8 +156,8 @@ func testCommands(bot *Client) error {
 	eg.Go(func() error {
 		editGlobalApplicationCommand := &EditGlobalApplicationCommand{
 			CommandID:   command.ID,
-			Name:        "notmain",
-			Description: "This is not a main global command.",
+			Name:        Pointer("notmain"),
+			Description: Pointer("This is not a main global command."),
 		}
 
 		editedCommand, err := editGlobalApplicationCommand.Send(bot)
@@ -256,7 +256,7 @@ func testGuild(bot *Client) error {
 	eg.Go(func() error {
 		searchGuildMembers := &SearchGuildMembers{
 			GuildID: guild.ID,
-			Query:   Pointer("D"),
+			Query:   "D",
 		}
 
 		if _, err := searchGuildMembers.Send(bot); err != nil {
@@ -387,7 +387,7 @@ func testGuildMember(bot *Client, guild *Guild) error {
 func testGuildRole(bot *Client, guild *Guild) error {
 	createGuildRole := &CreateGuildRole{
 		GuildID: guild.ID,
-		Name:    "testing",
+		Name:    Pointer("testing"),
 		Hoist:   Pointer(true),
 	}
 
@@ -420,7 +420,7 @@ func testGuildRole(bot *Client, guild *Guild) error {
 		modifyGuildRole := &ModifyGuildRole{
 			GuildID: guild.ID,
 			RoleID:  role.ID,
-			Name:    Pointer("testing..."),
+			Name:    Pointer2("testing..."),
 		}
 
 		if _, err := modifyGuildRole.Send(bot); err != nil {
@@ -491,10 +491,10 @@ func testGuildScheduledEvent(bot *Client, guild *Guild) error {
 		},
 		Name:               "Test Event",
 		PrivacyLevel:       FlagGuildScheduledEventPrivacyLevelGUILD_ONLY,
-		ScheduledStartTime: tomorrow.Format(TimestampFormatISO8601),
-		ScheduledEndTime:   overmorrow.Format(TimestampFormatISO8601),
+		ScheduledStartTime: tomorrow,
+		ScheduledEndTime:   &overmorrow,
 		Description:        Pointer("A test event."),
-		EntityType:         FlagGuildScheduledEventEntityTypeEXTERNAL,
+		EntityType:         Pointer(FlagGuildScheduledEventEntityTypeEXTERNAL),
 		Image:              nil,
 	}
 
@@ -598,16 +598,16 @@ func testChannel(bot *Client) error {
 	createGuildChannel := &CreateGuildChannel{
 		GuildID:                    os.Getenv("COVERAGE_TEST_GUILD"),
 		Name:                       "Test",
-		Type:                       Pointer(FlagChannelTypeGUILD_TEXT),
+		Type:                       Pointer2(FlagChannelTypeGUILD_TEXT),
 		Topic:                      nil,
 		Bitrate:                    nil,
 		UserLimit:                  nil,
 		RateLimitPerUser:           nil,
 		Position:                   nil,
 		PermissionOverwrites:       nil,
-		ParentID:                   Pointer(os.Getenv("COVERAGE_TEST_CATEGORY")),
+		ParentID:                   Pointer2(os.Getenv("COVERAGE_TEST_CATEGORY")),
 		NSFW:                       nil,
-		RTCRegion:                  "",
+		RTCRegion:                  nil,
 		VideoQualityMode:           nil,
 		DefaultAutoArchiveDuration: nil,
 		DefaultReactionEmoji:       nil,
@@ -659,9 +659,9 @@ func testChannel(bot *Client) error {
 	eg.Go(func() error {
 		modifyChannel := &ModifyChannelGuild{
 			ChannelID: channel.ID,
-			Name:      "Testing",
+			Name:      Pointer("Testing"),
 			Type:      Pointer(FlagChannelTypeGUILD_TEXT),
-			ParentID:  Pointer(os.Getenv("COVERAGE_TEST_CATEGORY")),
+			ParentID:  Pointer2(os.Getenv("COVERAGE_TEST_CATEGORY")),
 		}
 
 		if _, err := modifyChannel.Send(bot); err != nil {
@@ -695,16 +695,16 @@ func testVoiceChannel(bot *Client) error {
 	createVoiceChannel := &CreateGuildChannel{
 		GuildID:                    os.Getenv("COVERAGE_TEST_GUILD"),
 		Name:                       "Test",
-		Type:                       Pointer(FlagChannelTypeGUILD_VOICE),
+		Type:                       Pointer2(FlagChannelTypeGUILD_VOICE),
 		Topic:                      nil,
 		Bitrate:                    nil,
 		UserLimit:                  nil,
 		RateLimitPerUser:           nil,
 		Position:                   nil,
 		PermissionOverwrites:       nil,
-		ParentID:                   Pointer(os.Getenv("COVERAGE_TEST_CATEGORY")),
+		ParentID:                   Pointer2(os.Getenv("COVERAGE_TEST_CATEGORY")),
 		NSFW:                       nil,
-		RTCRegion:                  "",
+		RTCRegion:                  nil,
 		VideoQualityMode:           nil,
 		DefaultAutoArchiveDuration: nil,
 		DefaultReactionEmoji:       nil,
@@ -740,10 +740,10 @@ func testThread(bot *Client, channel *Channel) error {
 	startThread := &StartThreadwithoutMessage{
 		ChannelID:           channel.ID,
 		Name:                "Test",
-		AutoArchiveDuration: 0,
-		Type:                FlagChannelTypePRIVATE_THREAD,
-		Invitable:           false,
-		RateLimitPerUser:    0,
+		AutoArchiveDuration: nil,
+		Type:                Pointer(FlagChannelTypePRIVATE_THREAD),
+		Invitable:           nil,
+		RateLimitPerUser:    nil,
 	}
 
 	thread, err := startThread.Send(bot)
@@ -831,16 +831,16 @@ func testStageInstance(bot *Client) error {
 	createStageChannel := &CreateGuildChannel{
 		GuildID:                    os.Getenv("COVERAGE_TEST_GUILD"),
 		Name:                       "Test",
-		Type:                       Pointer(FlagChannelTypeGUILD_STAGE_VOICE),
+		Type:                       Pointer2(FlagChannelTypeGUILD_STAGE_VOICE),
 		Topic:                      nil,
 		Bitrate:                    nil,
 		UserLimit:                  nil,
 		RateLimitPerUser:           nil,
 		Position:                   nil,
 		PermissionOverwrites:       nil,
-		ParentID:                   Pointer(os.Getenv("COVERAGE_TEST_CATEGORY")),
+		ParentID:                   Pointer2(os.Getenv("COVERAGE_TEST_CATEGORY")),
 		NSFW:                       nil,
-		RTCRegion:                  "",
+		RTCRegion:                  nil,
 		VideoQualityMode:           nil,
 		DefaultAutoArchiveDuration: nil,
 		DefaultReactionEmoji:       nil,
@@ -860,7 +860,7 @@ func testStageInstance(bot *Client) error {
 	createStageInstance := &CreateStageInstance{
 		ChannelID:    channel.ID,
 		Topic:        "Test",
-		PrivacyLevel: FlagStageInstancePrivacyLevelGUILD_ONLY,
+		PrivacyLevel: Pointer(FlagStageInstancePrivacyLevelGUILD_ONLY),
 	}
 
 	stage, err := createStageInstance.Send(bot)
@@ -891,7 +891,7 @@ func testStageInstance(bot *Client) error {
 	eg.Go(func() error {
 		modifyStageInstance := &ModifyStageInstance{
 			ChannelID: channel.ID,
-			Topic:     "Testing",
+			Topic:     Pointer("Testing"),
 		}
 
 		if _, err := modifyStageInstance.Send(bot); err != nil {
@@ -1015,7 +1015,7 @@ func testMessage(bot *Client, channel *Channel) error {
 		editMessage := &EditMessage{
 			ChannelID: channel.ID,
 			MessageID: message.ID,
-			Content:   Pointer("Testing..."),
+			Content:   Pointer2("Testing..."),
 		}
 
 		if _, err := editMessage.Send(bot); err != nil {

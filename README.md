@@ -233,7 +233,7 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 | Name                                      | Contributions                                                         |
 | :---------------------------------------- | :-------------------------------------------------------------------- |
 | [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Generators, Dasgo, Requests, WebSockets, Events |
-| [Thomas Rogers](https://github.com/t-rog) | Dasgo, WebSockets                                                     |
+| [Thomas Rogers](https://github.com/t-rog) | Dasgo                                                                 |
 | [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                                                 |
 
 _Earn a credit! [Contribute Now](_contribution/CONTRIBUTING.md)._

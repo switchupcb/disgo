@@ -133,14 +133,16 @@ func (r *EditOriginalInteractionResponse) UnmarshalJSON(b []byte) error {
 		Components json.RawMessage `json:"components"`
 	}
 
-	var err error
-	if err = json.Unmarshal(b, &unmarshalled); err != nil {
+	if err := json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
+	components, err := unmarshalComponents(unmarshalled.Components)
+	if err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
+
+	unmarshalled.alias.Components = &components
 
 	if r == nil {
 		r = new(EditOriginalInteractionResponse)
@@ -185,14 +187,16 @@ func (r *EditFollowupMessage) UnmarshalJSON(b []byte) error {
 		Components json.RawMessage `json:"components"`
 	}
 
-	var err error
-	if err = json.Unmarshal(b, &unmarshalled); err != nil {
+	if err := json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
+	components, err := unmarshalComponents(unmarshalled.Components)
+	if err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
+
+	unmarshalled.alias.Components = &components
 
 	if r == nil {
 		r = new(EditFollowupMessage)
@@ -211,14 +215,16 @@ func (r *EditMessage) UnmarshalJSON(b []byte) error {
 		Components json.RawMessage `json:"components"`
 	}
 
-	var err error
-	if err = json.Unmarshal(b, &unmarshalled); err != nil {
+	if err := json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
+	components, err := unmarshalComponents(unmarshalled.Components)
+	if err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
+
+	unmarshalled.alias.Components = &components
 
 	if r == nil {
 		r = new(EditMessage)
@@ -289,14 +295,16 @@ func (r *EditWebhookMessage) UnmarshalJSON(b []byte) error {
 		Components json.RawMessage `json:"components"`
 	}
 
-	var err error
-	if err = json.Unmarshal(b, &unmarshalled); err != nil {
+	if err := json.Unmarshal(b, &unmarshalled); err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
 
-	if unmarshalled.alias.Components, err = unmarshalComponents(unmarshalled.Components); err != nil {
+	components, err := unmarshalComponents(unmarshalled.Components)
+	if err != nil {
 		return fmt.Errorf(errUnmarshal, r, err)
 	}
+
+	unmarshalled.alias.Components = &components
 
 	if r == nil {
 		r = new(EditWebhookMessage)

@@ -11,7 +11,6 @@ import (
 // TypeFix replaces dasgo references to a type with another type.
 func TypeFix(data []byte) ([]byte, error) {
 	content := string(data)
-
 	content = snowflake(content)
 
 	const (
@@ -20,13 +19,14 @@ func TypeFix(data []byte) ([]byte, error) {
 
 		commentValue    = "// Value represents a value (string, integer, or double)."
 		definitionValue = "type Value interface{}"
+
+		commentTimestamp    = "// Timestamp represents an ISO8601 timestamp."
+		definitionTimestamp = "type Timestamp string"
 	)
 
 	content = strings.Replace(content, definitionNonce, "type Nonce string", 1)
 	content = strings.Replace(content, definitionValue, "type Value string", 1)
-
-	// content = field(content, "Nonce", "Nonce", []string{commentNonce, definitionNonce}...)
-	// content = field(content, "Value", "Value", []string{commentValue, definitionValue}...)
+	content = field(content, "Timestamp", "time.Time", []string{commentTimestamp, definitionTimestamp}...)
 
 	// gofmt
 	contentdata := []byte(content)
@@ -52,16 +52,34 @@ func field(content string, field string, replace string, skip ...string) string 
 
 		// replace lines with two occurrences or more of the field (i.e Nonce Nonce).
 		lineFields := strings.Fields(line)
+
 		count := 0
+		ptr := ""
 		for _, lineField := range lineFields {
 			if lineField == field {
 				count++
+			} else if lineField == "*"+field {
+				count++
+				ptr = "*"
+			} else if lineField == "**"+field {
+				count++
+				ptr = "**"
 			}
 		}
 
-		if count == 2 {
+		switch count {
+		// i.e Name Field
+		case 1:
 			keep.WriteString(
-				fmt.Sprintf("%s %s %s\n", field, replace, strings.Join(lineFields[2:], " ")),
+				fmt.Sprintf("%s %s %s\n", lineFields[0], ptr+replace, strings.Join(lineFields[2:], " ")),
+			)
+
+			continue
+
+		// i.e Field Field
+		case 2:
+			keep.WriteString(
+				fmt.Sprintf("%s %s %s\n", lineFields[0], ptr+replace, strings.Join(lineFields[2:], " ")),
 			)
 
 			continue
@@ -83,7 +101,7 @@ func snowflake(content string) string {
 		escapedDefinitionSnowflake = "type $nowflake uint64"
 	)
 
-	// escape the definition of a Snowflake.
+	// escape the definition of a Snowflake (so it can be removed later).
 	content = strings.Replace(content, commentSnowflake, escapedCommentSnowflake, 1)
 	content = strings.Replace(content, definitionSnowflake, escapedDefinitionSnowflake, 1)
 
@@ -91,8 +109,8 @@ func snowflake(content string) string {
 	content = strings.ReplaceAll(content, "Snowflake", "string")
 
 	// unescape the definition of a Snowflake.
-	content = strings.Replace(content, escapedCommentSnowflake, commentSnowflake, 1)
-	content = strings.Replace(content, escapedDefinitionSnowflake, definitionSnowflake, 1)
+	content = strings.Replace(content, escapedCommentSnowflake, "", 1)
+	content = strings.Replace(content, escapedDefinitionSnowflake, "", 1)
 
 	return content
 }

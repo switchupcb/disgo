@@ -3,54 +3,54 @@
 
 package wrapper
 
-// Command sends an Opcode 1 Heartbeat command to the Discord Gateway.
-func (c *Heartbeat) Command(bot *Client, session *Session) error {
-	if err := writeEvent(bot, session, FlagGatewayOpcodeHeartbeat, FlagGatewayCommandNameHeartbeat, c); err != nil {
+// SendEvent sends an Opcode 1 Heartbeat event to the Discord Gateway.
+func (c *Heartbeat) SendEvent(bot *Client, session *Session) error {
+	if err := writeEvent(bot, session, FlagGatewayOpcodeHeartbeat, FlagGatewaySendEventNameHeartbeat, c); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Command sends an Opcode 2 Identify command to the Discord Gateway.
-func (c *Identify) Command(bot *Client, session *Session) error {
-	if err := writeEvent(bot, session, FlagGatewayOpcodeIdentify, FlagGatewayCommandNameIdentify, c); err != nil {
+// SendEvent sends an Opcode 2 Identify event to the Discord Gateway.
+func (c *Identify) SendEvent(bot *Client, session *Session) error {
+	if err := writeEvent(bot, session, FlagGatewayOpcodeIdentify, FlagGatewaySendEventNameIdentify, c); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Command sends an Opcode 3 PresenceUpdate command to the Discord Gateway.
-func (c *GatewayPresenceUpdate) Command(bot *Client, session *Session) error {
-	if err := writeEvent(bot, session, FlagGatewayOpcodePresenceUpdate, FlagGatewayCommandNamePresenceUpdate, c); err != nil {
+// SendEvent sends an Opcode 3 UpdatePresence event to the Discord Gateway.
+func (c *GatewayPresenceUpdate) SendEvent(bot *Client, session *Session) error {
+	if err := writeEvent(bot, session, FlagGatewayOpcodePresenceUpdate, FlagGatewaySendEventNameUpdatePresence, c); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Command sends an Opcode 4 VoiceStateUpdate command to the Discord Gateway.
-func (c *VoiceStateUpdate) Command(bot *Client, session *Session) error {
-	if err := writeEvent(bot, session, FlagGatewayOpcodeVoiceStateUpdate, FlagGatewayCommandNameVoiceStateUpdate, c); err != nil {
+// SendEvent sends an Opcode 4 UpdateVoiceState event to the Discord Gateway.
+func (c *VoiceStateUpdate) SendEvent(bot *Client, session *Session) error {
+	if err := writeEvent(bot, session, FlagGatewayOpcodeVoiceStateUpdate, FlagGatewaySendEventNameUpdateVoiceState, c); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Command sends an Opcode 6 Resume command to the Discord Gateway.
-func (c *Resume) Command(bot *Client, session *Session) error {
-	if err := writeEvent(bot, session, FlagGatewayOpcodeResume, FlagGatewayCommandNameResume, c); err != nil {
+// SendEvent sends an Opcode 6 Resume event to the Discord Gateway.
+func (c *Resume) SendEvent(bot *Client, session *Session) error {
+	if err := writeEvent(bot, session, FlagGatewayOpcodeResume, FlagGatewaySendEventNameResume, c); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// Command sends an Opcode 8 RequestGuildMembers command to the Discord Gateway.
-func (c *RequestGuildMembers) Command(bot *Client, session *Session) error {
-	if err := writeEvent(bot, session, FlagGatewayOpcodeRequestGuildMembers, FlagGatewayCommandNameRequestGuildMembers, c); err != nil {
+// SendEvent sends an Opcode 8 RequestGuildMembers event to the Discord Gateway.
+func (c *RequestGuildMembers) SendEvent(bot *Client, session *Session) error {
+	if err := writeEvent(bot, session, FlagGatewayOpcodeRequestGuildMembers, FlagGatewaySendEventNameRequestGuildMembers, c); err != nil {
 		return err
 	}
 

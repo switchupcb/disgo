@@ -103,10 +103,10 @@ func (s *Session) connect(bot *Client) error {
 		// https://discord.com/developers/docs/topics/gateway#rate-limiting
 		bot.Config.Gateway.RateLimiter.StartTx()
 
-		identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewayCommandNameIdentify)
+		identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewaySendEventNameIdentify)
 		if identifyBucket == nil {
 			identifyBucket = getBucket()
-			bot.Config.Gateway.RateLimiter.SetBucketFromID(FlagGatewayCommandNameIdentify, identifyBucket)
+			bot.Config.Gateway.RateLimiter.SetBucketFromID(FlagGatewaySendEventNameIdentify, identifyBucket)
 		}
 
 		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency) + 1
@@ -232,14 +232,14 @@ func (s *Session) initial(bot *Client, attempt int) error {
 				Browser: module,
 				Device:  module,
 			},
-			Compress:       true,
-			LargeThreshold: maxIdentifyLargeThreshold,
+			Compress:       Pointer(true),
+			LargeThreshold: Pointer(maxIdentifyLargeThreshold),
 			Shard:          nil, // SHARD: set shard information using s.Shard.
-			Presence:       *bot.Config.Gateway.GatewayPresenceUpdate,
+			Presence:       bot.Config.Gateway.GatewayPresenceUpdate,
 			Intents:        bot.Config.Gateway.Intents,
 		}
 
-		if err := identify.Command(bot, s); err != nil {
+		if err := identify.SendEvent(bot, s); err != nil {
 			return err
 		}
 	} else {
@@ -250,7 +250,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			Seq:       atomic.LoadInt64(&s.Seq),
 		}
 
-		if err := resume.Command(bot, s); err != nil {
+		if err := resume.SendEvent(bot, s); err != nil {
 			return err
 		}
 	}
@@ -442,7 +442,7 @@ RATELIMIT:
 		if isNotEmpty(globalBucket) {
 			switch op {
 			case FlagGatewayOpcodeIdentify:
-				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewayCommandNameIdentify)
+				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewaySendEventNameIdentify)
 
 				if isNotEmpty(identifyBucket) {
 					if globalBucket != nil {
