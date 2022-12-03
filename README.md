@@ -210,7 +210,7 @@ Every struct uses [fieldalignment](https://pkg.go.dev/golang.org/x/tools/go/anal
 
 ### Storage
 
-Disgo adds **6.5 MB** to a compiled binary.
+Disgo adds **4.7 MB** to a compiled binary.
 
 ### Contributing
 
