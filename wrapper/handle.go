@@ -1690,696 +1690,822 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 
 	switch eventname {
 	case FlagGatewayEventNameHello:
-		event := new(Hello)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.Hello) != 0 {
+			event := new(Hello)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.Hello {
-			go handler(event)
+			for _, handler := range bot.Handlers.Hello {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameReady:
-		event := new(Ready)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.Ready) != 0 {
+			event := new(Ready)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.Ready {
-			go handler(event)
+			for _, handler := range bot.Handlers.Ready {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameResumed:
-		event := new(Resumed)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.Resumed) != 0 {
+			event := new(Resumed)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.Resumed {
-			go handler(event)
+			for _, handler := range bot.Handlers.Resumed {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameReconnect:
-		event := new(Reconnect)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.Reconnect) != 0 {
+			event := new(Reconnect)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.Reconnect {
-			go handler(event)
+			for _, handler := range bot.Handlers.Reconnect {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameInvalidSession:
-		event := new(InvalidSession)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInvalidSession, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.InvalidSession) != 0 {
+			event := new(InvalidSession)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInvalidSession, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.InvalidSession {
-			go handler(event)
+			for _, handler := range bot.Handlers.InvalidSession {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
-		event := new(ApplicationCommandPermissionsUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameApplicationCommandPermissionsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ApplicationCommandPermissionsUpdate) != 0 {
+			event := new(ApplicationCommandPermissionsUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameApplicationCommandPermissionsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ApplicationCommandPermissionsUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.ApplicationCommandPermissionsUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameAutoModerationRuleCreate:
-		event := new(AutoModerationRuleCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.AutoModerationRuleCreate) != 0 {
+			event := new(AutoModerationRuleCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.AutoModerationRuleCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.AutoModerationRuleCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameAutoModerationRuleUpdate:
-		event := new(AutoModerationRuleUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.AutoModerationRuleUpdate) != 0 {
+			event := new(AutoModerationRuleUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.AutoModerationRuleUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.AutoModerationRuleUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameAutoModerationRuleDelete:
-		event := new(AutoModerationRuleDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.AutoModerationRuleDelete) != 0 {
+			event := new(AutoModerationRuleDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.AutoModerationRuleDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.AutoModerationRuleDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameAutoModerationActionExecution:
-		event := new(AutoModerationActionExecution)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationActionExecution, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.AutoModerationActionExecution) != 0 {
+			event := new(AutoModerationActionExecution)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationActionExecution, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.AutoModerationActionExecution {
-			go handler(event)
+			for _, handler := range bot.Handlers.AutoModerationActionExecution {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameInteractionCreate:
-		event := new(InteractionCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.InteractionCreate) != 0 {
+			event := new(InteractionCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.InteractionCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.InteractionCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameVoiceServerUpdate:
-		event := new(VoiceServerUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.VoiceServerUpdate) != 0 {
+			event := new(VoiceServerUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.VoiceServerUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.VoiceServerUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildMembersChunk:
-		event := new(GuildMembersChunk)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildMembersChunk) != 0 {
+			event := new(GuildMembersChunk)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildMembersChunk {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildMembersChunk {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameUserUpdate:
-		event := new(UserUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.UserUpdate) != 0 {
+			event := new(UserUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.UserUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.UserUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameChannelCreate:
-		event := new(ChannelCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ChannelCreate) != 0 {
+			event := new(ChannelCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ChannelCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.ChannelCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameChannelUpdate:
-		event := new(ChannelUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ChannelUpdate) != 0 {
+			event := new(ChannelUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ChannelUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.ChannelUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameChannelDelete:
-		event := new(ChannelDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ChannelDelete) != 0 {
+			event := new(ChannelDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ChannelDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.ChannelDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameChannelPinsUpdate:
-		event := new(ChannelPinsUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelPinsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ChannelPinsUpdate) != 0 {
+			event := new(ChannelPinsUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelPinsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ChannelPinsUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.ChannelPinsUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameThreadCreate:
-		event := new(ThreadCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ThreadCreate) != 0 {
+			event := new(ThreadCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ThreadCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.ThreadCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameThreadUpdate:
-		event := new(ThreadUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ThreadUpdate) != 0 {
+			event := new(ThreadUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ThreadUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.ThreadUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameThreadDelete:
-		event := new(ThreadDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ThreadDelete) != 0 {
+			event := new(ThreadDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ThreadDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.ThreadDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameThreadListSync:
-		event := new(ThreadListSync)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadListSync, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ThreadListSync) != 0 {
+			event := new(ThreadListSync)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadListSync, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ThreadListSync {
-			go handler(event)
+			for _, handler := range bot.Handlers.ThreadListSync {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameThreadMemberUpdate:
-		event := new(ThreadMemberUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ThreadMemberUpdate) != 0 {
+			event := new(ThreadMemberUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ThreadMemberUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.ThreadMemberUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameThreadMembersUpdate:
-		event := new(ThreadMembersUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMembersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.ThreadMembersUpdate) != 0 {
+			event := new(ThreadMembersUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMembersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.ThreadMembersUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.ThreadMembersUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildCreate:
-		event := new(GuildCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildCreate) != 0 {
+			event := new(GuildCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildUpdate:
-		event := new(GuildUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildUpdate) != 0 {
+			event := new(GuildUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildDelete:
-		event := new(GuildDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildDelete) != 0 {
+			event := new(GuildDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildBanAdd:
-		event := new(GuildBanAdd)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildBanAdd) != 0 {
+			event := new(GuildBanAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildBanAdd {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildBanAdd {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildBanRemove:
-		event := new(GuildBanRemove)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildBanRemove) != 0 {
+			event := new(GuildBanRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildBanRemove {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildBanRemove {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildEmojisUpdate:
-		event := new(GuildEmojisUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildEmojisUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildEmojisUpdate) != 0 {
+			event := new(GuildEmojisUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildEmojisUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildEmojisUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildEmojisUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildStickersUpdate:
-		event := new(GuildStickersUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildStickersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildStickersUpdate) != 0 {
+			event := new(GuildStickersUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildStickersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildStickersUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildStickersUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildIntegrationsUpdate:
-		event := new(GuildIntegrationsUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildIntegrationsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildIntegrationsUpdate) != 0 {
+			event := new(GuildIntegrationsUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildIntegrationsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildIntegrationsUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildIntegrationsUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildMemberAdd:
-		event := new(GuildMemberAdd)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildMemberAdd) != 0 {
+			event := new(GuildMemberAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildMemberAdd {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildMemberAdd {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildMemberRemove:
-		event := new(GuildMemberRemove)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildMemberRemove) != 0 {
+			event := new(GuildMemberRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildMemberRemove {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildMemberRemove {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildMemberUpdate:
-		event := new(GuildMemberUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildMemberUpdate) != 0 {
+			event := new(GuildMemberUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildMemberUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildMemberUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildRoleCreate:
-		event := new(GuildRoleCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildRoleCreate) != 0 {
+			event := new(GuildRoleCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildRoleCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildRoleCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildRoleUpdate:
-		event := new(GuildRoleUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildRoleUpdate) != 0 {
+			event := new(GuildRoleUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildRoleUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildRoleUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildRoleDelete:
-		event := new(GuildRoleDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildRoleDelete) != 0 {
+			event := new(GuildRoleDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildRoleDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildRoleDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventCreate:
-		event := new(GuildScheduledEventCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildScheduledEventCreate) != 0 {
+			event := new(GuildScheduledEventCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildScheduledEventCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildScheduledEventCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUpdate:
-		event := new(GuildScheduledEventUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildScheduledEventUpdate) != 0 {
+			event := new(GuildScheduledEventUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildScheduledEventUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildScheduledEventUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventDelete:
-		event := new(GuildScheduledEventDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildScheduledEventDelete) != 0 {
+			event := new(GuildScheduledEventDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildScheduledEventDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildScheduledEventDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserAdd:
-		event := new(GuildScheduledEventUserAdd)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildScheduledEventUserAdd) != 0 {
+			event := new(GuildScheduledEventUserAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildScheduledEventUserAdd {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildScheduledEventUserAdd {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameGuildScheduledEventUserRemove:
-		event := new(GuildScheduledEventUserRemove)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.GuildScheduledEventUserRemove) != 0 {
+			event := new(GuildScheduledEventUserRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.GuildScheduledEventUserRemove {
-			go handler(event)
+			for _, handler := range bot.Handlers.GuildScheduledEventUserRemove {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameIntegrationCreate:
-		event := new(IntegrationCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.IntegrationCreate) != 0 {
+			event := new(IntegrationCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.IntegrationCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.IntegrationCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameIntegrationUpdate:
-		event := new(IntegrationUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.IntegrationUpdate) != 0 {
+			event := new(IntegrationUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.IntegrationUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.IntegrationUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameIntegrationDelete:
-		event := new(IntegrationDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.IntegrationDelete) != 0 {
+			event := new(IntegrationDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.IntegrationDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.IntegrationDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameInviteCreate:
-		event := new(InviteCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.InviteCreate) != 0 {
+			event := new(InviteCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.InviteCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.InviteCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameInviteDelete:
-		event := new(InviteDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.InviteDelete) != 0 {
+			event := new(InviteDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.InviteDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.InviteDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameMessageCreate:
-		event := new(MessageCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.MessageCreate) != 0 {
+			event := new(MessageCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.MessageCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.MessageCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameMessageUpdate:
-		event := new(MessageUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.MessageUpdate) != 0 {
+			event := new(MessageUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.MessageUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.MessageUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameMessageDelete:
-		event := new(MessageDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.MessageDelete) != 0 {
+			event := new(MessageDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.MessageDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.MessageDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameMessageDeleteBulk:
-		event := new(MessageDeleteBulk)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDeleteBulk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.MessageDeleteBulk) != 0 {
+			event := new(MessageDeleteBulk)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDeleteBulk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.MessageDeleteBulk {
-			go handler(event)
+			for _, handler := range bot.Handlers.MessageDeleteBulk {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameMessageReactionAdd:
-		event := new(MessageReactionAdd)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.MessageReactionAdd) != 0 {
+			event := new(MessageReactionAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.MessageReactionAdd {
-			go handler(event)
+			for _, handler := range bot.Handlers.MessageReactionAdd {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameMessageReactionRemove:
-		event := new(MessageReactionRemove)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.MessageReactionRemove) != 0 {
+			event := new(MessageReactionRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.MessageReactionRemove {
-			go handler(event)
+			for _, handler := range bot.Handlers.MessageReactionRemove {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveAll:
-		event := new(MessageReactionRemoveAll)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveAll, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.MessageReactionRemoveAll) != 0 {
+			event := new(MessageReactionRemoveAll)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveAll, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.MessageReactionRemoveAll {
-			go handler(event)
+			for _, handler := range bot.Handlers.MessageReactionRemoveAll {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameMessageReactionRemoveEmoji:
-		event := new(MessageReactionRemoveEmoji)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveEmoji, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.MessageReactionRemoveEmoji) != 0 {
+			event := new(MessageReactionRemoveEmoji)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveEmoji, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.MessageReactionRemoveEmoji {
-			go handler(event)
+			for _, handler := range bot.Handlers.MessageReactionRemoveEmoji {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNamePresenceUpdate:
-		event := new(PresenceUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNamePresenceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.PresenceUpdate) != 0 {
+			event := new(PresenceUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNamePresenceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.PresenceUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.PresenceUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameStageInstanceCreate:
-		event := new(StageInstanceCreate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.StageInstanceCreate) != 0 {
+			event := new(StageInstanceCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.StageInstanceCreate {
-			go handler(event)
+			for _, handler := range bot.Handlers.StageInstanceCreate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameStageInstanceDelete:
-		event := new(StageInstanceDelete)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.StageInstanceDelete) != 0 {
+			event := new(StageInstanceDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.StageInstanceDelete {
-			go handler(event)
+			for _, handler := range bot.Handlers.StageInstanceDelete {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameStageInstanceUpdate:
-		event := new(StageInstanceUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.StageInstanceUpdate) != 0 {
+			event := new(StageInstanceUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.StageInstanceUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.StageInstanceUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameTypingStart:
-		event := new(TypingStart)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameTypingStart, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.TypingStart) != 0 {
+			event := new(TypingStart)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameTypingStart, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.TypingStart {
-			go handler(event)
+			for _, handler := range bot.Handlers.TypingStart {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameVoiceStateUpdate:
-		event := new(VoiceStateUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceStateUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.VoiceStateUpdate) != 0 {
+			event := new(VoiceStateUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceStateUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.VoiceStateUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.VoiceStateUpdate {
+				go handler(event)
+			}
 		}
 
 	case FlagGatewayEventNameWebhooksUpdate:
-		event := new(WebhooksUpdate)
-		if err := json.Unmarshal(data, event); err != nil {
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameWebhooksUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-			return
-		}
+		if len(bot.Handlers.WebhooksUpdate) != 0 {
+			event := new(WebhooksUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameWebhooksUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
 
-		for _, handler := range bot.Handlers.WebhooksUpdate {
-			go handler(event)
+			for _, handler := range bot.Handlers.WebhooksUpdate {
+				go handler(event)
+			}
 		}
 	}
 }

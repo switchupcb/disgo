@@ -7,12 +7,15 @@
 
 **Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional rate limiting, structured logging, shard management, and caching. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
 
-**A Next Generation Discord API Wrapper**
+## A Next Generation Discord API Wrapper
 
-High quality code merits easy development. Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. Code generation is used to provide a clean implementation for every request and event. Data race detection is used with _an integration test that covers the entire Discord API_ in order to ensure that Disgo is safe for concurrent usage. In addition, Disgo provides the following **exclusive features**.
+High quality code merits easy development. Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. Code generation is used to provide a clean implementation for every request and event. Data race detection is used with _an integration test that covers the entire Discord API_ in order to ensure that Disgo is safe for concurrent usage. In addition, **Disgo provides the following exclusive features**.
 
-- EVERY Rate Limit (Global, Per Route, Per Resource, Custom, Gateway)
-- Automatic Gateway Intent Calculation
+- [EVERY Rate Limit (Global, Per Route, Per Resource, Custom, Gateway)](_contribution/concepts/REQUESTS.md#what-is-a-rate-limit) 
+- [Automatic Gateway Intent Calculation](_contribution/concepts/EVENTS.md#what-is-a-gateway-intent)
+- [Selective Event Processing](_contribution/concepts/EVENTS.md#selective-event-processing)
+
+_Disgo uses [NO reflection or type assertion](_contribution/concepts/EVENTS.md#how-it-works)._
 
 ## Table of Contents
 

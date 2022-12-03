@@ -230,6 +230,7 @@ func generatehandle(functions []*models.Function) string {
 func generatehandleCase(eventname string) string {
 	var c strings.Builder
 	c.WriteString("case FlagGatewayEventName" + eventname + ":\n")
+	c.WriteString("if len(bot.Handlers." + eventname + ") != 0 {")
 	c.WriteString("event := new(" + eventname + ")\n")
 	c.WriteString("if err := json.Unmarshal(data, event); err != nil {\n")
 	c.WriteString("LogEventHandler(Logger.Error(), bot.ApplicationID, eventname)." +
@@ -243,5 +244,7 @@ func generatehandleCase(eventname string) string {
 	c.WriteString("for _, handler := range bot.Handlers." + eventname + " {\n")
 	c.WriteString("go handler(event)\n")
 	c.WriteString("}\n")
+	c.WriteString("}\n")
+
 	return c.String()
 }
