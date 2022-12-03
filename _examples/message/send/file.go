@@ -7,7 +7,7 @@ import (
 	"os"
 	"path"
 
-	disgo "github.com/switchupcb/disgo/wrapper"
+	"github.com/switchupcb/disgo"
 )
 
 // getFile returns a disgo.File for usage in a message.

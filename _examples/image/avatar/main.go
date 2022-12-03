@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/switchupcb/disgo"
 	"github.com/switchupcb/disgo/tools"
-	disgo "github.com/switchupcb/disgo/wrapper"
 )
 
 // Environment Variables

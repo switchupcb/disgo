@@ -1,7 +1,7 @@
 package tools
 
 import (
-	disgo "github.com/switchupcb/disgo/wrapper"
+	"github.com/switchupcb/disgo"
 )
 
 // OptionsToMap parses an array of options and suboptions into an OptionMap.

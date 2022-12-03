@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	. "github.com/switchupcb/disgo/wrapper"
+	. "github.com/switchupcb/disgo"
 )
 
 const (
