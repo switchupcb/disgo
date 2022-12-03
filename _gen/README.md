@@ -4,7 +4,7 @@ Disgo uses generators to easily update and maintain over 10,000 lines of code.
 
 ## Build
 
-Use `go build -o gen` to build the executable file for the generator. This may require you to set the `GOWORK` environment variable to `off`.
+Use `go build -o gen` from the [`./_gen`](/_gen) directory to build the executable file for the generator. This may require you to set the `GOWORK` environment variable to `off`.
 
 ## Dasgo
 
@@ -27,3 +27,7 @@ Disgo generates code for features using [copygen](https://github.com/switchupcb/
 | `handle.go`  | Uses copygen to generate request **event handling** functionality. |
 | `command.go` | Uses copygen to generate request `Command()` functions.            |
 | Clean        | Cleans the generated code.                                         |
+
+## Bundle
+
+A [bundler](https://pkg.go.dev/golang.org/x/tools/cmd/bundle) is used to package the API Wrapper into the `disgo` package (`disgo.go`). Use `go build` from the [`./_gen/bundle`](/_gen/bundle) directory to build the executable file for the bundler. This may require you to set the `GOWORK` environment variable to `off`.

@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/switchupcb/disgo/wrapper/internal/socket"
+	"github.com/switchupcb/disgo/wrapper/socket"
 )
 
 // listen listens to the connection for payloads from the Discord Gateway.
