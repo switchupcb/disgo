@@ -221,12 +221,11 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 
 ### Libraries
 
-| Library                                               | Description                                             |
-| :---------------------------------------------------- | :------------------------------------------------------ |
-| [Copygen](https://github.com/switchupcb/copygen)      | Generate custom type-based code.                        |
-| [Dasgo](https://github.com/switchupcb/dasgo)          | Go Type Definitions for the Discord API.                |
-| Disgo Template                                        | Get started on a Discord Bot with this Disgo Framework. |
-| [Ecosystem](https://github.com/switchupcb/disgo/wiki) | View projects that use Disgo.                           |
+| Library                                               | Description                              |
+| :---------------------------------------------------- | :--------------------------------------- |
+| [Copygen](https://github.com/switchupcb/copygen)      | Generate custom type-based code.         |
+| [Dasgo](https://github.com/switchupcb/dasgo)          | Go Type Definitions for the Discord API. |
+| [Ecosystem](https://github.com/switchupcb/disgo/wiki) | View projects that use Disgo.            |
 
 ### Credits
 
