@@ -84,13 +84,12 @@ Use `go test` to run the tests in the current directory. Use `go test ./<dir>` t
 
 # Roadmap
 
-Disgo is **ALMOST STABLE**. Here are the steps required in order to complete it.
+Disgo is **STABLE**. Here are the steps required in order to complete it.
 
-1. **Finish Full Coverage Test** _[STABLE]_.
-2. Bundle Disgo (with `fieldalignment`) _[v10.0.0]_.
+1. Bundle Disgo (with `fieldalignment`) _[v10.0.0]_.
 
-In addition, the following features are being worked on.
+The following additional features are being implemented.
 
-1. Voice Connections: [Decision (UDP)](/_contribution/libraries/), [Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice)
-2. Implement [Sharding](https://github.com/switchupcb/disgo/issues/26).
-3. Implement [Cache](https://github.com/switchupcb/disgo/issues/39).
+1. Voice Connections ([UDP Decision](/_contribution/libraries/), [Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice))
+2. [Sharding](https://github.com/switchupcb/disgo/issues/26)
+3. [Cache](https://github.com/switchupcb/disgo/issues/39)

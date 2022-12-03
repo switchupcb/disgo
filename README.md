@@ -3,9 +3,9 @@
 [![Go Doc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge&logo=appveyor&logo=appveyor)](https://pkg.go.dev/github.com/switchupcb/disgo)
 [![License](https://img.shields.io/github/license/switchupcb/disgo.svg?style=for-the-badge)](https://github.com/switchupcb/disgo/blob/main/LICENSE)
 
-**This repository is ALMOST STABLE. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap).**
-
 **Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional rate limiting, structured logging, shard management, and caching. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
+
+_This repository is STABLE. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap)._
 
 ## A Next Generation Discord API Wrapper
 
@@ -30,13 +30,13 @@ _Disgo uses [NO reflection or type assertion](_contribution/concepts/EVENTS.md#h
 
 This breakdown provides you with a **full understanding** on how to use the API.
 
-| Abstraction  | Usecase                                                                                                                                          | Example                                                             |
-| :----------- | :----------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------ |
-| **Resource** | A [Discord API Resource](https://discord.com/developers/docs/resources/application).                                                             | Guild Object. User Object.                                          |
-| **Event**    | A [Discord API Event](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events).                                    | A message is created. A user joins a channel.                       |
-| **Client**   | The Discord Bot [Application](https://discord.com/developers/docs/resources/application) that you program. One Bot = One Client.                 | Configure the bot settings. Set the token.                          |
-| **Request**  | Uses the Discord HTTP REST API to make one-time requests for information.                                                                        | Create an application command. Request guild information.           |
-| **Session**  | Uses Discord WebSockets [(Gateways)](https://discord.com/developers/docs/topics/gateway) to receive ongoing **events** that contain information. | Send a message when a command used or a user joins a voice channel. |
+| Abstraction  | Usecase                                                                                                                                           | Example                                                             |
+| :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------ |
+| **Resource** | A [Discord API Resource](https://discord.com/developers/docs/resources/application).                                                              | Guild Object. User Object.                                          |
+| **Event**    | A [Discord API Event](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events).                                     | A message is created. A user joins a channel.                       |
+| **Client**   | The Discord Bot [Application](https://discord.com/developers/docs/resources/application) that you program. One Bot = One Client.                  | Configure the bot settings. Set the token.                          |
+| **Request**  | Uses the Discord HTTP REST API to make one-time _requests_ for information.                                                                       | Create an application command. Request guild information.           |
+| **Session**  | Uses a Discord WebSocket Connection [(Gateway)](https://discord.com/developers/docs/topics/gateway) to receive _events_ that contain information. | Send a message when a command used or a user joins a voice channel. |
 
 You create a **Client** that calls for **Resources** using **Requests** and handles **Events** from **Sessions** using event handlers. For more information, please read [What is a Request?](/_contribution/concepts/REQUESTS.md) and [What is an Event?](/_contribution/concepts/EVENTS.md)
 
@@ -46,7 +46,7 @@ A flag is a [flag](https://discord.com/developers/docs/resources/application#app
 
 ### Logging
 
-Read [What is a Log](/_contribution/concepts/LOG.md) for a simple yet full understanding of logging with Disgo. Disgo provides leveled logging of the API Wrapper via the `disgo.Logger` global variable _(which is disabled by default)_. Enable it using `zerolog.SetGlobalLevel(zerolog.LEVEL)`.
+Read [What is a Log](/_contribution/concepts/LOG.md) for a simple yet full understanding of logging. Disgo provides structured, leveled logging of the API Wrapper via the `disgo.Logger` global variable _(disabled by default)_. Enable the logger using `zerolog.SetGlobalLevel(zerolog.LEVEL)`.
 
 ### Sharding
 
