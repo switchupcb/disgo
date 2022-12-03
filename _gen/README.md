@@ -6,6 +6,18 @@ Disgo uses generators to easily update and maintain over 10,000 lines of code.
 
 Use `go build -o gen` from the [`./_gen`](/_gen) directory to build the executable file for the generator. This may require you to set the `GOWORK` environment variable to `off`.
 
+### Dependencies
+
+_The following dependencies are used to download and unzip the latest version of [`dasgo`](https://github.com/switchupcb/dasgo) to `./gen/input/dasgo-10` (git-ignored)._
+
+- [curl](https://curl.se/): [download](https://curl.se/download.html)
+- [`unzip`](https://linux.die.net/man/1/unzip)
+
+_The following dependencies are used during code generation._
+
+- [`xstruct`](/tools/xstruct.exe)
+- [copygen](https://github.com/switchupcb/copygen): `go install github.com/switchupcb/copygen@latest`
+
 ## Dasgo
 
 Disgo sources Discord API objects from [dasgo](https://github.com/switchupcb/dasgo). All updates to Discord API Structs should be made in that repository.
@@ -21,13 +33,20 @@ Disgo sources Discord API objects from [dasgo](https://github.com/switchupcb/das
 
 Disgo generates code for features using [copygen](https://github.com/switchupcb/copygen). **This requires corresponding `setup.go` files to be updated.** Use the `diff` from Git to update those files accordingly.
 
-| Step         | Description                                                        |
-| :----------- | :----------------------------------------------------------------- |
-| `send.go`    | Uses copygen to generate request `Send()` functions.               |
-| `handle.go`  | Uses copygen to generate request **event handling** functionality. |
-| `command.go` | Uses copygen to generate request `Command()` functions.            |
-| Clean        | Cleans the generated code.                                         |
+| Step           | Description                                                        |
+| :------------- | :----------------------------------------------------------------- |
+| `send.go`      | Uses copygen to generate request `Send()` functions.               |
+| `handle.go`    | Uses copygen to generate request **event handling** functionality. |
+| `sendevent.go` | Uses copygen to generate request `SendEvent()` functions.          |
+| Clean          | Cleans the generated code.                                         |
 
-## Bundle
+# Bundle
 
-A [bundler](https://pkg.go.dev/golang.org/x/tools/cmd/bundle) is used to package the API Wrapper into the `disgo` package (`disgo.go`). Use `go build` from the [`./_gen/bundle`](/_gen/bundle) directory to build the executable file for the bundler. This may require you to set the `GOWORK` environment variable to `off`.
+## Build
+
+A bundler is used to package the API Wrapper into the `disgo` package (`disgo.go`). Use `go build` from the [`./_gen/bundle`](/_gen/bundle) directory to build the executable file for the bundler. This may require you to set the `GOWORK` environment variable to `off`.
+
+### Dependencies
+
+- [bundle](https://pkg.go.dev/golang.org/x/tools/cmd/bundle): `go install golang.org/x/tools/cmd/bundle@latest`
+- [fieldalignment](https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/fieldalignment): `go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest`
