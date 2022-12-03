@@ -65,6 +65,12 @@ func generate() error {
 		return fmt.Errorf("imports: %w", err)
 	}
 
+	fieldalignment := exec.Command("fieldalignment", "-fix", bundlePath)
+	std, err := fieldalignment.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("fieldalignment: %v", string(std))
+	}
+
 	return nil
 }
 
