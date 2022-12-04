@@ -95,6 +95,8 @@ bot := &disgo.Client{
 }
 ```
 
+_Need more information? Read the [bot example](/_examples/bot)._
+
 ### Create a Command
 
 Create an application command **request** to add an application command.

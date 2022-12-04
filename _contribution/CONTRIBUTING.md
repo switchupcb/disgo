@@ -89,3 +89,5 @@ Disgo is **STABLE**. The following additional features are being implemented.
 1. Voice Connections ([UDP Decision](/_contribution/libraries/), [Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice))
 2. [Sharding](https://github.com/switchupcb/disgo/issues/26)
 3. [Cache](https://github.com/switchupcb/disgo/issues/39)
+
+[_Get assigned a feature or example now._](https://github.com/switchupcb/disgo/issues/45)

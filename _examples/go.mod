@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/switchupcb/disgo v0.0.0-20220726210903-501dcb40b012
 	github.com/switchupcb/disgo/tools v0.0.0-20220727073006-e0f01397d626
+	github.com/valyala/fasthttp v1.43.0
 )
 
 require (
@@ -14,6 +15,5 @@ require (
 	github.com/klauspost/compress v1.15.12 // indirect
 	github.com/switchupcb/websocket v1.8.8 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.43.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 )
