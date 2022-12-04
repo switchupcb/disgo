@@ -32,7 +32,7 @@ func TypeFix(data []byte) ([]byte, error) {
 	contentdata := []byte(content)
 	fmtdata, err := format.Source(contentdata)
 	if err != nil {
-		return contentdata, fmt.Errorf("an error occurred while formatting the generated code.\n%w", err)
+		return contentdata, fmt.Errorf("typefix: error formatting generated code: %w", err)
 	}
 
 	return fmtdata, nil

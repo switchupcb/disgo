@@ -1,0 +1,34 @@
+// Gateway represents Discord Gateway parameters used to perform various actions by the client.
+type Gateway struct {
+    RateLimiter           RateLimiter
+    IntentSet             map[BitFlag]bool
+    GatewayPresenceUpdate *GatewayPresenceUpdate
+    Intents               BitFlag
+}
+---
+// Gateway represents Discord Gateway parameters used to perform various actions by the client.
+type Gateway struct {
+    // RateLimiter represents an object that provides rate limit functionality.
+    RateLimiter           RateLimiter
+
+    // Intents represents a Discord Gateway Intent.
+    //
+    // You must specify a Gateway Intent in order to receive specific information from an event.
+    //
+    // https://discord.com/developers/docs/topics/gateway#gateway-intents
+    IntentSet             map[BitFlag]bool
+
+    // GatewayPresenceUpdate represents the presence or status update of a bot.
+    //
+    // GatewayPresenceUpdate is used when the bot connects to a session.
+    //
+    // https://discord.com/developers/docs/topics/gateway#update-presence
+    GatewayPresenceUpdate *GatewayPresenceUpdate
+    
+    // Intents represents a Discord Gateway Intent.
+    //
+    // You must specify a Gateway Intent in order to receive specific information from an event.
+    //
+    // https://discord.com/developers/docs/topics/gateway#gateway-intents
+    Intents               BitFlag
+}

@@ -77,7 +77,7 @@ func main() {
 func check() error {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("error getting the current working directory.\n%w", err)
+		return fmt.Errorf("error getting the current working directory: %w", err)
 	}
 
 	if filepath.Base(cwd) != exeDir && filepath.Base(filepath.Dir(cwd)) != "disgo" {

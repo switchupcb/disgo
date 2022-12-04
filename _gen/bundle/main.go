@@ -41,7 +41,7 @@ func main() {
 func check() error {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("error getting the current working directory.\n%w", err)
+		return fmt.Errorf("error getting the current working directory: %w", err)
 	}
 
 	cwdDir := filepath.Dir(cwd)
@@ -96,7 +96,7 @@ func generate() error {
 		fieldalignmentOutput = append(fieldalignmentOutput, std...)
 
 		if i == 4 {
-			return fmt.Error("fieldalignment: more calls to fieldalignment were required.")
+			return fmt.Errorf("fieldalignment: more calls to fieldalignment were required.")
 		}
 
 		break

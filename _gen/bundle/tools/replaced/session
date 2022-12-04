@@ -1,0 +1,43 @@
+// Session represents a Discord Gateway WebSocket Session.
+type Session struct {
+	Context   context.Context
+	manager   *manager
+	Conn      *websocket.Conn
+	heartbeat *heartbeat
+	Endpoint  string
+	ID        string
+	Seq       int64
+	sync.RWMutex
+}
+---
+// Session represents a Discord Gateway WebSocket Session.
+type Session struct {
+	// Context carries request-scoped data for the Discord Gateway Connection.
+	//
+	// Context is also used as a signal for the Session's goroutines.
+	Context   context.Context
+
+	// manager represents a manager of a Session's goroutines.
+	manager   *manager
+
+	// Conn represents a connection to the Discord Gateway.
+	Conn      *websocket.Conn
+
+	// heartbeat contains the fields required to implement the heartbeat mechanism.
+	heartbeat *heartbeat
+
+	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
+	Endpoint  string
+
+	// ID represents the session ID of the Session.
+	ID        string
+
+	// Seq represents the last sequence number received by the client.
+	//
+	// https://discord.com/developers/docs/topics/gateway#heartbeat
+	Seq       int64
+
+	// RWMutex is used to protect the Session's variables from data races
+	// by providing transactional functionality.
+	sync.RWMutex
+}

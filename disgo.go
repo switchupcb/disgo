@@ -200,10 +200,29 @@ func DefaultRequest() Request {
 
 // Gateway represents Discord Gateway parameters used to perform various actions by the client.
 type Gateway struct {
-	RateLimiter           RateLimiter
-	IntentSet             map[BitFlag]bool
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
+
+	// Intents represents a Discord Gateway Intent.
+	//
+	// You must specify a Gateway Intent in order to receive specific information from an event.
+	//
+	// https://discord.com/developers/docs/topics/gateway#gateway-intents
+	IntentSet map[BitFlag]bool
+
+	// GatewayPresenceUpdate represents the presence or status update of a bot.
+	//
+	// GatewayPresenceUpdate is used when the bot connects to a session.
+	//
+	// https://discord.com/developers/docs/topics/gateway#update-presence
 	GatewayPresenceUpdate *GatewayPresenceUpdate
-	Intents               BitFlag
+
+	// Intents represents a Discord Gateway Intent.
+	//
+	// You must specify a Gateway Intent in order to receive specific information from an event.
+	//
+	// https://discord.com/developers/docs/topics/gateway#gateway-intents
+	Intents BitFlag
 }
 
 const (
@@ -16927,13 +16946,33 @@ const (
 
 // Session represents a Discord Gateway WebSocket Session.
 type Session struct {
-	Context   context.Context
-	manager   *manager
-	Conn      *websocket.Conn
+	// Context carries request-scoped data for the Discord Gateway Connection.
+	//
+	// Context is also used as a signal for the Session's goroutines.
+	Context context.Context
+
+	// manager represents a manager of a Session's goroutines.
+	manager *manager
+
+	// Conn represents a connection to the Discord Gateway.
+	Conn *websocket.Conn
+
+	// heartbeat contains the fields required to implement the heartbeat mechanism.
 	heartbeat *heartbeat
-	Endpoint  string
-	ID        string
-	Seq       int64
+
+	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
+	Endpoint string
+
+	// ID represents the session ID of the Session.
+	ID string
+
+	// Seq represents the last sequence number received by the client.
+	//
+	// https://discord.com/developers/docs/topics/gateway#heartbeat
+	Seq int64
+
+	// RWMutex is used to protect the Session's variables from data races
+	// by providing transactional functionality.
 	sync.RWMutex
 }
 

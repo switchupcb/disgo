@@ -22,7 +22,7 @@ var (
 func Imports(filepath string) error {
 	data, err := os.ReadFile(filepath)
 	if err != nil {
-		return fmt.Errorf("error reading generated %v file: %v", filepath, err)
+		return fmt.Errorf("error reading generated %v file: %w", filepath, err)
 	}
 
 	var output []byte
@@ -39,11 +39,11 @@ func Imports(filepath string) error {
 	// gofmt
 	fmtdata, err := format.Source(output)
 	if err != nil {
-		return fmt.Errorf("error while formatting the generated code.\n%w", err)
+		return fmt.Errorf("error formatting generated code: %w", err)
 	}
 
 	if err = os.WriteFile(filepath, fmtdata, filemodewrite); err != nil {
-		return fmt.Errorf("error while writing file", err)
+		return fmt.Errorf("error writing file: %w", err)
 	}
 
 	return nil

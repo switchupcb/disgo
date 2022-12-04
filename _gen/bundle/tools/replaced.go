@@ -1,13 +1,7 @@
 package tools
 
 var (
-	// replaced represents a map of fieldaligned structs (with comments removed)
-	// to fieldaligned structs (with comments added back).
-	replaced = map[string]string{
-		// Gateway [U]
-
-		// Session [F]
-
+	f = map[string]string{
 		// GetGuildWidgetImage [U]
 
 		// GetGuildAuditLog [U]
