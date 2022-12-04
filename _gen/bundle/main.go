@@ -2,16 +2,19 @@ package main
 
 import (
 	"fmt"
-	"go/format"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/switchupcb/disgo/_gen/bundle/tools"
 )
 
 const (
-	exeDir     = "_gen/bundle"
-	bundlePath = "disgo.go"
+	exeDir        = "_gen/bundle"
+	bundlePath    = "disgo.go"
+	pkg           = "package disgo"
+	filemodewrite = 0644
 )
 
 func main() {
@@ -49,67 +52,38 @@ func generate() error {
 		return fmt.Errorf("chdir: %w", err)
 	}
 
-	bundle := exec.Command("bundle",
-		"-o", bundlePath,
-		"-dst", ".",
-		"-pkg", "disgo",
-		"-prefix", "\"\"",
-		"./wrapper",
-	)
+	// clear the bundled file.
+	bundle := `//go:generate bundle -o disgo.go -dst . -pkg disgo -prefix "" ./wrapper`
+	cleared := strings.Join([]string{bundle, pkg}, "\n")
+	if err := os.WriteFile(bundlePath, []byte(cleared), filemodewrite); err != nil {
+		return fmt.Errorf("clear: %w", err)
+	}
 
-	// will return format error on success.
-	std, _ := bundle.CombinedOutput()
-	fmt.Printf("WARNING: %v", string(std))
+	bundlegen := exec.Command("go", "generate")
+	std, err := bundlegen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("bundle (go generate): %v", string(std))
+	}
 
-	if err := imports(); err != nil {
+	// fix the imports of the bundle.
+	if err := tools.Imports(bundlePath); err != nil {
 		return fmt.Errorf("imports: %w", err)
 	}
 
+	// fieldalign the bundle.
 	fieldalignment := exec.Command("fieldalignment", "-fix", bundlePath)
-	std, err := fieldalignment.CombinedOutput()
-	if err != nil {
-		return fmt.Errorf("fieldalignment: %v", string(std))
+	std, err = fieldalignment.CombinedOutput()
+	if err != nil && err.Error() == "exit status 3" {
+		fmt.Printf("WARNING (fieldalignment): %v\n", err)
+	} else if err != nil {
+		return fmt.Errorf("fieldalignment: %v", err)
 	}
 
-	return nil
-}
+	fmt.Println(string(std))
 
-const (
-	filemodewrite = 0644
-)
-
-var (
-	skip = map[string]bool{
-		`"encoding/json"`: true,
-	}
-)
-
-// imports fixes the imports of the bundler.
-func imports() error {
-	data, err := os.ReadFile(bundlePath)
-	if err != nil {
-		return fmt.Errorf("error reading generated %v file: %v", bundlePath, err)
-	}
-
-	var output []byte
-
-	content := string(data)
-	for _, line := range strings.Split(content, "\n") {
-		if skip[strings.TrimSpace(line)] {
-			continue
-		}
-
-		output = append(output, []byte(line+"\n")...)
-	}
-
-	// gofmt
-	fmtdata, err := format.Source(output)
-	if err != nil {
-		return fmt.Errorf("error while formatting the generated code.\n%w", err)
-	}
-
-	if err = os.WriteFile(bundlePath, fmtdata, filemodewrite); err != nil {
-		return fmt.Errorf("error while writing file", err)
+	// add removed comments to the bundle.
+	if err := tools.Replace(bundlePath); err != nil {
+		return fmt.Errorf("replace: %w", err)
 	}
 
 	return nil

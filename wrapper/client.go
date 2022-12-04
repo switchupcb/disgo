@@ -71,9 +71,6 @@ type Authorization struct {
 	// ClientSecret represents the application's client_secret.
 	ClientSecret string
 
-	// Scopes represents a list of OAuth2 scopes.
-	Scopes []string
-
 	// RedirectURI represents the registered URL of the application.
 	//
 	// The URL should be non-url-encoded (i.e "https://localhost"),
@@ -86,15 +83,18 @@ type Authorization struct {
 
 	// prompt controls how the authorization flow handles existing authorizations.
 	Prompt string
+
+	// Scopes represents a list of OAuth2 scopes.
+	Scopes []string
 }
 
 // Config represents parameters used to perform various actions by the client.
 type Config struct {
-	// Request holds configuration variables that pertain to the Discord HTTP API.
-	Request Request
-
 	// Gateway holds configuration variables that pertain to the Discord Gateway.
 	Gateway Gateway
+
+	// Request holds configuration variables that pertain to the Discord HTTP API.
+	Request Request
 }
 
 // DefaultConfig returns a default client configuration.
@@ -108,6 +108,9 @@ func DefaultConfig() *Config {
 
 // Request represents Discord Request parameters used to perform various actions by the client.
 type Request struct {
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
+
 	// Client is used to send requests.
 	//
 	// Use Client to set a custom User-Agent in the HTTP Request Header.
@@ -130,9 +133,6 @@ type Request struct {
 	// set RetryShared to true (default) to retry a request (within the per-route rate limit)
 	// until it's successful or until it experiences a non-shared 429 status code.
 	RetryShared bool
-
-	// RateLimiter represents an object that provides rate limit functionality.
-	RateLimiter RateLimiter
 }
 
 const (
@@ -166,16 +166,19 @@ func DefaultRequest() Request {
 	)
 
 	return Request{
+		RateLimiter: ratelimiter,
 		Client:      client,
 		Timeout:     defaultRequestTimeout,
 		Retries:     1,
 		RetryShared: true,
-		RateLimiter: ratelimiter,
 	}
 }
 
 // Gateway represents Discord Gateway parameters used to perform various actions by the client.
 type Gateway struct {
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
+
 	// Intents represents a Discord Gateway Intent.
 	//
 	// You must specify a Gateway Intent in order to receive specific information from an event.
@@ -195,9 +198,6 @@ type Gateway struct {
 	//
 	// https://discord.com/developers/docs/topics/gateway#update-presence
 	GatewayPresenceUpdate *GatewayPresenceUpdate
-
-	// RateLimiter represents an object that provides rate limit functionality.
-	RateLimiter RateLimiter
 }
 
 const (

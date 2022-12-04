@@ -14,7 +14,7 @@ type Hello struct {
 
 2. Define the event name in [dasgo `events.go`](https://github.com/switchupcb/dasgo/blob/main/dasgo/events.go).
 
-3. Define the return values in [`copygen/events/setup.go`](/wrapper/copygen/events/setup.go).
+3. Define the return values in [`copygen/events/setup.go`](/_gen/tools/copygen/events/setup.go).
 ```go
 // Copygen defines the functions that will be generated.
 type Copygen interface {

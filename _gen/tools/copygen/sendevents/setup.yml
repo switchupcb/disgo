@@ -1,7 +1,8 @@
 # Define where the code will be generated.
 generated:
   setup: ./setup.go
-  output: ../../session_command.go
+  output: ../../../../wrapper/session_command.go
+  
 
   # Define the optional custom templates used to generate the file.
   template: ./template/generate.go

@@ -31,12 +31,6 @@ type RateLimit struct {
 	// Used to safely remove a Bucket once it's no longer in use.
 	entries map[string]int
 
-	// muQueue represents a mutex used to process a single request a time.
-	muQueue sync.Mutex
-
-	// muTx represents a mutex used to access multiple rate limit Buckets as a transaction.
-	muTx sync.Mutex
-
 	// DefaultBucket represents a Default Rate Limit Bucket, which is used to control
 	// the rate of the "first request(s) for any given route".
 	//
@@ -55,6 +49,12 @@ type RateLimit struct {
 	// Use a Default Bucket's Limit field-value to control how many requests of
 	// a given route can be sent (per second) BEFORE the actual Rate Limit Bucket of that route is known.
 	DefaultBucket *Bucket
+
+	// muQueue represents a mutex used to process a single request a time.
+	muQueue sync.Mutex
+
+	// muTx represents a mutex used to access multiple rate limit Buckets as a transaction.
+	muTx sync.Mutex
 }
 
 func (r *RateLimit) SetBucketID(routeid string, bucketid string) {

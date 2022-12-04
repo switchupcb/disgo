@@ -132,9 +132,9 @@ func (s *Session) connect(bot *Client) error {
 		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorDisconnect{
-				Connection: ErrConnectionSession,
 				Action:     err,
 				Err:        disconnectErr,
+				Connection: ErrConnectionSession,
 			}
 		}
 
@@ -188,9 +188,9 @@ func (s *Session) connect(bot *Client) error {
 		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorDisconnect{
-				Connection: ErrConnectionSession,
 				Action:     err,
 				Err:        disconnectErr,
+				Connection: ErrConnectionSession,
 			}
 		}
 
