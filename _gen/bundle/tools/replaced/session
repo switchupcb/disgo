@@ -1,4 +1,3 @@
-// Session represents a Discord Gateway WebSocket Session.
 type Session struct {
 	Context   context.Context
 	manager   *manager
@@ -10,7 +9,6 @@ type Session struct {
 	sync.RWMutex
 }
 ---
-// Session represents a Discord Gateway WebSocket Session.
 type Session struct {
 	// Context carries request-scoped data for the Discord Gateway Connection.
 	//

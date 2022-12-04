@@ -1,4 +1,3 @@
-// Gateway represents Discord Gateway parameters used to perform various actions by the client.
 type Gateway struct {
     RateLimiter           RateLimiter
     IntentSet             map[BitFlag]bool
@@ -6,7 +5,6 @@ type Gateway struct {
     Intents               BitFlag
 }
 ---
-// Gateway represents Discord Gateway parameters used to perform various actions by the client.
 type Gateway struct {
     // RateLimiter represents an object that provides rate limit functionality.
     RateLimiter           RateLimiter

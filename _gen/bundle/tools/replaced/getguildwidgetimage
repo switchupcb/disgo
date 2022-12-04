@@ -1,0 +1,12 @@
+type GetGuildWidgetImage struct {
+	Style   *string `url:"style,omitempty"`
+	GuildID string  `url:"-"`
+}
+---
+type GetGuildWidgetImage struct {
+	// Widget Style Options
+	// https://discord.com/developers/docs/resources/guild#get-guild-widget-image-widget-style-options
+	Style *string `url:"style,omitempty"`
+
+	GuildID string `url:"-"`
+}

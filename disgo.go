@@ -1995,7 +1995,9 @@ type DeleteFollowupMessage struct {
 // GET /guilds/{guild.id}/audit-logs
 // https://discord.com/developers/docs/resources/audit-log#get-guild-audit-log
 type GetGuildAuditLog struct {
-	GuildID    string `url:"-"`
+	GuildID string `url:"-"`
+
+	// https://discord.com/developers/docs/resources/audit-log#audit-log-entry-object-audit-log-events
 	UserID     string `url:"user_id,omitempty"`
 	Before     string `url:"before,omitempty"`
 	Limit      int    `url:"limit,omitempty"`
@@ -2908,8 +2910,11 @@ type GetGuildVanityURL struct {
 // GET /guilds/{guild.id}/widget.png
 // https://discord.com/developers/docs/resources/guild#get-guild-widget-image
 type GetGuildWidgetImage struct {
-	Style   *string `url:"style,omitempty"`
-	GuildID string  `url:"-"`
+	// Widget Style Options
+	// https://discord.com/developers/docs/resources/guild#get-guild-widget-image-widget-style-options
+	Style *string `url:"style,omitempty"`
+
+	GuildID string `url:"-"`
 }
 
 // Widget Style Options
@@ -4122,11 +4127,15 @@ const (
 // Message Object
 // https://discord.com/developers/docs/resources/channel#message-object
 type Message struct {
-	Timestamp         time.Time         `json:"timestamp"`
-	WebhookID         *string           `json:"webhook_id,omitempty"`
-	Author            *User             `json:"author"`
-	Position          *int              `json:"position,omitempty"`
-	GuildID           *string           `json:"guild_id,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
+	WebhookID *string   `json:"webhook_id,omitempty"`
+	Author    *User     `json:"author"`
+	Position  *int      `json:"position,omitempty"`
+
+	// MessageCreate Event Extra Field
+	// https://discord.com/developers/docs/topics/gateway-events#message-create
+	GuildID *string `json:"guild_id,omitempty"`
+
 	EditedTimestamp   *time.Time        `json:"edited_timestamp"`
 	Thread            *Channel          `json:"thread"`
 	Interaction       *Interaction      `json:"interaction"`
@@ -4137,23 +4146,27 @@ type Message struct {
 	Application       *Application      `json:"application,omitempty"`
 	Activity          *MessageActivity  `json:"activity,omitempty"`
 	Nonce             *Nonce            `json:"nonce,omitempty"`
-	Member            *GuildMember      `json:"member,omitempty"`
-	ChannelID         string            `json:"channel_id"`
-	ID                string            `json:"id"`
-	Content           string            `json:"content"`
-	Stickers          []*Sticker        `json:"stickers"`
-	Attachments       []*Attachment     `json:"attachments"`
-	MentionChannels   []*ChannelMention `json:"mention_channels,omitempty"`
-	MentionRoles      []*string         `json:"mention_roles"`
-	Mentions          []*User           `json:"mentions"`
-	Reactions         []*Reaction       `json:"reactions,omitempty"`
-	Embeds            []*Embed          `json:"embeds"`
-	Components        []Component       `json:"components"`
-	StickerItems      []*StickerItem    `json:"sticker_items"`
-	MentionEveryone   bool              `json:"mention_everyone"`
-	TTS               bool              `json:"tts"`
-	Type              Flag              `json:"type"`
-	Pinned            bool              `json:"pinned"`
+
+	// MessageCreate Event Extra Field
+	// https://discord.com/developers/docs/topics/gateway-events#message-create
+	Member *GuildMember `json:"member,omitempty"`
+
+	ChannelID       string            `json:"channel_id"`
+	ID              string            `json:"id"`
+	Content         string            `json:"content"`
+	Stickers        []*Sticker        `json:"stickers"`
+	Attachments     []*Attachment     `json:"attachments"`
+	MentionChannels []*ChannelMention `json:"mention_channels,omitempty"`
+	MentionRoles    []*string         `json:"mention_roles"`
+	Mentions        []*User           `json:"mentions"`
+	Reactions       []*Reaction       `json:"reactions,omitempty"`
+	Embeds          []*Embed          `json:"embeds"`
+	Components      []Component       `json:"components"`
+	StickerItems    []*StickerItem    `json:"sticker_items"`
+	MentionEveryone bool              `json:"mention_everyone"`
+	TTS             bool              `json:"tts"`
+	Type            Flag              `json:"type"`
+	Pinned          bool              `json:"pinned"`
 }
 
 // Message Types
@@ -4431,48 +4444,52 @@ type Emoji struct {
 // Guild Object
 // https://discord.com/developers/docs/resources/guild#guild-object
 type Guild struct {
-	RulesChannelID              *string        `json:"rules_channel_id"`
-	WelcomeScreen               *WelcomeScreen `json:"welcome_screen,omitempty"`
-	Icon                        *string        `json:"icon"`
-	IconHash                    **string       `json:"icon_hash,omitempty"`
-	Splash                      *string        `json:"splash"`
-	DiscoverySplash             *string        `json:"discovery_splash"`
-	Owner                       *bool          `json:"owner,omitempty"`
-	ApproximatePresenceCount    *int           `json:"approximate_presence_count,omitempty"`
-	Permissions                 *string        `json:"permissions,omitempty"`
-	Region                      **string       `json:"region,omitempty"`
-	ApproximateMemberCount      *int           `json:"approximate_member_count,omitempty"`
-	MaxVideoChannelUsers        *int           `json:"max_video_channel_users,omitempty"`
-	WidgetEnabled               *bool          `json:"widget_enabled,omitempty"`
-	WidgetChannelID             **string       `json:"widget_channel_id,omitempty"`
-	PublicUpdatesChannelID      *string        `json:"public_updates_channel_id"`
-	PremiumSubscriptionCount    *int           `json:"premium_subscription_count,omitempty"`
-	ApplicationID               *string        `json:"application_id"`
-	Banner                      *string        `json:"banner"`
-	Description                 *string        `json:"description"`
-	VanityUrl                   *string        `json:"vanity_url_code"`
-	MaxPresences                **int          `json:"max_presences,omitempty"`
-	MaxMembers                  *int           `json:"max_members,omitempty"`
-	SystemChannelID             *string        `json:"system_channel_id"`
-	AfkChannelID                *string        `json:"afk_channel_id"`
-	Unavailable                 *bool          `json:"unavailable,omitempty"`
-	OwnerID                     string         `json:"owner_id"`
-	ID                          string         `json:"id"`
-	Name                        string         `json:"name"`
-	PreferredLocale             string         `json:"preferred_locale"`
-	Emojis                      []*Emoji       `json:"emojis"`
-	Roles                       []*Role        `json:"roles"`
-	Stickers                    []*Sticker     `json:"stickers,omitempty"`
-	Features                    []*string      `json:"features"`
-	AfkTimeout                  int            `json:"afk_timeout"`
-	SystemChannelFlags          BitFlag        `json:"system_channel_flags"`
-	DefaultMessageNotifications Flag           `json:"default_message_notifications"`
-	PremiumTier                 Flag           `json:"premium_tier"`
-	ExplicitContentFilter       Flag           `json:"explicit_content_filter"`
-	NSFWLevel                   Flag           `json:"nsfw_level"`
-	MFALevel                    Flag           `json:"mfa_level"`
-	PremiumProgressBarEnabled   bool           `json:"premium_progress_bar_enabled"`
-	VerificationLevel           Flag           `json:"verification_level"`
+	RulesChannelID           *string        `json:"rules_channel_id"`
+	WelcomeScreen            *WelcomeScreen `json:"welcome_screen,omitempty"`
+	Icon                     *string        `json:"icon"`
+	IconHash                 **string       `json:"icon_hash,omitempty"`
+	Splash                   *string        `json:"splash"`
+	DiscoverySplash          *string        `json:"discovery_splash"`
+	Owner                    *bool          `json:"owner,omitempty"`
+	ApproximatePresenceCount *int           `json:"approximate_presence_count,omitempty"`
+	Permissions              *string        `json:"permissions,omitempty"`
+	Region                   **string       `json:"region,omitempty"`
+	ApproximateMemberCount   *int           `json:"approximate_member_count,omitempty"`
+	MaxVideoChannelUsers     *int           `json:"max_video_channel_users,omitempty"`
+	WidgetEnabled            *bool          `json:"widget_enabled,omitempty"`
+	WidgetChannelID          **string       `json:"widget_channel_id,omitempty"`
+	PublicUpdatesChannelID   *string        `json:"public_updates_channel_id"`
+	PremiumSubscriptionCount *int           `json:"premium_subscription_count,omitempty"`
+	ApplicationID            *string        `json:"application_id"`
+	Banner                   *string        `json:"banner"`
+	Description              *string        `json:"description"`
+	VanityUrl                *string        `json:"vanity_url_code"`
+	MaxPresences             **int          `json:"max_presences,omitempty"`
+	MaxMembers               *int           `json:"max_members,omitempty"`
+	SystemChannelID          *string        `json:"system_channel_id"`
+	AfkChannelID             *string        `json:"afk_channel_id"`
+
+	// Unavailable Guild Object
+	// https://discord.com/developers/docs/resources/guild#unavailable-guild-object
+	Unavailable *bool `json:"unavailable,omitempty"`
+
+	OwnerID                     string     `json:"owner_id"`
+	ID                          string     `json:"id"`
+	Name                        string     `json:"name"`
+	PreferredLocale             string     `json:"preferred_locale"`
+	Emojis                      []*Emoji   `json:"emojis"`
+	Roles                       []*Role    `json:"roles"`
+	Stickers                    []*Sticker `json:"stickers,omitempty"`
+	Features                    []*string  `json:"features"`
+	AfkTimeout                  int        `json:"afk_timeout"`
+	SystemChannelFlags          BitFlag    `json:"system_channel_flags"`
+	DefaultMessageNotifications Flag       `json:"default_message_notifications"`
+	PremiumTier                 Flag       `json:"premium_tier"`
+	ExplicitContentFilter       Flag       `json:"explicit_content_filter"`
+	NSFWLevel                   Flag       `json:"nsfw_level"`
+	MFALevel                    Flag       `json:"mfa_level"`
+	PremiumProgressBarEnabled   bool       `json:"premium_progress_bar_enabled"`
+	VerificationLevel           Flag       `json:"verification_level"`
 }
 
 // Default Message Notification Level
