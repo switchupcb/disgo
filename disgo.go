@@ -17215,7 +17215,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			}
 
 			s.ID = ready.SessionID
-			s.Seq = 0
+			atomic.StoreInt64(&s.Seq, 0)
 			s.Endpoint = ready.ResumeGatewayURL
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = ready.Application.ID
@@ -17269,7 +17269,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			<-time.NewTimer(invalidSessionWaitTime).C
 
 			s.ID = ""
-			s.Seq = 0
+			atomic.StoreInt64(&s.Seq, 0)
 			if err := s.initial(bot, attempt+1); err != nil {
 				return err
 			}
@@ -17626,7 +17626,7 @@ func (s *Session) pulse() {
 	// send an Opcode 1 Heartbeat payload after heartbeat_interval * jitter milliseconds
 	// (where jitter is a random value between 0 and 1).
 	s.Lock()
-	s.heartbeat.send <- Heartbeat{Data: s.Seq}
+	s.heartbeat.send <- Heartbeat{Data: atomic.LoadInt64(&s.Seq)}
 	LogSession(Logger.Info(), s.ID).Msg("queued jitter heartbeat")
 	s.Unlock()
 
@@ -17637,7 +17637,7 @@ func (s *Session) pulse() {
 			s.Lock()
 
 			// queue a heartbeat.
-			s.heartbeat.send <- Heartbeat{Data: s.Seq}
+			s.heartbeat.send <- Heartbeat{Data: atomic.LoadInt64(&s.Seq)}
 
 			LogSession(Logger.Info(), s.ID).Msg("queued heartbeat")
 

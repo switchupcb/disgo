@@ -113,7 +113,7 @@ func (s *Session) pulse() {
 	// send an Opcode 1 Heartbeat payload after heartbeat_interval * jitter milliseconds
 	// (where jitter is a random value between 0 and 1).
 	s.Lock()
-	s.heartbeat.send <- Heartbeat{Data: s.Seq}
+	s.heartbeat.send <- Heartbeat{Data: atomic.LoadInt64(&s.Seq)}
 	LogSession(Logger.Info(), s.ID).Msg("queued jitter heartbeat")
 	s.Unlock()
 
@@ -124,7 +124,7 @@ func (s *Session) pulse() {
 			s.Lock()
 
 			// queue a heartbeat.
-			s.heartbeat.send <- Heartbeat{Data: s.Seq}
+			s.heartbeat.send <- Heartbeat{Data: atomic.LoadInt64(&s.Seq)}
 
 			LogSession(Logger.Info(), s.ID).Msg("queued heartbeat")
 
