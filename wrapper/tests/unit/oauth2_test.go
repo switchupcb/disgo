@@ -3,7 +3,7 @@ package unit_test
 import (
 	"testing"
 
-	. "github.com/switchupcb/disgo/wrapper"
+	. "github.com/switchupcb/disgo"
 )
 
 // testOAuth2 represents parameters used to test GenerateAuthorizationURL.
@@ -30,10 +30,10 @@ func TestGenerateAuthorizationURL(t *testing.T) {
 				Authorization: &Authorization{
 					ClientID:     "988406086973444138",
 					ClientSecret: "",
-					Scopes:       []string{"scope1", "scope2"},
 					RedirectURI:  "https://localhost",
 					State:        "state",
 					Prompt:       "prompt",
+					Scopes:       []string{"scope1", "scope2"},
 				},
 			},
 			response: "code",
@@ -45,10 +45,10 @@ func TestGenerateAuthorizationURL(t *testing.T) {
 				Authorization: &Authorization{
 					ClientID:     "983406086973444138",
 					ClientSecret: "",
-					Scopes:       []string{"bot", "applications.commands"},
 					RedirectURI:  "https://localhost",
 					State:        "",
 					Prompt:       "",
+					Scopes:       []string{"bot", "applications.commands"},
 				},
 			},
 			response: "",
@@ -60,10 +60,10 @@ func TestGenerateAuthorizationURL(t *testing.T) {
 				Authorization: &Authorization{
 					ClientID:     "406086983973444138",
 					ClientSecret: "",
-					Scopes:       []string{},
 					RedirectURI:  "https://localhost",
 					State:        "",
 					Prompt:       "",
+					Scopes:       []string{},
 				},
 			},
 			response: "",
@@ -89,16 +89,16 @@ func TestGenerateBotAuthorizationURL(t *testing.T) {
 					Authorization: &Authorization{
 						ClientID:     "988406086973444138",
 						ClientSecret: "",
-						Scopes:       []string{"scope1", "scope2"},
 						RedirectURI:  "https://github.com",
 						State:        "state",
 						Prompt:       "prompt",
+						Scopes:       []string{"scope1", "scope2"},
 					},
 				},
+				ResponseType:       "",
 				Permissions:        1,
 				GuildID:            "9862629927296967350",
 				DisableGuildSelect: false,
-				ResponseType:       "",
 			},
 			output: EndpointAuthorizationURL() + "?client_id=988406086973444138&scope=scope1%20scope2&redirect_uri=https%3A%2F%2Fgithub.com&state=state&prompt=prompt&permissions=1&guild_id=9862629927296967350&disable_guild_select=false",
 		},
@@ -109,16 +109,16 @@ func TestGenerateBotAuthorizationURL(t *testing.T) {
 					Authorization: &Authorization{
 						ClientID:     "983406086973444138",
 						ClientSecret: "",
-						Scopes:       []string{"bot", "applications.commands"},
 						RedirectURI:  "https://github.com",
 						State:        "",
 						Prompt:       "",
+						Scopes:       []string{"bot", "applications.commands"},
 					},
 				},
-				Permissions:        10,
 				GuildID:            "2909267986263572999",
-				DisableGuildSelect: true,
 				ResponseType:       "code",
+				Permissions:        10,
+				DisableGuildSelect: true,
 			},
 			output: EndpointAuthorizationURL() + "?responsetype=code&client_id=983406086973444138&scope=bot%20applications.commands&redirect_uri=https%3A%2F%2Fgithub.com&permissions=10&guild_id=2909267986263572999&disable_guild_select=true",
 		},
@@ -129,16 +129,16 @@ func TestGenerateBotAuthorizationURL(t *testing.T) {
 					Authorization: &Authorization{
 						ClientID:     "406086983973444138",
 						ClientSecret: "",
-						Scopes:       []string{},
 						RedirectURI:  "https://localhost",
 						State:        "",
 						Prompt:       "",
+						Scopes:       []string{},
 					},
 				},
-				Permissions:        10,
 				GuildID:            "2909267986263572999",
-				DisableGuildSelect: true,
 				ResponseType:       "code",
+				Permissions:        10,
+				DisableGuildSelect: true,
 			},
 			output: EndpointAuthorizationURL() + "?responsetype=code&client_id=406086983973444138&redirect_uri=https%3A%2F%2Flocalhost&permissions=10&guild_id=2909267986263572999&disable_guild_select=true",
 		},

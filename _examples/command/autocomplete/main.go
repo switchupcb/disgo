@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/switchupcb/disgo"
 	tools "github.com/switchupcb/disgo/tools"
-	disgo "github.com/switchupcb/disgo/wrapper"
 )
 
 // Environment Variables

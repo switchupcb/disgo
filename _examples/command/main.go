@@ -7,7 +7,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	disgo "github.com/switchupcb/disgo/wrapper"
+	"github.com/switchupcb/disgo"
 )
 
 // Environment Variables

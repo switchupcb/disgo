@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/goccy/go-json"
+	json "github.com/goccy/go-json"
 
 	"github.com/switchupcb/websocket"
 )

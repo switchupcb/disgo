@@ -25,7 +25,7 @@ The repository contains a [README](/README.md), [Examples](/_examples/), [Code G
 | shard   | Sharding Manager. |
 | tools   | Utility Tools.    |
 
-_A [bundler](https://pkg.go.dev/golang.org/x/tools/cmd/bundle) is used to package the API into a `disgo` package (`disgo.go`)_.
+_A **bundler** is used to package the API into a `disgo` package (`disgo.go`)_.
 
 #### Structs
 
@@ -52,9 +52,7 @@ Comments follow [Effective Go](https://golang.org/doc/effective_go#commentary) a
 
 #### Static Code Analysis
 
-Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`. If you receive a `diff` error _(while running)_, you must add a `diff` tool in your PATH. There is one located in the `Git` bin.
-
-If you receive `File is not ... with -...`, use `golangci-lint run --disable-all --no-config -Egofmt --fix`.
+Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`. If you receive a `diff` error _(while running)_, you must add a `diff` tool in your PATH. There is one located in the `Git/bin` directory.
 
  | Directory | Command                       | Description                                        |
  | :-------- | :---------------------------- | :------------------------------------------------- |
@@ -63,6 +61,8 @@ If you receive `File is not ... with -...`, use `golangci-lint run --disable-all
  | `cache`   | `golangci-lint run ./cache`   | Perform static code analysis on the Disgo Cache.   |
  | `shard`   | `golangci-lint run ./shard`   | Perform static code analysis on the Shard Manager. |
  | `tools`   | `golangci-lint run ./tools`   | Perform static code analysis on the Tools Module.  |
+
+ _If you receive `File is not ... with -...`, use `golangci-lint run --disable-all --no-config -Egofmt --fix` or ignore it._
 
 #### Fieldalignment
 
@@ -80,15 +80,11 @@ Integration tests are used to ensure functionality between the API Wrapper and D
 
 #### Running Tests
 
-Use `go test` to run the tests in the current directory. Use `go test ./<dir>` to run tests in a given directory (from the current directory). Use [Github Action Workflow Files](/.github/workflows/) to find the correct test command for a module.
+Use `go test` to run the tests in the current directory. Use `go test ./<dir>` to run tests in a given directory (from the current directory). Use [Github Action Workflow Files](/.github/workflows/) to find the correct test command and environment variables for a module.
 
 # Roadmap
 
-Disgo is **STABLE**. Here are the steps required in order to complete it.
-
-1. Bundle Disgo (with `fieldalignment`) _[v10.0.0]_.
-
-The following additional features are being implemented.
+Disgo is **STABLE**. The following additional features are being implemented.
 
 1. Voice Connections ([UDP Decision](/_contribution/libraries/), [Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice))
 2. [Sharding](https://github.com/switchupcb/disgo/issues/26)

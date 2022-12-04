@@ -178,9 +178,9 @@ func (s *Session) manage(bot *Client) {
 		default:
 			if cErr := s.Conn.Close(websocket.StatusCode(FlagClientCloseEventCodeAway), ""); cErr != nil {
 				s.manager.err <- ErrorDisconnect{
-					Connection: ErrConnectionSession,
-					Err:        cErr,
 					Action:     err,
+					Err:        cErr,
+					Connection: ErrConnectionSession,
 				}
 
 				return

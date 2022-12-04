@@ -59,21 +59,21 @@ type BotAuthParams struct {
 	// Bot provides the client_id and scopes parameters.
 	Bot *Client
 
-	// Permissions represents the permissions the bot is requesting.
-	Permissions BitFlag
-
 	// GuildID pre-selects a guild in the authorization prompt.
 	GuildID string
-
-	// DisableGuildSelect disables the ability to select other guilds
-	// in the authorization prompt (when GuildID is provided).
-	DisableGuildSelect bool
 
 	// ResponseType provides the type of response the OAuth2 flow will return.
 	//
 	// In the context of bot authorization, response_type is only provided when
 	// a scope outside of `bot` and `applications.commands` is requested.
 	ResponseType string
+
+	// Permissions represents the permissions the bot is requesting.
+	Permissions BitFlag
+
+	// DisableGuildSelect disables the ability to select other guilds
+	// in the authorization prompt (when GuildID is provided).
+	DisableGuildSelect bool
 }
 
 // GenerateBotAuthorizationURL generates a bot authorization URL using the given BotAuthParams.

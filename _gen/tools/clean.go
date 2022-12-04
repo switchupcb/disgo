@@ -27,7 +27,7 @@ func Clean(code []byte) ([]byte, error) {
 	content := []byte(file.String())
 	fmtdata, err := format.Source(content)
 	if err != nil {
-		return content, fmt.Errorf("an error occurred while formatting the generated code.\n%w", err)
+		return content, fmt.Errorf("clean: error formatting generated code: %w", err)
 	}
 
 	return fmtdata, nil

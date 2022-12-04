@@ -72,6 +72,14 @@ type RateLimiter interface {
 
 // Bucket represents a Discord API Rate Limit Bucket.
 type Bucket struct {
+	// Date represents the time at which Discord received the last request of the Bucket.
+	//
+	// Date is only applicable to Global Rate Limit Buckets.
+	Date time.Time
+
+	// Expiry represents the time at which the Bucket will reset (or become outdated).
+	Expiry time.Time
+
 	// ID represents the Bucket ID.
 	ID string
 
@@ -83,14 +91,6 @@ type Bucket struct {
 
 	// Pending represents the amount of requests that are sent and awaiting a response.
 	Pending int16
-
-	// Date represents the time at which Discord received the last request of the Bucket.
-	//
-	// Date is only applicable to Global Rate Limit Buckets.
-	Date time.Time
-
-	// Expiry represents the time at which the Bucket will reset (or become outdated).
-	Expiry time.Time
 }
 
 // Reset resets a Discord API Rate Limit Bucket and sets its expiry.

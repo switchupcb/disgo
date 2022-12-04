@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	disgo "github.com/switchupcb/disgo/wrapper"
+	"github.com/switchupcb/disgo"
 )
 
 // Environment Variables

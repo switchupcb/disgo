@@ -8,8 +8,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/goccy/go-json"
-	"github.com/switchupcb/disgo/wrapper/internal/socket"
+	json "github.com/goccy/go-json"
+	"github.com/switchupcb/disgo/wrapper/socket"
 	"github.com/switchupcb/websocket"
 	"golang.org/x/sync/errgroup"
 )
@@ -132,9 +132,9 @@ func (s *Session) connect(bot *Client) error {
 		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorDisconnect{
-				Connection: ErrConnectionSession,
 				Action:     err,
 				Err:        disconnectErr,
+				Connection: ErrConnectionSession,
 			}
 		}
 
@@ -188,9 +188,9 @@ func (s *Session) connect(bot *Client) error {
 		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorDisconnect{
-				Connection: ErrConnectionSession,
 				Action:     err,
 				Err:        disconnectErr,
+				Connection: ErrConnectionSession,
 			}
 		}
 
@@ -274,7 +274,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			}
 
 			s.ID = ready.SessionID
-			s.Seq = 0
+			atomic.StoreInt64(&s.Seq, 0)
 			s.Endpoint = ready.ResumeGatewayURL
 			// SHARD: set shard information using r.Shard
 			bot.ApplicationID = ready.Application.ID
@@ -328,7 +328,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			<-time.NewTimer(invalidSessionWaitTime).C
 
 			s.ID = ""
-			s.Seq = 0
+			atomic.StoreInt64(&s.Seq, 0)
 			if err := s.initial(bot, attempt+1); err != nil {
 				return err
 			}

@@ -77,7 +77,7 @@ func main() {
 func check() error {
 	cwd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("error getting the current working directory.\n%w", err)
+		return fmt.Errorf("error getting the current working directory: %w", err)
 	}
 
 	if filepath.Base(cwd) != exeDir && filepath.Base(filepath.Dir(cwd)) != "disgo" {
@@ -163,24 +163,24 @@ func generate() error {
 	}
 
 	// send
-	sendgen := exec.Command("copygen", "-yml", "wrapper/copygen/requests/setup.yml", "-xm")
+	sendgen := exec.Command("copygen", "-yml", "_gen/tools/copygen/requests/setup.yml", "-xm")
 	std, err := sendgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (send): %v", string(std))
 	}
 
 	// event handling
-	handlegen := exec.Command("copygen", "-yml", "wrapper/copygen/events/setup.yml", "-xm")
+	handlegen := exec.Command("copygen", "-yml", "_gen/tools/copygen/events/setup.yml", "-xm")
 	std, err = handlegen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (handle): %v", string(std))
 	}
 
-	// commands
-	commandgen := exec.Command("copygen", "-yml", "wrapper/copygen/commands/setup.yml", "-xm")
-	std, err = commandgen.CombinedOutput()
+	// sendevents
+	sendeventgen := exec.Command("copygen", "-yml", "_gen/tools/copygen/sendevents/setup.yml", "-xm")
+	std, err = sendeventgen.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("copygen error (command): %v", string(std))
+		return fmt.Errorf("copygen error (sendevents): %v", string(std))
 	}
 
 	// reset

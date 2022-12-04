@@ -18,7 +18,7 @@ type EditGlobalApplicationCommand struct {
 
 2. Define the endpoint in [dasgo `endpoints.go`](https://github.com/switchupcb/dasgo/blob/main/dasgo/endpoints.go).
 
-3. Define the return values in [`copygen/requests/setup.go`](/wrapper/copygen/requests/setup.go).
+3. Define the return values in [`copygen/requests/setup.go`](/_gen/tools/copygen/requests/setup.go).
 ```go
 // Copygen defines the functions that will be generated.
 type Copygen interface {

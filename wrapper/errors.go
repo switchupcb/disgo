@@ -13,6 +13,9 @@ const (
 
 // ErrorRequest represents an HTTP Request error that occurs when an attempt to send a request fails.
 type ErrorRequest struct {
+	// Err represents the error that occurred while performing the action.
+	Err error
+
 	// ClientID represents the Application ID of the request sender.
 	ClientID string
 
@@ -27,9 +30,6 @@ type ErrorRequest struct {
 
 	// Endpoint represents the endpoint the request was sent to.
 	Endpoint string
-
-	// Err represents the error that occurred while performing the action.
-	Err error
 }
 
 func (e ErrorRequest) Error() string {
@@ -76,14 +76,14 @@ const (
 // ErrorEventHandler represents an Event Handler error that occurs when an attempt to
 // add or remove an event handler fails.
 type ErrorEventHandler struct {
+	// Err represents the error that occurred while performing the action.
+	Err error
+
 	// ClientID represents the Application ID of the event handler owner.
 	ClientID string
 
 	// Event represents the event of the involved handler.
 	Event string
-
-	// Err represents the error that occurred while performing the action.
-	Err error
 }
 
 func (e ErrorEventHandler) Error() string {
@@ -126,11 +126,11 @@ func (e ErrorEvent) Error() string {
 
 // ErrorSession represents a WebSocket Session error that occurs during an active session.
 type ErrorSession struct {
-	// SessionID represents the ID of the Session.
-	SessionID string
-
 	// Err represents the error that occurred.
 	Err error
+
+	// SessionID represents the ID of the Session.
+	SessionID string
 }
 
 func (e ErrorSession) Error() string {
@@ -144,14 +144,14 @@ const (
 // ErrorDisconnect represents a disconnection error that occurs when
 // an attempt to gracefully disconnect from a connection fails.
 type ErrorDisconnect struct {
-	// Connection represents the name of the connection.
-	Connection string
-
 	// Action represents the error that prompted the disconnection (if applicable).
 	Action error
 
 	// Err represents the error that occurred while disconnecting.
 	Err error
+
+	// Connection represents the name of the connection.
+	Connection string
 }
 
 func (e ErrorDisconnect) Error() string {
