@@ -129,8 +129,8 @@ func (r *EditOriginalInteractionResponse) UnmarshalJSON(b []byte) error {
 	type alias EditOriginalInteractionResponse
 
 	var unmarshalled struct {
-		alias
 		Components json.RawMessage `json:"components"`
+		alias
 	}
 
 	if err := json.Unmarshal(b, &unmarshalled); err != nil {
@@ -157,8 +157,8 @@ func (r *CreateFollowupMessage) UnmarshalJSON(b []byte) error {
 	type alias CreateFollowupMessage
 
 	var unmarshalled struct {
-		alias
 		Components json.RawMessage `json:"components"`
+		alias
 	}
 
 	var err error

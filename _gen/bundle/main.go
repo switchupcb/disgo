@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -8,6 +9,10 @@ import (
 	"strings"
 
 	"github.com/switchupcb/disgo/_gen/bundle/tools"
+)
+
+var (
+	showFieldaligned = flag.Bool("f", false, "Use -f to showcase the output from the fieldalignment tool.")
 )
 
 const (
@@ -22,6 +27,8 @@ func main() {
 		fmt.Printf("%v", err)
 		os.Exit(1)
 	}
+
+	flag.Parse()
 
 	// disgo generation
 	if err := generate(); err != nil {
@@ -70,16 +77,34 @@ func generate() error {
 		return fmt.Errorf("imports: %w", err)
 	}
 
-	// fieldalign the bundle.
-	fieldalignment := exec.Command("fieldalignment", "-fix", bundlePath)
-	std, err = fieldalignment.CombinedOutput()
-	if err != nil && err.Error() == "exit status 3" {
-		fmt.Printf("WARNING (fieldalignment): %v\n", err)
-	} else if err != nil {
-		return fmt.Errorf("fieldalignment: %v", err)
+	// fieldalign the bundle (until there is nothing else to fieldalign).
+	var fieldalignmentOutput []byte
+	for i := 0; i < 5; i++ {
+		fieldalignment := exec.Command("fieldalignment", "-fix", bundlePath)
+		std, err = fieldalignment.CombinedOutput()
+		if err != nil && err.Error() == "exit status 3" {
+			fieldalignmentOutput = append(fieldalignmentOutput, std...)
+			fmt.Printf("WARNING (fieldalignment): %v\n", err)
+			fmt.Println("running fieldalignment again...\n")
+
+			continue
+
+		} else if err != nil {
+			return fmt.Errorf("fieldalignment: %v", err)
+		}
+
+		fieldalignmentOutput = append(fieldalignmentOutput, std...)
+
+		if i == 4 {
+			return fmt.Error("fieldalignment: more calls to fieldalignment were required.")
+		}
+
+		break
 	}
 
-	fmt.Println(string(std))
+	if *showFieldaligned {
+		fmt.Println(string(fieldalignmentOutput))
+	}
 
 	// add removed comments to the bundle.
 	if err := tools.Replace(bundlePath); err != nil {

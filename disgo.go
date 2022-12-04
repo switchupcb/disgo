@@ -9580,8 +9580,8 @@ func (r *Message) UnmarshalJSON(b []byte) error {
 	type alias Message
 
 	var unmarshalled struct {
-		alias
 		Components json.RawMessage `json:"components"`
+		alias
 	}
 
 	var err error
@@ -9646,8 +9646,8 @@ func (r *Interaction) UnmarshalJSON(b []byte) error {
 	type alias Interaction
 
 	var unmarshalledInteraction struct {
-		alias
 		Data json.RawMessage `json:"data,omitempty"`
+		alias
 	}
 
 	var err error
