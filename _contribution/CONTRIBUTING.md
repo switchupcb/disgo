@@ -18,12 +18,12 @@ The repository contains a [README](/README.md), [Examples](/_examples/), [Code G
 
 ### Disgo
 
-| Package | Description       |
-| :------ | :---------------- |
-| wrapper | API Wrapper.      |
-| cache   | Cache.            |
-| shard   | Sharding Manager. |
-| tools   | Utility Tools.    |
+| Package | Description    |
+| :------ | :------------- |
+| wrapper | API Wrapper.   |
+| cache   | Cache.         |
+| shard   | Shard Manager. |
+| tools   | Utility Tools. |
 
 _A **bundler** is used to package the API into a `disgo` package (`disgo.go`)_.
 

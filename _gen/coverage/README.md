@@ -1,6 +1,6 @@
 # Coverage Integration Test Generator
 
-Disgo contains an integration test that covers a majority of the Discord API to ensure feature-complete functionality. This test entails calling 100+ endpoints (requests) and dealing with respective events as necessary. The test is run in the CI/CD pipeline used to approve a build for production-usage. It can also be used by developers to debug issues. As a result, it's important to optimize this task in order to _minimize the amount of time spent running tests_ in any given workflow.
+Disgo contains an integration test that covers a majority of the Discord API to ensure feature-complete functionality. This test entails calling 60+ endpoints (requests) and dealing with respective events as necessary. The test is run in the CI/CD pipeline used to approve a build for production-usage. It can also be used by developers to debug issues. As a result, it's important to optimize this task in order to _minimize the amount of time spent running tests_ in any given workflow.
 
 ## Guide
 

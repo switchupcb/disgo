@@ -72,12 +72,10 @@ _Check out the [examples](/_examples/) directory for more._
 Get a specific version of `disgo` by specifying a tag or branch.
 
 ```
-go get github.com/switchupcb/disgo@v0.10.1
+go get github.com/switchupcb/disgo@v10.0.0
 ```
 
 _Disgo branches are referenced by API version (i.e `v10`)._
-
-_DISCLAIMER: `v0.10.1` is a pre-release version. For more information, read the [State of Disgo (v0.10.1)](https://github.com/switchupcb/disgo/discussions/40)._
 
 ### Configuration
 
