@@ -23,7 +23,7 @@ const (
 	// keyReason represents the Context key for a manager's reason for disconnection.
 	keyReason = signal("reason")
 
-	// signalDisconnect indicates that a Disconnection was called purposefully.
+	// signalDisconnect indicates that a disconnection was called purposefully.
 	signalDisconnect = 1
 
 	// signalReconnect signals the manager to reconnect upon a successful disconnection.
@@ -135,6 +135,8 @@ func (s *Session) manage(bot *Client) {
 
 	// wait until all of a Session's goroutines are closed.
 	err := s.manager.Wait()
+	s.Lock()
+	defer s.Unlock()
 
 	// log the reason for disconnection (if applicable).
 	if reason := s.manager.signal.Value(keyReason); reason != nil {
@@ -173,7 +175,7 @@ func (s *Session) manage(bot *Client) {
 
 		// when an error occurs from a WebSocket Close Error.
 		case errors.As(err, closeErr):
-			s.manager.err <- s.handleGatewayCloseError(bot, closeErr)
+			s.manager.err <- s.handleGatewayCloseError(closeErr)
 
 		default:
 			if cErr := s.Conn.Close(websocket.StatusCode(FlagClientCloseEventCodeAway), ""); cErr != nil {
@@ -196,7 +198,7 @@ func (s *Session) manage(bot *Client) {
 }
 
 // handleGatewayCloseError handles a WebSocket CloseError.
-func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.CloseError) error {
+func (s *Session) handleGatewayCloseError(closeErr *websocket.CloseError) error {
 	code, ok := GatewayCloseEventCodes[int(closeErr.Code)]
 	switch ok {
 	// Gateway Close Event Code is known.
@@ -231,4 +233,85 @@ func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.Close
 
 		return closeErr
 	}
+}
+
+const (
+	// SignalNone indicates that Wait() was called on an already disconnected session.
+	SignalNone = 0
+
+	// SignalDisconnect indicates that a disconnection was called purposefully.
+	SignalDisconnect = signalDisconnect
+
+	// SignalReconnect indicates that a disconnection was called purposefully in order to reconnect.
+	SignalReconnect = signalReconnect
+
+	// SignalError indicates that a disconnection occurred as an error.
+	SignalError = 3
+
+	// SignalDisconnectError indicates that a disconnection was called purposefully (for any reason),
+	// but the Session experienced an error while disconnecting.
+	SignalDisconnectError = 4
+
+	// SignalUndefined indicates that a disconnection occurred in an undefined manner.
+	//
+	// This signal should NEVER be returned: If it is, report it.
+	SignalUndefined = 5
+)
+
+// Wait blocks until the calling Session has disconnected, then returns the reason
+// (disgo.SignalReason) for disconnecting and the disconnection error (if it exists).
+//
+// If Wait() is called on a Session that isn't connected, it will return immediately
+// with code SignalNone.
+//
+// It's NOT recommended to modify a Session after it has disconnected,
+// since it will be cleared and placed into a memory pool shortly after.
+func (s *Session) Wait() (int, error) {
+	if !s.isConnected() {
+		return SignalNone, nil
+	}
+
+	// NOTE: Wait() is equivalent to the s.manage() s.manager.Wait() handling logic,
+	// but without the management of the disconnection state,
+	// and without the usage of a channel that tells another goroutine to unblock.
+	//
+	// wait until all of a Session's goroutines are closed.
+	err := s.manager.Wait()
+	s.Lock()
+	defer s.Unlock()
+
+	// when a signal is provided, it indicates that the disconnection was purposeful.
+	signal := s.manager.signal.Value(keySignal)
+	switch signal {
+	case signalDisconnect:
+		return SignalDisconnect, nil
+
+	case signalReconnect:
+		return SignalReconnect, nil
+	}
+
+	// when an error caused goroutines to close.
+	if err != nil {
+		disconnectErr := new(ErrorDisconnect)
+		closeErr := new(websocket.CloseError)
+		switch {
+		// when an error occurs from a purposeful disconnection.
+		case errors.As(err, disconnectErr):
+			if signal != nil {
+				if signalValue, ok := signal.(int); ok {
+					return signalValue, err // nolint:wrapcheck
+				}
+			}
+
+			return SignalDisconnectError, err // nolint:wrapcheck
+
+		// when an error occurs from a WebSocket Close Error.
+		case errors.As(err, closeErr):
+			return SignalError, s.handleGatewayCloseError(closeErr)
+		}
+
+		return SignalError, err // nolint:wrapcheck
+	}
+
+	return SignalUndefined, nil
 }
