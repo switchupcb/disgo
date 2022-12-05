@@ -50,3 +50,17 @@ A bundler is used to package the API Wrapper into the `disgo` package (`disgo.go
 
 - [bundle](https://pkg.go.dev/golang.org/x/tools/cmd/bundle): `go install golang.org/x/tools/cmd/bundle@latest`
 - [fieldalignment](https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/fieldalignment): `go install golang.org/x/tools/go/analysis/passes/fieldalignment/cmd/fieldalignment@latest`
+
+### Comments
+
+The `fieldalignment` tool is prone to removing comments from fieldaligned fields. Use the following steps to add removed comments from fields back.
+
+1. Create a file in [`_gen/bundle/tools/replaced`](/_gen/bundle/tools/replaced/).
+2. Add the fieldaligned type (with removed comments) to the file.
+3. Add a boundary (`---`) on its own line.
+4. Add the fieldaligned type (with comments added) to the file.
+
+_Files must end with a single trailing newline._
+
+Run `bundle` again to replace the fieldaligned type (without comments) in the `Replace` step.
+
