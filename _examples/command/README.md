@@ -58,8 +58,8 @@ Use `ctrl + C` or `cmd + C` in the terminal.
 
 ```
 Exiting program due to signal...
+Disconnected from the Discord Gateway.
 Deleting the application command...
-Disconnecting from the Discord Gateway...
 Program executed successfully.
 ```
 

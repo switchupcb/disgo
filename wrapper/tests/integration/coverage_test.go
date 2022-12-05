@@ -42,7 +42,6 @@ func TestCoverage(t *testing.T) {
 		Authentication: BotToken(os.Getenv("COVERAGE_TEST_TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       new(Handlers),
-		Sessions:       []*Session{NewSession()},
 	}
 
 	bot.Config.Request.Timeout = time.Second * time.Duration(3)
@@ -64,8 +63,10 @@ func TestCoverage(t *testing.T) {
 		t.Fatal(fmt.Errorf("error setting up event handlers: %w", err))
 	}
 
+	s := NewSession()
+
 	// Connect the session to the Discord Gateway (WebSocket Connection).
-	if err := bot.Sessions[0].Connect(bot); err != nil {
+	if err := s.Connect(bot); err != nil {
 		t.Fatalf("can't open websocket session to Discord: %v", err)
 	}
 
@@ -123,7 +124,7 @@ func TestCoverage(t *testing.T) {
 	}
 
 	// Disconnect the session from the Discord Gateway (WebSocket Connection).
-	if err := bot.Sessions[0].Disconnect(); err != nil {
+	if err := s.Disconnect(); err != nil {
 		t.Fatalf("%v", err)
 	}
 

@@ -1,2 +1,2 @@
-// Package shard provides a shard manager for the client.
+// Package shard provides a shard manager for Disgo.
 package shard

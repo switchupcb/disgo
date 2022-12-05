@@ -1,6 +1,6 @@
 # What is Discord Sharding?
 
-Disgo provides an **optional** shard manager for your Discord Bot. Read [The Disgo Shard Manager](/shard/README.md) for information about its implementation.
+Disgo makes implementing Sharding easy by providing a customizable shard manager. Use the [**Disgo Shard Manager (module)**](/shard/README.md) or provide your own implementation by implementing the [`ShardManager interface`](/wrapper/shard.go).
 
 ## What is a Session?
 
@@ -16,15 +16,16 @@ When the **new bot** handles more data _(without sharding)_, all that data is se
 
 ### Advanced
 
-A shard only refers to which session(s) a guild's data will be sent to. In other words, a shard represents a _traffic route_ for guild data. This presents the following hierarchy: 
+A shard only refers to which session(s) a guild's data will be sent to. In other words, a shard represents a _traffic route_ for guild data. This presents the following hierarchy:
+
 - **One Session manages multiple shards**. 
-- **One Shard manages multiple guilds' data**.
+  - **One Shard manages multiple guilds' data**.
 
 Multiple sessions can use the same shard _(routes for a guild's data)_; each session can contain a different number of shards. This allows you to create sessions that handle a different amount traffic _(which is done for a multitude of reasons)_.
 
 ## What is Sharding?
 
-Sharding refers to managing data through multiple Shards _(WebSocket Sessions, Gateways, Whatever)_. Discord shards bots by guild: **One Shard manages the data for multiple guilds.**
+Sharding refers to managing data through multiple shards _(routes of Guild data)_.
 
 ### How Does It Work?
 

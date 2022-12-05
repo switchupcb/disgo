@@ -34,7 +34,6 @@ func main() {
 		Authentication: disgo.BotToken(token), // or BearerToken("TOKEN")
 		Config:         disgo.DefaultConfig(),
 		Handlers:       new(disgo.Handlers),
-		Sessions:       []*disgo.Session{disgo.NewSession()},
 	}
 
 	log.Println("Creating an application command...")
@@ -108,7 +107,8 @@ func main() {
 	log.Println("Connecting to the Discord Gateway...")
 
 	// Connect the session to the Discord Gateway (WebSocket Connection).
-	if err := bot.Sessions[0].Connect(bot); err != nil {
+	s := disgo.NewSession()
+	if err := s.Connect(bot); err != nil {
 		log.Printf("can't open websocket session to Discord Gateway: %v", err)
 
 		return
@@ -117,15 +117,20 @@ func main() {
 	log.Println("Successfully connected to the Discord Gateway. Waiting for an interaction...")
 
 	// end the program using a SIGINT call via `Ctrl + C` from the terminal.
-	if err := tools.InterceptSignal(tools.Signals, bot.Sessions...); err != nil {
+	if err := tools.InterceptSignal(tools.Signals, s); err != nil {
 		log.Printf("error exiting program: %v", err)
 	}
 
-	log.Println("Deleting the application command...")
+	log.Println("Exiting program due to signal...")
+
+	// tools.InterceptSignal() calls s.Disconnect() which disconnects the Session from the Discord Gateway.
+	log.Println("Disconnected from the Discord Gateway.")
 
 	// The following code is not necessarily required, but useful for the cleanup of this program.
 	//
 	// delete the Global Application Command.
+	log.Println("Deleting the application command...")
+
 	requestDeleteGlobalApplicationCommand := &disgo.DeleteGlobalApplicationCommand{CommandID: newCommand.ID}
 	if err := requestDeleteGlobalApplicationCommand.Send(bot); err != nil {
 		log.Printf("error deleting Global Application Command: %v", err)

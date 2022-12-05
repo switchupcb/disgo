@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/switchupcb/disgo"
+	"github.com/switchupcb/disgo/tools"
 )
 
 // Environment Variables
@@ -34,7 +33,6 @@ func main() {
 		Authentication: disgo.BotToken(token), // or BearerToken("TOKEN")
 		Config:         disgo.DefaultConfig(),
 		Handlers:       new(disgo.Handlers),
-		Sessions:       []*disgo.Session{disgo.NewSession()},
 	}
 
 	log.Println("Creating an application command...")
@@ -81,7 +79,8 @@ func main() {
 	log.Println("Connecting to the Discord Gateway...")
 
 	// Connect the session to the Discord Gateway (WebSocket Connection).
-	if err := bot.Sessions[0].Connect(bot); err != nil {
+	s := disgo.NewSession()
+	if err := s.Connect(bot); err != nil {
 		log.Printf("can't open websocket session to Discord Gateway: %v", err)
 
 		return
@@ -89,10 +88,23 @@ func main() {
 
 	log.Println("Successfully connected to the Discord Gateway. Waiting for an interaction...")
 
-	// End the program using a SIGINT call via `Ctrl + C` from the terminal.
-	//
-	// The following code is equivalent to tools.InterceptSignal(tools.Signals, bot.Sessions...)
-	interceptSIGINT(bot, newCommand)
+	// end the program using a SIGINT call via `Ctrl + C` from the terminal.
+	tools.InterceptSignal(tools.Signals, s)
+
+	log.Println("Exiting program due to signal...")
+
+	// tools.InterceptSignal() calls s.Disconnect() which disconnects the Session from the Discord Gateway.
+	log.Println("Disconnected from the Discord Gateway.")
+
+	// Deleting the Global Application Command is not required, but useful for the cleanup of this program.
+	log.Println("Deleting the application command...")
+
+	requestDeleteGlobalApplicationCommand := &disgo.DeleteGlobalApplicationCommand{CommandID: newCommand.ID}
+	if err := requestDeleteGlobalApplicationCommand.Send(bot); err != nil {
+		log.Printf("error deleting Global Application Command: %v", err)
+
+		return
+	}
 
 	log.Printf("Program executed successfully.")
 }
@@ -139,42 +151,4 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction, command *d
 	log.Println("Sent a response to the interaction.")
 
 	return nil
-}
-
-// interceptSIGINT intercepts the SIGINT signal for a graceful end of the program.
-func interceptSIGINT(bot *disgo.Client, command *disgo.ApplicationCommand) {
-	// create an buffered channel (reason in goroutine below).
-	signalChannel := make(chan os.Signal, 1)
-
-	// set the syscalls that signalChannel is sent.
-	// https://www.gnu.org/software/libc/manual/html_node/Termination-Signals.html
-	signal.Notify(signalChannel,
-		syscall.SIGTERM,
-		syscall.SIGINT,
-		syscall.SIGQUIT,
-		syscall.SIGHUP,
-	)
-
-	// block this goroutine until a signal is received.
-	// https://go.dev/tour/concurrency/3
-	<-signalChannel
-
-	log.Println("Exiting program due to signal...")
-
-	// Deleting the Global Application Command is not required, but useful for the cleanup of this program.
-	log.Println("Deleting the application command...")
-
-	requestDeleteGlobalApplicationCommand := &disgo.DeleteGlobalApplicationCommand{CommandID: command.ID}
-	if err := requestDeleteGlobalApplicationCommand.Send(bot); err != nil {
-		log.Printf("error deleting Global Application Command: %v", err)
-	}
-
-	log.Println("Disconnecting from the Discord Gateway...")
-
-	// Disconnect the session from the Discord Gateway (WebSocket Connection).
-	if err := bot.Sessions[0].Disconnect(); err != nil {
-		log.Printf("error closing connection to Discord Gateway: %v", err)
-
-		os.Exit(1)
-	}
 }

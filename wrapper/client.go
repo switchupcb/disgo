@@ -14,8 +14,6 @@ const (
 
 // Client represents a Discord Application.
 type Client struct {
-	ApplicationID string
-
 	// Authentication contains parameters required to authenticate the bot.
 	Authentication *Authentication
 
@@ -29,7 +27,9 @@ type Client struct {
 	Handlers *Handlers
 
 	// Sessions contains sessions a bot uses to interact with the Discord Gateway.
-	Sessions []*Session
+	Sessions *SessionManager
+
+	ApplicationID string
 }
 
 // Authentication represents authentication parameters required to authenticate the bot.
@@ -176,6 +176,9 @@ func DefaultRequest() Request {
 
 // Gateway represents Discord Gateway parameters used to perform various actions by the client.
 type Gateway struct {
+	// ShardManager controls how the bot is sharded.
+	ShardManager ShardManager
+
 	// RateLimiter represents an object that provides rate limit functionality.
 	RateLimiter RateLimiter
 
@@ -244,6 +247,7 @@ func DefaultGateway() Gateway {
 		IntentSet:             intentSet,
 		GatewayPresenceUpdate: new(GatewayPresenceUpdate),
 		RateLimiter:           ratelimiter,
+		ShardManager:          nil,
 	}
 }
 

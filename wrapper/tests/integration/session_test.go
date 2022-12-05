@@ -21,10 +21,9 @@ func TestConnect(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       new(Handlers),
-		Sessions:       []*Session{NewSession()},
 	}
 
-	s := bot.Sessions[0]
+	s := NewSession()
 
 	// a channel is used to wait for the Ready event.
 	wait := make(chan int)
@@ -113,10 +112,9 @@ func TestReconnect(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       &Handlers{},
-		Sessions:       []*Session{NewSession()},
 	}
 
-	s := bot.Sessions[0]
+	s := NewSession()
 
 	// a channel is used to wait for the resumed event which signals a reconnection.
 	wait := make(chan int)

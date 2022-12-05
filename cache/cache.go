@@ -1,2 +1,2 @@
-// Package cache provides a cache for the client.
+// Package cache provides a cache manager for Disgo.
 package cache

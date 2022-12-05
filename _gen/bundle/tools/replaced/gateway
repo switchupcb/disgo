@@ -1,11 +1,15 @@
 type Gateway struct {
-    RateLimiter           RateLimiter
-    IntentSet             map[BitFlag]bool
-    GatewayPresenceUpdate *GatewayPresenceUpdate
-    Intents               BitFlag
+	ShardManager          ShardManager
+	RateLimiter           RateLimiter
+	IntentSet             map[BitFlag]bool
+	GatewayPresenceUpdate *GatewayPresenceUpdate
+	Intents               BitFlag
 }
 ---
 type Gateway struct {
+    // ShardManager controls how the bot is sharded.
+    ShardManager          ShardManager
+
     // RateLimiter represents an object that provides rate limit functionality.
     RateLimiter           RateLimiter
 

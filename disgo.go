@@ -38,8 +38,6 @@ const (
 
 // Client represents a Discord Application.
 type Client struct {
-	ApplicationID string
-
 	// Authentication contains parameters required to authenticate the bot.
 	Authentication *Authentication
 
@@ -53,7 +51,9 @@ type Client struct {
 	Handlers *Handlers
 
 	// Sessions contains sessions a bot uses to interact with the Discord Gateway.
-	Sessions []*Session
+	Sessions *SessionManager
+
+	ApplicationID string
 }
 
 // Authentication represents authentication parameters required to authenticate the bot.
@@ -200,6 +200,9 @@ func DefaultRequest() Request {
 
 // Gateway represents Discord Gateway parameters used to perform various actions by the client.
 type Gateway struct {
+	// ShardManager controls how the bot is sharded.
+	ShardManager ShardManager
+
 	// RateLimiter represents an object that provides rate limit functionality.
 	RateLimiter RateLimiter
 
@@ -269,6 +272,7 @@ func DefaultGateway() Gateway {
 		IntentSet:             intentSet,
 		GatewayPresenceUpdate: new(GatewayPresenceUpdate),
 		RateLimiter:           ratelimiter,
+		ShardManager:          nil,
 	}
 }
 
@@ -1691,7 +1695,8 @@ var (
 // Version
 // https://discord.com/developers/docs/reference#api-versioning
 const (
-	VersionDiscordAPI = "10"
+	VersionDiscordAPI          = "10"
+	VersionDiscordVoiceGateway = "?v=4"
 )
 
 // time.Time Format
@@ -17050,9 +17055,28 @@ func (s *Session) connect(bot *Client) error {
 			bot.Config.Gateway.RateLimiter.SetBucketFromID(FlagGatewaySendEventNameIdentify, identifyBucket)
 		}
 
-		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency) + 1
-		identifyBucket.Remaining = identifyBucket.Limit
-		identifyBucket.Expiry = time.Now().Add(FlagGlobalRateLimitIdentifyInterval)
+		if bot.Config.Gateway.ShardManager != nil {
+			reset := time.Now().Add(time.Millisecond*time.Duration(response.SessionStartLimit.ResetAfter) + 1)
+
+			bot.Config.Gateway.ShardManager.SetLimit(
+				ShardLimit{
+					MaxSessions:     response.SessionStartLimit.Total,
+					RemainingStarts: response.SessionStartLimit.Remaining,
+					Reset:           reset,
+					MaxConcurrency:  response.SessionStartLimit.MaxConcurrency,
+				},
+			)
+
+			identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency)
+			identifyBucket.Remaining = int16(response.SessionStartLimit.Remaining)
+		} else {
+			identifyBucket.Limit = 1
+			identifyBucket.Remaining = 1
+		}
+
+		if identifyBucket.Expiry.IsZero() {
+			identifyBucket.Expiry = time.Now().Add(FlagGlobalRateLimitIdentifyInterval)
+		}
 
 		bot.Config.Gateway.RateLimiter.EndTx()
 	}
@@ -17165,23 +17189,27 @@ func (s *Session) connect(bot *Client) error {
 // then handles the incoming Ready or Resumed packet that indicates a successful connection.
 func (s *Session) initial(bot *Client, attempt int) error {
 	if !s.canReconnect() {
-		// send an Opcode 2 Identify to the Discord Gateway.
-		identify := Identify{
-			Token: bot.Authentication.Token,
-			Properties: IdentifyConnectionProperties{
-				OS:      runtime.GOOS,
-				Browser: module,
-				Device:  module,
-			},
-			Compress:       Pointer(true),
-			LargeThreshold: Pointer(maxIdentifyLargeThreshold),
-			Shard:          nil, // SHARD: set shard information using s.Shard.
-			Presence:       bot.Config.Gateway.GatewayPresenceUpdate,
-			Intents:        bot.Config.Gateway.Intents,
-		}
+		if bot.Config.Gateway.ShardManager == nil {
+			// send an Opcode 2 Identify to the Discord Gateway.
+			identify := Identify{
+				Token: bot.Authentication.Token,
+				Properties: IdentifyConnectionProperties{
+					OS:      runtime.GOOS,
+					Browser: module,
+					Device:  module,
+				},
+				Compress:       Pointer(true),
+				LargeThreshold: Pointer(maxIdentifyLargeThreshold),
+				Shard:          nil,
+				Presence:       bot.Config.Gateway.GatewayPresenceUpdate,
+				Intents:        bot.Config.Gateway.Intents,
+			}
 
-		if err := identify.SendEvent(bot, s); err != nil {
-			return err
+			if err := identify.SendEvent(bot, s); err != nil {
+				return err
+			}
+		} else {
+			bot.Config.Gateway.ShardManager.Identify(bot, s)
 		}
 	} else {
 		// send an Opcode 6 Resume to the Discord Gateway to reconnect the session.
@@ -17214,13 +17242,16 @@ func (s *Session) initial(bot *Client, attempt int) error {
 				return fmt.Errorf("error reading ready event: %w", err)
 			}
 
-			s.ID = ready.SessionID
-			atomic.StoreInt64(&s.Seq, 0)
-			s.Endpoint = ready.ResumeGatewayURL
-			// SHARD: set shard information using r.Shard
-			bot.ApplicationID = ready.Application.ID
+			LogSession(Logger.Info(), ready.SessionID).Msg("received Ready event")
 
-			LogSession(Logger.Info(), s.ID).Msg("received Ready event")
+			if bot.Config.Gateway.ShardManager == nil {
+				s.ID = ready.SessionID
+				atomic.StoreInt64(&s.Seq, 0)
+				s.Endpoint = ready.ResumeGatewayURL
+				bot.ApplicationID = ready.Application.ID
+			} else {
+				bot.Config.Gateway.ShardManager.Ready(bot, s, ready)
+			}
 
 			for _, handler := range bot.Handlers.Ready {
 				go handler(ready)
@@ -17943,4 +17974,76 @@ func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.Close
 
 		return closeErr
 	}
+}
+
+// ShardManager represents an interface for Shard Management.
+//
+// ShardManager is an interface which allows developers to use multi-application architectures,
+// which run multiple applications on separate processes or servers.
+type ShardManager interface {
+	// GetLimit gets the limit of the ShardManager.
+	GetLimit() *ShardLimit
+
+	// SetLimit sets the limit of the ShardManager.
+	SetLimit(ShardLimit)
+
+	// Connect connects to the Discord Gateway using the Shard Manager.
+	Connect(bot *Client)
+
+	// Reconnect connects to the Discord Gateway using the Shard Manager.
+	Reconnect(bot *Client)
+
+	// Disconnect disconnects from the Discord Gateway using the Shard Manager.
+	Disconnect(bot *Client)
+
+	// ConnectSession connects a session of a bot to the Discord Gateway using the Shard Manager.
+	ConnectSession(bot *Client, session *Session)
+
+	// ReconnectSession reconnects a session to the Discord Gateway using the Shard Manager.
+	ReconnectSession(bot *Client, session *Session)
+
+	// DisconnectSession disconnects a session from the Discord Gateway using the Shard Manager.
+	DisconnectSession(session *Session)
+
+	// Identify determines how a Session identifies to the Discord Gateway.
+	//
+	// Called from the session.go initial function.
+	Identify(bot *Client, session *Session)
+
+	// Ready is called when a Session receives a ready event.
+	//
+	// Called from the session.go initial function.
+	Ready(bot *Client, session *Session, event *Ready)
+}
+
+// ShardLimit contains information about sharding limits.
+type ShardLimit struct {
+	Reset           time.Time
+	MaxSessions     int
+	RemainingStarts int
+	MaxConcurrency  int
+}
+
+// SessionManager manages sessions.
+type SessionManager struct {
+	Gateway map[string]*Session
+	Voice   map[string]*Session
+	All     []*Session
+}
+
+// NewSessionManager creates a new SessionManager.
+func NewSessionManager() *SessionManager {
+	return &SessionManager{
+		All:     []*Session{},
+		Gateway: make(map[string]*Session),
+		Voice:   make(map[string]*Session),
+	}
+}
+
+// NewSession creates a managed Session and returns it.
+func (sm *SessionManager) NewSession() *Session {
+	session := NewSession()
+	sm.All = append(sm.All, session)
+
+	return session
 }

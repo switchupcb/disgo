@@ -1,8 +1,9 @@
 package wrapper
 
 import (
-	"encoding/json"
 	"time"
+
+	json "github.com/goccy/go-json"
 )
 
 // Gateway Opcodes
@@ -1405,7 +1406,8 @@ var (
 // Version
 // https://discord.com/developers/docs/reference#api-versioning
 const (
-	VersionDiscordAPI = "10"
+	VersionDiscordAPI          = "10"
+	VersionDiscordVoiceGateway = "?v=4"
 )
 
 // time.Time Format

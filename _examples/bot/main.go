@@ -42,6 +42,8 @@ func main() {
 			},
 
 			Gateway: disgo.Gateway{
+				// ShardManager is an interface defined in ./wrapper/shard.go
+				ShardManager: nil,
 
 				// RateLimiter is an interface defined in ./wrapper/ratelimiter.go
 				RateLimiter: new(disgo.RateLimit),
@@ -68,8 +70,9 @@ func main() {
 		// described in ./_contribution/REQUESTS.md
 		Handlers: new(disgo.Handlers),
 
-		// Sessions controls the bot's WebSocket Sessions (Gateway, Voice).
-		Sessions: []*disgo.Session{},
+		// Sessions controls the bot's WebSocket Sessions (Gateway, Voice)
+		// when a shard manager is used.
+		Sessions: disgo.NewSessionManager(),
 	}
 
 	// set a configuration option during runtime.

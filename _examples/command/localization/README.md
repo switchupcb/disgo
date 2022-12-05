@@ -52,6 +52,8 @@ Upon receiving an interaction from the user, the bot will respond with a message
 Use `ctrl + C` or `cmd + C` in the terminal.
 
 ```
+Exiting program due to signal...
+Disconnected from the Discord Gateway.
 Deleting the application command...
 Program executed successfully.
 ```

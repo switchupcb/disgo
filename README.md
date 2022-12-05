@@ -91,7 +91,6 @@ bot := &disgo.Client{
     Authorization:  &disgo.Authorization{ ... },
     Config:         disgo.DefaultConfig(),
     Handlers:       new(disgo.Handlers),
-    Sessions:       []*disgo.Session{disgo.NewSession()},
 }
 ```
 
@@ -138,7 +137,8 @@ Open a WebSocket **Session** to receive events.
 
 ```go
 // Connect the session to the Discord Gateway (WebSocket Connection).
-if err := bot.Sessions[0].Connect(bot); err != nil {
+s := disgo.NewSession()
+if err := s.Connect(bot); err != nil {
     log.Printf("can't open websocket session to Discord Gateway: %v", err)
 
 	return

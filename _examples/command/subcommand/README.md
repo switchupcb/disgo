@@ -88,6 +88,6 @@ Use `ctrl + C` or `cmd + C` in the terminal.
 
 ```
 Exiting program due to signal...
-Disconnecting from the Discord Gateway...
+Disconnected from the Discord Gateway.
 Program executed successfully.
 ```
