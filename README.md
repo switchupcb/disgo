@@ -72,7 +72,7 @@ _Check out the [examples](/_examples/) directory for more._
 Get a specific version of `disgo` by specifying a tag or branch.
 
 ```
-go get github.com/switchupcb/disgo@v10.0.0
+go get github.com/switchupcb/disgo@v1.10.0
 ```
 
 _Disgo branches are referenced by API version (i.e `v10`)._
