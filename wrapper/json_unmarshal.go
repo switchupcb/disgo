@@ -129,8 +129,8 @@ func (r *EditOriginalInteractionResponse) UnmarshalJSON(b []byte) error {
 	type alias EditOriginalInteractionResponse
 
 	var unmarshalled struct {
-		Components json.RawMessage `json:"components"`
 		alias
+		Components json.RawMessage `json:"components"`
 	}
 
 	if err := json.Unmarshal(b, &unmarshalled); err != nil {
@@ -157,8 +157,8 @@ func (r *CreateFollowupMessage) UnmarshalJSON(b []byte) error {
 	type alias CreateFollowupMessage
 
 	var unmarshalled struct {
-		Components json.RawMessage `json:"components"`
 		alias
+		Components json.RawMessage `json:"components"`
 	}
 
 	var err error
@@ -423,8 +423,8 @@ func (r *Message) UnmarshalJSON(b []byte) error {
 	type alias Message
 
 	var unmarshalled struct {
-		alias
 		Components json.RawMessage `json:"components"`
+		alias
 	}
 
 	var err error
@@ -489,8 +489,8 @@ func (r *Interaction) UnmarshalJSON(b []byte) error {
 	type alias Interaction
 
 	var unmarshalledInteraction struct {
-		alias
 		Data json.RawMessage `json:"data,omitempty"`
+		alias
 	}
 
 	var err error

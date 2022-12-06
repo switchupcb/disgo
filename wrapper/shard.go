@@ -44,27 +44,31 @@ type ShardManager interface {
 
 // ShardLimit contains information about sharding limits.
 type ShardLimit struct {
-	// MaxSessions represents the maximum amount of WebSocket Sessions a bot can maintain at once.
+	// MaxStarts represents the maximum amount of WebSocket Sessions a bot can start per day.
 	//
-	// This is equivalent to the maximum amount of Shards a bot can maintain at once.
+	// This is equivalent to the maximum amount of Shards a bot can create per day.
 	//
 	// Discord represents this value from the "total" field of the SessionStartLimit object.
 	// https://discord.com/developers/docs/topics/gateway#session-start-limit-object
-	MaxSessions int
+	MaxStarts int
 
-	// RemainingStarts represents the remaining number of "starts" that the bot is allowed.
+	// RemainingStarts represents the remaining number of "starts" that the bot is allowed
+	// until the reset time.
+	//
+	// This is equivalent to the remaining number of Shards that the bot can create
+	// for the rest of the day.
 	//
 	// Discord represents this value from the "remaining" field of the SessionStartLimit object.
 	// https://discord.com/developers/docs/topics/gateway#session-start-limit-object
 	RemainingStarts int
 
-	// Reset represents the time at which the Session Start Rate Limit resets.
+	// Reset represents the time at which the Session Start Rate Limit resets (daily).
 	//
 	// Discord represents this value from the "reset_after" field of the SessionStartLimit object.
 	// https://discord.com/developers/docs/topics/gateway#session-start-limit-object
 	Reset time.Time
 
-	// MaxConcurrency represents the number of Identify sendevents the bot can send every 5 seconds.
+	// MaxConcurrency represents the number of Identify SendEvents the bot can send every 5 seconds.
 	MaxConcurrency int
 }
 

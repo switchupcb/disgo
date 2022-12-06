@@ -5414,9 +5414,9 @@ func IsValue2[T any](dp **T) bool {
 //
 // returns IsValueNothing, IsValueNull, or IsValueValid.
 //
-// 	IsValueNothing indicates that the field was not provided.
-// 	IsValueNull indicates the the field was provided with a null value.
-// 	IsValueValid indicates that the field is a valid value.
+//	IsValueNothing indicates that the field was not provided.
+//	IsValueNull indicates the the field was provided with a null value.
+//	IsValueValid indicates that the field is a valid value.
 func PointerCheck[T any](dp **T) PointerIndicator {
 	if dp != nil {
 		if *dp != nil {
@@ -10553,10 +10553,11 @@ type RateLimit struct {
 	// As a result, a route's actual Rate Limit Bucket can NOT be discovered until a request (for that route) is sent.
 	//
 	// A Default Rate Limit Bucket can be set at multiple levels.
+	//
 	//	Route (RateLimit.DefaultBucket):    Used when a per-route request's bucket is NOT initialized (i.e route 16*).
-	// 	Resource (Route Bucket Hash):       Used when a per-resource request's bucket is NOT initialized (i.e route 16, resource 32*).
-	// 	Resource(s) (Resource Bucket Hash): Used when an nth degree per-resource request's bucket is NOT initialized (i.e route 16; resource 32; resource 7*).
-	// 	So on and so forth...
+	//	Resource (Route Bucket Hash):       Used when a per-resource request's bucket is NOT initialized (i.e route 16, resource 32*).
+	//	Resource(s) (Resource Bucket Hash): Used when an nth degree per-resource request's bucket is NOT initialized (i.e route 16; resource 32; resource 7*).
+	//	So on and so forth...
 	//	*A request is NOT initialized when it has never been set (to a bucket or nil).
 	//
 	// Set the DefaultBucket to `nil` to disable the Default Rate Limit Bucket mechanism.
@@ -10714,9 +10715,10 @@ type hash func(routeid string, parameters ...string) (string, string)
 // Hash returns a hashing function which hashes a request using its routeID.
 //
 // n represents the degree of resources used to hash the request.
-// 	Per-Route: n = 0
-//	Per-Resource: n = 1
-//  ...
+//
+//		Per-Route: n = 0
+//		Per-Resource: n = 1
+//	 ...
 func Hash(n int) hash {
 	return func(r string, p ...string) (string, string) {
 		return r, strings.Join(p[:n], "")
@@ -17036,7 +17038,7 @@ func (s *Session) connect(bot *Client) error {
 	// request a valid Gateway URL endpoint from the Discord API.
 	gatewayEndpoint := s.Endpoint
 	if gatewayEndpoint == "" || !s.canReconnect() {
-		gateway := GetGateway{}
+		gateway := GetGatewayBot{}
 		response, err := gateway.Send(bot)
 		if err != nil {
 			return fmt.Errorf("error getting the Gateway API Endpoint: %w", err)
@@ -17060,21 +17062,18 @@ func (s *Session) connect(bot *Client) error {
 
 			bot.Config.Gateway.ShardManager.SetLimit(
 				ShardLimit{
-					MaxSessions:     response.SessionStartLimit.Total,
+					MaxStarts:       response.SessionStartLimit.Total,
 					RemainingStarts: response.SessionStartLimit.Remaining,
 					Reset:           reset,
 					MaxConcurrency:  response.SessionStartLimit.MaxConcurrency,
 				},
 			)
-
-			identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency)
-			identifyBucket.Remaining = int16(response.SessionStartLimit.Remaining)
-		} else {
-			identifyBucket.Limit = 1
-			identifyBucket.Remaining = 1
 		}
 
+		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency)
+
 		if identifyBucket.Expiry.IsZero() {
+			identifyBucket.Remaining = identifyBucket.Limit
 			identifyBucket.Expiry = time.Now().Add(FlagGlobalRateLimitIdentifyInterval)
 		}
 
@@ -17413,6 +17412,7 @@ RATELIMIT:
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
 		if isNotEmpty(globalBucket) {
 			switch op {
+			// Identify is also bound by the max_concurrency rate limit.
 			case FlagGatewayOpcodeIdentify:
 				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewaySendEventNameIdentify)
 
@@ -18102,7 +18102,7 @@ type ShardManager interface {
 // ShardLimit contains information about sharding limits.
 type ShardLimit struct {
 	Reset           time.Time
-	MaxSessions     int
+	MaxStarts       int
 	RemainingStarts int
 	MaxConcurrency  int
 }

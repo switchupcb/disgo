@@ -90,7 +90,7 @@ func (s *Session) connect(bot *Client) error {
 	// request a valid Gateway URL endpoint from the Discord API.
 	gatewayEndpoint := s.Endpoint
 	if gatewayEndpoint == "" || !s.canReconnect() {
-		gateway := GetGateway{}
+		gateway := GetGatewayBot{}
 		response, err := gateway.Send(bot)
 		if err != nil {
 			return fmt.Errorf("error getting the Gateway API Endpoint: %w", err)
@@ -114,21 +114,18 @@ func (s *Session) connect(bot *Client) error {
 
 			bot.Config.Gateway.ShardManager.SetLimit(
 				ShardLimit{
-					MaxSessions:     response.SessionStartLimit.Total,
+					MaxStarts:       response.SessionStartLimit.Total,
 					RemainingStarts: response.SessionStartLimit.Remaining,
 					Reset:           reset,
 					MaxConcurrency:  response.SessionStartLimit.MaxConcurrency,
 				},
 			)
-
-			identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency)
-			identifyBucket.Remaining = int16(response.SessionStartLimit.Remaining)
-		} else {
-			identifyBucket.Limit = 1
-			identifyBucket.Remaining = 1
 		}
 
+		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency)
+
 		if identifyBucket.Expiry.IsZero() {
+			identifyBucket.Remaining = identifyBucket.Limit
 			identifyBucket.Expiry = time.Now().Add(FlagGlobalRateLimitIdentifyInterval)
 		}
 
@@ -467,6 +464,7 @@ RATELIMIT:
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
 		if isNotEmpty(globalBucket) {
 			switch op {
+			// Identify is also bound by the max_concurrency rate limit.
 			case FlagGatewayOpcodeIdentify:
 				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewaySendEventNameIdentify)
 
