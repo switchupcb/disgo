@@ -391,6 +391,8 @@ var (
 		30047:  "Maximum number of pinned threads in a forum channel has been reached",
 		30048:  "Maximum number of tags in a forum channel has been reached",
 		30052:  "Bitrate is too high for channel of this type",
+		30056:  "Maximum number of premium emojis reached (25)",
+		30058:  "Maximum number of webhooks per guild reached (1000)",
 		40001:  "Unauthorized. Provide a valid token and try again",
 		40002:  "You need to verify your account in order to perform this action",
 		40003:  "You are opening direct messages too fast",
@@ -406,6 +408,7 @@ var (
 		40058:  "Cannot send a message in a forum channel",
 		40060:  "Interaction has already been acknowledged",
 		40061:  "Tag names must be unique",
+		40062:  "Service resource is being rate limited",
 		40066:  "There are no tags available that can be set by non-moderators",
 		40067:  "A tag is required to create a forum post in this channel",
 		50001:  "Missing access",
@@ -443,6 +446,7 @@ var (
 		50046:  "Invalid file uploaded",
 		50054:  "Cannot self-redeem this gift",
 		50055:  "Invalid Guild",
+		50067:  "Invalid request origin",
 		50068:  "Invalid message type",
 		50070:  "Payment source required to redeem gift",
 		50073:  "Cannot modify a system webhook",
@@ -452,12 +456,15 @@ var (
 		50084:  "Invalid thread notification settings",
 		50085:  "before value is earlier than the thread creation date",
 		50086:  "Community server channels must be text channels",
+		50091:  "The entity type of the event is different from the entity you are trying to start the event for",
 		50095:  "This server is not available in your location",
 		50097:  "This server needs monetization enabled in order to perform this action",
 		50101:  "This server needs more boosts to perform this action",
 		50109:  "The request body contains invalid JSON.",
 		50132:  "Ownership cannot be transferred to a bot user",
 		50138:  "Failed to resize asset below the maximum size: 262144",
+		50144:  "Cannot mix subscription and non subscription roles for an emoji",
+		50145:  "Cannot convert between premium emoji and normal emoji",
 		50146:  "Uploaded file not found.",
 		50600:  "You do not have permission to send this sticker.",
 		60003:  "Two factor is required for this operation",
@@ -1368,6 +1375,7 @@ type RateLimitResponse struct {
 	Message    string  `json:"message"`
 	RetryAfter float64 `json:"retry_after"`
 	Global     bool    `json:"global"`
+	Code       *int    `json:"code,omitempty"`
 }
 
 // Global Rate Limits
@@ -1443,6 +1451,7 @@ const (
 	FlagLocalesSpanish             = "es-ES"
 	FlagLocalesFrench              = "fr"
 	FlagLocalesCroatian            = "hr"
+	FlagLocalesIndonesian          = "id"
 	FlagLocalesItalian             = "it"
 	FlagLocalesLithuanian          = "lt"
 	FlagLocalesHungarian           = "hu"
@@ -1487,6 +1496,7 @@ type CreateGlobalApplicationCommand struct {
 	DefaultMemberPermissions **string                    `json:"default_member_permissions,omitempty"`
 	DMPermission             **bool                      `json:"dm_permission,omitempty"`
 	Type                     *Flag                       `json:"type,omitempty"`
+	NSFW                     *bool                       `json:"nsfw,omitempty"`
 }
 
 // Get Global Application Command
@@ -1508,6 +1518,7 @@ type EditGlobalApplicationCommand struct {
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
 	DefaultMemberPermissions **string                    `json:"default_member_permissions,omitempty"`
 	DMPermission             **bool                      `json:"dm_permission,omitempty"`
+	NSFW                     *bool                       `json:"nsfw,omitempty"`
 }
 
 // Delete Global Application Command
@@ -1544,6 +1555,7 @@ type CreateGuildApplicationCommand struct {
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
 	DefaultMemberPermissions **string                    `json:"default_member_permissions,omitempty"`
 	Type                     *Flag                       `json:"type,omitempty"`
+	NSFW                     *bool                       `json:"nsfw,omitempty"`
 }
 
 // Get Guild Application Command
@@ -1566,6 +1578,7 @@ type EditGuildApplicationCommand struct {
 	DescriptionLocalizations *map[string]string          `json:"description_localizations,omitempty"`
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
 	DefaultMemberPermissions **string                    `json:"default_member_permissions,omitempty"`
+	NSFW                     *bool                       `json:"nsfw,omitempty"`
 }
 
 // Delete Guild Application Command
@@ -1707,6 +1720,18 @@ type DeleteFollowupMessage struct {
 	MessageID        string
 }
 
+// Get Application Role Connection Metadata Records
+// GET /applications/{application.id}/role-connections/metadata
+// https://discord.com/developers/docs/resources/application-role-connection-metadata#get-application-role-connection-metadata-records
+type GetApplicationRoleConnectionMetadataRecords struct {
+}
+
+// Update Application Role Connection Metadata Records
+// PUT /applications/{application.id}/role-connections/metadata
+// https://discord.com/developers/docs/resources/application-role-connection-metadata#update-application-role-connection-metadata-records
+type UpdateApplicationRoleConnectionMetadataRecords struct {
+}
+
 // Get Guild Audit Log
 // GET /guilds/{guild.id}/audit-logs
 // https://discord.com/developers/docs/resources/audit-log#get-guild-audit-log
@@ -1717,6 +1742,7 @@ type GetGuildAuditLog struct {
 	UserID     string `url:"user_id,omitempty"`
 	ActionType Flag   `url:"action_type,omitempty"`
 	Before     string `url:"before,omitempty"`
+	After      string `url:"after,omitempty"`
 	Limit      int    `url:"limit,omitempty"`
 }
 
@@ -2979,6 +3005,21 @@ type CreateGroupDM struct {
 // https://discord.com/developers/docs/resources/user#get-user-connections
 type GetUserConnections struct{}
 
+// Get User Application Role Connection
+// GET /users/@me/applications/{application.id}/role-connection
+// https://discord.com/developers/docs/resources/user#get-user-application-role-connection
+type GetUserApplicationRoleConnection struct {
+}
+
+// Update User Application Role Connection
+// PUT /users/@me/applications/{application.id}/role-connection
+// https://discord.com/developers/docs/resources/user#update-user-application-role-connection
+type UpdateUserApplicationRoleConnection struct {
+	PlatformName     *string           `json:"platform_name,omitempty"`
+	PlatformUsername *string           `json:"platform_user,omitempty"`
+	Metadata         map[string]string `json:"metadata,omitempty"`
+}
+
 // List Voice Regions
 // GET /voice/regions
 // https://discord.com/developers/docs/resources/voice#list-voice-regions
@@ -3220,6 +3261,7 @@ type ApplicationCommand struct {
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
 	DefaultMemberPermissions *string                     `json:"default_member_permissions"`
 	DMPermission             *bool                       `json:"dm_permission,omitempty"`
+	NSFW                     *bool                       `json:"nsfw,omitempty"`
 	Version                  string                      `json:"version,omitempty"`
 }
 
@@ -3538,26 +3580,27 @@ type Modal struct {
 // Application Object
 // https://discord.com/developers/docs/resources/application
 type Application struct {
-	ID                  string         `json:"id"`
-	Name                string         `json:"name"`
-	Icon                *string        `json:"icon"`
-	Description         string         `json:"description"`
-	RPCOrigins          []string       `json:"rpc_origins,omitempty"`
-	BotPublic           bool           `json:"bot_public"`
-	BotRequireCodeGrant bool           `json:"bot_require_code_grant"`
-	TermsOfServiceURL   *string        `json:"terms_of_service_url,omitempty"`
-	PrivacyProxyURL     *string        `json:"privacy_policy_url,omitempty"`
-	Owner               *User          `json:"owner,omitempty"`
-	VerifyKey           string         `json:"verify_key"`
-	Team                *Team          `json:"team"`
-	GuildID             *string        `json:"guild_id,omitempty"`
-	PrimarySKUID        *string        `json:"primary_sku_id,omitempty"`
-	Slug                *string        `json:"slug,omitempty"`
-	CoverImage          *string        `json:"cover_image,omitempty"`
-	Flags               *BitFlag       `json:"flags,omitempty"`
-	Tags                []string       `json:"tags,omitempty"`
-	InstallParams       *InstallParams `json:"install_params,omitempty"`
-	CustomInstallURL    *string        `json:"custom_install_url,omitempty"`
+	ID                             string         `json:"id"`
+	Name                           string         `json:"name"`
+	Icon                           *string        `json:"icon"`
+	Description                    string         `json:"description"`
+	RPCOrigins                     []string       `json:"rpc_origins,omitempty"`
+	BotPublic                      bool           `json:"bot_public"`
+	BotRequireCodeGrant            bool           `json:"bot_require_code_grant"`
+	TermsOfServiceURL              *string        `json:"terms_of_service_url,omitempty"`
+	PrivacyProxyURL                *string        `json:"privacy_policy_url,omitempty"`
+	Owner                          *User          `json:"owner,omitempty"`
+	VerifyKey                      string         `json:"verify_key"`
+	Team                           *Team          `json:"team"`
+	GuildID                        *string        `json:"guild_id,omitempty"`
+	PrimarySKUID                   *string        `json:"primary_sku_id,omitempty"`
+	Slug                           *string        `json:"slug,omitempty"`
+	CoverImage                     *string        `json:"cover_image,omitempty"`
+	Flags                          *BitFlag       `json:"flags,omitempty"`
+	Tags                           []string       `json:"tags,omitempty"`
+	InstallParams                  *InstallParams `json:"install_params,omitempty"`
+	CustomInstallURL               *string        `json:"custom_install_url,omitempty"`
+	RoleConnectionsVerificationURL *string        `json:"role_connections_verification_url,omitempty"`
 }
 
 // Application Flags
@@ -3580,6 +3623,30 @@ type InstallParams struct {
 	Scopes      []string `json:"scopes"`
 	Permissions string   `json:"permissions"`
 }
+
+// Application Role Connection Metadata Object
+// https://discord.com/developers/docs/resources/application-role-connection-metadata#application-role-connection-metadata-object-application-role-connection-metadata-structure
+type ApplicationRoleConnectionMetadata struct {
+	Type                     Flag               `json:"type"`
+	Key                      string             `json:"key"`
+	Name                     string             `json:"name"`
+	NameLocalizations        *map[string]string `json:"name_localizations,omitempty"`
+	Description              string             `json:"description"`
+	DescriptionLocalizations *map[string]string `json:"description_localizations,omitempty"`
+}
+
+// Application Role Connection Metadata Types
+// https://discord.com/developers/docs/resources/application-role-connection-metadata#application-role-connection-metadata-object-application-role-connection-metadata-type
+const (
+	FlagApplicationRoleConnectionMetadataTypeINTEGER_LESS_THAN_OR_EQUAL     Flag = 1
+	FlagApplicationRoleConnectionMetadataTypeINTEGER_GREATER_THAN_OR_EQUAL  Flag = 2
+	FlagApplicationRoleConnectionMetadataTypeINTEGER_EQUAL                  Flag = 3
+	FlagApplicationRoleConnectionMetadataTypeINTEGER_NOT_EQUAL              Flag = 4
+	FlagApplicationRoleConnectionMetadataTypeDATETIME_LESS_THAN_OR_EQUAL    Flag = 5
+	FlagApplicationRoleConnectionMetadataTypeDATETIME_GREATER_THAN_OR_EQUAL Flag = 6
+	FlagApplicationRoleConnectionMetadataTypeBOOLEAN_EQUAL                  Flag = 7
+	FlagApplicationRoleConnectionMetadataTypeBOOLEAN_NOT_EQUAL              Flag = 8
+)
 
 // Audit Log Object
 // https://discord.com/developers/docs/resources/audit-log
@@ -3800,6 +3867,7 @@ type Channel struct {
 	DefaultReactionEmoji          *DefaultReaction       `json:"default_reaction_emoji"`
 	DefaultThreadRateLimitPerUser *int                   `json:"default_thread_rate_limit_per_user,omitempty"`
 	DefaultSortOrder              **int                  `json:"default_sort_order,omitempty"`
+	DefaultForumLayout            *Flag                  `json:"default_forum_layout,omitempty"`
 }
 
 // Channel Types
@@ -3838,6 +3906,14 @@ const (
 const (
 	FlagSortOrderTypeLATEST_ACTIVITY Flag = 0
 	FlagSortOrderTypeCREATION_DATE   Flag = 1
+)
+
+// Forum Layout Types
+// https://discord.com/developers/docs/resources/channel#channel-object-forum-layout-types
+const (
+	FlagForumLayoutTypeNOT_SET      Flag = 0
+	FlagForumLayoutTypeLIST_VIEW    Flag = 1
+	FlagForumLayoutTypeGALLERY_VIEW Flag = 2
 )
 
 // Message Object
@@ -3907,6 +3983,14 @@ const (
 	FlagMessageTypeGUILD_INVITE_REMINDER                        Flag = 22
 	FlagMessageTypeCONTEXT_MENU_COMMAND                         Flag = 23
 	FlagMessageTypeAUTO_MODERATION_ACTION                       Flag = 24
+	FlagMessageTypeROLE_SUBSCRIPTION_PURCHASE                   Flag = 25
+	FlagMessageTypeINTERACTION_PREMIUM_UPSELL                   Flag = 26
+	FlagMessageTypeSTAGE_START                                  Flag = 27
+	FlagMessageTypeSTAGE_END                                    Flag = 28
+	FlagMessageTypeSTAGE_SPEAKER                                Flag = 29
+	FlagMessageTypeSTAGE_RAISE_HAND                             Flag = 30
+	FlagMessageTypeSTAGE_TOPIC                                  Flag = 31
+	FlagMessageTypeGUILD_APPLICATION_PREMIUM_SUBSCRIPTION       Flag = 32
 )
 
 // Message Activity Structure
@@ -4005,7 +4089,7 @@ type ForumTag struct {
 	ID        string  `json:"id"`
 	Name      string  `json:"name"`
 	Moderated bool    `json:"moderated"`
-	EmojiID   string  `json:"emoji_id"`
+	EmojiID   *string `json:"emoji_id"`
 	EmojiName *string `json:"emoji_name"`
 }
 
@@ -4264,29 +4348,32 @@ const (
 // Guild Features
 // https://discord.com/developers/docs/resources/guild#guild-object-guild-features
 const (
-	FlagGuildFeatureANIMATED_BANNER                    = "ANIMATED_BANNER"
-	FlagGuildFeatureANIMATED_ICON                      = "ANIMATED_ICON"
-	FlagGuildFeatureAPPLICATION_COMMAND_PERMISSIONS_V2 = "APPLICATION_COMMAND_PERMISSIONS_V2"
-	FlagGuildFeatureAUTO_MODERATION                    = "AUTO_MODERATION"
-	FlagGuildFeatureBANNER                             = "BANNER"
-	FlagGuildFeatureCOMMUNITY                          = "COMMUNITY"
-	FlagGuildFeatureDEVELOPER_SUPPORT_SERVER           = "DEVELOPER_SUPPORT_SERVER"
-	FlagGuildFeatureDISCOVERABLE                       = "DISCOVERABLE"
-	FlagGuildFeatureFEATURABLE                         = "FEATURABLE"
-	FlagGuildFeatureINVITES_DISABLED                   = "INVITES_DISABLED"
-	FlagGuildFeatureINVITE_SPLASH                      = "INVITE_SPLASH"
-	FlagGuildFeatureMEMBER_VERIFICATION_GATE_ENABLED   = "MEMBER_VERIFICATION_GATE_ENABLED"
-	FlagGuildFeatureMONETIZATION_ENABLED               = "MONETIZATION_ENABLED"
-	FlagGuildFeatureMORE_STICKERS                      = "MORE_STICKERS"
-	FlagGuildFeatureNEWS                               = "NEWS"
-	FlagGuildFeaturePARTNERED                          = "PARTNERED"
-	FlagGuildFeaturePREVIEW_ENABLED                    = "PREVIEW_ENABLED"
-	FlagGuildFeatureROLE_ICONS                         = "ROLE_ICONS"
-	FlagGuildFeatureTICKETED_EVENTS_ENABLED            = "TICKETED_EVENTS_ENABLED"
-	FlagGuildFeatureVANITY_URL                         = "VANITY_URL"
-	FlagGuildFeatureVERIFIED                           = "VERIFIED"
-	FlagGuildFeatureVIP_REGIONS                        = "VIP_REGIONS"
-	FlagGuildFeatureWELCOME_SCREEN_ENABLED             = "WELCOME_SCREEN_ENABLED"
+	FlagGuildFeatureANIMATED_BANNER                           = "ANIMATED_BANNER"
+	FlagGuildFeatureANIMATED_ICON                             = "ANIMATED_ICON"
+	FlagGuildFeatureAPPLICATION_COMMAND_PERMISSIONS_V2        = "APPLICATION_COMMAND_PERMISSIONS_V2"
+	FlagGuildFeatureAUTO_MODERATION                           = "AUTO_MODERATION"
+	FlagGuildFeatureBANNER                                    = "BANNER"
+	FlagGuildFeatureCOMMUNITY                                 = "COMMUNITY"
+	FlagGuildFeatureCREATOR_MONETIZABLE_PROVISIONAL           = "CREATOR_MONETIZABLE_PROVISIONAL"
+	FlagGuildFeatureCREATOR_STORE_PAGE                        = "CREATOR_STORE_PAGE"
+	FlagGuildFeatureDEVELOPER_SUPPORT_SERVER                  = "DEVELOPER_SUPPORT_SERVER"
+	FlagGuildFeatureDISCOVERABLE                              = "DISCOVERABLE"
+	FlagGuildFeatureFEATURABLE                                = "FEATURABLE"
+	FlagGuildFeatureINVITES_DISABLED                          = "INVITES_DISABLED"
+	FlagGuildFeatureINVITE_SPLASH                             = "INVITE_SPLASH"
+	FlagGuildFeatureMEMBER_VERIFICATION_GATE_ENABLED          = "MEMBER_VERIFICATION_GATE_ENABLED"
+	FlagGuildFeatureMORE_STICKERS                             = "MORE_STICKERS"
+	FlagGuildFeatureNEWS                                      = "NEWS"
+	FlagGuildFeaturePARTNERED                                 = "PARTNERED"
+	FlagGuildFeaturePREVIEW_ENABLED                           = "PREVIEW_ENABLED"
+	FlagGuildFeatureROLE_ICONS                                = "ROLE_ICONS"
+	FlagGuildFeatureROLE_SUBSCRIPTIONS_AVAILABLE_FOR_PURCHASE = "ROLE_SUBSCRIPTIONS_AVAILABLE_FOR_PURCHASE"
+	FlagGuildFeatureROLE_SUBSCRIPTIONS_ENABLED                = "ROLE_SUBSCRIPTIONS_ENABLED"
+	FlagGuildFeatureTICKETED_EVENTS_ENABLED                   = "TICKETED_EVENTS_ENABLED"
+	FlagGuildFeatureVANITY_URL                                = "VANITY_URL"
+	FlagGuildFeatureVERIFIED                                  = "VERIFIED"
+	FlagGuildFeatureVIP_REGIONS                               = "VIP_REGIONS"
+	FlagGuildFeatureWELCOME_SCREEN_ENABLED                    = "WELCOME_SCREEN_ENABLED"
 )
 
 // Mutable Guild Features
@@ -4355,7 +4442,7 @@ type Integration struct {
 	ID                string             `json:"id"`
 	Name              string             `json:"name"`
 	Type              string             `json:"type"`
-	Enabled           *bool              `json:"enabled,omitempty"`
+	Enabled           bool               `json:"enabled"`
 	Syncing           *bool              `json:"syncing,omitempty"`
 	RoleID            *string            `json:"role_id,omitempty"`
 	EnableEmoticons   *bool              `json:"enable_emoticons,omitempty"`
@@ -4666,6 +4753,14 @@ const (
 	FlagVisibilityTypeEVERYONE Flag = 1
 )
 
+// Application Role Connection Structure
+// https://discord.com/developers/docs/resources/user#application-role-connection-object
+type ApplicationRoleConnection struct {
+	PlatformName     *string           `json:"platform_name"`
+	PlatformUsername *string           `json:"platform_user"`
+	Metadata         map[string]string `json:"metadata"`
+}
+
 // Voice State Object
 // https://discord.com/developers/docs/resources/voice#voice-state-object-voice-state-structure
 type VoiceState struct {
@@ -4790,9 +4885,12 @@ type Role struct {
 // Role Tags Structure
 // https://discord.com/developers/docs/topics/permissions#role-object-role-tags-structure
 type RoleTags struct {
-	BotID             *string `json:"bot_id,omitempty"`
-	IntegrationID     *string `json:"integration_id,omitempty"`
-	PremiumSubscriber *bool   `json:"premium_subscriber,omitempty"`
+	BotID                *string `json:"bot_id,omitempty"`
+	IntegrationID        *string `json:"integration_id,omitempty"`
+	PremiumSubscriber    *string `json:"premium_subscriber,omitempty"`
+	SubscriptionListedID *string `json:"subscription_listing_id,omitempty"`
+	AvailableForPurchase *string `json:"available_for_purchase,omitempty"`
+	GuildConnections     *string `json:"guild_connections,omitempty"`
 }
 
 // Team Object
@@ -4944,6 +5042,7 @@ const (
 	FlagOAuth2ScopeIdentify                              = "identify"
 	FlagOAuth2ScopeMessagesRead                          = "messages.read"
 	FlagOAuth2ScopeRelationshipsRead                     = "relationships.read"
+	FlagOAuth2ScopeRoleConnectionsWrite                  = "role_connections.write"
 	FlagOAuth2ScopeRPC                                   = "rpc"
 	FlagOAuth2ScopeRPCActivitiesWrite                    = "rpc.activities.write"
 	FlagOAuth2ScopeRPCNotificationsRead                  = "rpc.notifications.read"

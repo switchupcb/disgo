@@ -29,3 +29,6 @@ type Copygen interface {
 4. Generate `Endpoint` functions, `Send` functions, and `RouteIDs` using [`gen -d`](/_gen/README.md). View the output in [`request_send.go`](/wrapper/request_send.go).
 
 5. Set the rate limit algorithm for the route by modifying `RateLimitHashFuncs` in [`ratelimit_algorithm.go`](/wrapper/ratelimit_algorithm.go).
+
+6. Add the request to the [coverage test order generator](/_gen/coverage/main.go).
+

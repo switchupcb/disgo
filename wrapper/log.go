@@ -57,6 +57,9 @@ const (
 	// LogCtxResponseBody represents the log key for an HTTP Request Response body.
 	LogCtxResponseBody = "body"
 
+	// LogCtxRequestRateLimitCode represents the log key for an HTTP Rate Limit Response code.
+	LogCtxRequestRateLimitCode = "code"
+
 	// LogCtxSession represents the log key for a Discord Session ID.
 	LogCtxSession = "session"
 

@@ -39,6 +39,7 @@ const (
 	member             = "member"
 	members            = "members"
 	messages           = "messages"
+	metadata           = "metadata"
 	mfa                = "mfa"
 	nick               = "nick"
 	oauth              = "oauth2"
@@ -53,6 +54,8 @@ const (
 	recipients         = "recipients"
 	regions            = "regions"
 	revoke             = "revoke"
+	roleconnection     = "role-connection"
+	roleconnections    = "role-connections"
 	roleicons          = "role-icons"
 	roles              = "roles"
 	rules              = "rules"
@@ -200,6 +203,16 @@ func EndpointEditFollowupMessage(applicationid, interactiontoken, messageid stri
 // EndpointDeleteFollowupMessage builds a query for an HTTP request.
 func EndpointDeleteFollowupMessage(applicationid, interactiontoken, messageid string) string {
 	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + messageid
+}
+
+// EndpointGetApplicationRoleConnectionMetadataRecords builds a query for an HTTP request.
+func EndpointGetApplicationRoleConnectionMetadataRecords(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + roleconnections + slash + metadata
+}
+
+// EndpointUpdateApplicationRoleConnectionMetadataRecords builds a query for an HTTP request.
+func EndpointUpdateApplicationRoleConnectionMetadataRecords(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + roleconnections + slash + metadata
 }
 
 // EndpointGetGuildAuditLog builds a query for an HTTP request.
@@ -845,6 +858,16 @@ func EndpointCreateGroupDM() string {
 // EndpointGetUserConnections builds a query for an HTTP request.
 func EndpointGetUserConnections() string {
 	return EndpointBaseURL + users + slash + me + slash + connections
+}
+
+// EndpointGetUserApplicationRoleConnection builds a query for an HTTP request.
+func EndpointGetUserApplicationRoleConnection(applicationid string) string {
+	return EndpointBaseURL + users + slash + me + slash + applications + slash + applicationid + slash + roleconnection
+}
+
+// EndpointUpdateUserApplicationRoleConnection builds a query for an HTTP request.
+func EndpointUpdateUserApplicationRoleConnection(applicationid string) string {
+	return EndpointBaseURL + users + slash + me + slash + applications + slash + applicationid + slash + roleconnection
 }
 
 // EndpointListVoiceRegions builds a query for an HTTP request.

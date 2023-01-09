@@ -335,8 +335,14 @@ SEND:
 			reset = time.Now().Add(time.Millisecond * time.Duration(retryafter*msPerSecond))
 		}
 
-		LogRequest(Logger.Debug(), bot.ApplicationID, xid, routeid, resourceid, uri).
-			Time(LogCtxReset, reset).Msg("")
+		if data.Code == nil {
+			LogRequest(Logger.Debug(), bot.ApplicationID, xid, routeid, resourceid, uri).
+				Time(LogCtxReset, reset).Msg("")
+		} else {
+			LogRequest(Logger.Debug(), bot.ApplicationID, xid, routeid, resourceid, uri).
+				Time(LogCtxReset, reset).
+				Err(JSONCodeError(*data.Code)).Msg("")
+		}
 
 		switch header.Global {
 		// when the global request rate limit is encountered.

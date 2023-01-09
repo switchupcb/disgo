@@ -14,183 +14,187 @@ import (
 var (
 	// RouteIDs represents a map of Routes to Route IDs (map[string]uint8).
 	RouteIDs = map[string]uint8{
-		"":                                       0,
-		"OAuth":                                  1,
-		"GetGlobalApplicationCommands":           2,
-		"CreateGlobalApplicationCommand":         3,
-		"GetGlobalApplicationCommand":            4,
-		"EditGlobalApplicationCommand":           5,
-		"DeleteGlobalApplicationCommand":         6,
-		"BulkOverwriteGlobalApplicationCommands": 7,
-		"GetGuildApplicationCommands":            8,
-		"CreateGuildApplicationCommand":          9,
-		"GetGuildApplicationCommand":             10,
-		"EditGuildApplicationCommand":            11,
-		"DeleteGuildApplicationCommand":          12,
-		"BulkOverwriteGuildApplicationCommands":  13,
-		"GetGuildApplicationCommandPermissions":  14,
-		"GetApplicationCommandPermissions":       15,
-		"EditApplicationCommandPermissions":      16,
-		"BatchEditApplicationCommandPermissions": 17,
-		"CreateInteractionResponse":              18,
-		"GetOriginalInteractionResponse":         19,
-		"EditOriginalInteractionResponse":        20,
-		"DeleteOriginalInteractionResponse":      21,
-		"CreateFollowupMessage":                  22,
-		"GetFollowupMessage":                     23,
-		"EditFollowupMessage":                    24,
-		"DeleteFollowupMessage":                  25,
-		"GetGuildAuditLog":                       26,
-		"ListAutoModerationRulesForGuild":        27,
-		"GetAutoModerationRule":                  28,
-		"CreateAutoModerationRule":               29,
-		"ModifyAutoModerationRule":               30,
-		"DeleteAutoModerationRule":               31,
-		"GetChannel":                             32,
-		"ModifyChannel":                          33,
-		"ModifyChannelGroupDM":                   34,
-		"ModifyChannelGuild":                     35,
-		"ModifyChannelThread":                    36,
-		"DeleteCloseChannel":                     37,
-		"GetChannelMessages":                     38,
-		"GetChannelMessage":                      39,
-		"CreateMessage":                          40,
-		"CrosspostMessage":                       41,
-		"CreateReaction":                         42,
-		"DeleteOwnReaction":                      43,
-		"DeleteUserReaction":                     44,
-		"GetReactions":                           45,
-		"DeleteAllReactions":                     46,
-		"DeleteAllReactionsforEmoji":             47,
-		"EditMessage":                            48,
-		"DeleteMessage":                          49,
-		"BulkDeleteMessages":                     50,
-		"EditChannelPermissions":                 51,
-		"GetChannelInvites":                      52,
-		"CreateChannelInvite":                    53,
-		"DeleteChannelPermission":                54,
-		"FollowAnnouncementChannel":              55,
-		"TriggerTypingIndicator":                 56,
-		"GetPinnedMessages":                      57,
-		"PinMessage":                             58,
-		"UnpinMessage":                           59,
-		"GroupDMAddRecipient":                    60,
-		"GroupDMRemoveRecipient":                 61,
-		"StartThreadfromMessage":                 62,
-		"StartThreadwithoutMessage":              63,
-		"StartThreadinForumChannel":              64,
-		"JoinThread":                             65,
-		"AddThreadMember":                        66,
-		"LeaveThread":                            67,
-		"RemoveThreadMember":                     68,
-		"GetThreadMember":                        69,
-		"ListThreadMembers":                      70,
-		"ListPublicArchivedThreads":              71,
-		"ListPrivateArchivedThreads":             72,
-		"ListJoinedPrivateArchivedThreads":       73,
-		"ListGuildEmojis":                        74,
-		"GetGuildEmoji":                          75,
-		"CreateGuildEmoji":                       76,
-		"ModifyGuildEmoji":                       77,
-		"DeleteGuildEmoji":                       78,
-		"CreateGuild":                            79,
-		"GetGuild":                               80,
-		"GetGuildPreview":                        81,
-		"ModifyGuild":                            82,
-		"DeleteGuild":                            83,
-		"GetGuildChannels":                       84,
-		"CreateGuildChannel":                     85,
-		"ModifyGuildChannelPositions":            86,
-		"ListActiveGuildThreads":                 87,
-		"GetGuildMember":                         88,
-		"ListGuildMembers":                       89,
-		"SearchGuildMembers":                     90,
-		"AddGuildMember":                         91,
-		"ModifyGuildMember":                      92,
-		"ModifyCurrentMember":                    93,
-		"AddGuildMemberRole":                     94,
-		"RemoveGuildMemberRole":                  95,
-		"RemoveGuildMember":                      96,
-		"GetGuildBans":                           97,
-		"GetGuildBan":                            98,
-		"CreateGuildBan":                         99,
-		"RemoveGuildBan":                         100,
-		"GetGuildRoles":                          101,
-		"CreateGuildRole":                        102,
-		"ModifyGuildRolePositions":               103,
-		"ModifyGuildRole":                        104,
-		"DeleteGuildRole":                        105,
-		"ModifyGuildMFALevel":                    106,
-		"GetGuildPruneCount":                     107,
-		"BeginGuildPrune":                        108,
-		"GetGuildVoiceRegions":                   109,
-		"GetGuildInvites":                        110,
-		"GetGuildIntegrations":                   111,
-		"DeleteGuildIntegration":                 112,
-		"GetGuildWidgetSettings":                 113,
-		"ModifyGuildWidget":                      114,
-		"GetGuildWidget":                         115,
-		"GetGuildVanityURL":                      116,
-		"GetGuildWidgetImage":                    117,
-		"GetGuildWelcomeScreen":                  118,
-		"ModifyGuildWelcomeScreen":               119,
-		"ModifyCurrentUserVoiceState":            120,
-		"ModifyUserVoiceState":                   121,
-		"ListScheduledEventsforGuild":            122,
-		"CreateGuildScheduledEvent":              123,
-		"GetGuildScheduledEvent":                 124,
-		"ModifyGuildScheduledEvent":              125,
-		"DeleteGuildScheduledEvent":              126,
-		"GetGuildScheduledEventUsers":            127,
-		"GetGuildTemplate":                       128,
-		"CreateGuildfromGuildTemplate":           129,
-		"GetGuildTemplates":                      130,
-		"CreateGuildTemplate":                    131,
-		"SyncGuildTemplate":                      132,
-		"ModifyGuildTemplate":                    133,
-		"DeleteGuildTemplate":                    134,
-		"GetInvite":                              135,
-		"DeleteInvite":                           136,
-		"CreateStageInstance":                    137,
-		"GetStageInstance":                       138,
-		"ModifyStageInstance":                    139,
-		"DeleteStageInstance":                    140,
-		"GetSticker":                             141,
-		"ListNitroStickerPacks":                  142,
-		"ListGuildStickers":                      143,
-		"GetGuildSticker":                        144,
-		"CreateGuildSticker":                     145,
-		"ModifyGuildSticker":                     146,
-		"DeleteGuildSticker":                     147,
-		"GetCurrentUser":                         148,
-		"GetUser":                                149,
-		"ModifyCurrentUser":                      150,
-		"GetCurrentUserGuilds":                   151,
-		"GetCurrentUserGuildMember":              152,
-		"LeaveGuild":                             153,
-		"CreateDM":                               154,
-		"CreateGroupDM":                          155,
-		"GetUserConnections":                     156,
-		"ListVoiceRegions":                       157,
-		"CreateWebhook":                          158,
-		"GetChannelWebhooks":                     159,
-		"GetGuildWebhooks":                       160,
-		"GetWebhook":                             161,
-		"GetWebhookwithToken":                    162,
-		"ModifyWebhook":                          163,
-		"ModifyWebhookwithToken":                 164,
-		"DeleteWebhook":                          165,
-		"DeleteWebhookwithToken":                 166,
-		"ExecuteWebhook":                         167,
-		"ExecuteSlackCompatibleWebhook":          168,
-		"ExecuteGitHubCompatibleWebhook":         169,
-		"GetWebhookMessage":                      170,
-		"EditWebhookMessage":                     171,
-		"DeleteWebhookMessage":                   172,
-		"GetGateway":                             173,
-		"GetGatewayBot":                          174,
-		"GetCurrentBotApplicationInformation":    175,
-		"GetCurrentAuthorizationInformation":     176,
+		"":                                               0,
+		"OAuth":                                          1,
+		"GetGlobalApplicationCommands":                   2,
+		"CreateGlobalApplicationCommand":                 3,
+		"GetGlobalApplicationCommand":                    4,
+		"EditGlobalApplicationCommand":                   5,
+		"DeleteGlobalApplicationCommand":                 6,
+		"BulkOverwriteGlobalApplicationCommands":         7,
+		"GetGuildApplicationCommands":                    8,
+		"CreateGuildApplicationCommand":                  9,
+		"GetGuildApplicationCommand":                     10,
+		"EditGuildApplicationCommand":                    11,
+		"DeleteGuildApplicationCommand":                  12,
+		"BulkOverwriteGuildApplicationCommands":          13,
+		"GetGuildApplicationCommandPermissions":          14,
+		"GetApplicationCommandPermissions":               15,
+		"EditApplicationCommandPermissions":              16,
+		"BatchEditApplicationCommandPermissions":         17,
+		"CreateInteractionResponse":                      18,
+		"GetOriginalInteractionResponse":                 19,
+		"EditOriginalInteractionResponse":                20,
+		"DeleteOriginalInteractionResponse":              21,
+		"CreateFollowupMessage":                          22,
+		"GetFollowupMessage":                             23,
+		"EditFollowupMessage":                            24,
+		"DeleteFollowupMessage":                          25,
+		"GetApplicationRoleConnectionMetadataRecords":    26,
+		"UpdateApplicationRoleConnectionMetadataRecords": 27,
+		"GetGuildAuditLog":                               28,
+		"ListAutoModerationRulesForGuild":                29,
+		"GetAutoModerationRule":                          30,
+		"CreateAutoModerationRule":                       31,
+		"ModifyAutoModerationRule":                       32,
+		"DeleteAutoModerationRule":                       33,
+		"GetChannel":                                     34,
+		"ModifyChannel":                                  35,
+		"ModifyChannelGroupDM":                           36,
+		"ModifyChannelGuild":                             37,
+		"ModifyChannelThread":                            38,
+		"DeleteCloseChannel":                             39,
+		"GetChannelMessages":                             40,
+		"GetChannelMessage":                              41,
+		"CreateMessage":                                  42,
+		"CrosspostMessage":                               43,
+		"CreateReaction":                                 44,
+		"DeleteOwnReaction":                              45,
+		"DeleteUserReaction":                             46,
+		"GetReactions":                                   47,
+		"DeleteAllReactions":                             48,
+		"DeleteAllReactionsforEmoji":                     49,
+		"EditMessage":                                    50,
+		"DeleteMessage":                                  51,
+		"BulkDeleteMessages":                             52,
+		"EditChannelPermissions":                         53,
+		"GetChannelInvites":                              54,
+		"CreateChannelInvite":                            55,
+		"DeleteChannelPermission":                        56,
+		"FollowAnnouncementChannel":                      57,
+		"TriggerTypingIndicator":                         58,
+		"GetPinnedMessages":                              59,
+		"PinMessage":                                     60,
+		"UnpinMessage":                                   61,
+		"GroupDMAddRecipient":                            62,
+		"GroupDMRemoveRecipient":                         63,
+		"StartThreadfromMessage":                         64,
+		"StartThreadwithoutMessage":                      65,
+		"StartThreadinForumChannel":                      66,
+		"JoinThread":                                     67,
+		"AddThreadMember":                                68,
+		"LeaveThread":                                    69,
+		"RemoveThreadMember":                             70,
+		"GetThreadMember":                                71,
+		"ListThreadMembers":                              72,
+		"ListPublicArchivedThreads":                      73,
+		"ListPrivateArchivedThreads":                     74,
+		"ListJoinedPrivateArchivedThreads":               75,
+		"ListGuildEmojis":                                76,
+		"GetGuildEmoji":                                  77,
+		"CreateGuildEmoji":                               78,
+		"ModifyGuildEmoji":                               79,
+		"DeleteGuildEmoji":                               80,
+		"CreateGuild":                                    81,
+		"GetGuild":                                       82,
+		"GetGuildPreview":                                83,
+		"ModifyGuild":                                    84,
+		"DeleteGuild":                                    85,
+		"GetGuildChannels":                               86,
+		"CreateGuildChannel":                             87,
+		"ModifyGuildChannelPositions":                    88,
+		"ListActiveGuildThreads":                         89,
+		"GetGuildMember":                                 90,
+		"ListGuildMembers":                               91,
+		"SearchGuildMembers":                             92,
+		"AddGuildMember":                                 93,
+		"ModifyGuildMember":                              94,
+		"ModifyCurrentMember":                            95,
+		"AddGuildMemberRole":                             96,
+		"RemoveGuildMemberRole":                          97,
+		"RemoveGuildMember":                              98,
+		"GetGuildBans":                                   99,
+		"GetGuildBan":                                    100,
+		"CreateGuildBan":                                 101,
+		"RemoveGuildBan":                                 102,
+		"GetGuildRoles":                                  103,
+		"CreateGuildRole":                                104,
+		"ModifyGuildRolePositions":                       105,
+		"ModifyGuildRole":                                106,
+		"DeleteGuildRole":                                107,
+		"ModifyGuildMFALevel":                            108,
+		"GetGuildPruneCount":                             109,
+		"BeginGuildPrune":                                110,
+		"GetGuildVoiceRegions":                           111,
+		"GetGuildInvites":                                112,
+		"GetGuildIntegrations":                           113,
+		"DeleteGuildIntegration":                         114,
+		"GetGuildWidgetSettings":                         115,
+		"ModifyGuildWidget":                              116,
+		"GetGuildWidget":                                 117,
+		"GetGuildVanityURL":                              118,
+		"GetGuildWidgetImage":                            119,
+		"GetGuildWelcomeScreen":                          120,
+		"ModifyGuildWelcomeScreen":                       121,
+		"ModifyCurrentUserVoiceState":                    122,
+		"ModifyUserVoiceState":                           123,
+		"ListScheduledEventsforGuild":                    124,
+		"CreateGuildScheduledEvent":                      125,
+		"GetGuildScheduledEvent":                         126,
+		"ModifyGuildScheduledEvent":                      127,
+		"DeleteGuildScheduledEvent":                      128,
+		"GetGuildScheduledEventUsers":                    129,
+		"GetGuildTemplate":                               130,
+		"CreateGuildfromGuildTemplate":                   131,
+		"GetGuildTemplates":                              132,
+		"CreateGuildTemplate":                            133,
+		"SyncGuildTemplate":                              134,
+		"ModifyGuildTemplate":                            135,
+		"DeleteGuildTemplate":                            136,
+		"GetInvite":                                      137,
+		"DeleteInvite":                                   138,
+		"CreateStageInstance":                            139,
+		"GetStageInstance":                               140,
+		"ModifyStageInstance":                            141,
+		"DeleteStageInstance":                            142,
+		"GetSticker":                                     143,
+		"ListNitroStickerPacks":                          144,
+		"ListGuildStickers":                              145,
+		"GetGuildSticker":                                146,
+		"CreateGuildSticker":                             147,
+		"ModifyGuildSticker":                             148,
+		"DeleteGuildSticker":                             149,
+		"GetCurrentUser":                                 150,
+		"GetUser":                                        151,
+		"ModifyCurrentUser":                              152,
+		"GetCurrentUserGuilds":                           153,
+		"GetCurrentUserGuildMember":                      154,
+		"LeaveGuild":                                     155,
+		"CreateDM":                                       156,
+		"CreateGroupDM":                                  157,
+		"GetUserConnections":                             158,
+		"GetUserApplicationRoleConnection":               159,
+		"UpdateUserApplicationRoleConnection":            160,
+		"ListVoiceRegions":                               161,
+		"CreateWebhook":                                  162,
+		"GetChannelWebhooks":                             163,
+		"GetGuildWebhooks":                               164,
+		"GetWebhook":                                     165,
+		"GetWebhookwithToken":                            166,
+		"ModifyWebhook":                                  167,
+		"ModifyWebhookwithToken":                         168,
+		"DeleteWebhook":                                  169,
+		"DeleteWebhookwithToken":                         170,
+		"ExecuteWebhook":                                 171,
+		"ExecuteSlackCompatibleWebhook":                  172,
+		"ExecuteGitHubCompatibleWebhook":                 173,
+		"GetWebhookMessage":                              174,
+		"EditWebhookMessage":                             175,
+		"DeleteWebhookMessage":                           176,
+		"GetGateway":                                     177,
+		"GetGatewayBot":                                  178,
+		"GetCurrentBotApplicationInformation":            179,
+		"GetCurrentAuthorizationInformation":             180,
 	}
 )
 
@@ -994,11 +998,57 @@ func (r *DeleteFollowupMessage) Send(bot *Client) error {
 	return nil
 }
 
+// Send sends a GetApplicationRoleConnectionMetadataRecords request to Discord and returns a []*ApplicationRoleConnectionMetadata.
+func (r *GetApplicationRoleConnectionMetadataRecords) Send(bot *Client) ([]*ApplicationRoleConnectionMetadata, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[26]("26")
+	endpoint := EndpointGetApplicationRoleConnectionMetadataRecords(bot.ApplicationID)
+
+	result := make([]*ApplicationRoleConnectionMetadata, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a UpdateApplicationRoleConnectionMetadataRecords request to Discord and returns a []*ApplicationRoleConnectionMetadata.
+func (r *UpdateApplicationRoleConnectionMetadataRecords) Send(bot *Client) ([]*ApplicationRoleConnectionMetadata, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[27]("27")
+	endpoint := EndpointUpdateApplicationRoleConnectionMetadataRecords(bot.ApplicationID)
+
+	result := make([]*ApplicationRoleConnectionMetadata, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
 // Send sends a GetGuildAuditLog request to Discord and returns a AuditLog.
 func (r *GetGuildAuditLog) Send(bot *Client) (*AuditLog, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[26]("26", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[28]("28", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -1032,7 +1082,7 @@ func (r *GetGuildAuditLog) Send(bot *Client) (*AuditLog, error) {
 func (r *ListAutoModerationRulesForGuild) Send(bot *Client) ([]*AutoModerationAction, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[27]("27", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[29]("29", "45892a5d"+r.GuildID)
 	endpoint := EndpointListAutoModerationRulesForGuild(r.GuildID)
 
 	result := make([]*AutoModerationAction, 0)
@@ -1055,7 +1105,7 @@ func (r *ListAutoModerationRulesForGuild) Send(bot *Client) ([]*AutoModerationAc
 func (r *GetAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[28]("28", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
+	routeid, resourceid := RateLimitHashFuncs[30]("30", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
 	endpoint := EndpointGetAutoModerationRule(r.GuildID, r.AutoModerationRuleID)
 
 	result := new(AutoModerationRule)
@@ -1078,7 +1128,7 @@ func (r *GetAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error) {
 func (r *CreateAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[29]("29", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[31]("31", "45892a5d"+r.GuildID)
 	endpoint := EndpointCreateAutoModerationRule(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -1113,7 +1163,7 @@ func (r *CreateAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error
 func (r *ModifyAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[30]("30", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
+	routeid, resourceid := RateLimitHashFuncs[32]("32", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
 	endpoint := EndpointModifyAutoModerationRule(r.GuildID, r.AutoModerationRuleID)
 
 	body, err := json.Marshal(r)
@@ -1148,7 +1198,7 @@ func (r *ModifyAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error
 func (r *DeleteAutoModerationRule) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[31]("31", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
+	routeid, resourceid := RateLimitHashFuncs[33]("33", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
 	endpoint := EndpointDeleteAutoModerationRule(r.GuildID, r.AutoModerationRuleID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -1170,7 +1220,7 @@ func (r *DeleteAutoModerationRule) Send(bot *Client) error {
 func (r *GetChannel) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[32]("32", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[34]("34", "e5416649"+r.ChannelID)
 	endpoint := EndpointGetChannel(r.ChannelID)
 
 	result := new(Channel)
@@ -1193,7 +1243,7 @@ func (r *GetChannel) Send(bot *Client) (*Channel, error) {
 func (r *ModifyChannel) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[33]("33", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[35]("35", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyChannel(r.ChannelID)
 
 	result := new(Channel)
@@ -1216,7 +1266,7 @@ func (r *ModifyChannel) Send(bot *Client) (*Channel, error) {
 func (r *ModifyChannelGroupDM) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[34]("34", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[36]("36", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyChannelGroupDM(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -1251,7 +1301,7 @@ func (r *ModifyChannelGroupDM) Send(bot *Client) (*Channel, error) {
 func (r *ModifyChannelGuild) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[35]("35", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[37]("37", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyChannelGuild(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -1286,7 +1336,7 @@ func (r *ModifyChannelGuild) Send(bot *Client) (*Channel, error) {
 func (r *ModifyChannelThread) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[36]("36", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[38]("38", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyChannelThread(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -1321,7 +1371,7 @@ func (r *ModifyChannelThread) Send(bot *Client) (*Channel, error) {
 func (r *DeleteCloseChannel) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[37]("37", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[39]("39", "e5416649"+r.ChannelID)
 	endpoint := EndpointDeleteCloseChannel(r.ChannelID)
 
 	result := new(Channel)
@@ -1344,7 +1394,7 @@ func (r *DeleteCloseChannel) Send(bot *Client) (*Channel, error) {
 func (r *GetChannelMessages) Send(bot *Client) ([]*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[38]("38", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[40]("40", "e5416649"+r.ChannelID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -1378,7 +1428,7 @@ func (r *GetChannelMessages) Send(bot *Client) ([]*Message, error) {
 func (r *GetChannelMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[39]("39", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[41]("41", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointGetChannelMessage(r.ChannelID, r.MessageID)
 
 	result := new(Message)
@@ -1401,7 +1451,7 @@ func (r *GetChannelMessage) Send(bot *Client) (*Message, error) {
 func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[40]("40", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[42]("42", "e5416649"+r.ChannelID)
 	endpoint := EndpointCreateMessage(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -1451,7 +1501,7 @@ func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 func (r *CrosspostMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[41]("41", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[43]("43", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointCrosspostMessage(r.ChannelID, r.MessageID)
 
 	result := new(Message)
@@ -1474,7 +1524,7 @@ func (r *CrosspostMessage) Send(bot *Client) (*Message, error) {
 func (r *CreateReaction) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[42]("42", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
+	routeid, resourceid := RateLimitHashFuncs[44]("44", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
 	endpoint := EndpointCreateReaction(r.ChannelID, r.MessageID, r.Emoji)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
@@ -1496,7 +1546,7 @@ func (r *CreateReaction) Send(bot *Client) error {
 func (r *DeleteOwnReaction) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[43]("43", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
+	routeid, resourceid := RateLimitHashFuncs[45]("45", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
 	endpoint := EndpointDeleteOwnReaction(r.ChannelID, r.MessageID, r.Emoji)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -1518,7 +1568,7 @@ func (r *DeleteOwnReaction) Send(bot *Client) error {
 func (r *DeleteUserReaction) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[44]("44", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[46]("46", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji, "209c92df"+r.UserID)
 	endpoint := EndpointDeleteUserReaction(r.ChannelID, r.MessageID, r.Emoji, r.UserID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -1540,7 +1590,7 @@ func (r *DeleteUserReaction) Send(bot *Client) error {
 func (r *GetReactions) Send(bot *Client) ([]*User, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[45]("45", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
+	routeid, resourceid := RateLimitHashFuncs[47]("47", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -1574,7 +1624,7 @@ func (r *GetReactions) Send(bot *Client) ([]*User, error) {
 func (r *DeleteAllReactions) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[46]("46", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[48]("48", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointDeleteAllReactions(r.ChannelID, r.MessageID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -1596,7 +1646,7 @@ func (r *DeleteAllReactions) Send(bot *Client) error {
 func (r *DeleteAllReactionsforEmoji) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[47]("47", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
+	routeid, resourceid := RateLimitHashFuncs[49]("49", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
 	endpoint := EndpointDeleteAllReactionsforEmoji(r.ChannelID, r.MessageID, r.Emoji)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -1618,7 +1668,7 @@ func (r *DeleteAllReactionsforEmoji) Send(bot *Client) error {
 func (r *EditMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[48]("48", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[50]("50", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointEditMessage(r.ChannelID, r.MessageID)
 
 	body, err := json.Marshal(r)
@@ -1668,7 +1718,7 @@ func (r *EditMessage) Send(bot *Client) (*Message, error) {
 func (r *DeleteMessage) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[49]("49", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[51]("51", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointDeleteMessage(r.ChannelID, r.MessageID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -1690,7 +1740,7 @@ func (r *DeleteMessage) Send(bot *Client) error {
 func (r *BulkDeleteMessages) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[50]("50", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[52]("52", "e5416649"+r.ChannelID)
 	endpoint := EndpointBulkDeleteMessages(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -1724,7 +1774,7 @@ func (r *BulkDeleteMessages) Send(bot *Client) error {
 func (r *EditChannelPermissions) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[51]("51", "e5416649"+r.ChannelID, "9167175f"+r.OverwriteID)
+	routeid, resourceid := RateLimitHashFuncs[53]("53", "e5416649"+r.ChannelID, "9167175f"+r.OverwriteID)
 	endpoint := EndpointEditChannelPermissions(r.ChannelID, r.OverwriteID)
 
 	body, err := json.Marshal(r)
@@ -1758,7 +1808,7 @@ func (r *EditChannelPermissions) Send(bot *Client) error {
 func (r *GetChannelInvites) Send(bot *Client) ([]*Invite, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[52]("52", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[54]("54", "e5416649"+r.ChannelID)
 	endpoint := EndpointGetChannelInvites(r.ChannelID)
 
 	result := make([]*Invite, 0)
@@ -1781,7 +1831,7 @@ func (r *GetChannelInvites) Send(bot *Client) ([]*Invite, error) {
 func (r *CreateChannelInvite) Send(bot *Client) (*Invite, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[53]("53", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[55]("55", "e5416649"+r.ChannelID)
 	endpoint := EndpointCreateChannelInvite(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -1816,7 +1866,7 @@ func (r *CreateChannelInvite) Send(bot *Client) (*Invite, error) {
 func (r *DeleteChannelPermission) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[54]("54", "e5416649"+r.ChannelID, "9167175f"+r.OverwriteID)
+	routeid, resourceid := RateLimitHashFuncs[56]("56", "e5416649"+r.ChannelID, "9167175f"+r.OverwriteID)
 	endpoint := EndpointDeleteChannelPermission(r.ChannelID, r.OverwriteID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -1838,7 +1888,7 @@ func (r *DeleteChannelPermission) Send(bot *Client) error {
 func (r *FollowAnnouncementChannel) Send(bot *Client) (*FollowedChannel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[55]("55", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[57]("57", "e5416649"+r.ChannelID)
 	endpoint := EndpointFollowAnnouncementChannel(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -1873,7 +1923,7 @@ func (r *FollowAnnouncementChannel) Send(bot *Client) (*FollowedChannel, error) 
 func (r *TriggerTypingIndicator) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[56]("56", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[58]("58", "e5416649"+r.ChannelID)
 	endpoint := EndpointTriggerTypingIndicator(r.ChannelID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, nil, nil, nil)
@@ -1895,7 +1945,7 @@ func (r *TriggerTypingIndicator) Send(bot *Client) error {
 func (r *GetPinnedMessages) Send(bot *Client) ([]*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[57]("57", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[59]("59", "e5416649"+r.ChannelID)
 	endpoint := EndpointGetPinnedMessages(r.ChannelID)
 
 	result := make([]*Message, 0)
@@ -1918,7 +1968,7 @@ func (r *GetPinnedMessages) Send(bot *Client) ([]*Message, error) {
 func (r *PinMessage) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[58]("58", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[60]("60", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointPinMessage(r.ChannelID, r.MessageID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
@@ -1940,7 +1990,7 @@ func (r *PinMessage) Send(bot *Client) error {
 func (r *UnpinMessage) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[59]("59", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[61]("61", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointUnpinMessage(r.ChannelID, r.MessageID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -1962,7 +2012,7 @@ func (r *UnpinMessage) Send(bot *Client) error {
 func (r *GroupDMAddRecipient) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[60]("60", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[62]("62", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
 	endpoint := EndpointGroupDMAddRecipient(r.ChannelID, r.UserID)
 
 	body, err := json.Marshal(r)
@@ -1996,7 +2046,7 @@ func (r *GroupDMAddRecipient) Send(bot *Client) error {
 func (r *GroupDMRemoveRecipient) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[61]("61", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[63]("63", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
 	endpoint := EndpointGroupDMRemoveRecipient(r.ChannelID, r.UserID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -2018,7 +2068,7 @@ func (r *GroupDMRemoveRecipient) Send(bot *Client) error {
 func (r *StartThreadfromMessage) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[62]("62", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[64]("64", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointStartThreadfromMessage(r.ChannelID, r.MessageID)
 
 	body, err := json.Marshal(r)
@@ -2053,7 +2103,7 @@ func (r *StartThreadfromMessage) Send(bot *Client) (*Channel, error) {
 func (r *StartThreadwithoutMessage) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[63]("63", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[65]("65", "e5416649"+r.ChannelID)
 	endpoint := EndpointStartThreadwithoutMessage(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -2088,7 +2138,7 @@ func (r *StartThreadwithoutMessage) Send(bot *Client) (*Channel, error) {
 func (r *StartThreadinForumChannel) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[64]("64", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[66]("66", "e5416649"+r.ChannelID)
 	endpoint := EndpointStartThreadinForumChannel(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -2123,7 +2173,7 @@ func (r *StartThreadinForumChannel) Send(bot *Client) (*Channel, error) {
 func (r *JoinThread) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[65]("65", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[67]("67", "e5416649"+r.ChannelID)
 	endpoint := EndpointJoinThread(r.ChannelID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
@@ -2145,7 +2195,7 @@ func (r *JoinThread) Send(bot *Client) error {
 func (r *AddThreadMember) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[66]("66", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[68]("68", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
 	endpoint := EndpointAddThreadMember(r.ChannelID, r.UserID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
@@ -2167,7 +2217,7 @@ func (r *AddThreadMember) Send(bot *Client) error {
 func (r *LeaveThread) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[67]("67", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[69]("69", "e5416649"+r.ChannelID)
 	endpoint := EndpointLeaveThread(r.ChannelID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -2189,7 +2239,7 @@ func (r *LeaveThread) Send(bot *Client) error {
 func (r *RemoveThreadMember) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[68]("68", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[70]("70", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
 	endpoint := EndpointRemoveThreadMember(r.ChannelID, r.UserID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -2211,7 +2261,7 @@ func (r *RemoveThreadMember) Send(bot *Client) error {
 func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[69]("69", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[71]("71", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
 	endpoint := EndpointGetThreadMember(r.ChannelID, r.UserID)
 
 	result := new(ThreadMember)
@@ -2234,7 +2284,7 @@ func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
 func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[70]("70", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[72]("72", "e5416649"+r.ChannelID)
 	endpoint := EndpointListThreadMembers(r.ChannelID)
 
 	result := make([]*ThreadMember, 0)
@@ -2257,7 +2307,7 @@ func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
 func (r *ListPublicArchivedThreads) Send(bot *Client) (*ListPublicArchivedThreadsResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[71]("71", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[73]("73", "e5416649"+r.ChannelID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -2291,7 +2341,7 @@ func (r *ListPublicArchivedThreads) Send(bot *Client) (*ListPublicArchivedThread
 func (r *ListPrivateArchivedThreads) Send(bot *Client) (*ListPrivateArchivedThreadsResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[72]("72", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[74]("74", "e5416649"+r.ChannelID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -2325,7 +2375,7 @@ func (r *ListPrivateArchivedThreads) Send(bot *Client) (*ListPrivateArchivedThre
 func (r *ListJoinedPrivateArchivedThreads) Send(bot *Client) (*ListJoinedPrivateArchivedThreadsResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[73]("73", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[75]("75", "e5416649"+r.ChannelID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -2359,7 +2409,7 @@ func (r *ListJoinedPrivateArchivedThreads) Send(bot *Client) (*ListJoinedPrivate
 func (r *ListGuildEmojis) Send(bot *Client) ([]*Emoji, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[74]("74", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[76]("76", "45892a5d"+r.GuildID)
 	endpoint := EndpointListGuildEmojis(r.GuildID)
 
 	result := make([]*Emoji, 0)
@@ -2382,7 +2432,7 @@ func (r *ListGuildEmojis) Send(bot *Client) ([]*Emoji, error) {
 func (r *GetGuildEmoji) Send(bot *Client) (*Emoji, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[75]("75", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
+	routeid, resourceid := RateLimitHashFuncs[77]("77", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
 	endpoint := EndpointGetGuildEmoji(r.GuildID, r.EmojiID)
 
 	result := new(Emoji)
@@ -2405,7 +2455,7 @@ func (r *GetGuildEmoji) Send(bot *Client) (*Emoji, error) {
 func (r *CreateGuildEmoji) Send(bot *Client) (*Emoji, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[76]("76", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[78]("78", "45892a5d"+r.GuildID)
 	endpoint := EndpointCreateGuildEmoji(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -2440,7 +2490,7 @@ func (r *CreateGuildEmoji) Send(bot *Client) (*Emoji, error) {
 func (r *ModifyGuildEmoji) Send(bot *Client) (*Emoji, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[77]("77", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
+	routeid, resourceid := RateLimitHashFuncs[79]("79", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
 	endpoint := EndpointModifyGuildEmoji(r.GuildID, r.EmojiID)
 
 	body, err := json.Marshal(r)
@@ -2475,7 +2525,7 @@ func (r *ModifyGuildEmoji) Send(bot *Client) (*Emoji, error) {
 func (r *DeleteGuildEmoji) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[78]("78", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
+	routeid, resourceid := RateLimitHashFuncs[80]("80", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
 	endpoint := EndpointDeleteGuildEmoji(r.GuildID, r.EmojiID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -2497,7 +2547,7 @@ func (r *DeleteGuildEmoji) Send(bot *Client) error {
 func (r *CreateGuild) Send(bot *Client) (*Guild, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[79]("79")
+	routeid, resourceid := RateLimitHashFuncs[81]("81")
 	endpoint := EndpointCreateGuild()
 
 	body, err := json.Marshal(r)
@@ -2532,7 +2582,7 @@ func (r *CreateGuild) Send(bot *Client) (*Guild, error) {
 func (r *GetGuild) Send(bot *Client) (*Guild, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[80]("80", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[82]("82", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -2566,7 +2616,7 @@ func (r *GetGuild) Send(bot *Client) (*Guild, error) {
 func (r *GetGuildPreview) Send(bot *Client) (*GuildPreview, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[81]("81", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[83]("83", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildPreview(r.GuildID)
 
 	result := new(GuildPreview)
@@ -2589,7 +2639,7 @@ func (r *GetGuildPreview) Send(bot *Client) (*GuildPreview, error) {
 func (r *ModifyGuild) Send(bot *Client) (*Guild, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[82]("82", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[84]("84", "45892a5d"+r.GuildID)
 	endpoint := EndpointModifyGuild(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -2624,7 +2674,7 @@ func (r *ModifyGuild) Send(bot *Client) (*Guild, error) {
 func (r *DeleteGuild) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[83]("83", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[85]("85", "45892a5d"+r.GuildID)
 	endpoint := EndpointDeleteGuild(r.GuildID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -2646,7 +2696,7 @@ func (r *DeleteGuild) Send(bot *Client) error {
 func (r *GetGuildChannels) Send(bot *Client) ([]*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[84]("84", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[86]("86", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildChannels(r.GuildID)
 
 	result := make([]*Channel, 0)
@@ -2669,7 +2719,7 @@ func (r *GetGuildChannels) Send(bot *Client) ([]*Channel, error) {
 func (r *CreateGuildChannel) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[85]("85", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[87]("87", "45892a5d"+r.GuildID)
 	endpoint := EndpointCreateGuildChannel(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -2704,7 +2754,7 @@ func (r *CreateGuildChannel) Send(bot *Client) (*Channel, error) {
 func (r *ModifyGuildChannelPositions) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[86]("86", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[88]("88", "45892a5d"+r.GuildID)
 	endpoint := EndpointModifyGuildChannelPositions(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -2738,7 +2788,7 @@ func (r *ModifyGuildChannelPositions) Send(bot *Client) error {
 func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[87]("87", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[89]("89", "45892a5d"+r.GuildID)
 	endpoint := EndpointListActiveGuildThreads(r.GuildID)
 
 	result := new(ListActiveGuildThreadsResponse)
@@ -2761,7 +2811,7 @@ func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsRespo
 func (r *GetGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[88]("88", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[90]("90", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
 	endpoint := EndpointGetGuildMember(r.GuildID, r.UserID)
 
 	result := new(GuildMember)
@@ -2784,7 +2834,7 @@ func (r *GetGuildMember) Send(bot *Client) (*GuildMember, error) {
 func (r *ListGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[89]("89", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[91]("91", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -2818,7 +2868,7 @@ func (r *ListGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 func (r *SearchGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[90]("90", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[92]("92", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -2852,7 +2902,7 @@ func (r *SearchGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
 func (r *AddGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[91]("91", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[93]("93", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
 	endpoint := EndpointAddGuildMember(r.GuildID, r.UserID)
 
 	body, err := json.Marshal(r)
@@ -2887,7 +2937,7 @@ func (r *AddGuildMember) Send(bot *Client) (*GuildMember, error) {
 func (r *ModifyGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[92]("92", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[94]("94", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
 	endpoint := EndpointModifyGuildMember(r.GuildID, r.UserID)
 
 	body, err := json.Marshal(r)
@@ -2922,7 +2972,7 @@ func (r *ModifyGuildMember) Send(bot *Client) (*GuildMember, error) {
 func (r *ModifyCurrentMember) Send(bot *Client) (*GuildMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[93]("93", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[95]("95", "45892a5d"+r.GuildID)
 	endpoint := EndpointModifyCurrentMember(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -2957,7 +3007,7 @@ func (r *ModifyCurrentMember) Send(bot *Client) (*GuildMember, error) {
 func (r *AddGuildMemberRole) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[94]("94", "45892a5d"+r.GuildID, "209c92df"+r.UserID, "3cf7dd7c"+r.RoleID)
+	routeid, resourceid := RateLimitHashFuncs[96]("96", "45892a5d"+r.GuildID, "209c92df"+r.UserID, "3cf7dd7c"+r.RoleID)
 	endpoint := EndpointAddGuildMemberRole(r.GuildID, r.UserID, r.RoleID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
@@ -2979,7 +3029,7 @@ func (r *AddGuildMemberRole) Send(bot *Client) error {
 func (r *RemoveGuildMemberRole) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[95]("95", "45892a5d"+r.GuildID, "209c92df"+r.UserID, "3cf7dd7c"+r.RoleID)
+	routeid, resourceid := RateLimitHashFuncs[97]("97", "45892a5d"+r.GuildID, "209c92df"+r.UserID, "3cf7dd7c"+r.RoleID)
 	endpoint := EndpointRemoveGuildMemberRole(r.GuildID, r.UserID, r.RoleID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -3001,7 +3051,7 @@ func (r *RemoveGuildMemberRole) Send(bot *Client) error {
 func (r *RemoveGuildMember) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[96]("96", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[98]("98", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
 	endpoint := EndpointRemoveGuildMember(r.GuildID, r.UserID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -3023,7 +3073,7 @@ func (r *RemoveGuildMember) Send(bot *Client) error {
 func (r *GetGuildBans) Send(bot *Client) ([]*Ban, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[97]("97", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[99]("99", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -3057,7 +3107,7 @@ func (r *GetGuildBans) Send(bot *Client) ([]*Ban, error) {
 func (r *GetGuildBan) Send(bot *Client) (*Ban, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[98]("98", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[100]("100", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
 	endpoint := EndpointGetGuildBan(r.GuildID, r.UserID)
 
 	result := new(Ban)
@@ -3080,7 +3130,7 @@ func (r *GetGuildBan) Send(bot *Client) (*Ban, error) {
 func (r *CreateGuildBan) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[99]("99", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[101]("101", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
 	endpoint := EndpointCreateGuildBan(r.GuildID, r.UserID)
 
 	body, err := json.Marshal(r)
@@ -3114,7 +3164,7 @@ func (r *CreateGuildBan) Send(bot *Client) error {
 func (r *RemoveGuildBan) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[100]("100", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[102]("102", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
 	endpoint := EndpointRemoveGuildBan(r.GuildID, r.UserID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -3136,7 +3186,7 @@ func (r *RemoveGuildBan) Send(bot *Client) error {
 func (r *GetGuildRoles) Send(bot *Client) ([]*Role, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[101]("101", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[103]("103", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildRoles(r.GuildID)
 
 	result := make([]*Role, 0)
@@ -3159,7 +3209,7 @@ func (r *GetGuildRoles) Send(bot *Client) ([]*Role, error) {
 func (r *CreateGuildRole) Send(bot *Client) (*Role, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[102]("102", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[104]("104", "45892a5d"+r.GuildID)
 	endpoint := EndpointCreateGuildRole(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -3194,7 +3244,7 @@ func (r *CreateGuildRole) Send(bot *Client) (*Role, error) {
 func (r *ModifyGuildRolePositions) Send(bot *Client) ([]*Role, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[103]("103", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[105]("105", "45892a5d"+r.GuildID)
 	endpoint := EndpointModifyGuildRolePositions(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -3229,7 +3279,7 @@ func (r *ModifyGuildRolePositions) Send(bot *Client) ([]*Role, error) {
 func (r *ModifyGuildRole) Send(bot *Client) (*Role, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[104]("104", "45892a5d"+r.GuildID, "3cf7dd7c"+r.RoleID)
+	routeid, resourceid := RateLimitHashFuncs[106]("106", "45892a5d"+r.GuildID, "3cf7dd7c"+r.RoleID)
 	endpoint := EndpointModifyGuildRole(r.GuildID, r.RoleID)
 
 	body, err := json.Marshal(r)
@@ -3264,7 +3314,7 @@ func (r *ModifyGuildRole) Send(bot *Client) (*Role, error) {
 func (r *DeleteGuildRole) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[105]("105", "45892a5d"+r.GuildID, "3cf7dd7c"+r.RoleID)
+	routeid, resourceid := RateLimitHashFuncs[107]("107", "45892a5d"+r.GuildID, "3cf7dd7c"+r.RoleID)
 	endpoint := EndpointDeleteGuildRole(r.GuildID, r.RoleID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -3286,7 +3336,7 @@ func (r *DeleteGuildRole) Send(bot *Client) error {
 func (r *ModifyGuildMFALevel) Send(bot *Client) (*ModifyGuildMFALevelResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[106]("106", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[108]("108", "45892a5d"+r.GuildID)
 	endpoint := EndpointModifyGuildMFALevel(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -3321,7 +3371,7 @@ func (r *ModifyGuildMFALevel) Send(bot *Client) (*ModifyGuildMFALevelResponse, e
 func (r *GetGuildPruneCount) Send(bot *Client) (*GetGuildPruneCountResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[107]("107", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[109]("109", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -3355,7 +3405,7 @@ func (r *GetGuildPruneCount) Send(bot *Client) (*GetGuildPruneCountResponse, err
 func (r *BeginGuildPrune) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[108]("108", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[110]("110", "45892a5d"+r.GuildID)
 	endpoint := EndpointBeginGuildPrune(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -3389,7 +3439,7 @@ func (r *BeginGuildPrune) Send(bot *Client) error {
 func (r *GetGuildVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[109]("109", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[111]("111", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildVoiceRegions(r.GuildID)
 
 	result := make([]*VoiceRegion, 0)
@@ -3412,7 +3462,7 @@ func (r *GetGuildVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 func (r *GetGuildInvites) Send(bot *Client) ([]*Invite, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[110]("110", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[112]("112", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildInvites(r.GuildID)
 
 	result := make([]*Invite, 0)
@@ -3435,7 +3485,7 @@ func (r *GetGuildInvites) Send(bot *Client) ([]*Invite, error) {
 func (r *GetGuildIntegrations) Send(bot *Client) ([]*Integration, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[111]("111", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[113]("113", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildIntegrations(r.GuildID)
 
 	result := make([]*Integration, 0)
@@ -3458,7 +3508,7 @@ func (r *GetGuildIntegrations) Send(bot *Client) ([]*Integration, error) {
 func (r *DeleteGuildIntegration) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[112]("112", "45892a5d"+r.GuildID, "cb4479f8"+r.IntegrationID)
+	routeid, resourceid := RateLimitHashFuncs[114]("114", "45892a5d"+r.GuildID, "cb4479f8"+r.IntegrationID)
 	endpoint := EndpointDeleteGuildIntegration(r.GuildID, r.IntegrationID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -3480,7 +3530,7 @@ func (r *DeleteGuildIntegration) Send(bot *Client) error {
 func (r *GetGuildWidgetSettings) Send(bot *Client) (*GuildWidget, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[113]("113", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[115]("115", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildWidgetSettings(r.GuildID)
 
 	result := new(GuildWidget)
@@ -3503,7 +3553,7 @@ func (r *GetGuildWidgetSettings) Send(bot *Client) (*GuildWidget, error) {
 func (r *ModifyGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[114]("114", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[116]("116", "45892a5d"+r.GuildID)
 	endpoint := EndpointModifyGuildWidget(r.GuildID)
 
 	result := new(GuildWidget)
@@ -3526,7 +3576,7 @@ func (r *ModifyGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 func (r *GetGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[115]("115", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[117]("117", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildWidget(r.GuildID)
 
 	result := new(GuildWidget)
@@ -3549,7 +3599,7 @@ func (r *GetGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 func (r *GetGuildVanityURL) Send(bot *Client) (*Invite, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[116]("116", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[118]("118", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildVanityURL(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -3584,7 +3634,7 @@ func (r *GetGuildVanityURL) Send(bot *Client) (*Invite, error) {
 func (r *GetGuildWidgetImage) Send(bot *Client) (*EmbedImage, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[117]("117", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[119]("119", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -3618,7 +3668,7 @@ func (r *GetGuildWidgetImage) Send(bot *Client) (*EmbedImage, error) {
 func (r *GetGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[118]("118", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[120]("120", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildWelcomeScreen(r.GuildID)
 
 	result := new(WelcomeScreen)
@@ -3641,7 +3691,7 @@ func (r *GetGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 func (r *ModifyGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[119]("119", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[121]("121", "45892a5d"+r.GuildID)
 	endpoint := EndpointModifyGuildWelcomeScreen(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -3676,7 +3726,7 @@ func (r *ModifyGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
 func (r *ModifyCurrentUserVoiceState) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[120]("120", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[122]("122", "45892a5d"+r.GuildID)
 	endpoint := EndpointModifyCurrentUserVoiceState(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -3710,7 +3760,7 @@ func (r *ModifyCurrentUserVoiceState) Send(bot *Client) error {
 func (r *ModifyUserVoiceState) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[121]("121", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[123]("123", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
 	endpoint := EndpointModifyUserVoiceState(r.GuildID, r.UserID)
 
 	body, err := json.Marshal(r)
@@ -3744,7 +3794,7 @@ func (r *ModifyUserVoiceState) Send(bot *Client) error {
 func (r *ListScheduledEventsforGuild) Send(bot *Client) ([]*GuildScheduledEvent, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[122]("122", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[124]("124", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -3778,7 +3828,7 @@ func (r *ListScheduledEventsforGuild) Send(bot *Client) ([]*GuildScheduledEvent,
 func (r *CreateGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[123]("123", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[125]("125", "45892a5d"+r.GuildID)
 	endpoint := EndpointCreateGuildScheduledEvent(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -3813,7 +3863,7 @@ func (r *CreateGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 func (r *GetGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[124]("124", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
+	routeid, resourceid := RateLimitHashFuncs[126]("126", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -3847,7 +3897,7 @@ func (r *GetGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error)
 func (r *ModifyGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[125]("125", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
+	routeid, resourceid := RateLimitHashFuncs[127]("127", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
 	endpoint := EndpointModifyGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID)
 
 	body, err := json.Marshal(r)
@@ -3882,7 +3932,7 @@ func (r *ModifyGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 func (r *DeleteGuildScheduledEvent) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[126]("126", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
+	routeid, resourceid := RateLimitHashFuncs[128]("128", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
 	endpoint := EndpointDeleteGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -3904,7 +3954,7 @@ func (r *DeleteGuildScheduledEvent) Send(bot *Client) error {
 func (r *GetGuildScheduledEventUsers) Send(bot *Client) ([]*GuildScheduledEventUser, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[127]("127", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
+	routeid, resourceid := RateLimitHashFuncs[129]("129", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -3938,7 +3988,7 @@ func (r *GetGuildScheduledEventUsers) Send(bot *Client) ([]*GuildScheduledEventU
 func (r *GetGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[128]("128", "61437152"+r.TemplateCode)
+	routeid, resourceid := RateLimitHashFuncs[130]("130", "61437152"+r.TemplateCode)
 	endpoint := EndpointGetGuildTemplate(r.TemplateCode)
 
 	result := new(GuildTemplate)
@@ -3961,7 +4011,7 @@ func (r *GetGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 func (r *CreateGuildfromGuildTemplate) Send(bot *Client) ([]*GuildTemplate, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[129]("129", "61437152"+r.TemplateCode)
+	routeid, resourceid := RateLimitHashFuncs[131]("131", "61437152"+r.TemplateCode)
 	endpoint := EndpointCreateGuildfromGuildTemplate(r.TemplateCode)
 
 	body, err := json.Marshal(r)
@@ -3996,7 +4046,7 @@ func (r *CreateGuildfromGuildTemplate) Send(bot *Client) ([]*GuildTemplate, erro
 func (r *GetGuildTemplates) Send(bot *Client) ([]*GuildTemplate, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[130]("130", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[132]("132", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildTemplates(r.GuildID)
 
 	result := make([]*GuildTemplate, 0)
@@ -4019,7 +4069,7 @@ func (r *GetGuildTemplates) Send(bot *Client) ([]*GuildTemplate, error) {
 func (r *CreateGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[131]("131", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[133]("133", "45892a5d"+r.GuildID)
 	endpoint := EndpointCreateGuildTemplate(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -4054,7 +4104,7 @@ func (r *CreateGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 func (r *SyncGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[132]("132", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
+	routeid, resourceid := RateLimitHashFuncs[134]("134", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
 	endpoint := EndpointSyncGuildTemplate(r.GuildID, r.TemplateCode)
 
 	result := new(GuildTemplate)
@@ -4077,7 +4127,7 @@ func (r *SyncGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 func (r *ModifyGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[133]("133", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
+	routeid, resourceid := RateLimitHashFuncs[135]("135", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
 	endpoint := EndpointModifyGuildTemplate(r.GuildID, r.TemplateCode)
 
 	body, err := json.Marshal(r)
@@ -4112,7 +4162,7 @@ func (r *ModifyGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 func (r *DeleteGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[134]("134", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
+	routeid, resourceid := RateLimitHashFuncs[136]("136", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
 	endpoint := EndpointDeleteGuildTemplate(r.GuildID, r.TemplateCode)
 
 	result := new(GuildTemplate)
@@ -4135,7 +4185,7 @@ func (r *DeleteGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
 func (r *GetInvite) Send(bot *Client) (*Invite, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[135]("135", "781d4865"+r.InviteCode)
+	routeid, resourceid := RateLimitHashFuncs[137]("137", "781d4865"+r.InviteCode)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -4169,7 +4219,7 @@ func (r *GetInvite) Send(bot *Client) (*Invite, error) {
 func (r *DeleteInvite) Send(bot *Client) (*Invite, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[136]("136", "781d4865"+r.InviteCode)
+	routeid, resourceid := RateLimitHashFuncs[138]("138", "781d4865"+r.InviteCode)
 	endpoint := EndpointDeleteInvite(r.InviteCode)
 
 	result := new(Invite)
@@ -4192,7 +4242,7 @@ func (r *DeleteInvite) Send(bot *Client) (*Invite, error) {
 func (r *CreateStageInstance) Send(bot *Client) (*StageInstance, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[137]("137")
+	routeid, resourceid := RateLimitHashFuncs[139]("139")
 	endpoint := EndpointCreateStageInstance()
 
 	body, err := json.Marshal(r)
@@ -4227,7 +4277,7 @@ func (r *CreateStageInstance) Send(bot *Client) (*StageInstance, error) {
 func (r *GetStageInstance) Send(bot *Client) (*StageInstance, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[138]("138", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[140]("140", "e5416649"+r.ChannelID)
 	endpoint := EndpointGetStageInstance(r.ChannelID)
 
 	result := new(StageInstance)
@@ -4250,7 +4300,7 @@ func (r *GetStageInstance) Send(bot *Client) (*StageInstance, error) {
 func (r *ModifyStageInstance) Send(bot *Client) (*StageInstance, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[139]("139", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[141]("141", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyStageInstance(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -4285,7 +4335,7 @@ func (r *ModifyStageInstance) Send(bot *Client) (*StageInstance, error) {
 func (r *DeleteStageInstance) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[140]("140", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[142]("142", "e5416649"+r.ChannelID)
 	endpoint := EndpointDeleteStageInstance(r.ChannelID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -4307,7 +4357,7 @@ func (r *DeleteStageInstance) Send(bot *Client) error {
 func (r *GetSticker) Send(bot *Client) (*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[141]("141", "6eeeabf1"+r.StickerID)
+	routeid, resourceid := RateLimitHashFuncs[143]("143", "6eeeabf1"+r.StickerID)
 	endpoint := EndpointGetSticker(r.StickerID)
 
 	result := new(Sticker)
@@ -4330,7 +4380,7 @@ func (r *GetSticker) Send(bot *Client) (*Sticker, error) {
 func (r *ListNitroStickerPacks) Send(bot *Client) (*ListNitroStickerPacksResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[142]("142")
+	routeid, resourceid := RateLimitHashFuncs[144]("144")
 	endpoint := EndpointListNitroStickerPacks()
 
 	result := new(ListNitroStickerPacksResponse)
@@ -4353,7 +4403,7 @@ func (r *ListNitroStickerPacks) Send(bot *Client) (*ListNitroStickerPacksRespons
 func (r *ListGuildStickers) Send(bot *Client) ([]*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[143]("143", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[145]("145", "45892a5d"+r.GuildID)
 	endpoint := EndpointListGuildStickers(r.GuildID)
 
 	result := make([]*Sticker, 0)
@@ -4376,7 +4426,7 @@ func (r *ListGuildStickers) Send(bot *Client) ([]*Sticker, error) {
 func (r *GetGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[144]("144", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
+	routeid, resourceid := RateLimitHashFuncs[146]("146", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
 	endpoint := EndpointGetGuildSticker(r.GuildID, r.StickerID)
 
 	result := new(Sticker)
@@ -4399,7 +4449,7 @@ func (r *GetGuildSticker) Send(bot *Client) (*Sticker, error) {
 func (r *CreateGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[145]("145", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[147]("147", "45892a5d"+r.GuildID)
 	endpoint := EndpointCreateGuildSticker(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -4447,7 +4497,7 @@ func (r *CreateGuildSticker) Send(bot *Client) (*Sticker, error) {
 func (r *ModifyGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[146]("146", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
+	routeid, resourceid := RateLimitHashFuncs[148]("148", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
 	endpoint := EndpointModifyGuildSticker(r.GuildID, r.StickerID)
 
 	body, err := json.Marshal(r)
@@ -4482,7 +4532,7 @@ func (r *ModifyGuildSticker) Send(bot *Client) (*Sticker, error) {
 func (r *DeleteGuildSticker) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[147]("147", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
+	routeid, resourceid := RateLimitHashFuncs[149]("149", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
 	endpoint := EndpointDeleteGuildSticker(r.GuildID, r.StickerID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -4504,7 +4554,7 @@ func (r *DeleteGuildSticker) Send(bot *Client) error {
 func (r *GetCurrentUser) Send(bot *Client) (*User, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[148]("148")
+	routeid, resourceid := RateLimitHashFuncs[150]("150")
 	endpoint := EndpointGetCurrentUser()
 
 	result := new(User)
@@ -4527,7 +4577,7 @@ func (r *GetCurrentUser) Send(bot *Client) (*User, error) {
 func (r *GetUser) Send(bot *Client) (*User, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[149]("149", "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[151]("151", "209c92df"+r.UserID)
 	endpoint := EndpointGetUser(r.UserID)
 
 	result := new(User)
@@ -4550,7 +4600,7 @@ func (r *GetUser) Send(bot *Client) (*User, error) {
 func (r *ModifyCurrentUser) Send(bot *Client) (*User, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[150]("150")
+	routeid, resourceid := RateLimitHashFuncs[152]("152")
 	endpoint := EndpointModifyCurrentUser()
 
 	body, err := json.Marshal(r)
@@ -4585,7 +4635,7 @@ func (r *ModifyCurrentUser) Send(bot *Client) (*User, error) {
 func (r *GetCurrentUserGuilds) Send(bot *Client) ([]*Guild, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[151]("151")
+	routeid, resourceid := RateLimitHashFuncs[153]("153")
 	endpoint := EndpointGetCurrentUserGuilds()
 
 	body, err := json.Marshal(r)
@@ -4620,7 +4670,7 @@ func (r *GetCurrentUserGuilds) Send(bot *Client) ([]*Guild, error) {
 func (r *GetCurrentUserGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[152]("152", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[154]("154", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetCurrentUserGuildMember(r.GuildID)
 
 	result := new(GuildMember)
@@ -4643,7 +4693,7 @@ func (r *GetCurrentUserGuildMember) Send(bot *Client) (*GuildMember, error) {
 func (r *LeaveGuild) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[153]("153", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[155]("155", "45892a5d"+r.GuildID)
 	endpoint := EndpointLeaveGuild(r.GuildID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -4665,7 +4715,7 @@ func (r *LeaveGuild) Send(bot *Client) error {
 func (r *CreateDM) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[154]("154")
+	routeid, resourceid := RateLimitHashFuncs[156]("156")
 	endpoint := EndpointCreateDM()
 
 	body, err := json.Marshal(r)
@@ -4700,7 +4750,7 @@ func (r *CreateDM) Send(bot *Client) (*Channel, error) {
 func (r *CreateGroupDM) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[155]("155")
+	routeid, resourceid := RateLimitHashFuncs[157]("157")
 	endpoint := EndpointCreateGroupDM()
 
 	body, err := json.Marshal(r)
@@ -4735,7 +4785,7 @@ func (r *CreateGroupDM) Send(bot *Client) (*Channel, error) {
 func (r *GetUserConnections) Send(bot *Client) ([]*Connection, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[156]("156")
+	routeid, resourceid := RateLimitHashFuncs[158]("158")
 	endpoint := EndpointGetUserConnections()
 
 	result := make([]*Connection, 0)
@@ -4754,11 +4804,69 @@ func (r *GetUserConnections) Send(bot *Client) ([]*Connection, error) {
 	return result, nil
 }
 
+// Send sends a GetUserApplicationRoleConnection request to Discord and returns a ApplicationRoleConnection.
+func (r *GetUserApplicationRoleConnection) Send(bot *Client) (*ApplicationRoleConnection, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[159]("159")
+	endpoint := EndpointGetUserApplicationRoleConnection(bot.ApplicationID)
+
+	result := new(ApplicationRoleConnection)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a UpdateUserApplicationRoleConnection request to Discord and returns a ApplicationRoleConnection.
+func (r *UpdateUserApplicationRoleConnection) Send(bot *Client) (*ApplicationRoleConnection, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[160]("160")
+	endpoint := EndpointUpdateUserApplicationRoleConnection(bot.ApplicationID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(ApplicationRoleConnection)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
 // Send sends a ListVoiceRegions request to Discord and returns a []*VoiceRegion.
 func (r *ListVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[157]("157")
+	routeid, resourceid := RateLimitHashFuncs[161]("161")
 	endpoint := EndpointListVoiceRegions()
 
 	result := make([]*VoiceRegion, 0)
@@ -4781,7 +4889,7 @@ func (r *ListVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 func (r *CreateWebhook) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[158]("158", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[162]("162", "e5416649"+r.ChannelID)
 	endpoint := EndpointCreateWebhook(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -4816,7 +4924,7 @@ func (r *CreateWebhook) Send(bot *Client) (*Webhook, error) {
 func (r *GetChannelWebhooks) Send(bot *Client) ([]*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[159]("159", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[163]("163", "e5416649"+r.ChannelID)
 	endpoint := EndpointGetChannelWebhooks(r.ChannelID)
 
 	result := make([]*Webhook, 0)
@@ -4839,7 +4947,7 @@ func (r *GetChannelWebhooks) Send(bot *Client) ([]*Webhook, error) {
 func (r *GetGuildWebhooks) Send(bot *Client) ([]*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[160]("160", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[164]("164", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildWebhooks(r.GuildID)
 
 	result := make([]*Webhook, 0)
@@ -4862,7 +4970,7 @@ func (r *GetGuildWebhooks) Send(bot *Client) ([]*Webhook, error) {
 func (r *GetWebhook) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[161]("161", "6d62b21b"+r.WebhookID)
+	routeid, resourceid := RateLimitHashFuncs[165]("165", "6d62b21b"+r.WebhookID)
 	endpoint := EndpointGetWebhook(r.WebhookID)
 
 	result := new(Webhook)
@@ -4885,7 +4993,7 @@ func (r *GetWebhook) Send(bot *Client) (*Webhook, error) {
 func (r *GetWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[162]("162", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[166]("166", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	endpoint := EndpointGetWebhookwithToken(r.WebhookID, r.WebhookToken)
 
 	result := new(Webhook)
@@ -4908,7 +5016,7 @@ func (r *GetWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 func (r *ModifyWebhook) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[163]("163", "6d62b21b"+r.WebhookID)
+	routeid, resourceid := RateLimitHashFuncs[167]("167", "6d62b21b"+r.WebhookID)
 	endpoint := EndpointModifyWebhook(r.WebhookID)
 
 	body, err := json.Marshal(r)
@@ -4943,7 +5051,7 @@ func (r *ModifyWebhook) Send(bot *Client) (*Webhook, error) {
 func (r *ModifyWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[164]("164", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[168]("168", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	endpoint := EndpointModifyWebhookwithToken(r.WebhookID, r.WebhookToken)
 
 	body, err := json.Marshal(r)
@@ -4978,7 +5086,7 @@ func (r *ModifyWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 func (r *DeleteWebhook) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[165]("165", "6d62b21b"+r.WebhookID)
+	routeid, resourceid := RateLimitHashFuncs[169]("169", "6d62b21b"+r.WebhookID)
 	endpoint := EndpointDeleteWebhook(r.WebhookID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -5000,7 +5108,7 @@ func (r *DeleteWebhook) Send(bot *Client) error {
 func (r *DeleteWebhookwithToken) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[166]("166", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[170]("170", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	endpoint := EndpointDeleteWebhookwithToken(r.WebhookID, r.WebhookToken)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -5022,7 +5130,7 @@ func (r *DeleteWebhookwithToken) Send(bot *Client) error {
 func (r *ExecuteWebhook) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[167]("167", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[171]("171", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return ErrorRequest{
@@ -5082,7 +5190,7 @@ func (r *ExecuteWebhook) Send(bot *Client) error {
 func (r *ExecuteSlackCompatibleWebhook) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[168]("168", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[172]("172", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return ErrorRequest{
@@ -5115,7 +5223,7 @@ func (r *ExecuteSlackCompatibleWebhook) Send(bot *Client) error {
 func (r *ExecuteGitHubCompatibleWebhook) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[169]("169", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[173]("173", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return ErrorRequest{
@@ -5148,7 +5256,7 @@ func (r *ExecuteGitHubCompatibleWebhook) Send(bot *Client) error {
 func (r *GetWebhookMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[170]("170", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[174]("174", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -5182,7 +5290,7 @@ func (r *GetWebhookMessage) Send(bot *Client) (*Message, error) {
 func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[171]("171", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[175]("175", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -5243,7 +5351,7 @@ func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 func (r *DeleteWebhookMessage) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[172]("172", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[176]("176", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return ErrorRequest{
@@ -5276,7 +5384,7 @@ func (r *DeleteWebhookMessage) Send(bot *Client) error {
 func (r *GetGateway) Send(bot *Client) (*GetGatewayBotResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[173]("173")
+	routeid, resourceid := RateLimitHashFuncs[177]("177")
 	endpoint := EndpointGetGateway()
 
 	result := new(GetGatewayBotResponse)
@@ -5299,7 +5407,7 @@ func (r *GetGateway) Send(bot *Client) (*GetGatewayBotResponse, error) {
 func (r *GetGatewayBot) Send(bot *Client) (*GetGatewayBotResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[174]("174")
+	routeid, resourceid := RateLimitHashFuncs[178]("178")
 	endpoint := EndpointGetGatewayBot()
 
 	result := new(GetGatewayBotResponse)
@@ -5322,7 +5430,7 @@ func (r *GetGatewayBot) Send(bot *Client) (*GetGatewayBotResponse, error) {
 func (r *GetCurrentBotApplicationInformation) Send(bot *Client) (*Application, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[175]("175")
+	routeid, resourceid := RateLimitHashFuncs[179]("179")
 	endpoint := EndpointGetCurrentBotApplicationInformation()
 
 	result := new(Application)
@@ -5345,7 +5453,7 @@ func (r *GetCurrentBotApplicationInformation) Send(bot *Client) (*Application, e
 func (r *GetCurrentAuthorizationInformation) Send(bot *Client) (*CurrentAuthorizationInformationResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[176]("176")
+	routeid, resourceid := RateLimitHashFuncs[180]("180")
 	endpoint := EndpointGetCurrentAuthorizationInformation()
 
 	result := new(CurrentAuthorizationInformationResponse)

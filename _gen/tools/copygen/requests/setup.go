@@ -55,6 +55,10 @@ type Copygen interface {
 	// http DELETE
 	DeleteFollowupMessage(*disgo.DeleteFollowupMessage) error
 	// http GET
+	GetApplicationRoleConnectionMetadataRecords(*disgo.GetApplicationRoleConnectionMetadataRecords) ([]*disgo.ApplicationRoleConnectionMetadata, error)
+	// http PUT
+	UpdateApplicationRoleConnectionMetadataRecords(*disgo.UpdateApplicationRoleConnectionMetadataRecords) ([]*disgo.ApplicationRoleConnectionMetadata, error)
+	// http GET
 	GetGuildAuditLog(*disgo.GetGuildAuditLog) (*disgo.AuditLog, error)
 	// http GET
 	ListAutoModerationRulesForGuild(*disgo.ListAutoModerationRulesForGuild) ([]*disgo.AutoModerationAction, error)
@@ -316,6 +320,10 @@ type Copygen interface {
 	CreateGroupDM(*disgo.CreateGroupDM) (*disgo.Channel, error)
 	// http GET
 	GetUserConnections(*disgo.GetUserConnections) ([]*disgo.Connection, error)
+	// http GET
+	GetUserApplicationRoleConnection(*disgo.GetUserApplicationRoleConnection) (*disgo.ApplicationRoleConnection, error)
+	// http PUT
+	UpdateUserApplicationRoleConnection(*disgo.UpdateUserApplicationRoleConnection) (*disgo.ApplicationRoleConnection, error)
 	// http GET
 	ListVoiceRegions(*disgo.ListVoiceRegions) ([]*disgo.VoiceRegion, error)
 	// http POST

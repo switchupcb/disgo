@@ -1384,7 +1384,7 @@ func initializeEventHandlers(bot *Client) (*eventErrorGroup, error) {
 		return nil, err
 	}
 
-	// StartThreadwithoutMessage
+	// StartThreadwithoutMessage, JoinThread
 	if err := bot.Handle(FlagGatewayEventNameThreadCreate, func(e *ThreadCreate) {
 		if e.ID == "" {
 			eg.append(fmt.Errorf(errEmptyID, category, "ThreadCreate"))

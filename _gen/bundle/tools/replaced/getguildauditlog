@@ -2,6 +2,7 @@ type GetGuildAuditLog struct {
 	GuildID    string `url:"-"`
 	UserID     string `url:"user_id,omitempty"`
 	Before     string `url:"before,omitempty"`
+	After      string `url:"after,omitempty"`
 	Limit      int    `url:"limit,omitempty"`
 	ActionType Flag   `url:"action_type,omitempty"`
 }
@@ -12,6 +13,7 @@ type GetGuildAuditLog struct {
 	// https://discord.com/developers/docs/resources/audit-log#audit-log-entry-object-audit-log-events
 	UserID     string `url:"user_id,omitempty"`
 	Before     string `url:"before,omitempty"`
+	After      string `url:"after,omitempty"`
 	Limit      int    `url:"limit,omitempty"`
 	ActionType Flag   `url:"action_type,omitempty"`
 }
