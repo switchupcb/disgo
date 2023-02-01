@@ -817,8 +817,11 @@ const (
 	FlagRPCCloseEventCodeInvalidEncoding = 4005
 )
 
-// Flag represents an (unused) alias for a Discord API Flag ranging from 0 - 255.
+// Flag represents an alias for a Discord API Flag ranging from 0 - 255.
 type Flag uint8
+
+// Flags represents an alias for a []Flag for JSON marshal purposes.
+type Flags []Flag
 
 // BitFlag represents an alias for a Discord API Bitwise Flag denoted by 1 << x.
 type BitFlag uint64
@@ -2477,9 +2480,9 @@ type RemoveThreadMember struct {
 // GET /channels/{channel.id}/thread-members/{user.id}
 // https://discord.com/developers/docs/resources/channel#get-thread-member
 type GetThreadMember struct {
-	WithMember *bool `json:"with_member,omitempty"`
-	ChannelID  string
-	UserID     string
+	WithMember *bool  `json:"with_member,omitempty"`
+	ChannelID  string `json:"-"`
+	UserID     string `json:"-"`
 }
 
 // List Thread Members
@@ -2489,7 +2492,7 @@ type ListThreadMembers struct {
 	WithMember *bool   `json:"with_member,omitempty"`
 	After      *string `json:"after,omitempty"`
 	Limit      *int    `json:"limit,omitempty"`
-	ChannelID  string
+	ChannelID  string  `json:"-"`
 }
 
 // List Public Archived Threads
@@ -3589,7 +3592,7 @@ type ApplicationCommandOption struct {
 	Name                     string                            `json:"name"`
 	Description              string                            `json:"description"`
 	Options                  []*ApplicationCommandOption       `json:"options,omitempty"`
-	ChannelTypes             []Flag                            `json:"channel_types,omitempty"`
+	ChannelTypes             Flags                             `json:"channel_types,omitempty"`
 	Choices                  []*ApplicationCommandOptionChoice `json:"choices,omitempty"`
 	Type                     Flag                              `json:"type"`
 }
@@ -3701,7 +3704,7 @@ type SelectMenu struct {
 	MinValues    *Flag              `json:"min_values,omitempty"`
 	CustomID     string             `json:"custom_id"`
 	Options      []SelectMenuOption `json:"options"`
-	ChannelTypes []Flag             `json:"channel_types,omitempty"`
+	ChannelTypes Flags              `json:"channel_types,omitempty"`
 	Type         int                `json:"type"`
 }
 
@@ -4091,8 +4094,8 @@ const (
 type TriggerMetadata struct {
 	// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-keyword-matching-strategies
 	KeywordFilter     []string `json:"keyword_filter"`
-	RegexPatterns     []Flag   `json:"regex_patterns"`
-	Presets           []Flag   `json:"presets"`
+	RegexPatterns     []string `json:"regex_patterns"`
+	Presets           Flags    `json:"presets"`
 	AllowList         []string `json:"allow_list"`
 	MentionTotalLimit int      `json:"mention_total_limit"`
 }
@@ -9386,6 +9389,34 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	}
 }
 
+var (
+	byteEmptySlice = []byte("[]")
+)
+
+func (t Flags) MarshalJSON() ([]byte, error) {
+	if len(t) == 0 {
+		return byteEmptySlice, nil
+	}
+
+	var output bytes.Buffer
+	output.WriteByte('[')
+
+	stop := len(t) - 1
+	for i, f := range t {
+		output.WriteString(strconv.Itoa(int(f)))
+
+		if i == stop {
+			break
+		}
+
+		output.WriteByte(',')
+	}
+
+	output.WriteByte(']')
+
+	return output.Bytes(), nil
+}
+
 func (r *BulkOverwriteGlobalApplicationCommands) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.ApplicationCommands) // nolint:wrapcheck
 }
@@ -14072,20 +14103,8 @@ func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
 	routeid, resourceid := RateLimitHashFuncs[71]("71", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
 	endpoint := EndpointGetThreadMember(r.ChannelID, r.UserID)
 
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
 	result := new(ThreadMember)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeJSON, body, result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,

@@ -528,8 +528,11 @@ const (
 	FlagRPCCloseEventCodeInvalidEncoding = 4005
 )
 
-// Flag represents an (unused) alias for a Discord API Flag ranging from 0 - 255.
+// Flag represents an alias for a Discord API Flag ranging from 0 - 255.
 type Flag uint8
+
+// Flags represents an alias for a []Flag for JSON marshal purposes.
+type Flags []Flag
 
 // BitFlag represents an alias for a Discord API Bitwise Flag denoted by 1 << x.
 type BitFlag uint64
@@ -2188,16 +2191,16 @@ type RemoveThreadMember struct {
 // GET /channels/{channel.id}/thread-members/{user.id}
 // https://discord.com/developers/docs/resources/channel#get-thread-member
 type GetThreadMember struct {
-	ChannelID  string
-	UserID     string
-	WithMember *bool `json:"with_member,omitempty"`
+	ChannelID  string `json:"-"`
+	UserID     string `json:"-"`
+	WithMember *bool  `json:"with_member,omitempty"`
 }
 
 // List Thread Members
 // GET /channels/{channel.id}/thread-members
 // https://discord.com/developers/docs/resources/channel#list-thread-members
 type ListThreadMembers struct {
-	ChannelID  string
+	ChannelID  string  `json:"-"`
 	WithMember *bool   `json:"with_member,omitempty"`
 	After      *string `json:"after,omitempty"`
 	Limit      *int    `json:"limit,omitempty"`
@@ -3297,7 +3300,7 @@ type ApplicationCommandOption struct {
 	Required                 *bool                             `json:"required,omitempty"`
 	Choices                  []*ApplicationCommandOptionChoice `json:"choices,omitempty"`
 	Options                  []*ApplicationCommandOption       `json:"options,omitempty"`
-	ChannelTypes             []Flag                            `json:"channel_types,omitempty"`
+	ChannelTypes             Flags                             `json:"channel_types,omitempty"`
 	MinValue                 *float64                          `json:"min_value,omitempty"`
 	MaxValue                 *float64                          `json:"max_value,omitempty"`
 	MinLength                *int                              `json:"min_length,omitempty"`
@@ -3409,7 +3412,7 @@ type SelectMenu struct {
 	Type         int                `json:"type"`
 	CustomID     string             `json:"custom_id"`
 	Options      []SelectMenuOption `json:"options"`
-	ChannelTypes []Flag             `json:"channel_types,omitempty"`
+	ChannelTypes Flags              `json:"channel_types,omitempty"`
 	Placeholder  *string            `json:"placeholder,omitempty"`
 	MinValues    *Flag              `json:"min_values,omitempty"`
 	MaxValues    *Flag              `json:"max_values,omitempty"`
@@ -3802,8 +3805,8 @@ const (
 type TriggerMetadata struct {
 	// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-keyword-matching-strategies
 	KeywordFilter     []string `json:"keyword_filter"`
-	RegexPatterns     []Flag   `json:"regex_patterns"`
-	Presets           []Flag   `json:"presets"`
+	RegexPatterns     []string `json:"regex_patterns"`
+	Presets           Flags    `json:"presets"`
 	AllowList         []string `json:"allow_list"`
 	MentionTotalLimit int      `json:"mention_total_limit"`
 }

@@ -510,7 +510,7 @@ func testGuildAutoModeration(bot *Client, guild *Guild) error {
 		TriggerType: FlagTriggerTypeKEYWORD,
 		TriggerMetadata: &TriggerMetadata{
 			KeywordFilter:     []string{"!@#$%^&*"},
-			RegexPatterns:     []Flag{},
+			RegexPatterns:     []string{},
 			Presets:           []Flag{},
 			AllowList:         []string{},
 			MentionTotalLimit: 0,
