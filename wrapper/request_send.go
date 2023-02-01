@@ -2262,22 +2262,21 @@ func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
 	var err error
 	xid := xid.New().String()
 	routeid, resourceid := RateLimitHashFuncs[71]("71", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
-	endpoint := EndpointGetThreadMember(r.ChannelID, r.UserID)
-
-	body, err := json.Marshal(r)
+	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
 			CorrelationID: xid,
 			RouteID:       routeid,
 			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
+			Endpoint:      "",
+			Err:           err,
 		}
 	}
+	endpoint := EndpointGetThreadMember(r.ChannelID, r.UserID) + "?" + query
 
 	result := new(ThreadMember)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeJSON, body, result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
@@ -2297,22 +2296,21 @@ func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
 	var err error
 	xid := xid.New().String()
 	routeid, resourceid := RateLimitHashFuncs[72]("72", "e5416649"+r.ChannelID)
-	endpoint := EndpointListThreadMembers(r.ChannelID)
-
-	body, err := json.Marshal(r)
+	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
 			CorrelationID: xid,
 			RouteID:       routeid,
 			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
+			Endpoint:      "",
+			Err:           err,
 		}
 	}
+	endpoint := EndpointListThreadMembers(r.ChannelID) + "?" + query
 
 	result := make([]*ThreadMember, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeJSON, body, &result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
