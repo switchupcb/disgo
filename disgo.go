@@ -886,6 +886,7 @@ const (
 	FlagGatewayEventNameGuildCreate                         = "GUILD_CREATE"
 	FlagGatewayEventNameGuildUpdate                         = "GUILD_UPDATE"
 	FlagGatewayEventNameGuildDelete                         = "GUILD_DELETE"
+	FlagGatewayEventNameGuildAuditLogEntryCreate            = "GUILD_AUDIT_LOG_ENTRY_CREATE"
 	FlagGatewayEventNameGuildBanAdd                         = "GUILD_BAN_ADD"
 	FlagGatewayEventNameGuildBanRemove                      = "GUILD_BAN_REMOVE"
 	FlagGatewayEventNameGuildEmojisUpdate                   = "GUILD_EMOJIS_UPDATE"
@@ -1090,6 +1091,12 @@ type GuildUpdate struct {
 // https://discord.com/developers/docs/topics/gateway-events#guild-delete
 type GuildDelete struct {
 	*Guild
+}
+
+// Guild Audit Log Entry Create
+// https://discord.com/developers/docs/topics/gateway-events#guild-audit-log-entry-create
+type GuildAuditLogEntryCreate struct {
+	*AuditLogEntry
 }
 
 // Guild Ban Add
@@ -1453,9 +1460,10 @@ const (
 	// THREAD_MEMBERS_UPDATE *
 	FlagIntentGUILD_MEMBERS BitFlag = 1 << 1
 
+	// GUILD_AUDIT_LOG_ENTRY_CREATE
 	// GUILD_BAN_ADD
 	// GUILD_BAN_REMOVE
-	FlagIntentGUILD_BANS BitFlag = 1 << 2
+	FlagIntentGUILD_MODERATION BitFlag = 1 << 2
 
 	// GUILD_EMOJIS_UPDATE
 	// GUILD_STICKERS_UPDATE
@@ -2469,15 +2477,19 @@ type RemoveThreadMember struct {
 // GET /channels/{channel.id}/thread-members/{user.id}
 // https://discord.com/developers/docs/resources/channel#get-thread-member
 type GetThreadMember struct {
-	ChannelID string
-	UserID    string
+	WithMember *bool `json:"with_member,omitempty"`
+	ChannelID  string
+	UserID     string
 }
 
 // List Thread Members
 // GET /channels/{channel.id}/thread-members
 // https://discord.com/developers/docs/resources/channel#list-thread-members
 type ListThreadMembers struct {
-	ChannelID string
+	WithMember *bool   `json:"with_member,omitempty"`
+	After      *string `json:"after,omitempty"`
+	Limit      *int    `json:"limit,omitempty"`
+	ChannelID  string
 }
 
 // List Public Archived Threads
@@ -2719,6 +2731,7 @@ type ModifyGuildMember struct {
 	Roles                      *[]string   `json:"roles,omitempty"`
 	Mute                       **bool      `json:"mute,omitempty"`
 	Deaf                       **bool      `json:"deaf,omitempty"`
+	Flags                      **BitFlag   `json:"flags,omitempty"`
 	GuildID                    string      `json:"-"`
 	UserID                     string      `json:"-"`
 }
@@ -4208,16 +4221,17 @@ const (
 // Message Object
 // https://discord.com/developers/docs/resources/channel#message-object
 type Message struct {
-	Timestamp time.Time `json:"timestamp"`
-	WebhookID *string   `json:"webhook_id,omitempty"`
-	Author    *User     `json:"author"`
-	Position  *int      `json:"position,omitempty"`
+	Timestamp            time.Time             `json:"timestamp"`
+	WebhookID            *string               `json:"webhook_id,omitempty"`
+	Author               *User                 `json:"author"`
+	RoleSubscriptionData *RoleSubscriptionData `json:"role_subscription_data,omitempty"`
 
 	// MessageCreate Event Extra Field
 	// https://discord.com/developers/docs/topics/gateway-events#message-create
 	GuildID *string `json:"guild_id,omitempty"`
 
 	EditedTimestamp   *time.Time        `json:"edited_timestamp"`
+	Position          *int              `json:"position,omitempty"`
 	Thread            *Channel          `json:"thread"`
 	Interaction       *Interaction      `json:"interaction"`
 	ReferencedMessage **Message         `json:"referenced_message,omitempty"`
@@ -4225,25 +4239,25 @@ type Message struct {
 	MessageReference  *MessageReference `json:"message_reference,omitempty"`
 	ApplicationID     *string           `json:"application_id,omitempty"`
 	Application       *Application      `json:"application,omitempty"`
-	Activity          *MessageActivity  `json:"activity,omitempty"`
 	Nonce             *Nonce            `json:"nonce,omitempty"`
+	Activity          *MessageActivity  `json:"activity,omitempty"`
 
 	// MessageCreate Event Extra Field
 	// https://discord.com/developers/docs/topics/gateway-events#message-create
 	Member *GuildMember `json:"member,omitempty"`
 
+	Content         string            `json:"content"`
 	ChannelID       string            `json:"channel_id"`
 	ID              string            `json:"id"`
-	Content         string            `json:"content"`
-	Stickers        []*Sticker        `json:"stickers"`
+	Embeds          []*Embed          `json:"embeds"`
 	Attachments     []*Attachment     `json:"attachments"`
 	MentionChannels []*ChannelMention `json:"mention_channels,omitempty"`
 	MentionRoles    []*string         `json:"mention_roles"`
 	Mentions        []*User           `json:"mentions"`
 	Reactions       []*Reaction       `json:"reactions,omitempty"`
-	Embeds          []*Embed          `json:"embeds"`
 	Components      []Component       `json:"components"`
 	StickerItems    []*StickerItem    `json:"sticker_items"`
+	Stickers        []*Sticker        `json:"stickers"`
 	MentionEveryone bool              `json:"mention_everyone"`
 	TTS             bool              `json:"tts"`
 	Type            Flag              `json:"type"`
@@ -4364,10 +4378,11 @@ type ThreadMetadata struct {
 // Thread Member Object
 // https://discord.com/developers/docs/resources/channel#thread-member-object
 type ThreadMember struct {
-	ThreadID      *string   `json:"id,omitempty"`
-	UserID        *string   `json:"user_id,omitempty"`
-	JoinTimestamp time.Time `json:"join_timestamp"`
-	Flags         Flag      `json:"flags"`
+	JoinTimestamp time.Time    `json:"join_timestamp"`
+	ID            *string      `json:"id,omitempty"`
+	UserID        *string      `json:"user_id,omitempty"`
+	Member        *GuildMember `json:"member,omitempty"`
+	Flags         Flag         `json:"flags"`
 }
 
 // Default Reaction Structure
@@ -4517,6 +4532,15 @@ const (
 	FlagAllowedMentionTypeEveryone = "everyone"
 )
 
+// Role Subscription Data Object Structure
+// https://discord.com/developers/docs/resources/channel#role-subscription-data-object-role-subscription-data-object-structure
+type RoleSubscriptionData struct {
+	RoleSubscriptionListingID string `json:"role_subscription_listing_id"`
+	TierName                  string `json:"tier_name"`
+	TotalMonthsSubscribed     int    `json:"total_months_subscribed"`
+	IsRenewal                 bool   `json:"is_renewal"`
+}
+
 // Emoji Object
 // https://discord.com/developers/docs/resources/emoji#emoji-object-emoji-structure
 type Emoji struct {
@@ -4634,10 +4658,12 @@ const (
 // System Channel Flags
 // https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags
 const (
-	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATIONS           BitFlag = 1 << 0
-	FlagSystemChannelSUPPRESS_PREMIUM_SUBSCRIPTIONS        BitFlag = 1 << 1
-	FlagSystemChannelSUPPRESS_GUILD_REMINDER_NOTIFICATIONS BitFlag = 1 << 2
-	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATION_REPLIES    BitFlag = 1 << 3
+	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATIONS                              BitFlag = 1 << 0
+	FlagSystemChannelSUPPRESS_PREMIUM_SUBSCRIPTIONS                           BitFlag = 1 << 1
+	FlagSystemChannelSUPPRESS_GUILD_REMINDER_NOTIFICATIONS                    BitFlag = 1 << 2
+	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATION_REPLIES                       BitFlag = 1 << 3
+	FlagSystemChannelSUPPRESS_ROLE_SUBSCRIPTION_PURCHASE_NOTIFICATIONS        BitFlag = 1 << 4
+	FlagSystemChannelSUPPRESS_ROLE_SUBSCRIPTION_PURCHASE_NOTIFICATION_REPLIES BitFlag = 1 << 5
 )
 
 // Guild Features
@@ -4722,14 +4748,24 @@ type GuildMember struct {
 	User                       *User       `json:"user,omitempty"`
 	Nick                       **string    `json:"nick,omitempty"`
 	Avatar                     **string    `json:"avatar,omitempty"`
-	Permissions                *string     `json:"permissions,omitempty"`
-	PremiumSince               **time.Time `json:"premium_since,omitempty"`
 	Pending                    *bool       `json:"pending,omitempty"`
+	PremiumSince               **time.Time `json:"premium_since,omitempty"`
+	Permissions                *string     `json:"permissions,omitempty"`
 	CommunicationDisabledUntil **time.Time `json:"communication_disabled_until,omitempty"`
 	Roles                      []*string   `json:"roles"`
+	Flags                      BitFlag     `json:"flags"`
 	Deaf                       bool        `json:"deaf"`
 	Mute                       bool        `json:"mute"`
 }
+
+// Guild Member Flags
+// https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-flags
+const (
+	FlagGuildMemberDID_REJOIN            BitFlag = 1 << 0
+	FlagGuildMemberCOMPLETED_ONBOARDING  BitFlag = 1 << 1
+	FlagGuildMemberBYPASSES_VERIFICATION BitFlag = 1 << 2
+	FlagGuildMemberSTARTED_ONBOARDING    BitFlag = 1 << 3
+)
 
 // Integration Object
 // https://discord.com/developers/docs/resources/guild#integration-object
@@ -6840,6 +6876,7 @@ type Handlers struct {
 	GuildCreate                         []func(*GuildCreate)
 	GuildUpdate                         []func(*GuildUpdate)
 	GuildDelete                         []func(*GuildDelete)
+	GuildAuditLogEntryCreate            []func(*GuildAuditLogEntryCreate)
 	GuildBanAdd                         []func(*GuildBanAdd)
 	GuildBanRemove                      []func(*GuildBanRemove)
 	GuildEmojisUpdate                   []func(*GuildEmojisUpdate)
@@ -7169,10 +7206,22 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 			return nil
 		}
 
+	case FlagGatewayEventNameGuildAuditLogEntryCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
+		}
+
+		if f, ok := function.(func(*GuildAuditLogEntryCreate)); ok {
+			bot.Handlers.GuildAuditLogEntryCreate = append(bot.Handlers.GuildAuditLogEntryCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
 	case FlagGatewayEventNameGuildBanAdd:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_BANS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
 		}
 
 		if f, ok := function.(func(*GuildBanAdd)); ok {
@@ -7182,9 +7231,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildBanRemove:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_BANS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
 		}
 
 		if f, ok := function.(func(*GuildBanRemove)); ok {
@@ -8009,6 +8058,19 @@ func (bot *Client) Remove(eventname string, index int) error {
 		}
 
 		bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete[:index], bot.Handlers.GuildDelete[index+1:]...)
+
+	case FlagGatewayEventNameGuildAuditLogEntryCreate:
+		if len(bot.Handlers.GuildAuditLogEntryCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildAuditLogEntryCreate = append(bot.Handlers.GuildAuditLogEntryCreate[:index], bot.Handlers.GuildAuditLogEntryCreate[index+1:]...)
 
 	case FlagGatewayEventNameGuildBanAdd:
 		if len(bot.Handlers.GuildBanAdd) <= index {
@@ -8837,6 +8899,19 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 
 			for _, handler := range bot.Handlers.GuildDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildAuditLogEntryCreate:
+		if len(bot.Handlers.GuildAuditLogEntryCreate) != 0 {
+			event := new(GuildAuditLogEntryCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildAuditLogEntryCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildAuditLogEntryCreate {
 				go handler(event)
 			}
 		}
@@ -13997,8 +14072,20 @@ func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
 	routeid, resourceid := RateLimitHashFuncs[71]("71", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
 	endpoint := EndpointGetThreadMember(r.ChannelID, r.UserID)
 
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
 	result := new(ThreadMember)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeJSON, body, result)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
@@ -14020,8 +14107,20 @@ func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
 	routeid, resourceid := RateLimitHashFuncs[72]("72", "e5416649"+r.ChannelID)
 	endpoint := EndpointListThreadMembers(r.ChannelID)
 
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
 	result := make([]*ThreadMember, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeJSON, body, &result)
 	if err != nil {
 		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,

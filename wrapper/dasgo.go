@@ -597,6 +597,7 @@ const (
 	FlagGatewayEventNameGuildCreate                         = "GUILD_CREATE"
 	FlagGatewayEventNameGuildUpdate                         = "GUILD_UPDATE"
 	FlagGatewayEventNameGuildDelete                         = "GUILD_DELETE"
+	FlagGatewayEventNameGuildAuditLogEntryCreate            = "GUILD_AUDIT_LOG_ENTRY_CREATE"
 	FlagGatewayEventNameGuildBanAdd                         = "GUILD_BAN_ADD"
 	FlagGatewayEventNameGuildBanRemove                      = "GUILD_BAN_REMOVE"
 	FlagGatewayEventNameGuildEmojisUpdate                   = "GUILD_EMOJIS_UPDATE"
@@ -801,6 +802,12 @@ type GuildUpdate struct {
 // https://discord.com/developers/docs/topics/gateway-events#guild-delete
 type GuildDelete struct {
 	*Guild
+}
+
+// Guild Audit Log Entry Create
+// https://discord.com/developers/docs/topics/gateway-events#guild-audit-log-entry-create
+type GuildAuditLogEntryCreate struct {
+	*AuditLogEntry
 }
 
 // Guild Ban Add
@@ -1164,9 +1171,10 @@ const (
 	// THREAD_MEMBERS_UPDATE *
 	FlagIntentGUILD_MEMBERS BitFlag = 1 << 1
 
+	// GUILD_AUDIT_LOG_ENTRY_CREATE
 	// GUILD_BAN_ADD
 	// GUILD_BAN_REMOVE
-	FlagIntentGUILD_BANS BitFlag = 1 << 2
+	FlagIntentGUILD_MODERATION BitFlag = 1 << 2
 
 	// GUILD_EMOJIS_UPDATE
 	// GUILD_STICKERS_UPDATE
@@ -2180,15 +2188,19 @@ type RemoveThreadMember struct {
 // GET /channels/{channel.id}/thread-members/{user.id}
 // https://discord.com/developers/docs/resources/channel#get-thread-member
 type GetThreadMember struct {
-	ChannelID string
-	UserID    string
+	ChannelID  string
+	UserID     string
+	WithMember *bool `json:"with_member,omitempty"`
 }
 
 // List Thread Members
 // GET /channels/{channel.id}/thread-members
 // https://discord.com/developers/docs/resources/channel#list-thread-members
 type ListThreadMembers struct {
-	ChannelID string
+	ChannelID  string
+	WithMember *bool   `json:"with_member,omitempty"`
+	After      *string `json:"after,omitempty"`
+	Limit      *int    `json:"limit,omitempty"`
 }
 
 // List Public Archived Threads
@@ -2432,6 +2444,7 @@ type ModifyGuildMember struct {
 	Deaf                       **bool      `json:"deaf,omitempty"`
 	ChannelID                  **string    `json:"channel_id,omitempty"`
 	CommunicationDisabledUntil **time.Time `json:"communication_disabled_until,omitempty"`
+	Flags                      **BitFlag   `json:"flags,omitempty"`
 }
 
 // Modify Current Member
@@ -3919,36 +3932,37 @@ const (
 // Message Object
 // https://discord.com/developers/docs/resources/channel#message-object
 type Message struct {
-	ID                string            `json:"id"`
-	ChannelID         string            `json:"channel_id"`
-	Author            *User             `json:"author"`
-	Content           string            `json:"content"`
-	Timestamp         time.Time         `json:"timestamp"`
-	EditedTimestamp   *time.Time        `json:"edited_timestamp"`
-	TTS               bool              `json:"tts"`
-	MentionEveryone   bool              `json:"mention_everyone"`
-	Mentions          []*User           `json:"mentions"`
-	MentionRoles      []*string         `json:"mention_roles"`
-	MentionChannels   []*ChannelMention `json:"mention_channels,omitempty"`
-	Attachments       []*Attachment     `json:"attachments"`
-	Embeds            []*Embed          `json:"embeds"`
-	Reactions         []*Reaction       `json:"reactions,omitempty"`
-	Nonce             *Nonce            `json:"nonce,omitempty"`
-	Pinned            bool              `json:"pinned"`
-	WebhookID         *string           `json:"webhook_id,omitempty"`
-	Type              Flag              `json:"type"`
-	Activity          *MessageActivity  `json:"activity,omitempty"`
-	Application       *Application      `json:"application,omitempty"`
-	ApplicationID     *string           `json:"application_id,omitempty"`
-	MessageReference  *MessageReference `json:"message_reference,omitempty"`
-	Flags             *BitFlag          `json:"flags,omitempty"`
-	ReferencedMessage **Message         `json:"referenced_message,omitempty"`
-	Interaction       *Interaction      `json:"interaction"`
-	Thread            *Channel          `json:"thread"`
-	Components        []Component       `json:"components"`
-	StickerItems      []*StickerItem    `json:"sticker_items"`
-	Stickers          []*Sticker        `json:"stickers"`
-	Position          *int              `json:"position,omitempty"`
+	ID                   string                `json:"id"`
+	ChannelID            string                `json:"channel_id"`
+	Author               *User                 `json:"author"`
+	Content              string                `json:"content"`
+	Timestamp            time.Time             `json:"timestamp"`
+	EditedTimestamp      *time.Time            `json:"edited_timestamp"`
+	TTS                  bool                  `json:"tts"`
+	MentionEveryone      bool                  `json:"mention_everyone"`
+	Mentions             []*User               `json:"mentions"`
+	MentionRoles         []*string             `json:"mention_roles"`
+	MentionChannels      []*ChannelMention     `json:"mention_channels,omitempty"`
+	Attachments          []*Attachment         `json:"attachments"`
+	Embeds               []*Embed              `json:"embeds"`
+	Reactions            []*Reaction           `json:"reactions,omitempty"`
+	Nonce                *Nonce                `json:"nonce,omitempty"`
+	Pinned               bool                  `json:"pinned"`
+	WebhookID            *string               `json:"webhook_id,omitempty"`
+	Type                 Flag                  `json:"type"`
+	Activity             *MessageActivity      `json:"activity,omitempty"`
+	Application          *Application          `json:"application,omitempty"`
+	ApplicationID        *string               `json:"application_id,omitempty"`
+	MessageReference     *MessageReference     `json:"message_reference,omitempty"`
+	Flags                *BitFlag              `json:"flags,omitempty"`
+	ReferencedMessage    **Message             `json:"referenced_message,omitempty"`
+	Interaction          *Interaction          `json:"interaction"`
+	Thread               *Channel              `json:"thread"`
+	Components           []Component           `json:"components"`
+	StickerItems         []*StickerItem        `json:"sticker_items"`
+	Stickers             []*Sticker            `json:"stickers"`
+	Position             *int                  `json:"position,omitempty"`
+	RoleSubscriptionData *RoleSubscriptionData `json:"role_subscription_data,omitempty"`
 
 	// MessageCreate Event Extra Fields
 	// https://discord.com/developers/docs/topics/gateway-events#message-create
@@ -4070,10 +4084,11 @@ type ThreadMetadata struct {
 // Thread Member Object
 // https://discord.com/developers/docs/resources/channel#thread-member-object
 type ThreadMember struct {
-	ThreadID      *string   `json:"id,omitempty"`
-	UserID        *string   `json:"user_id,omitempty"`
-	JoinTimestamp time.Time `json:"join_timestamp"`
-	Flags         Flag      `json:"flags"`
+	ID            *string      `json:"id,omitempty"`
+	UserID        *string      `json:"user_id,omitempty"`
+	JoinTimestamp time.Time    `json:"join_timestamp"`
+	Flags         Flag         `json:"flags"`
+	Member        *GuildMember `json:"member,omitempty"`
 }
 
 // Default Reaction Structure
@@ -4223,6 +4238,15 @@ const (
 	FlagAllowedMentionTypeEveryone = "everyone"
 )
 
+// Role Subscription Data Object Structure
+// https://discord.com/developers/docs/resources/channel#role-subscription-data-object-role-subscription-data-object-structure
+type RoleSubscriptionData struct {
+	RoleSubscriptionListingID string `json:"role_subscription_listing_id"`
+	TierName                  string `json:"tier_name"`
+	TotalMonthsSubscribed     int    `json:"total_months_subscribed"`
+	IsRenewal                 bool   `json:"is_renewal"`
+}
+
 // Emoji Object
 // https://discord.com/developers/docs/resources/emoji#emoji-object-emoji-structure
 type Emoji struct {
@@ -4339,10 +4363,12 @@ const (
 // System Channel Flags
 // https://discord.com/developers/docs/resources/guild#guild-object-system-channel-flags
 const (
-	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATIONS           BitFlag = 1 << 0
-	FlagSystemChannelSUPPRESS_PREMIUM_SUBSCRIPTIONS        BitFlag = 1 << 1
-	FlagSystemChannelSUPPRESS_GUILD_REMINDER_NOTIFICATIONS BitFlag = 1 << 2
-	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATION_REPLIES    BitFlag = 1 << 3
+	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATIONS                              BitFlag = 1 << 0
+	FlagSystemChannelSUPPRESS_PREMIUM_SUBSCRIPTIONS                           BitFlag = 1 << 1
+	FlagSystemChannelSUPPRESS_GUILD_REMINDER_NOTIFICATIONS                    BitFlag = 1 << 2
+	FlagSystemChannelSUPPRESS_JOIN_NOTIFICATION_REPLIES                       BitFlag = 1 << 3
+	FlagSystemChannelSUPPRESS_ROLE_SUBSCRIPTION_PURCHASE_NOTIFICATIONS        BitFlag = 1 << 4
+	FlagSystemChannelSUPPRESS_ROLE_SUBSCRIPTION_PURCHASE_NOTIFICATION_REPLIES BitFlag = 1 << 5
 )
 
 // Guild Features
@@ -4431,10 +4457,20 @@ type GuildMember struct {
 	PremiumSince               **time.Time `json:"premium_since,omitempty"`
 	Deaf                       bool        `json:"deaf"`
 	Mute                       bool        `json:"mute"`
+	Flags                      BitFlag     `json:"flags"`
 	Pending                    *bool       `json:"pending,omitempty"`
 	Permissions                *string     `json:"permissions,omitempty"`
 	CommunicationDisabledUntil **time.Time `json:"communication_disabled_until,omitempty"`
 }
+
+// Guild Member Flags
+// https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-flags
+const (
+	FlagGuildMemberDID_REJOIN            BitFlag = 1 << 0
+	FlagGuildMemberCOMPLETED_ONBOARDING  BitFlag = 1 << 1
+	FlagGuildMemberBYPASSES_VERIFICATION BitFlag = 1 << 2
+	FlagGuildMemberSTARTED_ONBOARDING    BitFlag = 1 << 3
+)
 
 // Integration Object
 // https://discord.com/developers/docs/resources/guild#integration-object

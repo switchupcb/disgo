@@ -50,9 +50,11 @@ type Copygen interface {
 	GuildUpdate(*disgo.GuildUpdate)
 	// intents FlagIntentGUILDS
 	GuildDelete(*disgo.GuildDelete)
-	// intents FlagIntentGUILD_BANS
+	// intents FlagIntentGUILD_MODERATION
+	GuildAuditLogEntryCreate(*disgo.GuildAuditLogEntryCreate)
+	// intents FlagIntentGUILD_MODERATION
 	GuildBanAdd(*disgo.GuildBanAdd)
-	// intents FlagIntentGUILD_BANS
+	// intents FlagIntentGUILD_MODERATION
 	GuildBanRemove(*disgo.GuildBanRemove)
 	// intents FlagIntentGUILD_EMOJIS_AND_STICKERS
 	GuildEmojisUpdate(*disgo.GuildEmojisUpdate)

@@ -39,6 +39,7 @@ type Handlers struct {
 	GuildCreate                         []func(*GuildCreate)
 	GuildUpdate                         []func(*GuildUpdate)
 	GuildDelete                         []func(*GuildDelete)
+	GuildAuditLogEntryCreate            []func(*GuildAuditLogEntryCreate)
 	GuildBanAdd                         []func(*GuildBanAdd)
 	GuildBanRemove                      []func(*GuildBanRemove)
 	GuildEmojisUpdate                   []func(*GuildEmojisUpdate)
@@ -368,10 +369,22 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 			return nil
 		}
 
+	case FlagGatewayEventNameGuildAuditLogEntryCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
+		}
+
+		if f, ok := function.(func(*GuildAuditLogEntryCreate)); ok {
+			bot.Handlers.GuildAuditLogEntryCreate = append(bot.Handlers.GuildAuditLogEntryCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
 	case FlagGatewayEventNameGuildBanAdd:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_BANS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
 		}
 
 		if f, ok := function.(func(*GuildBanAdd)); ok {
@@ -381,9 +394,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildBanRemove:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_BANS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_BANS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
 		}
 
 		if f, ok := function.(func(*GuildBanRemove)); ok {
@@ -1208,6 +1221,19 @@ func (bot *Client) Remove(eventname string, index int) error {
 		}
 
 		bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete[:index], bot.Handlers.GuildDelete[index+1:]...)
+
+	case FlagGatewayEventNameGuildAuditLogEntryCreate:
+		if len(bot.Handlers.GuildAuditLogEntryCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildAuditLogEntryCreate = append(bot.Handlers.GuildAuditLogEntryCreate[:index], bot.Handlers.GuildAuditLogEntryCreate[index+1:]...)
 
 	case FlagGatewayEventNameGuildBanAdd:
 		if len(bot.Handlers.GuildBanAdd) <= index {
@@ -2036,6 +2062,19 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 
 			for _, handler := range bot.Handlers.GuildDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildAuditLogEntryCreate:
+		if len(bot.Handlers.GuildAuditLogEntryCreate) != 0 {
+			event := new(GuildAuditLogEntryCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildAuditLogEntryCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildAuditLogEntryCreate {
 				go handler(event)
 			}
 		}
