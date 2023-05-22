@@ -1154,6 +1154,7 @@ type GuildMemberRemove struct {
 // https://discord.com/developers/docs/topics/gateway-events#guild-member-update
 type GuildMemberUpdate struct {
 	*GuildMember
+	GuildID string `json:"guild_id"`
 }
 
 // Guild Members Chunk
