@@ -1078,7 +1078,7 @@ func testStageInstance(bot *Client) error {
 func testMessage(bot *Client, channel *Channel) error {
 	createMessage := &CreateMessage{
 		ChannelID: channel.ID,
-		Content:   Pointer("Test."),
+		Content:   Pointer("✅ Test."),
 	}
 
 	message, err := createMessage.Send(bot)

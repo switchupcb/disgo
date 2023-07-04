@@ -246,6 +246,8 @@ type Copygen interface {
 	GetGuildWelcomeScreen(*disgo.GetGuildWelcomeScreen) (*disgo.WelcomeScreen, error)
 	// http PATCH
 	ModifyGuildWelcomeScreen(*disgo.ModifyGuildWelcomeScreen) (*disgo.WelcomeScreen, error)
+	// http GET
+	GetGuildOnboarding(*disgo.GetGuildOnboarding) (*disgo.GuildOnboarding, error)
 	// http PATCH
 	ModifyCurrentUserVoiceState(*disgo.ModifyCurrentUserVoiceState) error
 	// http PATCH

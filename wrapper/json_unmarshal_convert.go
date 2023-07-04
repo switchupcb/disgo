@@ -11,10 +11,6 @@ This lets users (developers) easily type convert interfaces.
 
 */
 
-const (
-	errTypeConvert = "attempted to type convert InteractionData of type %v to type %s"
-)
-
 /* Nonce */
 
 func (n Nonce) String() string {
@@ -44,6 +40,9 @@ func (n Value) Bool() (bool, error) {
 }
 
 /* InteractionData */
+const (
+	errTypeConvert = "attempted to type convert InteractionData of type %v to type %s"
+)
 
 // ApplicationCommand type converts an InteractionData field into an ApplicationCommandData struct.
 func (i *Interaction) ApplicationCommand() *ApplicationCommandData {
