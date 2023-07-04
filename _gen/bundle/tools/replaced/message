@@ -1,77 +1,75 @@
 type Message struct {
 	Timestamp            time.Time             `json:"timestamp"`
-	WebhookID            *string               `json:"webhook_id,omitempty"`
-	Author               *User                 `json:"author"`
-	RoleSubscriptionData *RoleSubscriptionData `json:"role_subscription_data,omitempty"`
+	Interaction          *Interaction          `json:"interaction"`
+	ReferencedMessage    **Message             `json:"referenced_message,omitempty"`
 	GuildID              *string               `json:"guild_id,omitempty"`
+	WebhookID            *string               `json:"webhook_id,omitempty"`
 	EditedTimestamp      *time.Time            `json:"edited_timestamp"`
 	Position             *int                  `json:"position,omitempty"`
 	Thread               *Channel              `json:"thread"`
-	Interaction          *Interaction          `json:"interaction"`
-	ReferencedMessage    **Message             `json:"referenced_message,omitempty"`
+	Author               *User                 `json:"author"`
 	Flags                *BitFlag              `json:"flags,omitempty"`
 	MessageReference     *MessageReference     `json:"message_reference,omitempty"`
 	ApplicationID        *string               `json:"application_id,omitempty"`
 	Application          *Application          `json:"application,omitempty"`
-	Nonce                *Nonce                `json:"nonce,omitempty"`
 	Activity             *MessageActivity      `json:"activity,omitempty"`
+	Nonce                *Nonce                `json:"nonce,omitempty"`
 	Member               *GuildMember          `json:"member,omitempty"`
-	Content              string                `json:"content"`
+	RoleSubscriptionData *RoleSubscriptionData `json:"role_subscription_data,omitempty"`
 	ChannelID            string                `json:"channel_id"`
 	ID                   string                `json:"id"`
-	Embeds               []*Embed              `json:"embeds"`
+	Content              string                `json:"content"`
 	Attachments          []*Attachment         `json:"attachments"`
 	MentionChannels      []*ChannelMention     `json:"mention_channels,omitempty"`
 	MentionRoles         []*string             `json:"mention_roles"`
-	Mentions             []*User               `json:"mentions"`
-	Reactions            []*Reaction           `json:"reactions,omitempty"`
 	Components           []Component           `json:"components"`
+	Reactions            []*Reaction           `json:"reactions,omitempty"`
+	Mentions             []*User               `json:"mentions"`
 	StickerItems         []*StickerItem        `json:"sticker_items"`
 	Stickers             []*Sticker            `json:"stickers"`
+	Embeds               []*Embed              `json:"embeds"`
 	MentionEveryone      bool                  `json:"mention_everyone"`
 	TTS                  bool                  `json:"tts"`
-	Pinned               bool                  `json:"pinned"`
 	Type                 Flag                  `json:"type"`
+	Pinned               bool                  `json:"pinned"`
 }
 ---
 type Message struct {
 	Timestamp         time.Time         `json:"timestamp"`
-	WebhookID         *string           `json:"webhook_id,omitempty"`
-	Author            *User             `json:"author"`
-	RoleSubscriptionData *RoleSubscriptionData `json:"role_subscription_data,omitempty"`
-	
+	Interaction       *Interaction      `json:"interaction"`
+	ReferencedMessage **Message         `json:"referenced_message,omitempty"`
+
 	// MessageCreate Event Extra Field
 	// https://discord.com/developers/docs/topics/gateway-events#message-create
 	GuildID           *string           `json:"guild_id,omitempty"`
-	
+	WebhookID         *string           `json:"webhook_id,omitempty"`
 	EditedTimestamp   *time.Time        `json:"edited_timestamp"`
 	Position          *int              `json:"position,omitempty"`
 	Thread            *Channel          `json:"thread"`
-	Interaction       *Interaction      `json:"interaction"`
-	ReferencedMessage **Message         `json:"referenced_message,omitempty"`
+	Author            *User             `json:"author"`
 	Flags             *BitFlag          `json:"flags,omitempty"`
 	MessageReference  *MessageReference `json:"message_reference,omitempty"`
 	ApplicationID     *string           `json:"application_id,omitempty"`
 	Application       *Application      `json:"application,omitempty"`
-	Nonce             *Nonce            `json:"nonce,omitempty"`
 	Activity          *MessageActivity  `json:"activity,omitempty"`
-	
+	Nonce             *Nonce            `json:"nonce,omitempty"`
+
 	// MessageCreate Event Extra Field
 	// https://discord.com/developers/docs/topics/gateway-events#message-create
 	Member            *GuildMember      `json:"member,omitempty"`
-
-	Content           string            `json:"content"`
+	RoleSubscriptionData *RoleSubscriptionData `json:"role_subscription_data,omitempty"`
 	ChannelID         string            `json:"channel_id"`
 	ID                string            `json:"id"`
-	Embeds            []*Embed          `json:"embeds"`
+	Content           string            `json:"content"`
 	Attachments       []*Attachment     `json:"attachments"`
 	MentionChannels   []*ChannelMention `json:"mention_channels,omitempty"`
 	MentionRoles      []*string         `json:"mention_roles"`
-	Mentions          []*User           `json:"mentions"`
-	Reactions         []*Reaction       `json:"reactions,omitempty"`
 	Components        []Component       `json:"components"`
+	Reactions         []*Reaction       `json:"reactions,omitempty"`
+	Mentions          []*User           `json:"mentions"`
 	StickerItems      []*StickerItem    `json:"sticker_items"`
 	Stickers          []*Sticker        `json:"stickers"`
+	Embeds            []*Embed          `json:"embeds"`
 	MentionEveryone   bool              `json:"mention_everyone"`
 	TTS               bool              `json:"tts"`
 	Type              Flag              `json:"type"`
