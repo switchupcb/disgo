@@ -8,8 +8,10 @@ const (
 	active             = "active"
 	appassets          = "app-assets"
 	appicons           = "app-icons"
+	applicationid      = "application_id"
 	applications       = "applications"
 	archived           = "archived"
+	assetid            = "asset_id"
 	auditlogs          = "audit-logs"
 	authorize          = "authorize"
 	automoderation     = "auto-moderation"
@@ -43,6 +45,7 @@ const (
 	mfa                = "mfa"
 	nick               = "nick"
 	oauth              = "oauth2"
+	onboarding         = "onboarding"
 	original           = "@original"
 	permissions        = "permissions"
 	pins               = "pins"
@@ -675,6 +678,11 @@ func EndpointModifyGuildWelcomeScreen(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + welcomescreen
 }
 
+// EndpointGetGuildOnboarding builds a query for an HTTP request.
+func EndpointGetGuildOnboarding(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + onboarding
+}
+
 // EndpointModifyCurrentUserVoiceState builds a query for an HTTP request.
 func EndpointModifyCurrentUserVoiceState(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + me
@@ -1016,8 +1024,8 @@ func CDNEndpointUserBanner(userid, userbanner string) string {
 }
 
 // CDNEndpointDefaultUserAvatar builds a query for an HTTP request.
-func CDNEndpointDefaultUserAvatar(userdiscriminator string) string {
-	return CDNEndpointBaseURL + embed + slash + avatars + slash + userdiscriminator
+func CDNEndpointDefaultUserAvatar(index string) string {
+	return CDNEndpointBaseURL + embed + slash + avatars + slash + index
 }
 
 // CDNEndpointUserAvatar builds a query for an HTTP request.
@@ -1050,8 +1058,13 @@ func CDNEndpointAchievementIcon(applicationid, achievementid, iconhash string) s
 	return CDNEndpointBaseURL + appassets + slash + applicationid + slash + achievements + slash + achievementid + slash + icons + slash + iconhash
 }
 
+// CDNEndpointStorePageAsset builds a query for an HTTP request.
+func CDNEndpointStorePageAsset() string {
+	return CDNEndpointBaseURL + appassets + slash + applicationid + slash + store + slash + assetid
+}
+
 // CDNEndpointStickerPackBanner builds a query for an HTTP request.
-func CDNEndpointStickerPackBanner(applicationid, stickerpackbannerassetid string) string {
+func CDNEndpointStickerPackBanner(stickerpackbannerassetid string) string {
 	return CDNEndpointBaseURL + appassets + slash + applicationid + slash + store + slash + stickerpackbannerassetid
 }
 

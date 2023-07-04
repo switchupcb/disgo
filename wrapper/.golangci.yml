@@ -6,8 +6,7 @@ linters:
   fast: false
   enable-all: true
   disable:
-    - deadcode # The repository has no Application Life Cycle Management. Run manually prior to a release.
-    - unused # The repository has no Application Life Cycle Management. Run manually prior to a release.
+    - unparam # The repository has no Application Life Cycle Management. Run manually prior to a release.
     
     - stylecheck # Underscores in flags currently defined by Discord.
     - tagliatelle # Tags defined by Discord.
@@ -20,37 +19,42 @@ linters:
     - nestif # Discord API is endless complexity.
     - exhaustive # False Positive on Flag Switch Statements.
 
-    - ifshort # False Positive due to Manager Logic.
     - errname # ErrorDescription > DesErr
     - ireturn # Required for UnmarshalJSON
 
     - contextcheck # To be re-evaluated.
 
-    - funlen
-    - exhaustivestruct
     - containedctx
+    - depguard
+    - exhaustivestruct
+    - forbidigo
+    - funlen
+    - goerr113
     - gofumpt
+    - interfacebloat
+    - nilnil
+    - tagalign
     - varnamelen
     - wsl
-    - goerr113
-    - forbidigo
-    - nilnil
 
+    - deadcode # Deprecated
     - golint # Deprecated
+    - exhaustivestruct # Deprecated
+    - ifshort # Deprecated
     - interfacer # Deprecated
     - scopelint # Deprecated
+    - structcheck # Deprecated
+    - nosnakecase # Deprecated
     - maligned # Deprecated
-    - exhaustivestruct # Deprecated
+    - varcheck # Deprecated
+
+    - gci # Error
 
 linters-settings:
-  revive:
-    rules:
-      - name: var-naming
-        disabled: true # Flags defined by Discord.
-        arguments:
-          - [] # AllowList
-          - [] # DenyList
-
+  gomnd:
+      ignored-files:
+        - dasgo.go
+  
   govet:
     enable-all: true
     disable:
@@ -59,7 +63,12 @@ linters-settings:
 
   nlreturn:
     block-size: 2
-  
-  gomnd:
-    ignored-files:
-      - dasgo.go
+
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true # Flags defined by Discord.
+        arguments:
+          - [] # AllowList
+          - [] # DenyList
+

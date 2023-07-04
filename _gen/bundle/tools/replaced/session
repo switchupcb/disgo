@@ -1,10 +1,10 @@
 type Session struct {
 	Context   context.Context
-	manager   *manager
 	Conn      *websocket.Conn
 	heartbeat *heartbeat
-	Endpoint  string
+	manager   *manager
 	ID        string
+	Endpoint  string
 	Seq       int64
 	sync.RWMutex
 }
@@ -15,20 +15,20 @@ type Session struct {
 	// Context is also used as a signal for the Session's goroutines.
 	Context   context.Context
 
-	// manager represents a manager of a Session's goroutines.
-	manager   *manager
-
 	// Conn represents a connection to the Discord Gateway.
 	Conn      *websocket.Conn
 
 	// heartbeat contains the fields required to implement the heartbeat mechanism.
 	heartbeat *heartbeat
 
-	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
-	Endpoint  string
+	// manager represents a manager of a Session's goroutines.
+	manager   *manager
 
 	// ID represents the session ID of the Session.
 	ID        string
+
+	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
+	Endpoint  string
 
 	// Seq represents the last sequence number received by the client.
 	//

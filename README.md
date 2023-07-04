@@ -134,7 +134,7 @@ _Disgo provides automatic [Gateway Intent](https://discord.com/developers/docs/t
 Open a WebSocket **Session** to receive events.
 
 ```go
-// Connect the session to the Discord Gateway (WebSocket Connection).
+// Connect a new session to the Discord Gateway (WebSocket Connection).
 s := disgo.NewSession()
 if err := s.Connect(bot); err != nil {
     log.Printf("can't open websocket session to Discord Gateway: %v", err)

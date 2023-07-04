@@ -13,7 +13,7 @@ var (
 // get gets a buffer from the pool.
 func get() *bytes.Buffer {
 	if b := bpool.Get(); b != nil {
-		return b.(*bytes.Buffer)
+		return b.(*bytes.Buffer) //nolint:forcetypeassert
 	}
 
 	return new(bytes.Buffer)

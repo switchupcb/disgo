@@ -52,17 +52,21 @@ Comments follow [Effective Go](https://golang.org/doc/effective_go#commentary) a
 
 #### Static Code Analysis
 
-Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`. If you receive a `diff` error _(while running)_, you must add a `diff` tool in your PATH. There is one located in the `Git/bin` directory.
+Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3`.
 
- | Directory | Command                       | Description                                        |
- | :-------- | :---------------------------- | :------------------------------------------------- |
- | `disgo`   | `golangci-lint run ./wrapper` | Perform static code analysis on the API Wrapper.   |
- | `_gen`    | `golangci-lint run ./_gen`    | Perform static code analysis on the generator.     |
- | `cache`   | `golangci-lint run ./cache`   | Perform static code analysis on the Disgo Cache.   |
- | `shard`   | `golangci-lint run ./shard`   | Perform static code analysis on the Shard Manager. |
- | `tools`   | `golangci-lint run ./tools`   | Perform static code analysis on the Tools Module.  |
+ | Directory | Command                           | Description                                        |
+ | :-------- | :-------------------------------- | :------------------------------------------------- |
+ | `disgo`   | `golangci-lint run ./wrapper/...` | Perform static code analysis on the API Wrapper.   |
+ | `_gen`    | `golangci-lint run ./_gen`        | Perform static code analysis on the generator.     |
+ | `cache`   | `golangci-lint run ./cache`       | Perform static code analysis on the Disgo Cache.   |
+ | `shard`   | `golangci-lint run ./shard`       | Perform static code analysis on the Shard Manager. |
+ | `tools`   | `golangci-lint run ./tools`       | Perform static code analysis on the Tools Module.  |
 
- _If you receive `File is not ... with -...`, use `golangci-lint run --disable-all --no-config -Egofmt --fix` or ignore it._
+##### Runtime Errors
+
+1. If you receive a `diff` error, add a `diff` tool in your PATH: There is one located in the `Git/bin` directory.
+2. If you receive `File is not ... with -...`, use `golangci-lint run --disable-all --no-config -Egofmt --fix` or ignore it.
+3. If you receive `main module ... does not contain package ...`, set `GOWORK=off`.
 
 #### Fieldalignment
 

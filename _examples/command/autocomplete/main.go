@@ -106,7 +106,7 @@ func main() {
 
 	log.Println("Connecting to the Discord Gateway...")
 
-	// Connect the session to the Discord Gateway (WebSocket Connection).
+	// Connect a new session to the Discord Gateway (WebSocket Connection).
 	s := disgo.NewSession()
 	if err := s.Connect(bot); err != nil {
 		log.Printf("can't open websocket session to Discord Gateway: %v", err)

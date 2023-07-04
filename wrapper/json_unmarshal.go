@@ -9,16 +9,21 @@ import (
 
 /**unmarshal.go contains custom UnmarshalJSON() functions.
 
-This enables json.Unmarshal() to unmarshal into types that contain fields that are interfaces.
+This lets json.Unmarshal() unmarshal JSON data into types that contain interface fields.
 
 In addition, structs that contain an embedded field - that implements UnmarshalJSON() - will
 use the embedded field's implementation of UnmarshalJSON(). As a result, these structs must
-also implement UnmarshalJSON() to prevent null pointer dereferences. */
+also implement UnmarshalJSON() to prevent null pointer dereferences.
+
+*/
 
 /** Unused: Command, Event */
 
 /** Nonce
-Includes: CreateMessage, Message */
+
+Includes: CreateMessage, Message
+
+**/
 
 func (v *Nonce) UnmarshalJSON(b []byte) error {
 	var x interface{}
@@ -42,7 +47,10 @@ func (v *Nonce) UnmarshalJSON(b []byte) error {
 }
 
 /** Value
-Includes: ApplicationCommandOptionChoice, ApplicationCommandInteractionDataOption */
+
+Includes: ApplicationCommandOptionChoice, ApplicationCommandInteractionDataOption
+
+**/
 
 func (v *Value) UnmarshalJSON(b []byte) error {
 	var x interface{}
@@ -61,6 +69,9 @@ func (v *Value) UnmarshalJSON(b []byte) error {
 	case float64:
 		*v = Value(strconv.FormatFloat(xValue, 'f', -1, bit64))
 
+	case bool:
+		*v = Value(strconv.FormatBool(xValue))
+
 	default:
 		return fmt.Errorf(errUnmarshal, v, fmt.Errorf("value is type %T", x))
 	}
@@ -68,7 +79,7 @@ func (v *Value) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-/** Component */
+/** Component **/
 
 // unmarshalComponents unmarshals a JSON component array into a slice of Go Interface Components (with underlying structs).
 func unmarshalComponents(b []byte) ([]Component, error) {
@@ -445,7 +456,7 @@ func (r *Message) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-/** InteractionData */
+/** InteractionData **/
 
 // unmarshalInteractionData unmarshals a JSON InteractionData object into
 // a Go Interface InteractionData (with an underlying struct).
@@ -512,7 +523,7 @@ func (r *Interaction) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-/** InteractionCallbackData */
+/** InteractionCallbackData **/
 
 // unmarshalInteractionCallbackData unmarshals a JSON InteractionCallbackData object into
 // a Go Interface InteractionCallbackData (with an underlying struct).
@@ -588,7 +599,7 @@ func (r *InteractionResponse) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-/** Structs that contain embedded fields that implement UnmarshalJSON() */
+/** Structs that contain embedded fields that implement UnmarshalJSON() **/
 
 func (e *MessageCreate) UnmarshalJSON(b []byte) error {
 	if err := json.Unmarshal(b, &e.Message); err != nil {

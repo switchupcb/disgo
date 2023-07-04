@@ -40,8 +40,8 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.46
-          args: ./wrapper
+          version: v1.53.3
+          args: ./wrapper/...
 
   test-unit:
     needs: sca-lint
