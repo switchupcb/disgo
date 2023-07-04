@@ -1,0 +1,33 @@
+run:
+  timeout: 5m
+  tests: false
+  skip-dirs:
+    - copygen
+
+linters:
+  fast: false
+  enable-all: true
+  disable:
+    - depguard
+    - forbidigo
+    - gochecknoglobals
+    - goerr113
+    - gofumpt
+    - stylecheck
+    - wsl
+
+    - deadcode # Deprecated
+    - golint # Deprecated
+    - exhaustivestruct # Deprecated
+    - ifshort # Deprecated
+    - interfacer # Deprecated
+    - scopelint # Deprecated
+    - structcheck # Deprecated
+    - nosnakecase # Deprecated
+    - maligned # Deprecated
+    - varcheck # Deprecated
+
+    - gci # Error
+    - musttag # Error
+
+linters-settings:

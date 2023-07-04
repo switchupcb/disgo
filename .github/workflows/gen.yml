@@ -12,6 +12,8 @@ on:
       - v10
     paths:
       - "_gen/**"
+env:
+  GOWORK: off
 
 jobs:
   sca-lint:

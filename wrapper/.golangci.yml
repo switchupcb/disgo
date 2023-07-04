@@ -19,7 +19,6 @@ linters:
     - nestif # Discord API is endless complexity.
     - exhaustive # False Positive on Flag Switch Statements.
 
-    - ifshort # False Positive due to Manager Logic.
     - errname # ErrorDescription > DesErr
     - ireturn # Required for UnmarshalJSON
 
@@ -41,6 +40,7 @@ linters:
     - deadcode # Deprecated
     - golint # Deprecated
     - exhaustivestruct # Deprecated
+    - ifshort # Deprecated
     - interfacer # Deprecated
     - scopelint # Deprecated
     - structcheck # Deprecated
@@ -51,14 +51,10 @@ linters:
     - gci # Error
 
 linters-settings:
-  revive:
-    rules:
-      - name: var-naming
-        disabled: true # Flags defined by Discord.
-        arguments:
-          - [] # AllowList
-          - [] # DenyList
-
+  gomnd:
+      ignored-files:
+        - dasgo.go
+  
   govet:
     enable-all: true
     disable:
@@ -67,7 +63,12 @@ linters-settings:
 
   nlreturn:
     block-size: 2
-  
-  gomnd:
-    ignored-files:
-      - dasgo.go
+
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true # Flags defined by Discord.
+        arguments:
+          - [] # AllowList
+          - [] # DenyList
+
