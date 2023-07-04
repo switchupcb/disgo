@@ -570,7 +570,7 @@ const (
 	// The double pointer is nil.
 	IsValueNothing PointerIndicator = 0
 
-	// IsValueNull indicates the the field was provided with a null value.
+	// IsValueNull indicates the field was provided with a null value.
 	//
 	// The double pointer points to a nil pointer.
 	IsValueNull PointerIndicator = 1
@@ -5324,7 +5324,7 @@ func IsValue[T any](p *T) bool {
 	return p != nil
 }
 
-// IsValue2 returns returns whether the given double pointer contains a pointer.
+// IsValue2 returns whether the given double pointer contains a pointer.
 func IsValue2[T any](dp **T) bool {
 	return dp != nil
 }
@@ -5334,7 +5334,7 @@ func IsValue2[T any](dp **T) bool {
 // returns IsValueNothing, IsValueNull, or IsValueValid.
 //
 // 	IsValueNothing indicates that the field was not provided.
-// 	IsValueNull indicates the the field was provided with a null value.
+// 	IsValueNull indicates the field was provided with a null value.
 // 	IsValueValid indicates that the field is a valid value.
 func PointerCheck[T any](dp **T) PointerIndicator {
 	if dp != nil {

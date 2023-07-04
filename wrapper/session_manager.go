@@ -125,7 +125,7 @@ func (s *Session) reconnect(reason string) {
 }
 
 // manage manages a Session's goroutines.
-func (s *Session) manage(bot *Client) {
+func (s *Session) manage() {
 	s.manager.routines.Done()
 	defer func() {
 		s.Lock()
@@ -299,18 +299,18 @@ func (s *Session) Wait() (int, error) {
 		case errors.As(err, disconnectErr):
 			if signal != nil {
 				if signalValue, ok := signal.(int); ok {
-					return signalValue, err // nolint:wrapcheck
+					return signalValue, err //nolint:wrapcheck
 				}
 			}
 
-			return SignalDisconnectError, err // nolint:wrapcheck
+			return SignalDisconnectError, err //nolint:wrapcheck
 
 		// when an error occurs from a WebSocket Close Error.
 		case errors.As(err, closeErr):
 			return SignalError, s.handleGatewayCloseError(closeErr)
 		}
 
-		return SignalError, err // nolint:wrapcheck
+		return SignalError, err //nolint:wrapcheck
 	}
 
 	return SignalUndefined, nil

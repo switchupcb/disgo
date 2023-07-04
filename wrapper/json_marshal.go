@@ -36,17 +36,17 @@ func (t Flags) MarshalJSON() ([]byte, error) {
 }
 
 func (r *BulkOverwriteGlobalApplicationCommands) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.ApplicationCommands) // nolint:wrapcheck
+	return json.Marshal(r.ApplicationCommands) //nolint:wrapcheck
 }
 
 func (r *BulkOverwriteGuildApplicationCommands) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.ApplicationCommands) // nolint:wrapcheck
+	return json.Marshal(r.ApplicationCommands) //nolint:wrapcheck
 }
 
 func (r *ModifyGuildChannelPositions) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.Parameters) // nolint:wrapcheck
+	return json.Marshal(r.Parameters) //nolint:wrapcheck
 }
 
 func (r *ModifyGuildRolePositions) MarshalJSON() ([]byte, error) {
-	return json.Marshal(r.Parameters) // nolint:wrapcheck
+	return json.Marshal(r.Parameters) //nolint:wrapcheck
 }

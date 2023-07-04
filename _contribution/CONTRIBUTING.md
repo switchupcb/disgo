@@ -52,7 +52,7 @@ Comments follow [Effective Go](https://golang.org/doc/effective_go#commentary) a
 
 #### Static Code Analysis
 
-Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2`. If you receive a `diff` error _(while running)_, you must add a `diff` tool in your PATH. There is one located in the `Git/bin` directory.
+Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3`. If you receive a `diff` error _(while running)_, you must add a `diff` tool in your PATH. There is one located in the `Git/bin` directory.
 
  | Directory | Command                       | Description                                        |
  | :-------- | :---------------------------- | :------------------------------------------------- |

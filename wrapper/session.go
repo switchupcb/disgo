@@ -143,7 +143,7 @@ func (s *Session) connect(bot *Client) error {
 
 	// handle the incoming Hello event upon connecting to the Gateway.
 	hello := new(Hello)
-	if err := readEvent(s, FlagGatewayEventNameHello, hello); err != nil {
+	if err := readEvent(s, hello); err != nil {
 		err = fmt.Errorf("error reading initial Hello event: %w", err)
 		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
@@ -228,7 +228,7 @@ func (s *Session) connect(bot *Client) error {
 
 	// spawn the manager goroutine.
 	s.manager.routines.Add(1)
-	go s.manage(bot)
+	go s.manage()
 
 	// ensure that the Session's goroutines are spawned.
 	s.manager.routines.Wait()
@@ -435,7 +435,7 @@ func (s *Session) Reconnect(bot *Client) error {
 }
 
 // readEvent is a helper function for reading events from the WebSocket Session.
-func readEvent(s *Session, name string, dst any) error {
+func readEvent(s *Session, dst any) error {
 	payload := new(GatewayPayload)
 	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
 		return fmt.Errorf("readEvent: %w", err)
