@@ -5,9 +5,11 @@ import (
 	"strconv"
 )
 
-/**unmarshal_convert.go contains type conversion functions for interfaces.
+/**unmarshal_convert.go contains type conversion functions for interfaces that JSON data is unmarshalled into.
 
-This enables users (developers) to easily type convert interfaces. */
+This lets users (developers) easily type convert interfaces.
+
+*/
 
 const (
 	errTypeConvert = "attempted to type convert InteractionData of type %v to type %s"
@@ -35,6 +37,10 @@ func (n Value) Float64() (float64, error) {
 
 func (n Value) Int64() (int64, error) {
 	return strconv.ParseInt(string(n), base10, bit64) //nolint:wrapcheck
+}
+
+func (n Value) Bool() (bool, error) {
+	return strconv.ParseBool(string(n)) //nolint:wrapcheck
 }
 
 /* InteractionData */
