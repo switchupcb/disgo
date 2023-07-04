@@ -1,16 +1,19 @@
 run:
   timeout: 5m
   tests: false
+  skip-dirs:
 
 linters:
   fast: false
   enable-all: true
   disable:
     - depguard
+    - funlen
+    - forbidigo
     - gochecknoglobals
+    - goerr113
     - gofumpt
-    - unused
-    - varnamelen
+    - stylecheck
     - wsl
 
     - deadcode # Deprecated
@@ -27,16 +30,3 @@ linters:
     - gci # Error
 
 linters-settings:
-  revive:
-    rules:
-      - name: var-naming
-        disabled: true # Flags defined by Discord.
-        arguments:
-          - [] # AllowList
-          - [] # DenyList
-
-  govet:
-    enable-all: true
-    disable:
-      - shadow
-      - fieldalignment # Completed at bundle-time.
