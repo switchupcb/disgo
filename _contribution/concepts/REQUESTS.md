@@ -36,6 +36,24 @@ if err != nil {
 }
 ```
 
+### What is a Request Retry?
+
+A request retry occurs when your request fails to receive a response (from Discord) due to an error. You can set the amount of retries per request by setting the `Client.Config.Request.Retries` field _(default: 1)_ defined in a [`Request`](https://pkg.go.dev/github.com/switchupcb/disgo#Request) object.
+
+```go
+bot.Config.Request.Retries = 1
+```
+
+### What is a Request Timeout?
+
+A request timeout represents the amount of time a request will wait for a response (from Discord). You can set a bot's request timeout from the `Client.Config.Request.Timeout` field _(default: 1s)_ defined in a [`Request`](https://pkg.go.dev/github.com/switchupcb/disgo#Request) object. 
+
+```go
+bot.Config.Request.Timeout = time.Second * 15
+```
+
+_`fasthttp.ErrTimeout`  is returned from timed out requests._
+
 ## What is a Rate Limit?
 
 Rate limits are used by servers to prevent spam, abuse, and service overload. A rate limit defines the speed at which a server can handle requests _(in requests per second)_. While there are many rate limit strategies a server may employ, [Google Architecture Rate Limiting Strategies](https://cloud.google.com/architecture/rate-limiting-strategies-techniques#techniques-enforcing-rate-limits) provides an explanation for the most common cases. Discord enforces multiple rate limit strategies dependent on the data that is sent to the server. This includes Global (Requests), Per Route (Requests), Per Resource (Requests), Global (Gateway), and Identify (Gateway) rate limits.
