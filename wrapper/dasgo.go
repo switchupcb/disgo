@@ -368,9 +368,10 @@ var (
 		30003:  "Maximum number of pins reached for the channel (50)",
 		30004:  "Maximum number of recipients reached (10)",
 		30005:  "Maximum number of guild roles reached (250)",
-		30007:  "Maximum number of webhooks reached (10)",
+		30007:  "Maximum number of webhooks reached (15)",
 		30008:  "Maximum number of emojis reached",
 		30010:  "Maximum number of reactions reached (20)",
+		30011:  "Maximum number of group DMs reached (10)",
 		30013:  "Maximum number of guild channels reached (500)",
 		30015:  "Maximum number of attachments in a message reached (10)",
 		30016:  "Maximum number of invites reached (1000)",
@@ -393,6 +394,8 @@ var (
 		30052:  "Bitrate is too high for channel of this type",
 		30056:  "Maximum number of premium emojis reached (25)",
 		30058:  "Maximum number of webhooks per guild reached (1000)",
+		30060:  "Maximum number of channel permission overwrites reached (1000)",
+		30061:  "The channels for this guild are too large",
 		40001:  "Unauthorized. Provide a valid token and try again",
 		40002:  "You need to verify your account in order to perform this action",
 		40003:  "You are opening direct messages too fast",
@@ -461,11 +464,19 @@ var (
 		50097:  "This server needs monetization enabled in order to perform this action",
 		50101:  "This server needs more boosts to perform this action",
 		50109:  "The request body contains invalid JSON.",
+		50131:  "Owner cannot be pending member",
 		50132:  "Ownership cannot be transferred to a bot user",
 		50138:  "Failed to resize asset below the maximum size: 262144",
 		50144:  "Cannot mix subscription and non subscription roles for an emoji",
 		50145:  "Cannot convert between premium emoji and normal emoji",
 		50146:  "Uploaded file not found.",
+		50163:  "Cannot delete guild subscription integration",
+		50178:  "The user account must first be verified",
+		500159: "Voice messages do not support additional content.",
+		50160:  "Voice messages must have a single audio attachment.",
+		50161:  "Voice messages must have supporting metadata.",
+		50162:  "Voice messages cannot be edited.",
+		50173:  "You cannot send voice messages in this channel.",
 		50600:  "You do not have permission to send this sticker.",
 		60003:  "Two factor is required for this operation",
 		80004:  "No users with DiscordTag exist",
@@ -547,7 +558,7 @@ type File struct {
 // Nonce represents a Discord nonce (integer or string).
 type Nonce string
 
-// Value represents a value (string, integer, or double).
+// Value represents a value (string, integer, double, or bool).
 type Value string
 
 // PointerIndicator represents a Dasgo double pointer value indicator.
@@ -864,6 +875,7 @@ type GuildMemberRemove struct {
 // Guild Member Update
 // https://discord.com/developers/docs/topics/gateway-events#guild-member-update
 type GuildMemberUpdate struct {
+	GuildID string `json:"guild_id"`
 	*GuildMember
 }
 
@@ -2333,6 +2345,7 @@ type ModifyGuild struct {
 	Features                    []*string `json:"features,omitempty"`
 	Description                 **string  `json:"description,omitempty"`
 	PremiumProgressBarEnabled   *bool     `json:"premium_progress_bar_enabled,omitempty"`
+	SafetyAlertsChannelID       **string  `json:"safety_alerts_channel_id,omitempty"`
 }
 
 // Delete Guild
@@ -2700,6 +2713,12 @@ type ModifyGuildWelcomeScreen struct {
 	Enabled         **bool                   `json:"enabled,omitempty"`
 	WelcomeChannels *[]*WelcomeScreenChannel `json:"welcome_channels,omitempty"`
 	Description     **string                 `json:"description,omitempty"`
+}
+
+// Get Guild Onboarding
+// https://discord.com/developers/docs/resources/guild#get-guild-onboarding
+type GetGuildOnboarding struct {
+	GuildID string
 }
 
 // Modify Current User Voice State
@@ -3457,6 +3476,7 @@ type Interaction struct {
 	Type           Flag            `json:"type"`
 	Data           InteractionData `json:"data,omitempty"`
 	GuildID        *string         `json:"guild_id,omitempty"`
+	Channel        *Channel        `json:"channel,omitempty"`
 	ChannelID      *string         `json:"channel_id,omitempty"`
 	Member         *GuildMember    `json:"member,omitempty"`
 	User           *User           `json:"user,omitempty"`
@@ -3622,15 +3642,16 @@ type Application struct {
 // Application Flags
 // https://discord.com/developers/docs/resources/application#application-object-application-flags
 const (
-	FlagApplicationGATEWAY_PRESENCE                 BitFlag = 1 << 12
-	FlagApplicationGATEWAY_PRESENCE_LIMITED         BitFlag = 1 << 13
-	FlagApplicationGATEWAY_GUILD_MEMBERS            BitFlag = 1 << 14
-	FlagApplicationGATEWAY_GUILD_MEMBERS_LIMITED    BitFlag = 1 << 15
-	FlagApplicationVERIFICATION_PENDING_GUILD_LIMIT BitFlag = 1 << 16
-	FlagApplicationEMBEDDED                         BitFlag = 1 << 17
-	FlagApplicationGATEWAY_MESSAGE_CONTENT          BitFlag = 1 << 18
-	FlagApplicationGATEWAY_MESSAGE_CONTENT_LIMITED  BitFlag = 1 << 19
-	FlagApplicationAPPLICATION_COMMAND_BADGE        BitFlag = 1 << 23
+	FlagApplicationAPPLICATION_AUTO_MODERATION_RULE_CREATE_BADGE BitFlag = 1 << 6
+	FlagApplicationGATEWAY_PRESENCE                              BitFlag = 1 << 12
+	FlagApplicationGATEWAY_PRESENCE_LIMITED                      BitFlag = 1 << 13
+	FlagApplicationGATEWAY_GUILD_MEMBERS                         BitFlag = 1 << 14
+	FlagApplicationGATEWAY_GUILD_MEMBERS_LIMITED                 BitFlag = 1 << 15
+	FlagApplicationVERIFICATION_PENDING_GUILD_LIMIT              BitFlag = 1 << 16
+	FlagApplicationEMBEDDED                                      BitFlag = 1 << 17
+	FlagApplicationGATEWAY_MESSAGE_CONTENT                       BitFlag = 1 << 18
+	FlagApplicationGATEWAY_MESSAGE_CONTENT_LIMITED               BitFlag = 1 << 19
+	FlagApplicationAPPLICATION_COMMAND_BADGE                     BitFlag = 1 << 23
 )
 
 // Install Params Object
@@ -3804,11 +3825,12 @@ const (
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-trigger-metadata
 type TriggerMetadata struct {
 	// https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-keyword-matching-strategies
-	KeywordFilter     []string `json:"keyword_filter"`
-	RegexPatterns     []string `json:"regex_patterns"`
-	Presets           Flags    `json:"presets"`
-	AllowList         []string `json:"allow_list"`
-	MentionTotalLimit int      `json:"mention_total_limit"`
+	KeywordFilter                []string `json:"keyword_filter"`
+	RegexPatterns                []string `json:"regex_patterns"`
+	Presets                      Flags    `json:"presets"`
+	AllowList                    []string `json:"allow_list"`
+	MentionTotalLimit            int      `json:"mention_total_limit"`
+	MentionRaidProtectionEnabled bool     `json:"mention_raid_protection_enabled"`
 }
 
 // Keyword Preset Types
@@ -3843,8 +3865,9 @@ const (
 // Action Metadata
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-action-object-action-metadata
 type ActionMetadata struct {
-	ChannelID       string `json:"channel_id"`
-	DurationSeconds int    `json:"duration_seconds"`
+	ChannelID       string  `json:"channel_id"`
+	DurationSeconds int     `json:"duration_seconds"`
+	CustomMessage   *string `json:"custom_message,omitempty"`
 }
 
 // Channel Object
@@ -3866,6 +3889,7 @@ type Channel struct {
 	Icon                          **string               `json:"icon,omitempty"`
 	OwnerID                       *string                `json:"owner_id,omitempty"`
 	ApplicationID                 *string                `json:"application_id,omitempty"`
+	Managed                       *bool                  `json:"managed,omitempty"`
 	ParentID                      **string               `json:"parent_id,omitempty"`
 	LastPinTimestamp              **time.Time            `json:"last_pin_timestamp,omitempty"`
 	RTCRegion                     **string               `json:"rtc_region,omitempty"`
@@ -4038,6 +4062,8 @@ const (
 	FlagMessageEPHEMERAL                              BitFlag = 1 << 6
 	FlagMessageLOADING                                BitFlag = 1 << 7
 	FlagMessageFAILED_TO_MENTION_SOME_ROLES_IN_THREAD BitFlag = 1 << 8
+	FlagMessageSUPPRESS_NOTIFICATIONS                 BitFlag = 1 << 12
+	FlagMessageIS_VOICE_MESSAGE                       BitFlag = 1 << 13
 )
 
 // Message Reference Object
@@ -4203,16 +4229,18 @@ const (
 // Message Attachment Object
 // https://discord.com/developers/docs/resources/channel#attachment-object-attachment-structure
 type Attachment struct {
-	ID          string  `json:"id"`
-	Filename    string  `json:"filename"`
-	Description *string `json:"description,omitempty"`
-	ContentType *string `json:"content_type,omitempty"`
-	Size        int     `json:"size"`
-	URL         string  `json:"url"`
-	ProxyURL    string  `json:"proxy_url"`
-	Height      **int   `json:"height,omitempty"`
-	Width       **int   `json:"width,omitempty"`
-	Emphemeral  *bool   `json:"ephemeral,omitempty"`
+	ID              string   `json:"id"`
+	Filename        string   `json:"filename"`
+	Description     *string  `json:"description,omitempty"`
+	ContentType     *string  `json:"content_type,omitempty"`
+	Size            int      `json:"size"`
+	URL             string   `json:"url"`
+	ProxyURL        string   `json:"proxy_url"`
+	Height          **int    `json:"height,omitempty"`
+	Width           **int    `json:"width,omitempty"`
+	Emphemeral      *bool    `json:"ephemeral,omitempty"`
+	DurationSeconds *float64 `json:"duration_secs,omitempty"`
+	Waveform        *string  `json:"waveform,omitempty"`
 }
 
 // Channel Mention Object
@@ -4301,12 +4329,14 @@ type Guild struct {
 	PreferredLocale             string         `json:"preferred_locale"`
 	PublicUpdatesChannelID      *string        `json:"public_updates_channel_id"`
 	MaxVideoChannelUsers        *int           `json:"max_video_channel_users,omitempty"`
+	MaxStageVideoChannelUsers   *int           `json:"max_stage_video_channel_users,omitempty"`
 	ApproximateMemberCount      *int           `json:"approximate_member_count,omitempty"`
 	ApproximatePresenceCount    *int           `json:"approximate_presence_count,omitempty"`
 	WelcomeScreen               *WelcomeScreen `json:"welcome_screen,omitempty"`
 	NSFWLevel                   Flag           `json:"nsfw_level"`
 	Stickers                    []*Sticker     `json:"stickers,omitempty"`
 	PremiumProgressBarEnabled   bool           `json:"premium_progress_bar_enabled"`
+	SafetyAlertsChannelID       *string        `json:"safety_alerts_channel_id"`
 
 	// Unavailable Guild Object
 	// https://discord.com/developers/docs/resources/guild#unavailable-guild-object
@@ -4395,6 +4425,7 @@ const (
 	FlagGuildFeatureNEWS                                      = "NEWS"
 	FlagGuildFeaturePARTNERED                                 = "PARTNERED"
 	FlagGuildFeaturePREVIEW_ENABLED                           = "PREVIEW_ENABLED"
+	FlagGuildFeatureRAID_ALERTS_DISABLED                      = "RAID_ALERTS_DISABLED"
 	FlagGuildFeatureROLE_ICONS                                = "ROLE_ICONS"
 	FlagGuildFeatureROLE_SUBSCRIPTIONS_AVAILABLE_FOR_PURCHASE = "ROLE_SUBSCRIPTIONS_AVAILABLE_FOR_PURCHASE"
 	FlagGuildFeatureROLE_SUBSCRIPTIONS_ENABLED                = "ROLE_SUBSCRIPTIONS_ENABLED"
@@ -4409,9 +4440,10 @@ const (
 // https://discord.com/developers/docs/resources/guild#guild-object-mutable-guild-features
 var (
 	MutableGuildFeatures = map[string]bool{
-		FlagGuildFeatureCOMMUNITY:        true,
-		FlagGuildFeatureINVITES_DISABLED: true,
-		FlagGuildFeatureDISCOVERABLE:     true,
+		FlagGuildFeatureCOMMUNITY:            true,
+		FlagGuildFeatureINVITES_DISABLED:     true,
+		FlagGuildFeatureDISCOVERABLE:         true,
+		FlagGuildFeatureRAID_ALERTS_DISABLED: true,
 	}
 )
 
@@ -4542,6 +4574,45 @@ type WelcomeScreenChannel struct {
 	EmojiID     *string `json:"emoji_id"`
 	EmojiName   *string `json:"emoji_name"`
 }
+
+// Guild Onboarding Structure
+// https://discord.com/developers/docs/resources/guild#guild-onboarding-object
+type GuildOnboarding struct {
+	GuildID           string              `json:"guild_id"`
+	Prompts           []*OnboardingPrompt `json:"prompt"`
+	DefaultChannelIDs []string            `json:"default_channel_ids"`
+	Enabled           bool                `json:"enabled"`
+}
+
+// Onboarding Prompt Structure
+// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-onboarding-prompt-structure
+type OnboardingPrompt struct {
+	ID           string          `json:"id"`
+	Type         Flag            `json:"type"`
+	Options      []*PromptOption `json:"options"`
+	Title        string          `json:"title"`
+	SingleSelect bool            `json:"single_select"`
+	Required     bool            `json:"required"`
+	InOnboarding bool            `json:"in_onboarding"`
+}
+
+// Prompt Option Structure
+// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-option-structure
+type PromptOption struct {
+	ID          string   `json:"id"`
+	ChannelIDs  []string `json:"channel_ids"`
+	RoleIDs     []string `json:"role_ids"`
+	Emoji       []*Emoji `json:"emoji"`
+	Title       string   `json:"title"`
+	Description *string  `json:"description"`
+}
+
+// Prompt Types
+// https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-types
+const (
+	FlagPromptTypeMULTIPLE_CHOICE = 0
+	FlagPromptTypeDROPDOWN        = 1
+)
 
 // Guild Scheduled Event Object
 // https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-object-guild-scheduled-event-structure
@@ -4726,6 +4797,7 @@ type User struct {
 	ID            string   `json:"id"`
 	Username      string   `json:"username"`
 	Discriminator string   `json:"discriminator"`
+	GlobalName    *string  `json:"global_name"`
 	Avatar        *string  `json:"avatar"`
 	Bot           *bool    `json:"bot,omitempty"`
 	System        *bool    `json:"system,omitempty"`
@@ -4856,47 +4928,51 @@ const (
 // Bitwise Permission Flags
 // https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags
 const (
-	FlagBitwisePermissionCREATE_INSTANT_INVITE      BitFlag = 1 << 0
-	FlagBitwisePermissionKICK_MEMBERS               BitFlag = 1 << 1
-	FlagBitwisePermissionBAN_MEMBERS                BitFlag = 1 << 2
-	FlagBitwisePermissionADMINISTRATOR              BitFlag = 1 << 3
-	FlagBitwisePermissionMANAGE_CHANNELS            BitFlag = 1 << 4
-	FlagBitwisePermissionMANAGE_GUILD               BitFlag = 1 << 5
-	FlagBitwisePermissionADD_REACTIONS              BitFlag = 1 << 6
-	FlagBitwisePermissionVIEW_AUDIT_LOG             BitFlag = 1 << 7
-	FlagBitwisePermissionPRIORITY_SPEAKER           BitFlag = 1 << 8
-	FlagBitwisePermissionSTREAM                     BitFlag = 1 << 9
-	FlagBitwisePermissionVIEW_CHANNEL               BitFlag = 1 << 10
-	FlagBitwisePermissionSEND_MESSAGES              BitFlag = 1 << 11
-	FlagBitwisePermissionSEND_TTS_MESSAGES          BitFlag = 1 << 12
-	FlagBitwisePermissionMANAGE_MESSAGES            BitFlag = 1 << 13
-	FlagBitwisePermissionEMBED_LINKS                BitFlag = 1 << 14
-	FlagBitwisePermissionATTACH_FILES               BitFlag = 1 << 15
-	FlagBitwisePermissionREAD_MESSAGE_HISTORY       BitFlag = 1 << 16
-	FlagBitwisePermissionMENTION_EVERYONE           BitFlag = 1 << 17
-	FlagBitwisePermissionUSE_EXTERNAL_EMOJIS        BitFlag = 1 << 18
-	FlagBitwisePermissionVIEW_GUILD_INSIGHTS        BitFlag = 1 << 19
-	FlagBitwisePermissionCONNECT                    BitFlag = 1 << 20
-	FlagBitwisePermissionSPEAK                      BitFlag = 1 << 21
-	FlagBitwisePermissionMUTE_MEMBERS               BitFlag = 1 << 22
-	FlagBitwisePermissionDEAFEN_MEMBERS             BitFlag = 1 << 23
-	FlagBitwisePermissionMOVE_MEMBERS               BitFlag = 1 << 24
-	FlagBitwisePermissionUSE_VAD                    BitFlag = 1 << 25
-	FlagBitwisePermissionCHANGE_NICKNAME            BitFlag = 1 << 26
-	FlagBitwisePermissionMANAGE_NICKNAMES           BitFlag = 1 << 27
-	FlagBitwisePermissionMANAGE_ROLES               BitFlag = 1 << 28
-	FlagBitwisePermissionMANAGE_WEBHOOKS            BitFlag = 1 << 29
-	FlagBitwisePermissionMANAGE_EMOJIS_AND_STICKERS BitFlag = 1 << 30
-	FlagBitwisePermissionUSE_APPLICATION_COMMANDS   BitFlag = 1 << 31
-	FlagBitwisePermissionREQUEST_TO_SPEAK           BitFlag = 1 << 32
-	FlagBitwisePermissionMANAGE_EVENTS              BitFlag = 1 << 33
-	FlagBitwisePermissionMANAGE_THREADS             BitFlag = 1 << 34
-	FlagBitwisePermissionCREATE_PUBLIC_THREADS      BitFlag = 1 << 35
-	FlagBitwisePermissionCREATE_PRIVATE_THREADS     BitFlag = 1 << 36
-	FlagBitwisePermissionUSE_EXTERNAL_STICKERS      BitFlag = 1 << 37
-	FlagBitwisePermissionSEND_MESSAGES_IN_THREADS   BitFlag = 1 << 38
-	FlagBitwisePermissionUSE_EMBEDDED_ACTIVITIES    BitFlag = 1 << 39
-	FlagBitwisePermissionMODERATE_MEMBERS           BitFlag = 1 << 40
+	FlagBitwisePermissionCREATE_INSTANT_INVITE               BitFlag = 1 << 0
+	FlagBitwisePermissionKICK_MEMBERS                        BitFlag = 1 << 1
+	FlagBitwisePermissionBAN_MEMBERS                         BitFlag = 1 << 2
+	FlagBitwisePermissionADMINISTRATOR                       BitFlag = 1 << 3
+	FlagBitwisePermissionMANAGE_CHANNELS                     BitFlag = 1 << 4
+	FlagBitwisePermissionMANAGE_GUILD                        BitFlag = 1 << 5
+	FlagBitwisePermissionADD_REACTIONS                       BitFlag = 1 << 6
+	FlagBitwisePermissionVIEW_AUDIT_LOG                      BitFlag = 1 << 7
+	FlagBitwisePermissionPRIORITY_SPEAKER                    BitFlag = 1 << 8
+	FlagBitwisePermissionSTREAM                              BitFlag = 1 << 9
+	FlagBitwisePermissionVIEW_CHANNEL                        BitFlag = 1 << 10
+	FlagBitwisePermissionSEND_MESSAGES                       BitFlag = 1 << 11
+	FlagBitwisePermissionSEND_TTS_MESSAGES                   BitFlag = 1 << 12
+	FlagBitwisePermissionMANAGE_MESSAGES                     BitFlag = 1 << 13
+	FlagBitwisePermissionEMBED_LINKS                         BitFlag = 1 << 14
+	FlagBitwisePermissionATTACH_FILES                        BitFlag = 1 << 15
+	FlagBitwisePermissionREAD_MESSAGE_HISTORY                BitFlag = 1 << 16
+	FlagBitwisePermissionMENTION_EVERYONE                    BitFlag = 1 << 17
+	FlagBitwisePermissionUSE_EXTERNAL_EMOJIS                 BitFlag = 1 << 18
+	FlagBitwisePermissionVIEW_GUILD_INSIGHTS                 BitFlag = 1 << 19
+	FlagBitwisePermissionCONNECT                             BitFlag = 1 << 20
+	FlagBitwisePermissionSPEAK                               BitFlag = 1 << 21
+	FlagBitwisePermissionMUTE_MEMBERS                        BitFlag = 1 << 22
+	FlagBitwisePermissionDEAFEN_MEMBERS                      BitFlag = 1 << 23
+	FlagBitwisePermissionMOVE_MEMBERS                        BitFlag = 1 << 24
+	FlagBitwisePermissionUSE_VAD                             BitFlag = 1 << 25
+	FlagBitwisePermissionCHANGE_NICKNAME                     BitFlag = 1 << 26
+	FlagBitwisePermissionMANAGE_NICKNAMES                    BitFlag = 1 << 27
+	FlagBitwisePermissionMANAGE_ROLES                        BitFlag = 1 << 28
+	FlagBitwisePermissionMANAGE_WEBHOOKS                     BitFlag = 1 << 29
+	FlagBitwisePermissionMANAGE_GUILD_EXPRESSIONS            BitFlag = 1 << 30
+	FlagBitwisePermissionUSE_APPLICATION_COMMANDS            BitFlag = 1 << 31
+	FlagBitwisePermissionREQUEST_TO_SPEAK                    BitFlag = 1 << 32
+	FlagBitwisePermissionMANAGE_EVENTS                       BitFlag = 1 << 33
+	FlagBitwisePermissionMANAGE_THREADS                      BitFlag = 1 << 34
+	FlagBitwisePermissionCREATE_PUBLIC_THREADS               BitFlag = 1 << 35
+	FlagBitwisePermissionCREATE_PRIVATE_THREADS              BitFlag = 1 << 36
+	FlagBitwisePermissionUSE_EXTERNAL_STICKERS               BitFlag = 1 << 37
+	FlagBitwisePermissionSEND_MESSAGES_IN_THREADS            BitFlag = 1 << 38
+	FlagBitwisePermissionUSE_EMBEDDED_ACTIVITIES             BitFlag = 1 << 39
+	FlagBitwisePermissionMODERATE_MEMBERS                    BitFlag = 1 << 40
+	FlagBitwisePermissionVIEW_CREATOR_MONETIZATION_ANALYTICS BitFlag = 1 << 41
+	FlagBitwisePermissionUSE_SOUNDBOARD                      BitFlag = 1 << 42
+	FlagBitwisePermissionUSE_EXTERNAL_SOUNDS                 BitFlag = 1 << 45
+	FlagBitwisePermissionSEND_VOICE_MESSAGES                 BitFlag = 1 << 46
 )
 
 // Permission Overwrite Types
