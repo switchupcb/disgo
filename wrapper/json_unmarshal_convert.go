@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-/**unmarshal_convert.go contains type conversion functions for interfaces that JSON data is unmarshalled into.
+/**json_unmarshal_convert.go contains type conversion functions for interfaces that JSON data is unmarshalled into.
 
 This lets users (developers) easily type convert interfaces.
 

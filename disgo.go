@@ -9475,6 +9475,16 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 	}
 }
 
+/**json_convert.go contains type conversion functions for JSON data functionality.
+
+This lets users (developers) easily type convert JSON data between structs.
+
+*/
+
+func (b BitFlag) String() string {
+	return strconv.FormatUint(uint64(b), base10)
+}
+
 var (
 	byteEmptySlice = []byte("[]")
 )
@@ -10145,7 +10155,7 @@ func (e *CreateInteractionResponse) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-/**unmarshal_convert.go contains type conversion functions for interfaces that JSON data is unmarshalled into.
+/**json_unmarshal_convert.go contains type conversion functions for interfaces that JSON data is unmarshalled into.
 
 This lets users (developers) easily type convert interfaces.
 

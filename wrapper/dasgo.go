@@ -5333,9 +5333,9 @@ func IsValue2[T any](dp **T) bool {
 //
 // returns IsValueNothing, IsValueNull, or IsValueValid.
 //
-// 	IsValueNothing indicates that the field was not provided.
-// 	IsValueNull indicates the field was provided with a null value.
-// 	IsValueValid indicates that the field is a valid value.
+//	IsValueNothing indicates that the field was not provided.
+//	IsValueNull indicates the field was provided with a null value.
+//	IsValueValid indicates that the field is a valid value.
 func PointerCheck[T any](dp **T) PointerIndicator {
 	if dp != nil {
 		if *dp != nil {
