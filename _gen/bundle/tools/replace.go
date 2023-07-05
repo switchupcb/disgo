@@ -103,7 +103,7 @@ var (
 func strip(data []byte) string {
 	var stripped strings.Builder
 
-	var line []byte
+	var line []byte //nolint:prealloc
 	for _, b := range data {
 		if b == newline {
 			stripped.WriteString(strings.TrimSpace(string(line)))

@@ -8,12 +8,19 @@ linters:
   fast: false
   enable-all: true
   disable:
+    - cyclop
     - depguard
     - forbidigo
+    - funlen
     - gochecknoglobals
+    - gocognit
     - goerr113
     - gofumpt
+    - gomnd
     - stylecheck
+    - unused
+    - varnamelen
+    - whitespace
     - wsl
 
     - deadcode # Deprecated
@@ -31,3 +38,6 @@ linters:
     - musttag # Error
 
 linters-settings:
+  govet:
+    disable:
+      - printf

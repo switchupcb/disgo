@@ -56,7 +56,7 @@ func field(content string, field string, replace string, skip ...string) string 
 		count := 0
 		ptr := ""
 		for _, lineField := range lineFields {
-			if lineField == field {
+			if lineField == field { //nolint:gocritic
 				count++
 			} else if lineField == "*"+field {
 				count++
@@ -68,7 +68,7 @@ func field(content string, field string, replace string, skip ...string) string 
 		}
 
 		switch count {
-		// i.e Name Field
+		// e.g "Name Field"
 		case 1:
 			keep.WriteString(
 				fmt.Sprintf("%s %s %s\n", lineFields[0], ptr+replace, strings.Join(lineFields[2:], " ")),
@@ -76,7 +76,7 @@ func field(content string, field string, replace string, skip ...string) string 
 
 			continue
 
-		// i.e Field Field
+		// e.g "Field Field"
 		case 2:
 			keep.WriteString(
 				fmt.Sprintf("%s %s %s\n", lineFields[0], ptr+replace, strings.Join(lineFields[2:], " ")),

@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	// constMap represents a map of constants referenced in functions (`key = val`)
+	// constMap represents a map of constants referenced in functions (`key = val`).
 	constMap map[string]string
 
 	// EndpointBaseURL represents the EndpointBaseURL declaration variable name.
@@ -151,7 +151,7 @@ func alphastring(s string) string {
 	var alpha strings.Builder
 	for _, c := range s {
 		if ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') {
-			alpha.WriteString(string(c))
+			alpha.WriteRune(c)
 		}
 	}
 

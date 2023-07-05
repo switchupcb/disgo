@@ -58,7 +58,7 @@ Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order t
  | :------------ | :-------------------------------- | :------------------------------------------------- | :------ |
  | `disgo`       | `golangci-lint run ./wrapper/...` | Perform static code analysis on the API Wrapper.   | default |
  | `./_examples` | `golangci-lint run ./...`         | Perform static code analysis on the examples.      | default |
- | `./_gen`      | `golangci-lint run ./`            | Perform static code analysis on the generator.     | `off`   |
+ | `./_gen`      | `golangci-lint run ./...`         | Perform static code analysis on the generator.     | `off`   |
  | `disgo`       | `golangci-lint run ./cache/...`   | Perform static code analysis on the Disgo Cache.   | default |
  | `disgo`       | `golangci-lint run ./shard/...`   | Perform static code analysis on the Shard Manager. | default |
  | `disgo`       | `golangci-lint run ./tools/...`   | Perform static code analysis on the Tools package. | default |

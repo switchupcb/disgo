@@ -357,7 +357,7 @@ func filterOutput(endpoints []string) []string {
 	return output
 }
 
-// findOrder finds the optimal order of endpoints using dependency graph.
+// findOrder finds the optimal order of endpoints using a dependency graph.
 func findOrder(endpoints map[string][]string) []string {
 	numEndpoints := len(endpoints)
 
