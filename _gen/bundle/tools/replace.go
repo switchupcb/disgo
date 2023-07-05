@@ -3,7 +3,6 @@ package tools
 import (
 	"fmt"
 	"go/format"
-	"io/ioutil"
 	"os"
 	"path"
 	"strings"
@@ -72,7 +71,7 @@ func Replace(filepath string) error {
 //
 // A boundary is used to determine the key and field.
 func initialize(dir, boundary string) (map[string]string, error) {
-	files, err := ioutil.ReadDir(dir)
+	files, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("%w", err)
 	}

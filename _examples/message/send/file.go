@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 	"path"
@@ -25,7 +25,7 @@ func getFile(location string) (*disgo.File, error) {
 	switch isFile {
 	case true:
 		// when the location is a filepath, load the file locally.
-		data, err = ioutil.ReadFile(location)
+		data, err = os.ReadFile(location)
 		if err != nil {
 			return nil, fmt.Errorf("an error occurred reading the file: %w", err)
 		}
@@ -40,7 +40,7 @@ func getFile(location string) (*disgo.File, error) {
 		// read the HTTP Response Body ([]bytes) to determine the file's Content Type and Data.
 		defer response.Body.Close()
 
-		data, err = ioutil.ReadAll(response.Body)
+		data, err = io.ReadAll(response.Body)
 		if err != nil {
 			return nil, fmt.Errorf("an error occurred reading the fetched file data: %w", err)
 		}
