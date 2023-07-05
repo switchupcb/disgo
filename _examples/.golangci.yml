@@ -7,12 +7,19 @@ linters:
   fast: false
   enable-all: true
   disable:
+    - cyclop
     - depguard
+    - exhaustive
     - funlen
     - forbidigo
+    - gocognit
     - gochecknoglobals
     - goerr113
     - gofumpt
+    - gomnd
+    - gosmopolitan
+    - lll
+    - noctx
     - stylecheck
     - wsl
 
@@ -30,3 +37,16 @@ linters:
     - gci # Error
 
 linters-settings:
+  varnamelen:
+    ignore-names:
+      - ok
+  
+  exhaustruct:
+    exclude:
+      - fasthttp.Client
+      - disgo.Client
+      - disgo.CreateGlobalApplicationCommand
+      - disgo.CreateFollowupMessage
+      - disgo.EditFollowupMessage
+      - disgo.EditOriginalInteractionResponse
+      - disgo.Messages

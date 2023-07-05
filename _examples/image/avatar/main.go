@@ -12,13 +12,13 @@ import (
 	"github.com/switchupcb/disgo/tools"
 )
 
-// Environment Variables
+// Environment Variables.
 var (
 	// token represents the bot's token.
 	token = os.Getenv("TOKEN")
 )
 
-// Command Line Flags
+// Command Line Flags.
 var (
 	location = flag.String("i", "", "Set the location (filepath or URL) of the avatar image using -i.")
 	remove   = flag.Bool("r", false, "Use -r to remove the avatar image after successfully setting it.")

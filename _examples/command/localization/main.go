@@ -9,7 +9,7 @@ import (
 	"github.com/switchupcb/disgo/tools"
 )
 
-// Environment Variables
+// Environment Variables.
 var (
 	// token represents the bot's token.
 	token = os.Getenv("TOKEN")
@@ -120,8 +120,8 @@ func main() {
 	log.Println("Connecting to the Discord Gateway...")
 
 	// Connect a new session to the Discord Gateway (WebSocket Connection).
-	s := disgo.NewSession()
-	if err := s.Connect(bot); err != nil {
+	session := disgo.NewSession()
+	if err := session.Connect(bot); err != nil {
 		log.Printf("can't open websocket session to Discord Gateway: %v", err)
 
 		return
@@ -130,7 +130,7 @@ func main() {
 	log.Println("Successfully connected to the Discord Gateway. Waiting for an interaction...")
 
 	// end the program using a SIGINT call via `Ctrl + C` from the terminal.
-	if err := tools.InterceptSignal(tools.Signals, s); err != nil {
+	if err := tools.InterceptSignal(tools.Signals, session); err != nil {
 		log.Printf("error exiting program: %v", err)
 	}
 

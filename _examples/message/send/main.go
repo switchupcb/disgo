@@ -8,13 +8,13 @@ import (
 	"github.com/switchupcb/disgo"
 )
 
-// Environment Variables
+// Environment Variables.
 var (
 	// token represents the bot's token.
 	token = os.Getenv("TOKEN")
 )
 
-// Command Line Flags
+// Command Line Flags.
 var (
 	channelID = flag.String("c", "", "Set the channel (ID) the message will be sent to using -c.")
 	msg       = flag.String("m", "", "Set the text content of the message using -m.")

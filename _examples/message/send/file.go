@@ -27,14 +27,14 @@ func getFile(location string) (*disgo.File, error) {
 		// when the location is a filepath, load the file locally.
 		data, err = ioutil.ReadFile(location)
 		if err != nil {
-			return nil, fmt.Errorf("an error occurred reading the file: %v", err)
+			return nil, fmt.Errorf("an error occurred reading the file: %w", err)
 		}
 
 	case false:
 		// when the location is a URL, fetch the file from the internet.
-		response, err := http.Get(location)
+		response, err := http.Get(location) //nolint:gosec
 		if err != nil {
-			return nil, fmt.Errorf("an error occurred fetching the file: %v", err)
+			return nil, fmt.Errorf("an error occurred fetching the file: %w", err)
 		}
 
 		// read the HTTP Response Body ([]bytes) to determine the file's Content Type and Data.
@@ -42,7 +42,7 @@ func getFile(location string) (*disgo.File, error) {
 
 		data, err = ioutil.ReadAll(response.Body)
 		if err != nil {
-			return nil, fmt.Errorf("an error occurred reading the fetched file data: %v", err)
+			return nil, fmt.Errorf("an error occurred reading the fetched file data: %w", err)
 		}
 	}
 
