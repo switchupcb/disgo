@@ -21,9 +21,9 @@ jobs:
       - name: Checkout repository code
         uses: actions/checkout@v3
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.18
+          go-version-file: ./cache/go.mod
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
