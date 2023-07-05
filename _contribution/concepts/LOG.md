@@ -1,6 +1,8 @@
 # What is a Log?
 
-A **log** is a record that contains information about an application's runtime. Logs are useful for the development and debugging of a program. For more information, read [Logging (Software)](https://en.wikipedia.org/wiki/Logging_(software)).
+A **log** is a record that contains information about an application's runtime. Logs are useful for the development and debugging of a program. 
+
+_For more information, read [Logging (Software)](https://en.wikipedia.org/wiki/Logging_(software))._
 
 ## What is an Unstructured Log?
 
@@ -19,7 +21,7 @@ log.Println("This creates an unstructured log.")
 A **structured log** — in Software Development — is a log _(record)_ with a specified structure _(i.e CBOR, JSON)_. This allows developers to programmatically analyze and process logs.
 
 ```json
-{"time":1516134303,"level":"info","message":"This is structured log in the JSON format."}
+{"time":1516134303,"level":"info","message":"This is a structured log in the JSON format."}
 ```
 
 # Disgo Logger
@@ -28,8 +30,14 @@ Disgo uses [`rs/zerolog`](https://github.com/rs/zerolog) to provide customizable
 
 ## Usage
 
-Disgo provides leveled logging of the API Wrapper via the `Logger` global variable. As a result, this variable is accessible via `disgo.Logger`. **Disgo disables logs by default. Enable them using `zerolog.SetGlobalLevel(zerolog.LEVEL)`.** For more information on the usage of the `zerolog.Logger`, check out its [features](https://github.com/rs/zerolog#features).
+Disgo provides leveled logging of the API Wrapper via the `Logger` global variable. As a result, this variable is accessible via `disgo.Logger`. 
+
+**Disgo disables logs by default. Enable them using `zerolog.SetGlobalLevel(zerolog.LEVEL)`.** 
+
+_For more information on the usage of `zerolog.Logger`, check out its [features](https://github.com/rs/zerolog#features)._
 
 ## Configuration
 
-Disgo imports the `zerolog` module which allows you to use it in your own program. As a result, the `zerolog` package can be configured from your application. For more information on the configuration of `zerolog`, check out its [Global Settings](https://github.com/rs/zerolog#global-settings).
+Disgo imports the `zerolog` module, letting you use it in your program. As a result, the `zerolog` package can be configured from your application. 
+
+_For more information on the configuration of `zerolog`, check out its [Global Settings](https://github.com/rs/zerolog#global-settings)._
