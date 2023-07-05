@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"os"
 
@@ -58,7 +58,7 @@ func main() {
 	switch isFile {
 	case true:
 		// when the location is a filepath, load the avatar image locally.
-		image, err = ioutil.ReadFile(*location)
+		image, err = os.ReadFile(*location)
 		if err != nil {
 			fmt.Printf("an error occurred reading the avatar image: %v", err)
 
@@ -78,7 +78,7 @@ func main() {
 		// Image's Content Type and Data URI scheme.
 		defer response.Body.Close()
 
-		image, err = ioutil.ReadAll(response.Body)
+		image, err = io.ReadAll(response.Body)
 		if err != nil {
 			fmt.Printf("an error occurred reading the fetched avatar image: %v", err)
 

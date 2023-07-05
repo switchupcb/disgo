@@ -1,3 +1,3 @@
 module github.com/switchupcb/disgo/shard
 
-go 1.18
+go 1.20
