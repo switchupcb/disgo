@@ -163,21 +163,21 @@ func generate() error {
 	}
 
 	// send
-	sendgen := exec.Command("copygen", "-yml", "_gen/tools/copygen/requests/setup.yml", "-xm")
+	sendgen := exec.Command("copygen", "-yml", "_gen/tools/_copygen/requests/setup.yml", "-xm")
 	std, err := sendgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (send): %v", string(std))
 	}
 
 	// event handling
-	handlegen := exec.Command("copygen", "-yml", "_gen/tools/copygen/events/setup.yml", "-xm")
+	handlegen := exec.Command("copygen", "-yml", "_gen/tools/_copygen/events/setup.yml", "-xm")
 	std, err = handlegen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (handle): %v", string(std))
 	}
 
 	// sendevents
-	sendeventgen := exec.Command("copygen", "-yml", "_gen/tools/copygen/sendevents/setup.yml", "-xm")
+	sendeventgen := exec.Command("copygen", "-yml", "_gen/tools/_copygen/sendevents/setup.yml", "-xm")
 	std, err = sendeventgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (sendevents): %v", string(std))

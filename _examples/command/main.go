@@ -9,7 +9,7 @@ import (
 	"github.com/switchupcb/disgo/tools"
 )
 
-// Environment Variables
+// Environment Variables.
 var (
 	// token represents the bot's token.
 	token = os.Getenv("TOKEN")
@@ -66,7 +66,7 @@ func main() {
 		log.Printf("main called by %s.", i.Interaction.User.Username)
 
 		// see func declaration below.
-		if err := onInteraction(bot, i.Interaction, newCommand); err != nil {
+		if err := onInteraction(bot, i.Interaction); err != nil {
 			log.Println(err)
 		}
 	}); err != nil {
@@ -79,8 +79,8 @@ func main() {
 	log.Println("Connecting to the Discord Gateway...")
 
 	// Connect a new session to the Discord Gateway (WebSocket Connection).
-	s := disgo.NewSession()
-	if err := s.Connect(bot); err != nil {
+	session := disgo.NewSession()
+	if err := session.Connect(bot); err != nil {
 		log.Printf("can't open websocket session to Discord Gateway: %v", err)
 
 		return
@@ -89,7 +89,9 @@ func main() {
 	log.Println("Successfully connected to the Discord Gateway. Waiting for an interaction...")
 
 	// end the program using a SIGINT call via `Ctrl + C` from the terminal.
-	tools.InterceptSignal(tools.Signals, s)
+	if err := tools.InterceptSignal(tools.Signals, session); err != nil {
+		log.Printf("error exiting program: %v", err)
+	}
 
 	log.Println("Exiting program due to signal...")
 
@@ -112,7 +114,7 @@ func main() {
 // onInteraction deletes the Global Application Command, then disconnects the bot.
 //
 // In this example, onInteraction is called when a user sends a `/main` interaction to the bot.
-func onInteraction(bot *disgo.Client, interaction *disgo.Interaction, command *disgo.ApplicationCommand) error {
+func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 	log.Println("Creating a response to the interaction...")
 
 	// send an interaction response to reply to the user.

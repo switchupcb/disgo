@@ -2,7 +2,6 @@ run:
   timeout: 5m
   tests: false
   skip-dirs:
-    - copygen
 
 linters:
   fast: false
@@ -10,17 +9,18 @@ linters:
   disable:
     - cyclop
     - depguard
-    - forbidigo
+    - exhaustive
     - funlen
-    - gochecknoglobals
+    - forbidigo
     - gocognit
+    - gochecknoglobals
     - goerr113
     - gofumpt
     - gomnd
+    - gosmopolitan
+    - lll
+    - noctx
     - stylecheck
-    - unused
-    - varnamelen
-    - whitespace
     - wsl
 
     - deadcode # Deprecated
@@ -35,9 +35,18 @@ linters:
     - varcheck # Deprecated
 
     - gci # Error
-    - musttag # Error
 
 linters-settings:
-  govet:
-    disable:
-      - printf
+  varnamelen:
+    ignore-names:
+      - ok
+  
+  exhaustruct:
+    exclude:
+      - fasthttp.Client
+      - disgo.Client
+      - disgo.CreateGlobalApplicationCommand
+      - disgo.CreateFollowupMessage
+      - disgo.EditFollowupMessage
+      - disgo.EditOriginalInteractionResponse
+      - disgo.Messages

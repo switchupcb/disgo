@@ -10,7 +10,7 @@ import (
 	tools "github.com/switchupcb/disgo/tools"
 )
 
-// Environment Variables
+// Environment Variables.
 var (
 	// token represents the bot's token.
 	token = os.Getenv("TOKEN")
@@ -107,8 +107,8 @@ func main() {
 	log.Println("Connecting to the Discord Gateway...")
 
 	// Connect a new session to the Discord Gateway (WebSocket Connection).
-	s := disgo.NewSession()
-	if err := s.Connect(bot); err != nil {
+	session := disgo.NewSession()
+	if err := session.Connect(bot); err != nil {
 		log.Printf("can't open websocket session to Discord Gateway: %v", err)
 
 		return
@@ -117,7 +117,7 @@ func main() {
 	log.Println("Successfully connected to the Discord Gateway. Waiting for an interaction...")
 
 	// end the program using a SIGINT call via `Ctrl + C` from the terminal.
-	if err := tools.InterceptSignal(tools.Signals, s); err != nil {
+	if err := tools.InterceptSignal(tools.Signals, session); err != nil {
 		log.Printf("error exiting program: %v", err)
 	}
 
@@ -188,13 +188,16 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 		freewill := optionMap["freewill"]
 		confirm := optionMap["confirm"]
 
+		switch {
 		// When the user is completing their first option, send both choices.
-		if (freewill != nil && confirm == nil) || (freewill == nil && confirm != nil) {
+		case (freewill != nil && confirm == nil) || (freewill == nil && confirm != nil):
 			log.Println("Sending both choices...")
 
-			// When the user has completed both options, determine which option is focused
-			// to provide the correct choice.
-		} else if freewill != nil && freewill.Focused != nil && *freewill.Focused {
+		// When the user has completed both options, determine which option is focused
+		// to provide the correct choice.
+		//
+		// This case is executed when the freewill option is focused.
+		case freewill != nil && freewill.Focused != nil && *freewill.Focused:
 			if confirm.Value.String() == "Yes" {
 				choices = choices[1:] // n
 			} else if confirm.Value.String() == "No" {
@@ -202,7 +205,9 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 			}
 
 			log.Println("Sending choice opposite of confirm...")
-		} else if confirm != nil && confirm.Focused != nil && *confirm.Focused {
+
+		// This case is executed when the confirm option is focused.
+		case confirm != nil && confirm.Focused != nil && *confirm.Focused:
 			if freewill.Value.String() == "y" {
 				choices = choices[1:] // n
 			} else {
@@ -210,7 +215,8 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 			}
 
 			log.Println("Sending choice opposite of freewill...")
-		} else {
+
+		default:
 			log.Println("Unknown choice state encountered. Sending both choices...")
 		}
 
@@ -226,7 +232,7 @@ func onInteraction(bot *disgo.Client, interaction *disgo.Interaction) error {
 		}
 
 		if err := requestAutocomplete.Send(bot); err != nil {
-			return fmt.Errorf("failure sending autocompletion command to Discord: %v", err)
+			return fmt.Errorf("failure sending autocompletion command to Discord: %w", err)
 		}
 
 		log.Println("Sent choices.")

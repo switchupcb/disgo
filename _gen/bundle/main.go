@@ -90,13 +90,13 @@ func generate() error {
 			continue
 
 		} else if err != nil {
-			return fmt.Errorf("fieldalignment: %v", err)
+			return fmt.Errorf("fieldalignment: %w", err)
 		}
 
 		fieldalignmentOutput = append(fieldalignmentOutput, std...)
 
 		if i == 4 {
-			return fmt.Errorf("fieldalignment: more calls to fieldalignment were required.")
+			return fmt.Errorf("fieldalignment: more calls to fieldalignment were required")
 		}
 
 		break

@@ -54,13 +54,14 @@ Comments follow [Effective Go](https://golang.org/doc/effective_go#commentary) a
 
 Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3`.
 
- | Directory | Command                           | Description                                        |
- | :-------- | :-------------------------------- | :------------------------------------------------- |
- | `disgo`   | `golangci-lint run ./wrapper/...` | Perform static code analysis on the API Wrapper.   |
- | `_gen`    | `golangci-lint run ./_gen`        | Perform static code analysis on the generator.     |
- | `cache`   | `golangci-lint run ./cache`       | Perform static code analysis on the Disgo Cache.   |
- | `shard`   | `golangci-lint run ./shard`       | Perform static code analysis on the Shard Manager. |
- | `tools`   | `golangci-lint run ./tools`       | Perform static code analysis on the Tools Module.  |
+ | Directory     | Command                           | Description                                        | GOWORK  |
+ | :------------ | :-------------------------------- | :------------------------------------------------- | :------ |
+ | `disgo`       | `golangci-lint run ./wrapper/...` | Perform static code analysis on the API Wrapper.   | default |
+ | `./_examples` | `golangci-lint run ./...`         | Perform static code analysis on the examples.      | default |
+ | `./_gen`      | `golangci-lint run ./...`         | Perform static code analysis on the generator.     | `off`   |
+ | `disgo`       | `golangci-lint run ./cache/...`   | Perform static code analysis on the Disgo Cache.   | default |
+ | `disgo`       | `golangci-lint run ./shard/...`   | Perform static code analysis on the Shard Manager. | default |
+ | `disgo`       | `golangci-lint run ./tools/...`   | Perform static code analysis on the Tools package. | default |
 
 ##### Runtime Errors
 

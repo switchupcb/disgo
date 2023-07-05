@@ -6,18 +6,25 @@ linters:
   fast: false
   enable-all: true
   disable:
-    - deadcode
-    - unused
-    - gofumpt
-    - varnamelen
+    - depguard
     - gochecknoglobals
+    - gofumpt
+    - unused
+    - varnamelen
     - wsl
 
+    - deadcode # Deprecated
     - golint # Deprecated
+    - exhaustivestruct # Deprecated
+    - ifshort # Deprecated
     - interfacer # Deprecated
     - scopelint # Deprecated
+    - structcheck # Deprecated
+    - nosnakecase # Deprecated
     - maligned # Deprecated
-    - exhaustivestruct # Deprecated
+    - varcheck # Deprecated
+
+    - gci # Error
 
 linters-settings:
   revive:
