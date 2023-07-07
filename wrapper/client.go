@@ -255,9 +255,26 @@ func DefaultGateway() Gateway {
 //
 // This function does NOT check whether the intent is already enabled.
 // Use the Gateway.IntentSet to check whether the intent is already enabled.
+//
+//	DISCLAIMER. Bots that use `DefaultGateway()` or `DefaultConfig()` to
+//	initialize the Client have privileged intents = `true` in the IntentSet by default.
 func (g *Gateway) EnableIntent(intent BitFlag) {
-	g.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+	g.IntentSet[intent] = true
 	g.Intents |= intent
+}
+
+// EnableIntentPrivileged enables all privileged intents.
+// https://discord.com/developers/docs/topics/gateway#privileged-intents
+//
+// This function does NOT check whether the intent is already enabled.
+// Use the Gateway.IntentSet to check whether the intent is already enabled.
+//
+//	DISCLAIMER. Bots that use `DefaultGateway()` or `DefaultConfig()` to
+//	initialize the Client have privileged intents = `true` in the IntentSet by default.
+func (g *Gateway) EnableIntentPrivileged(intent BitFlag) {
+	for privilegedIntent := range PrivilegedIntents {
+		g.EnableIntent(privilegedIntent)
+	}
 }
 
 // DisableIntent disables an intent.
