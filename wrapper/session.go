@@ -33,7 +33,7 @@ type Session struct {
 	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
 	Endpoint string
 
-	// Shard represents the [shard_id, num_shards] for this session.
+	// Shard represents the [shard_id, num_shards] for the Session.
 	//
 	// https://discord.com/developers/docs/topics/gateway#sharding
 	Shard *[2]int
@@ -51,6 +51,9 @@ type Session struct {
 
 	// manager represents a manager of a Session's goroutines.
 	manager *manager
+
+	// client_manager represents the *Client Session Manager of the Session.
+	client_manager *SessionManager
 
 	// RWMutex is used to protect the Session's variables from data races
 	// by providing transactional functionality.
@@ -88,6 +91,12 @@ func (s *Session) Connect(bot *Client) error {
 
 // connect connects a session to a WebSocket Connection.
 func (s *Session) connect(bot *Client) error {
+	if bot.Sessions == nil {
+		return fmt.Errorf(errNoSessionManager) //lint:ignore ST1005 format help message.
+	}
+
+	s.client_manager = bot.Sessions
+
 	if s.isConnected() {
 		return fmt.Errorf("session %q is already connected", s.ID)
 	}
@@ -295,10 +304,14 @@ func (s *Session) initial(bot *Client, attempt int) error {
 
 			LogSession(Logger.Info(), ready.SessionID).Msg("received Ready event")
 
+			// Configure the session.
 			s.ID = ready.SessionID
 			atomic.StoreInt64(&s.Seq, 0)
 			s.Endpoint = ready.ResumeGatewayURL
 			bot.ApplicationID = ready.Application.ID
+
+			// Store the session in the session manager.
+			s.client_manager.Gateway.Store(s.ID, s)
 
 			if bot.Config.Gateway.ShardManager != nil {
 				bot.Config.Gateway.ShardManager.Ready(bot, s, ready)
@@ -312,6 +325,9 @@ func (s *Session) initial(bot *Client, attempt int) error {
 		// by replaying all missed events in order, finalized by a Resumed event.
 		case *payload.EventName == FlagGatewayEventNameResumed:
 			LogSession(Logger.Info(), s.ID).Msg("received Resumed event")
+
+			// Store the session in the session manager.
+			s.client_manager.Gateway.Store(s.ID, s)
 
 			for _, handler := range bot.Handlers.Resumed {
 				go handler(&Resumed{})
@@ -332,6 +348,9 @@ func (s *Session) initial(bot *Client, attempt int) error {
 				if replayed.Op == FlagGatewayOpcodeDispatch && *replayed.EventName == FlagGatewayEventNameResumed {
 					LogSession(Logger.Info(), s.ID).Msg("received Resumed event")
 
+					// Store the session in the session manager.
+					s.client_manager.Gateway.Store(s.ID, s)
+
 					for _, handler := range bot.Handlers.Resumed {
 						go handler(&Resumed{})
 					}
@@ -346,6 +365,9 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	// When the maximum concurrency limit has been reached while connecting, or when
 	// the session does NOT reconnect in time, the Discord Gateway send an Opcode 9 Invalid Session.
 	case FlagGatewayOpcodeInvalidSession:
+		// Remove the session from the session manager.
+		s.client_manager.Gateway.Store(s.ID, nil)
+
 		if attempt < 1 {
 			// wait for Discord to close the session, then complete a fresh connect.
 			<-time.NewTimer(invalidSessionWaitTime).C
@@ -409,6 +431,9 @@ func (s *Session) Disconnect() error {
 func (s *Session) disconnect(code int) error {
 	// cancel the context to kill the goroutines of the Session.
 	defer s.manager.cancel()
+
+	// Remove the session from the session manager.
+	s.client_manager.Gateway.Store(s.ID, nil)
 
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
 		return fmt.Errorf("%w", err)

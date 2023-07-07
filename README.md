@@ -106,7 +106,7 @@ bot := &disgo.Client{
     Authorization:  &disgo.Authorization{ ... },
     Config:         disgo.DefaultConfig(),
     Handlers:       new(disgo.Handlers),
-    Sessions:       new(disgo.SessionManager)
+    Sessions:       disgo.NewSessionManager()
 }
 ```
 

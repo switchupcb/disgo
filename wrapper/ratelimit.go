@@ -143,7 +143,7 @@ func (r *RateLimit) GetBucket(routeid string, resourceid string) *Bucket {
 			r.SetBucketID(requestid, requestid)
 
 			// DefaultBucket (Per-Route) = RateLimit.DefaultBucket
-			if "" == resourceid {
+			if resourceid == "" {
 				if r.DefaultBucket == nil {
 					return nil
 				}

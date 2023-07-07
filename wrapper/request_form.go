@@ -95,7 +95,7 @@ func createFormFile(m *multipart.Writer, name, filename, contentType string) (io
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`, name, quoteEscaper.Replace(filename)))
 
-	if "" == contentType {
+	if contentType == "" {
 		contentType = contentTypeOctetStreamString
 	}
 
