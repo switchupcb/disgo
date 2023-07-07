@@ -13,33 +13,19 @@ type ShardManager interface {
 	// SetLimit sets the limit of the ShardManager.
 	SetLimit(ShardLimit)
 
-	// Connect connects to the Discord Gateway using the Shard Manager.
-	Connect(bot *Client)
-
-	// Reconnect connects to the Discord Gateway using the Shard Manager.
-	Reconnect(bot *Client)
-
-	// Disconnect disconnects from the Discord Gateway using the Shard Manager.
-	Disconnect(bot *Client)
-
-	// ConnectSession connects a session of a bot to the Discord Gateway using the Shard Manager.
-	ConnectSession(bot *Client, session *Session)
-
-	// ReconnectSession reconnects a session to the Discord Gateway using the Shard Manager.
-	ReconnectSession(bot *Client, session *Session)
-
-	// DisconnectSession disconnects a session from the Discord Gateway using the Shard Manager.
-	DisconnectSession(session *Session)
-
-	// Identify determines how a Session identifies to the Discord Gateway.
-	//
-	// Called from the session.go initial function.
-	Identify(bot *Client, session *Session)
-
 	// Ready is called when a Session receives a ready event.
 	//
-	// Called from the session.go initial function.
+	// Called from the session.go initial() function (at L#304 in /wrapper/session.go).
 	Ready(bot *Client, session *Session, event *Ready)
+
+	// Connect connects to the Discord Gateway using the Shard Manager.
+	Connect(bot *Client) error
+
+	// Reconnect connects to the Discord Gateway using the Shard Manager.
+	Reconnect(bot *Client) error
+
+	// Disconnect disconnects from the Discord Gateway using the Shard Manager.
+	Disconnect() error
 }
 
 // ShardLimit contains information about sharding limits.
@@ -70,35 +56,9 @@ type ShardLimit struct {
 
 	// MaxConcurrency represents the number of Identify SendEvents the bot can send every 5 seconds.
 	MaxConcurrency int
-}
 
-// SessionManager manages sessions.
-type SessionManager struct {
-	// All contains a pointer to every session that is being managed.
-	All []*Session
-
-	// Gateway represents a map of Discord Gateway (TCP WebSocket Connections) Session IDs to Sessions.
-	// map[ID]Session
-	Gateway map[string]*Session
-
-	// Voice represents a map of Discord Voice (UDP WebSocket Connection) Session IDs to Sessions.
-	// map[ID]Session
-	Voice map[string]*Session
-}
-
-// NewSessionManager creates a new SessionManager.
-func NewSessionManager() *SessionManager {
-	return &SessionManager{
-		All:     []*Session{},
-		Gateway: make(map[string]*Session),
-		Voice:   make(map[string]*Session),
-	}
-}
-
-// NewSession creates a managed Session and returns it.
-func (sm *SessionManager) NewSession() *Session {
-	session := NewSession()
-	sm.All = append(sm.All, session)
-
-	return session
+	// RecommendedShards represents the number of shards to use when connecting.
+	//
+	// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
+	RecommendedShards int
 }

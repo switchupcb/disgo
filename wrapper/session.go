@@ -33,12 +33,17 @@ type Session struct {
 	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
 	Endpoint string
 
+	// Shard represents the [shard_id, num_shards] for this session.
+	//
+	// https://discord.com/developers/docs/topics/gateway#sharding
+	Shard *[2]int
+
 	// Context carries request-scoped data for the Discord Gateway Connection.
 	//
 	// Context is also used as a signal for the Session's goroutines.
 	Context context.Context
 
-	// Conn represents a connection to the Discord Gateway.
+	// Conn represents a WebSocket Connection to the Discord Gateway.
 	Conn *websocket.Conn
 
 	// heartbeat contains the fields required to implement the heartbeat mechanism.
@@ -110,14 +115,13 @@ func (s *Session) connect(bot *Client) error {
 		}
 
 		if bot.Config.Gateway.ShardManager != nil {
-			reset := time.Now().Add(time.Millisecond*time.Duration(response.SessionStartLimit.ResetAfter) + 1)
-
 			bot.Config.Gateway.ShardManager.SetLimit(
 				ShardLimit{
-					MaxStarts:       response.SessionStartLimit.Total,
-					RemainingStarts: response.SessionStartLimit.Remaining,
-					Reset:           reset,
-					MaxConcurrency:  response.SessionStartLimit.MaxConcurrency,
+					Reset:             time.Now().Add(time.Millisecond*time.Duration(response.SessionStartLimit.ResetAfter) + 1),
+					MaxStarts:         response.SessionStartLimit.Total,
+					RemainingStarts:   response.SessionStartLimit.Remaining,
+					MaxConcurrency:    response.SessionStartLimit.MaxConcurrency,
+					RecommendedShards: response.Shards,
 				},
 			)
 		}
@@ -240,27 +244,23 @@ func (s *Session) connect(bot *Client) error {
 // then handles the incoming Ready or Resumed packet that indicates a successful connection.
 func (s *Session) initial(bot *Client, attempt int) error {
 	if !s.canReconnect() {
-		if bot.Config.Gateway.ShardManager == nil {
-			// send an Opcode 2 Identify to the Discord Gateway.
-			identify := Identify{
-				Token: bot.Authentication.Token,
-				Properties: IdentifyConnectionProperties{
-					OS:      runtime.GOOS,
-					Browser: module,
-					Device:  module,
-				},
-				Compress:       Pointer(true),
-				LargeThreshold: Pointer(maxIdentifyLargeThreshold),
-				Shard:          nil,
-				Presence:       bot.Config.Gateway.GatewayPresenceUpdate,
-				Intents:        bot.Config.Gateway.Intents,
-			}
+		// send an Opcode 2 Identify to the Discord Gateway.
+		identify := Identify{
+			Token: bot.Authentication.Token,
+			Properties: IdentifyConnectionProperties{
+				OS:      runtime.GOOS,
+				Browser: module,
+				Device:  module,
+			},
+			Compress:       Pointer(true),
+			LargeThreshold: Pointer(maxIdentifyLargeThreshold),
+			Shard:          s.Shard,
+			Presence:       bot.Config.Gateway.GatewayPresenceUpdate,
+			Intents:        bot.Config.Gateway.Intents,
+		}
 
-			if err := identify.SendEvent(bot, s); err != nil {
-				return err
-			}
-		} else {
-			bot.Config.Gateway.ShardManager.Identify(bot, s)
+		if err := identify.SendEvent(bot, s); err != nil {
+			return err
 		}
 	} else {
 		// send an Opcode 6 Resume to the Discord Gateway to reconnect the session.
@@ -295,12 +295,12 @@ func (s *Session) initial(bot *Client, attempt int) error {
 
 			LogSession(Logger.Info(), ready.SessionID).Msg("received Ready event")
 
-			if bot.Config.Gateway.ShardManager == nil {
-				s.ID = ready.SessionID
-				atomic.StoreInt64(&s.Seq, 0)
-				s.Endpoint = ready.ResumeGatewayURL
-				bot.ApplicationID = ready.Application.ID
-			} else {
+			s.ID = ready.SessionID
+			atomic.StoreInt64(&s.Seq, 0)
+			s.Endpoint = ready.ResumeGatewayURL
+			bot.ApplicationID = ready.Application.ID
+
+			if bot.Config.Gateway.ShardManager != nil {
 				bot.Config.Gateway.ShardManager.Ready(bot, s, ready)
 			}
 

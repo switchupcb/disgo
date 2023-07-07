@@ -1135,8 +1135,8 @@ type WebhooksUpdate struct {
 type GatewayPayload struct {
 	Op             int             `json:"op"`
 	Data           json.RawMessage `json:"d"`
-	SequenceNumber *int64          `json:"s"`
-	EventName      *string         `json:"t"`
+	SequenceNumber *int64          `json:"s,omitempty"`
+	EventName      *string         `json:"t,omitempty"`
 }
 
 // Gateway URL Query String Params
@@ -1324,7 +1324,7 @@ type Heartbeat struct {
 type RequestGuildMembers struct {
 	GuildID   string   `json:"guild_id"`
 	Query     *string  `json:"query,omitempty"`
-	Limit     int      `json:"limit"`
+	Limit     *int     `json:"limit,omitempty"`
 	Presences *bool    `json:"presences,omitempty"`
 	UserIDs   []string `json:"user_ids,omitempty"`
 	Nonce     *string  `json:"nonce,omitempty"`
@@ -5235,7 +5235,7 @@ type GetGatewayResponse struct {
 // https://discord.com/developers/docs/topics/gateway#get-gateway-example-response
 type GetGatewayBotResponse struct {
 	URL               string            `json:"url"`
-	Shards            *int              `json:"shards"`
+	Shards            int               `json:"shards"`
 	SessionStartLimit SessionStartLimit `json:"session_start_limit"`
 }
 

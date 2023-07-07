@@ -22,6 +22,7 @@ type Copygen interface {
 	AutoModerationActionExecution(*disgo.AutoModerationActionExecution)
 	InteractionCreate(*disgo.InteractionCreate)
 	VoiceServerUpdate(*disgo.VoiceServerUpdate)
+	// intents FlagIntentGUILD_PRESENCES FlagIntentGUILD_MEMBERS
 	GuildMembersChunk(*disgo.GuildMembersChunk)
 	UserUpdate(*disgo.UserUpdate)
 	// intents FlagIntentGUILDS

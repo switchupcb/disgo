@@ -49,63 +49,7 @@ These constraints define the most straightforward sharding strategy:
 
 This sharding strategy is based on **active-active load balancing** and must be implemented using a modified shard manager.
 
-_Read (TODO) "Implementing a Sharding Strategy (Guide)" for more information about alternative sharding strategy implementations._
-
-# Guide
-
-## Terminology
-
-### What is an application?
-
-An application refers to a built binary that is executed on your computer. You run applications through the terminal (i.e `run.exe`) or via visual shortcuts. 
-
-_In the context of this explanation, an application refers to the code that your Discord Bot uses to run on a server._
-
-### What is an instance?
-
-An instance is a running application. 
-
-_Instances can be run on a single server or spread among multiple servers._
-
-### What is a server?
-
-A server is a computer (with a specialized use-case). You run applications on computers. 
-
-_A discord bot application is hosted (ran) on a server._
-
-### What is a guild?
-
-Guilds in Discord represent an isolated collection of users and channels: These are often referred to as "servers" in the User Interface (UI). However, these "servers" are **NOT** the same as the **servers** described above. 
-
-_A Discord guild is a concept, while a server is a physical or virtual machine._
-
-## Alternative Sharding Strategies
-
-### Service Architecture (Event Architecture)
-
-Implementing a service architecture in a Discord Bot is equivalent to handling incoming [events](https://discord.com/developers/docs/topics/gateway#gateway-events) using an instance (codebase) that solely handles specific types of events. 
-
-This architecture involves the creation of "Shard Instances" which function as [API Gateways](https://learn.microsoft.com/en-us/azure/architecture/microservices/design/gateway) to forward incoming event data to respective "Event Handler Instances" (Services) which handle the events.
-
-#### Shard Instance
-
-Ignoring a shard is equivalent to ignoring all incoming guild event data from that shard. So it's expected that you handle every event from a shard in a Discord Bot instance _(unless a load balancer is involved)_.
-
-The **"Shard Instance"** is tasked with setting up **Discord Sessions** and forwarding all incoming events from Discord to an Event Handler instance _(likely over the network)_.
-
-_It's not recommended to create event-specific Shard Instances because Discord has over 70 events: Using event-specific Shard Instances implies that you use 70+ instances PER SHARD, each receiving duplicate guild event data._
-
-### Event Handler Instance (Service)
-
-The **"Event Handler Instance"** is tasked with handling incoming events of a specific type. 
-
-**Service Based**
-
-Create a unique Event Handler Instance per service, leaving you with as many unique Event Handler instances as you have services.
-
-**Microservice Based**
-
-Create a unique Event Handler Instance per event, leaving you with 70+ unique Event Handler instances, each handling a different event type.
+_Read TODO "Implementing a Sharding Strategy (Guide)" for more information about alternative sharding strategy implementations._
 
 ## QA
 

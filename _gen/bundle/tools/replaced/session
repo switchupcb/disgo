@@ -1,5 +1,6 @@
 type Session struct {
 	Context   context.Context
+	Shard     *[2]int
 	Conn      *websocket.Conn
 	heartbeat *heartbeat
 	manager   *manager
@@ -14,6 +15,11 @@ type Session struct {
 	//
 	// Context is also used as a signal for the Session's goroutines.
 	Context   context.Context
+
+	// Shard represents the [shard_id, num_shards] for this session.
+	//
+	// https://discord.com/developers/docs/topics/gateway#sharding
+	Shard     *[2]int
 
 	// Conn represents a connection to the Discord Gateway.
 	Conn      *websocket.Conn

@@ -190,6 +190,16 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildMembersChunk:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_PRESENCES
+		}
+
 		if f, ok := function.(func(*GuildMembersChunk)); ok {
 			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
 			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")

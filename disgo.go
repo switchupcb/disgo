@@ -280,9 +280,26 @@ func DefaultGateway() Gateway {
 //
 // This function does NOT check whether the intent is already enabled.
 // Use the Gateway.IntentSet to check whether the intent is already enabled.
+//
+//	DISCLAIMER. Bots that use `DefaultGateway()` or `DefaultConfig()` to
+//	initialize the Client have privileged intents = `true` in the IntentSet by default.
 func (g *Gateway) EnableIntent(intent BitFlag) {
-	g.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+	g.IntentSet[intent] = true
 	g.Intents |= intent
+}
+
+// EnableIntentPrivileged enables all privileged intents.
+// https://discord.com/developers/docs/topics/gateway#privileged-intents
+//
+// This function does NOT check whether the intent is already enabled.
+// Use the Gateway.IntentSet to check whether the intent is already enabled.
+//
+//	DISCLAIMER. Bots that use `DefaultGateway()` or `DefaultConfig()` to
+//	initialize the Client have privileged intents = `true` in the IntentSet by default.
+func (g *Gateway) EnableIntentPrivileged(intent BitFlag) {
+	for privilegedIntent := range PrivilegedIntents {
+		g.EnableIntent(privilegedIntent)
+	}
 }
 
 // DisableIntent disables an intent.
@@ -1422,8 +1439,8 @@ type WebhooksUpdate struct {
 // Gateway Payload Structure
 // https://discord.com/developers/docs/topics/gateway-events#payload-structure
 type GatewayPayload struct {
-	SequenceNumber *int64          `json:"s"`
-	EventName      *string         `json:"t"`
+	SequenceNumber *int64          `json:"s,omitempty"`
+	EventName      *string         `json:"t,omitempty"`
 	Data           json.RawMessage `json:"d"`
 	Op             int             `json:"op"`
 }
@@ -1612,11 +1629,11 @@ type Heartbeat struct {
 // https://discord.com/developers/docs/topics/gateway-events#request-guild-members-guild-request-members-structure
 type RequestGuildMembers struct {
 	Query     *string  `json:"query,omitempty"`
+	Limit     *int     `json:"limit,omitempty"`
 	Presences *bool    `json:"presences,omitempty"`
 	Nonce     *string  `json:"nonce,omitempty"`
 	GuildID   string   `json:"guild_id"`
 	UserIDs   []string `json:"user_ids,omitempty"`
-	Limit     int      `json:"limit"`
 }
 
 // Gateway Voice State Update Structure
@@ -5526,8 +5543,8 @@ type GetGatewayResponse struct {
 // Get Gateway Bot Response
 // https://discord.com/developers/docs/topics/gateway#get-gateway-example-response
 type GetGatewayBotResponse struct {
-	Shards            *int              `json:"shards"`
 	URL               string            `json:"url"`
+	Shards            int               `json:"shards"`
 	SessionStartLimit SessionStartLimit `json:"session_start_limit"`
 }
 
@@ -7116,6 +7133,16 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildMembersChunk:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_PRESENCES
+		}
+
 		if f, ok := function.(func(*GuildMembersChunk)); ok {
 			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
 			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
@@ -17482,6 +17509,11 @@ type Session struct {
 	// Context is also used as a signal for the Session's goroutines.
 	Context context.Context
 
+	// Shard represents the [shard_id, num_shards] for this session.
+	//
+	// https://discord.com/developers/docs/topics/gateway#sharding
+	Shard *[2]int
+
 	// Conn represents a connection to the Discord Gateway.
 	Conn *websocket.Conn
 
@@ -17565,14 +17597,13 @@ func (s *Session) connect(bot *Client) error {
 		}
 
 		if bot.Config.Gateway.ShardManager != nil {
-			reset := time.Now().Add(time.Millisecond*time.Duration(response.SessionStartLimit.ResetAfter) + 1)
-
 			bot.Config.Gateway.ShardManager.SetLimit(
 				ShardLimit{
-					MaxStarts:       response.SessionStartLimit.Total,
-					RemainingStarts: response.SessionStartLimit.Remaining,
-					Reset:           reset,
-					MaxConcurrency:  response.SessionStartLimit.MaxConcurrency,
+					Reset:             time.Now().Add(time.Millisecond*time.Duration(response.SessionStartLimit.ResetAfter) + 1),
+					MaxStarts:         response.SessionStartLimit.Total,
+					RemainingStarts:   response.SessionStartLimit.Remaining,
+					MaxConcurrency:    response.SessionStartLimit.MaxConcurrency,
+					RecommendedShards: response.Shards,
 				},
 			)
 		}
@@ -17695,27 +17726,23 @@ func (s *Session) connect(bot *Client) error {
 // then handles the incoming Ready or Resumed packet that indicates a successful connection.
 func (s *Session) initial(bot *Client, attempt int) error {
 	if !s.canReconnect() {
-		if bot.Config.Gateway.ShardManager == nil {
-			// send an Opcode 2 Identify to the Discord Gateway.
-			identify := Identify{
-				Token: bot.Authentication.Token,
-				Properties: IdentifyConnectionProperties{
-					OS:      runtime.GOOS,
-					Browser: module,
-					Device:  module,
-				},
-				Compress:       Pointer(true),
-				LargeThreshold: Pointer(maxIdentifyLargeThreshold),
-				Shard:          nil,
-				Presence:       bot.Config.Gateway.GatewayPresenceUpdate,
-				Intents:        bot.Config.Gateway.Intents,
-			}
+		// send an Opcode 2 Identify to the Discord Gateway.
+		identify := Identify{
+			Token: bot.Authentication.Token,
+			Properties: IdentifyConnectionProperties{
+				OS:      runtime.GOOS,
+				Browser: module,
+				Device:  module,
+			},
+			Compress:       Pointer(true),
+			LargeThreshold: Pointer(maxIdentifyLargeThreshold),
+			Shard:          s.Shard,
+			Presence:       bot.Config.Gateway.GatewayPresenceUpdate,
+			Intents:        bot.Config.Gateway.Intents,
+		}
 
-			if err := identify.SendEvent(bot, s); err != nil {
-				return err
-			}
-		} else {
-			bot.Config.Gateway.ShardManager.Identify(bot, s)
+		if err := identify.SendEvent(bot, s); err != nil {
+			return err
 		}
 	} else {
 		// send an Opcode 6 Resume to the Discord Gateway to reconnect the session.
@@ -17750,12 +17777,12 @@ func (s *Session) initial(bot *Client, attempt int) error {
 
 			LogSession(Logger.Info(), ready.SessionID).Msg("received Ready event")
 
-			if bot.Config.Gateway.ShardManager == nil {
-				s.ID = ready.SessionID
-				atomic.StoreInt64(&s.Seq, 0)
-				s.Endpoint = ready.ResumeGatewayURL
-				bot.ApplicationID = ready.Application.ID
-			} else {
+			s.ID = ready.SessionID
+			atomic.StoreInt64(&s.Seq, 0)
+			s.Endpoint = ready.ResumeGatewayURL
+			bot.ApplicationID = ready.Application.ID
+
+			if bot.Config.Gateway.ShardManager != nil {
 				bot.Config.Gateway.ShardManager.Ready(bot, s, ready)
 			}
 
@@ -18010,6 +18037,37 @@ SEND:
 	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sent gateway command")
 
 	return nil
+}
+
+// SessionManager manages sessions.
+type SessionManager struct {
+	// Gateway represents a map of Discord Gateway (TCP WebSocket Connections) session IDs to Sessions.
+	// map[ID]Session
+	Gateway map[string]*Session
+
+	// Voice represents a map of Discord Voice (UDP WebSocket Connection) session IDs to Sessions.
+	// map[ID]Session
+	Voice map[string]*Session
+
+	// All contains a pointer to every session that is being managed.
+	All []*Session
+}
+
+// NewSessionManager creates a new SessionManager.
+func NewSessionManager() *SessionManager {
+	return &SessionManager{
+		All:     []*Session{},
+		Gateway: make(map[string]*Session),
+		Voice:   make(map[string]*Session),
+	}
+}
+
+// NewSession creates a managed Session and returns it.
+func (sm *SessionManager) NewSession() *Session {
+	session := NewSession()
+	sm.All = append(sm.All, session)
+
+	return session
 }
 
 // SendEvent sends an Opcode 1 Heartbeat event to the Discord Gateway.
@@ -18577,33 +18635,19 @@ type ShardManager interface {
 	// SetLimit sets the limit of the ShardManager.
 	SetLimit(ShardLimit)
 
-	// Connect connects to the Discord Gateway using the Shard Manager.
-	Connect(bot *Client)
-
-	// Reconnect connects to the Discord Gateway using the Shard Manager.
-	Reconnect(bot *Client)
-
-	// Disconnect disconnects from the Discord Gateway using the Shard Manager.
-	Disconnect(bot *Client)
-
-	// ConnectSession connects a session of a bot to the Discord Gateway using the Shard Manager.
-	ConnectSession(bot *Client, session *Session)
-
-	// ReconnectSession reconnects a session to the Discord Gateway using the Shard Manager.
-	ReconnectSession(bot *Client, session *Session)
-
-	// DisconnectSession disconnects a session from the Discord Gateway using the Shard Manager.
-	DisconnectSession(session *Session)
-
-	// Identify determines how a Session identifies to the Discord Gateway.
-	//
-	// Called from the session.go initial function.
-	Identify(bot *Client, session *Session)
-
 	// Ready is called when a Session receives a ready event.
 	//
-	// Called from the session.go initial function.
+	// Called from the session.go initial() function (at L#304 in /wrapper/session.go).
 	Ready(bot *Client, session *Session, event *Ready)
+
+	// Connect connects to the Discord Gateway using the Shard Manager.
+	Connect(bot *Client) error
+
+	// Reconnect connects to the Discord Gateway using the Shard Manager.
+	Reconnect(bot *Client) error
+
+	// Disconnect disconnects from the Discord Gateway using the Shard Manager.
+	Disconnect() error
 }
 
 // ShardLimit contains information about sharding limits.
@@ -18634,28 +18678,9 @@ type ShardLimit struct {
 
 	// MaxConcurrency represents the number of Identify SendEvents the bot can send every 5 seconds.
 	MaxConcurrency int
-}
 
-// SessionManager manages sessions.
-type SessionManager struct {
-	Gateway map[string]*Session
-	Voice   map[string]*Session
-	All     []*Session
-}
-
-// NewSessionManager creates a new SessionManager.
-func NewSessionManager() *SessionManager {
-	return &SessionManager{
-		All:     []*Session{},
-		Gateway: make(map[string]*Session),
-		Voice:   make(map[string]*Session),
-	}
-}
-
-// NewSession creates a managed Session and returns it.
-func (sm *SessionManager) NewSession() *Session {
-	session := NewSession()
-	sm.All = append(sm.All, session)
-
-	return session
+	// RecommendedShards represents the number of shards to use when connecting.
+	//
+	// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
+	RecommendedShards int
 }
