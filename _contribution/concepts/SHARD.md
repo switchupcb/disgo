@@ -20,16 +20,27 @@ A [WebSocket](https://en.wikipedia.org/wiki/WebSocket) is a communication protoc
 
 A **WebSocket Connection** refers to the state of communication (i.e., connected, disconnected) between a client (e.g., Discord Bot) and server (e.g., Discord Gateway). When a WebSocket Connection starts, data is transferred between the connected client and server.
 
-A **WebSocket Session** refers to the period of time that a client and server are connected. The terms WebSocket Connection and WebSocket Session have different meanings in the Discord ecosystem.
+A traditional **WebSocket Session** refers to the unique period of time that a client and server are connected. However, the terms WebSocket Connection and WebSocket Session have different meanings in the Discord ecosystem.
+
+<img id="disgo-shard-diagram" alt="Discord Sharding Diagram outlining difference between a WebSocket Connection, Discord Session, and Discord Shard." src="./_contribution/concepts/disgo-shard-diagram-min.jpg" width="512"/>
+
+<br>
 
 Suppose that a Discord Bot connects to the Discord Gateway using a WebSocket:
-- A Discord WebSocket Session starts when the client and server are connected.
-- A Discord WebSocket Session ends when the client and server are disconnected.
-- A **new** Discord WebSocket Session starts when the client and server are connected again _(resumed)_.
+- **\[1\]** A WebSocket Connection is created when the client dials in to the server.
+- **\[5\]** A Discord WebSocket Session is created when the client receives a Ready event from the server _(with a unique Session ID)_.
+- **\[6\]** The Discord WebSocket Connection ends when the client is disconnected from the server.
+- **\[6\]** The Discord WebSocket Session remains alive for 5 seconds when the client is disconnected from the server.
+- **\[7\]** A **new** Discord WebSocket Connection is created when the client reconnects to the server.
+- **\[7\]** The **old** Discord WebSocket Session is still alive when the client receives a Resumed event from the server _(within 5 seconds of the disconnection)_.
+- **\[1\]** A **new** Discord WebSocket Connection is crated when the client reconnects to the server; regardless of how much time has passed since disconnection.
+- **\[5\]** A **new** Discord WebSocket Session is created when the client receives a **new** Ready event from the server 5 seconds after disconnection.
 
-In contrast, the **Discord WebSocket Connection** refers to the state of communication between the Discord Bot's Sessions and the Discord Gateway.
+The **Discord WebSocket Connection** refers to the state of communication between the Discord Bot and the Discord Gateway. 
 
-_The Discord Gateway Rate Limit applies to the Discord WebSocket Connection. So the Discord Gateway Rate Limit is applied per Discord Bot token._
+In contrast, the **Discord WebSocket Session** refers to the unique period of time from \[1\] the initial Ready event to \[2\] the time that occurs 5 seconds after the Discord WebSocket Connection has been disconnected.
+
+_The Discord Gateway Rate Limit is applied per Discord WebSocket Connection._
 
 ### When is a WebSocket Used?
 
@@ -39,34 +50,54 @@ _Discord uses WebSocket Sessions to send real-time event data to Discord Bots (w
 
 ## What is a Discord Shard?
 
-A **Discord Shard** is an abstract concept that defines how guild event data is routed to a WebSocket Session.
+A **Discord Shard** is an abstract concept that defines how guild event data is routed to a Discord WebSocket Session.
 
-Suppose that you create a Discord Bot:
+Suppose that you develop a Discord Bot:
 - Without sharding, one Session communicates with the Discord Gateway for the event data of every guild the bot is in.
-- You create a single shard that manages the event data of every guild the bot is in. This shard is routed to a single Session, so the session handles the event data of every guild the bot is in.
+- You create a **single shard** that manages the event data of every guild the bot is in. This shard is routed to a single Session, so the session handles the event data of every guild the bot is in.
 
 Suppose that your bot is added to 4,000 guilds:
-- You create two shards, each managing the event data of 2000 guilds. These shards are routed to a single Session, so the session still handles the event data of every guild the bot is in.
+- You create **two shards**, each managing the event data of 2000 guilds. However, a shard can only be routed to a single Session, so the bot ignores the event data of 2,000 guilds.
+  
+  **NOT GOOD!**
 
-Suppose that your bot is added to another 1,000 guilds:
-- You create a third shard but use a passive sharding strategy instead of splitting the load among each shard equally. So shard 1 manages 2,000 guilds, shard 2 manages 2,000 guilds, and shard 3 manages 1,000 guilds. However, you route each shard to a single Session, so the session still handles the event data of every guild the bot is in.
-- You create another **session**, route the third shard to it, then disconnect the third shard from the first session. So the first session manages the event data of 4,000 guilds, and the second session manages the event data of 1,000 guilds.
-- You decide to route the third shard to the first session again. So the first session manages the event data of 5,000 guilds, and the second session manages the event data of 1,000 guilds. That said, your bot is only in 5,000 guilds.
+Suppose that your bot is added to another 2,000 guilds:
+- You create a **third shard**. So shard 1 manages 2,000 guilds, shard 2 manages 2,000 guilds, and shard 3 manages 2,000 guilds. However, a shard can only be routed to a single Session, so the bot ignores the event data of shard 2 and 3 containing 4,000 guilds' event data.
+  
+  **NOT GOOD!**
 
-**These examples illustrate the following hierarchy between a WebSocket Connection, WebSocket Session, and Discord Shard:**
-- WebSocket Connection (Discord Bot) manages
-  -  WebSocket `Session(s)` manages
-     -  Discord `Shard(s)` defines groups of
-        -  `Guild(s)` Event Data
+- You create a **second session** and route the second shard to it. So the first session manages the event data of 2,000 guilds, and the second session manages the event data of 2,000 guilds. Therefore, the bot ignores the event data of 2,000 guilds.
+  
+  **NOT GOOD!**
 
-At a certain point, handling all incoming Guild Event Data on one Session becomes impossible, so Discord requires you to handle the data through multiple **Sessions** using **Shards**.
+- You create a **third session** and route the third shard to it. So the first session manages the event data of 2,000 guilds, and the second session manages the event data of 2,000 guilds, and the third session manages the event data of 2,000 guilds. 
+
+  The bot handles the event data of every guild the bot is in.
+
+  **GREAT!**
+
+- You create a **fourth session** and route the first shard to it.
+
+  The first session manages the event data of 2,000 guilds, the second session manages the event data of 2,000 guilds, the third session manages the event data of 2,000 guilds, and the fourth session _(spawned on an updated bot instance)_ manages the event data of 2,000 guilds; which is the same as the event data in shard 1.
+  
+  Your bot is still only in 5,000 guilds, but receives the event data from 2,000 guilds in the first shard twice: This lets you shut down your first session _(located on an instance containing outdated code)_ while still handling the first session's event data from your fourth session _(located on an instance containing updated code)_.
+
+**These examples illustrate the following hierarchy between a WebSocket Connection, Discord Session, and Discord Shard:**
+- `Discord Session` 
+  -  involves `WebSocket Connection(s)` and Disconnection.
+  -  can be tied to a `Discord Shard`
+        - that defines the incoming guild event data (from multiple guilds) sent to the `Discord Session`.
+  
+At a certain point, handling all incoming guild event data on a single Session becomes impossible. So Discord requires you to handle this load with multiple **Discord Sessions**, each specifying a **Discord Shard**.
 
 ### How Does It Work?
 
 _For a technical explanation, read [Sharding on Discord](https://discord.com/developers/docs/topics/gateway#sharding)._
 
 
-Discord Sharding is an implementation of a sharding strategy. The **Discord Sharding Formula** is used to determine which shard a guild is scoped to.
+Discord Sharding is an implementation of a sharding strategy. 
+
+The **Discord Sharding Formula** is used to determine which shard a guild is scoped to.
 
 ```
 shard_id = (guild_id >> 22) % num_shards
@@ -79,15 +110,13 @@ Suppose that you are calculate the `shard_id` for `guild_id = 197038439483310086
 2. `(46977624770) % 1 = 0`
 3. `shard_id = 0`.
 
-A `number % 1` is always `0`: So every guild in a single-shard connection is routed to the shard at index 0. In practice, more than one shard is used to shard a Discord Bot.
+A `number % 1` is always `0`: So every guild in a single-shard connection is routed to the shard at index 0. However, in practice, more than one shard is used to shard a Discord Bot.
 
 _Direct Message data is always sent to shard 0._
 
 ### How Does It Impact Performance?
 
-Maintaining multiple WebSocket Sessions does **NOT** have any performance implications on its own. However, processing more data among many connections (within a set period of time) warrants more processing power (i.e., higher CPU usage).
-
-[Goroutines](https://gobyexample.com/goroutines) allow you to manage asynchronous connections concurrently (without blocking). This language-specific feature, in addition to other factors is why you should use Go to create a Discord Bot.
+Maintaining multiple WebSocket Sessions does **NOT** have any performance implications alone. However, processing more data among many connections (within a set time period) warrants more processing power (i.e., higher CPU usage).
 
 ### How Do You Implement Discord Sharding?
 

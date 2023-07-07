@@ -83,7 +83,7 @@ While there are many rate limit strategies a server may employ, [Google Architec
 
 Disgo makes adhering to Discord's Rate Limits easy by providing a customizable rate limiter:
 - Use the builtin [`RateLimit`](/wrapper/ratelimit.go) implementation or develop your own by implementing the [`RateLimiter interface`](/wrapper/ratelimiter.go) _(which stores Buckets)_.
-- Set the `Client.Request.RateLimiter` or `Client.Gateway.RateLimiter` to customize how rate limiting works for HTTP Requests and Gateway Commands.
+- Set the `Client.Request.RateLimiter` or `Client.Gateway.RateLimiter` to customize how rate limiting works for HTTP Requests and Gateway Send Events.
 - Set entries in the `RateLimitHashFuncs` map to control how a route is rate limited _(per-route, per-resource, etc)_.
 - Configure the `RateLimit.DefaultBucket` to control the behavior for requests that are sent without a known rate limit.
   

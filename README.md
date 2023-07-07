@@ -9,7 +9,13 @@ _This repository is STABLE. For more information, read the [roadmap](/_contribut
 
 ## A Next Generation Discord API Wrapper
 
-High quality code merits easy development. Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. Code generation is used to provide a clean implementation for every request and event. Data race detection is used with _an integration test that covers the entire Discord API_ in order to ensure that Disgo is safe for concurrent usage. In addition, **Disgo provides the following exclusive features**.
+High-quality code merits easy development.
+
+Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. 
+- Code generation provides a clean implementation for every request and event.
+- Data race detection is run on an integration test _that covers the entire Discord API_ to ensure that Disgo is safe for concurrent usage. 
+
+In addition, **Disgo provides the following exclusive features**.
 
 - [EVERY Rate Limit (Global, Per Route, Per Resource, Custom, Gateway)](_contribution/concepts/REQUESTS.md#what-is-a-rate-limit) 
 - [Automatic Gateway Intent Calculation](_contribution/concepts/EVENTS.md#what-is-a-gateway-intent)
@@ -30,31 +36,41 @@ _Disgo uses [NO reflection or type assertion](_contribution/concepts/EVENTS.md#h
 
 This breakdown provides you with a **full understanding** on how to use the API.
 
-| Abstraction  | Usecase                                                                                                                                           | Example                                                             |
-| :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------ | :------------------------------------------------------------------ |
-| **Resource** | A [Discord API Resource](https://discord.com/developers/docs/resources/application).                                                              | Guild Object. User Object.                                          |
-| **Event**    | A [Discord API Event](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events).                                     | A message is created. A user joins a channel.                       |
-| **Client**   | The Discord Bot [Application](https://discord.com/developers/docs/resources/application) that you program. One Bot = One Client.                  | Configure the bot settings. Set the token.                          |
-| **Request**  | Uses the Discord HTTP REST API to make one-time _requests_ for information.                                                                       | Create an application command. Request guild information.           |
-| **Session**  | Uses a Discord WebSocket Connection [(Gateway)](https://discord.com/developers/docs/topics/gateway) to receive _events_ that contain information. | Send a message when a command used or a user joins a voice channel. |
+| Abstraction  | Usecase                                                                                                                                           | Example                                                                             |
+| :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------- |
+| **Resource** | A [Discord API Resource](https://discord.com/developers/docs/resources/application).                                                              | Guild Object. <br> User Object.                                                     |
+| **Event**    | A [Discord API Event](https://discord.com/developers/docs/topics/gateway#commands-and-events-gateway-events).                                     | A message is created. <br> A user joins a channel.                                  |
+| **Client**   | The Discord Bot [Application](https://discord.com/developers/docs/resources/application) that you develop. <br><br> Bot = Client = Application.   | Configure the bot settings. <br> <br> Set the token.                                |
+| **Request**  | Uses the Discord HTTP REST API to make one-time _requests_ for information.                                                                       | Create an application command. <br> Request guild information.                      |
+| **Session**  | Uses a Discord WebSocket Connection [(Gateway)](https://discord.com/developers/docs/topics/gateway) to receive _events_ that contain information. | Send a message when an application command is used or a user joins a voice channel. |
 
-You create a **Client** that calls for **Resources** using **Requests** and handles **Events** from **Sessions** using event handlers. For more information, please read [What is a Request?](/_contribution/concepts/REQUESTS.md) and [What is an Event?](/_contribution/concepts/EVENTS.md)
+You create a **Client** that calls for **Resources** using **Requests** and handles **Events** from **Sessions** using event handlers. 
+
+_For more information, please read [What is a Request?](/_contribution/concepts/REQUESTS.md) and [What is an Event?](/_contribution/concepts/EVENTS.md)._
 
 ### Flags
 
-A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides. All flags are denoted by `Flag` in disgo: For example, `disgo.FlagUserSTAFF`, `disgo.FlagVerificationLevelHIGH`, `disgo.FlagPremiumTierNONE`, etc.
+A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides. All flags are denoted by `disgo.Flag` _(e.g., `disgo.FlagUserSTAFF`, `disgo.FlagVerificationLevelHIGH`, `disgo.FlagPremiumTierNONE`)_.
 
 ### Logging
 
-Read [What is a Log](/_contribution/concepts/LOG.md) for a simple yet full understanding of logging. Disgo provides structured, leveled logging of the API Wrapper via the `disgo.Logger` global variable _(disabled by default)_. Enable the logger using `zerolog.SetGlobalLevel(zerolog.LEVEL)`.
+Disgo provides structured, leveled logging of the API Wrapper via the `disgo.Logger` global variable _(disabled by default)_. Enable the logger using `zerolog.SetGlobalLevel(zerolog.LEVEL)`.
+
+_Read [What is a Log](/_contribution/concepts/LOG.md) for a simple yet full understanding of logging._
 
 ### Sharding
 
-Read [What is a Discord Shard](/_contribution/concepts/SHARD.md) for a simple yet full understanding of sharding on Discord. Using the [Shard Manager](/_contribution/concepts/SHARD.md#the-shard-manager) is **optional**. You can manually implement a shard manager through the `disgo.Client.Sessions` array.
+Using the automatic [Shard Manager](/_contribution/concepts/SHARD.md#the-shard-manager) is **optional** and **customizable**.
+
+_Read [What is a Discord Shard](/_contribution/concepts/SHARD.md) for a simple yet full understanding of sharding on Discord._
 
 ### Caching
 
-Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full understanding of the Disgo Cache. The [Disgo Cache](/_contribution/concepts/CACHE.md#the-disgo-cache) is **optional**. The **cache interface** allows you to replace the built-in cache with another store _(such as Redis or Memcached)_ and/or provide your own method of caching data.
+The [Disgo Cache](/_contribution/concepts/CACHE.md#the-disgo-cache) is **optional** and **customizable**.
+
+The **cache interface** allows you to replace the built-in cache with another store _(such as Redis or Memcached)_ or provide your own caching implementation.
+
+_Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full understanding of the Disgo Cache._
 
 ## Examples
 
@@ -62,10 +78,10 @@ Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full u
 | :----------------------------- | :--------------------------------------------------------- |
 | main                           | Learn how to use `disgo`.                                  |
 | [command](/_examples/command/) | Create an application command and respond to interactions. |
-| [message](/_examples/message/) | Send a message with text, emojis, files and/or components. |
+| [message](/_examples/message/) | Send a message with text, emojis, files, and components.   |
 | [image](/_examples/image/)     | Set the bot's avatar using an image.                       |
 
-_Check out the [examples](/_examples/) directory for more._
+_Check out the [examples](/_examples/) directory for more examples._
 
 ### Import
 
@@ -79,9 +95,10 @@ _Disgo branches are referenced by API version (i.e `v10`)._
 
 ### Configuration
 
-**You must create a Discord Application in the [Discord Developer Portal](https://discord.com/developers/docs/getting-started#creating-an-app) to receive your Bot Token.** 
+_**You must create a Discord Application in the [Discord Developer Portal](https://discord.com/developers/docs/getting-started#creating-an-app) to receive your Bot Token.**_
 
 Use the client to configure the bot's settings.
+
 ```go
 bot := &disgo.Client{
     ApplicationID:  "APPID", // optional
@@ -89,10 +106,11 @@ bot := &disgo.Client{
     Authorization:  &disgo.Authorization{ ... },
     Config:         disgo.DefaultConfig(),
     Handlers:       new(disgo.Handlers),
+    Sessions:       new(disgo.SessionManager)
 }
 ```
 
-_Need more information? Read the [bot example](/_examples/bot)._
+_Need more information about configuration? Check out the [bot example](/_examples/bot)._
 
 ### Create a Command
 
@@ -131,7 +149,7 @@ _Disgo provides automatic [Gateway Intent](https://discord.com/developers/docs/t
 
 ### Output
 
-Open a WebSocket **Session** to receive events.
+Open a WebSocket **Session** to receive and send events.
 
 ```go
 // Connect a new session to the Discord Gateway (WebSocket Connection).
@@ -146,7 +164,7 @@ if err := s.Connect(bot); err != nil {
 The following message will be logged when a user creates an `InteractionCreate` event by using `/main` in a Direct Message with the Bot on Discord.
 
 ```
-main called by SCB.
+main called by switchupcb.
 ```
 
 ### Summary
@@ -168,6 +186,9 @@ disgo.<Endpoint>.Send()
 disgo.Session.Connect()
 disgo.Session.Disconnect()
 
+// Use send events to send data to Discord's Gateway.
+disgo.<Event>.SendEvent()
+
 // Use event handlers to handle events from Discord's Gateway.
 disgo.Client.Handle(<event>, <handler>)
 disgo.Client.Remove(<event>, <index>)
@@ -179,26 +200,27 @@ disgo.Client.Authentication.<Settings>
 disgo.Client.Authorization.<Settings>
 disgo.Client.Config.Request.<Settings>
 disgo.Client.Config.Gateway.<Settings>
-
-// Use the client's shard manager to handle sharding automatically or manually.
-disgo.Client.Shard.<Settings>
-disgo.Client.Shard.<map[Session][]map[Shard][]GuildIDs>
-
-// Use the client to manage the optional cache.
-disgo.Client.Cache.<Settings>
-disgo.Client.Cache.<Requests>
-disgo.Client.Cache.<...>
 ```
 
 ## Features
 
 ### Why Go?
 
-Go is a statically typed, compiled programming language _(with a garbage collector)_. As a result, it performs computationally better compared to _most_ languages that provide [Discord API Wrappers](https://discord.com/developers/docs/topics/community-resources#libraries). Go maintains superior asynchronous handling due to the use of [Goroutines](https://gobyexample.com/goroutines) and [Channels](https://gobyexample.com/channels). This is useful since **a Discord Bot is a server-side software**.
+Go is a statically typed, compiled programming language _(with a garbage collector)_. So it performs computationally better compared to _most_ languages that provide [Discord API Wrappers](https://discord.com/developers/docs/topics/community-resources#libraries).
+
+Go maintains superior asynchronous handling due to the use of [Goroutines](https://gobyexample.com/goroutines) and [Channels](https://gobyexample.com/channels): This is helpful since **a Discord Bot is server-side software**.
 
 ### Comparison
 
-Disgo supports every feature in the Discord API and is **the most customizable Discord API Wrapper** due to its optional caching, shard management, rate limiting, and logging. **DiscordGo** is not feature-complete and **Disgord** is limiting. Look no further than the name. The word `disgo` contains 5 letters — while the others have 7+ — saving you precious keyboard strokes. Most important is Disgo's performance, which saves you money by reducing server costs. _Don't believe me?_ Check this out!
+Disgo supports every feature in the Discord API and is **the most customizable Discord API Wrapper** due to its optional caching, shard management, rate limiting, and logging. 
+- **DiscordGo** is not feature-complete.
+- **Disgord** is limiting.
+
+Look no further than the name. The word `disgo` contains 5 letters — while the others have 7+ — saving you precious keyboard strokes. 
+
+Most important is Disgo's performance, which saves you money by reducing server costs. 
+
+_Don't believe me? Check this out!_
 
 #### CPU
 
@@ -214,7 +236,7 @@ Disgo adds **5 MB** to a compiled binary.
 
 ### Contributing
 
-Disgo is the easiest Discord Go API for developers to use and contribute to. You can contribute to this repository by viewing the [Project Structure, Code Specifications, and Roadmap](/_contribution/CONTRIBUTING.md).
+Disgo is the easiest Discord Go API for developers to use and contribute to: You can contribute to this repository by viewing the [Project Structure, Code Specifications, and Roadmap](/_contribution/CONTRIBUTING.md).
 
 ## Ecosystem
 
