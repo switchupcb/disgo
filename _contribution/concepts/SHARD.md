@@ -22,7 +22,7 @@ A **WebSocket Connection** refers to the state of communication (i.e., connected
 
 A traditional **WebSocket Session** refers to the unique period of time that a client and server are connected. However, the terms WebSocket Connection and WebSocket Session have different meanings in the Discord ecosystem.
 
-<img id="disgo-shard-diagram" alt="Discord Sharding Diagram outlining difference between a WebSocket Connection, Discord Session, and Discord Shard." src="./_contribution/concepts/_disgo-shard-diagram-min.jpg" width="512"/>
+![Discord Sharding Diagram outlining difference between a WebSocket Connection, Discord Session, and Discord Shard.](/_contribution/concepts/_disgo-shard-diagram-min.jpg)
 
 <br>
 

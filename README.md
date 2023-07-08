@@ -88,7 +88,7 @@ _Check out the [examples](/_examples/) directory for more examples._
 Get a specific version of `disgo` by specifying a tag or branch.
 
 ```
-go get github.com/switchupcb/disgo@v1.10.0
+go get github.com/switchupcb/disgo@v1.10.1
 ```
 
 _Disgo branches are referenced by API version (i.e `v10`)._
@@ -254,10 +254,10 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 
 ### Credits
 
-| Name                                      | Contributions                                                         |
-| :---------------------------------------- | :-------------------------------------------------------------------- |
-| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Generators, Dasgo, Requests, WebSockets, Events |
-| [Thomas Rogers](https://github.com/t-rog) | Dasgo                                                                 |
-| [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                                                 |
+| Name                                      | Contributions                                                            |
+| :---------------------------------------- | :----------------------------------------------------------------------- |
+| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Generators, Dasgo, Requests, Events, Shard Manager |
+| [Thomas Rogers](https://github.com/t-rog) | Dasgo                                                                    |
+| [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                                                    |
 
 _Earn a credit! [Contribute Now](_contribution/CONTRIBUTING.md)._
