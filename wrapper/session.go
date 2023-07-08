@@ -324,7 +324,6 @@ func (s *Session) initial(bot *Client, attempt int) error {
 			s.ID = ready.SessionID
 			atomic.StoreInt64(&s.Seq, 0)
 			s.Endpoint = ready.ResumeGatewayURL
-			bot.ApplicationID = ready.Application.ID
 
 			// Store the session in the session manager.
 			s.client_manager.Gateway.Store(s.ID, s)
