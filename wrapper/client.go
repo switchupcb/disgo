@@ -207,8 +207,13 @@ const (
 	// totalIntents represents the total amount of Discord Intents.
 	totalIntents = 19
 
-	// totalGatewayBuckets represents the total amount of Discord Gateway Rate Limits.
-	totalGatewayBuckets = 2
+	// totalGatewayBucketsPerBot represents the total amount of Discord Gateway Rate Limit Buckets
+	// for a bot.
+	totalGatewayBucketsPerBot = 1
+
+	// totalGatewayBucketsPerConnection represents the total amount of Discord Gateway Rate Limits Buckets
+	// for a WebSocket Connection.
+	totalGatewayBucketsPerConnection = 1
 )
 
 // DefaultGateway returns a default Gateway configuration.
@@ -218,8 +223,8 @@ const (
 func DefaultGateway() Gateway {
 	// configure the rate limiter.
 	ratelimiter := &RateLimit{ //nolint:exhaustruct
-		ids:     make(map[string]string, totalGatewayBuckets),
-		buckets: make(map[string]*Bucket, totalGatewayBuckets),
+		ids:     make(map[string]string, totalGatewayBucketsPerBot),
+		buckets: make(map[string]*Bucket, totalGatewayBucketsPerBot),
 	}
 
 	ratelimiter.DefaultBucket = &Bucket{ //nolint:exhaustruct
@@ -228,10 +233,10 @@ func DefaultGateway() Gateway {
 
 	// https://discord.com/developers/docs/topics/gateway#rate-limiting
 	ratelimiter.SetBucket(
-		GlobalRateLimitRouteID, &Bucket{ //nolint:exhaustruct
-			Limit:     FlagGlobalRateLimitGateway,
-			Remaining: FlagGlobalRateLimitGateway,
-			Expiry:    time.Now().Add(FlagGlobalRateLimitGatewayInterval),
+		FlagGatewaySendEventNameIdentify, &Bucket{ //nolint:exhaustruct
+			Limit:     1,
+			Remaining: 1,
+			Expiry:    time.Now().Add(FlagGlobalRateLimitIdentifyInterval),
 		},
 	)
 
@@ -255,9 +260,26 @@ func DefaultGateway() Gateway {
 //
 // This function does NOT check whether the intent is already enabled.
 // Use the Gateway.IntentSet to check whether the intent is already enabled.
+//
+//	DISCLAIMER. Bots that use `DefaultGateway()` or `DefaultConfig()` to
+//	initialize the Client have privileged intents = `true` in the IntentSet by default.
 func (g *Gateway) EnableIntent(intent BitFlag) {
-	g.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+	g.IntentSet[intent] = true
 	g.Intents |= intent
+}
+
+// EnableIntentPrivileged enables all privileged intents.
+// https://discord.com/developers/docs/topics/gateway#privileged-intents
+//
+// This function does NOT check whether the intent is already enabled.
+// Use the Gateway.IntentSet to check whether the intent is already enabled.
+//
+//	DISCLAIMER. Bots that use `DefaultGateway()` or `DefaultConfig()` to
+//	initialize the Client have privileged intents = `true` in the IntentSet by default.
+func (g *Gateway) EnableIntentPrivileged(intent BitFlag) {
+	for privilegedIntent := range PrivilegedIntents {
+		g.EnableIntent(privilegedIntent)
+	}
 }
 
 // DisableIntent disables an intent.

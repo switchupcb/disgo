@@ -29,3 +29,24 @@ jobs:
         with:
           version: v1.53.3
           args: ./shard/...
+
+  test-integration:
+    needs: test-unit
+    name: Integration Tests
+    environment: testing
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository code
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: ./shard/go.mod
+      - name: Run Integration Tests
+        env:
+          TOKEN: ${{ secrets.TOKEN }}
+          APPID: ${{ secrets.APPID }}
+          COVERAGE_TEST_TOKEN: ${{ secrets.COVERAGE_TEST_TOKEN }}
+          COVERAGE_TEST_GUILD: ${{ secrets.COVERAGE_TEST_GUILD }}
+          COVERAGE_TEST_CATEGORY: ${{ secrets.COVERAGE_TEST_CATEGORY }}
+        run: go test ./shard/tests/integration -race

@@ -2,7 +2,9 @@ package integration_test
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -11,8 +13,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// TestGlobalRateLimit tests the global rate limit mechanism (with the Default Bucket mechanism disabled).
-func TestGlobalRateLimit(t *testing.T) {
+// TestRequestGlobalRateLimit tests the global rate limit mechanism (with the Default Bucket mechanism disabled)
+// for HTTP requests.
+func TestRequestGlobalRateLimit(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 	// setup the bot.
@@ -62,8 +65,9 @@ func TestGlobalRateLimit(t *testing.T) {
 	time.After(time.Second * 1)
 }
 
-// TestRouteRateLimit tests the per-route rate limit mechanism (with the Default Bucket mechanism enabled).
-func TestRouteRateLimit(t *testing.T) {
+// TestRequestRouteRateLimit tests the per-route rate limit mechanism (with the Default Bucket mechanism enabled)
+// for HTTP requests.
+func TestRequestRouteRateLimit(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
 	// setup the bot.
@@ -113,4 +117,76 @@ func TestRouteRateLimit(t *testing.T) {
 
 	// ensure that the next test starts with a full bucket.
 	time.After(time.Second * 1)
+}
+
+// TestGatewayIdentifyRateLimit tests the Identify rate limit mechanism for the Discord Gateway.
+func TestGatewayIdentifyRateLimit(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
+	bot := &Client{
+		Authentication: BotToken(os.Getenv("TOKEN")),
+		Config:         DefaultConfig(),
+		Handlers:       new(Handlers),
+		Sessions:       NewSessionManager(),
+	}
+
+	// a counter is used to count the amount of Ready events.
+	readyCount := 0
+	muReady := new(sync.Mutex)
+
+	// a Ready event is sent upon a successful connection.
+	if err := bot.Handle(FlagGatewayEventNameReady, func(*Ready) {
+		muReady.Lock()
+		readyCount++
+		muReady.Unlock()
+	}); err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	s1 := NewSession()
+	s2 := NewSession()
+
+	// call Connect at the same time.
+	eg := new(errgroup.Group)
+
+	eg.Go(func() error {
+		// connect to the Discord Gateway (WebSocket Session).
+		if err := s1.Connect(bot); err != nil {
+			return fmt.Errorf("s1: %w", err)
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
+		// connect to the Discord Gateway (WebSocket Session).
+		if err := s2.Connect(bot); err != nil {
+			return fmt.Errorf("s2: %w", err)
+		}
+
+		return nil
+	})
+
+	if err := eg.Wait(); err != nil {
+		t.Fatalf("%v", err)
+	}
+
+	// disconnect from the Discord Gateway (WebSocket Connection).
+	if err := s1.Disconnect(); err != nil {
+		t.Fatalf("s1: %v", err)
+	}
+
+	// disconnect from the Discord Gateway (WebSocket Connection).
+	if err := s2.Disconnect(); err != nil {
+		t.Fatalf("s2: %v", err)
+	}
+
+	muReady.Lock()
+	defer muReady.Unlock()
+	if readyCount != 2 {
+		t.Fatalf("expect to receive 2 Ready events but got %d", readyCount)
+	}
+
+	// allow Discord to close each session.
+	<-time.After(time.Second * 5)
 }

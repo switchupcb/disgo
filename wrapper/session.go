@@ -33,12 +33,17 @@ type Session struct {
 	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
 	Endpoint string
 
+	// Shard represents the [shard_id, num_shards] for the Session.
+	//
+	// https://discord.com/developers/docs/topics/gateway#sharding
+	Shard *[2]int
+
 	// Context carries request-scoped data for the Discord Gateway Connection.
 	//
 	// Context is also used as a signal for the Session's goroutines.
 	Context context.Context
 
-	// Conn represents a connection to the Discord Gateway.
+	// Conn represents a WebSocket Connection to the Discord Gateway.
 	Conn *websocket.Conn
 
 	// heartbeat contains the fields required to implement the heartbeat mechanism.
@@ -46,6 +51,12 @@ type Session struct {
 
 	// manager represents a manager of a Session's goroutines.
 	manager *manager
+
+	// client_manager represents the *Client Session Manager of the Session.
+	client_manager *SessionManager
+
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
 
 	// RWMutex is used to protect the Session's variables from data races
 	// by providing transactional functionality.
@@ -83,43 +94,48 @@ func (s *Session) Connect(bot *Client) error {
 
 // connect connects a session to a WebSocket Connection.
 func (s *Session) connect(bot *Client) error {
+	if bot.Sessions == nil {
+		return fmt.Errorf(errNoSessionManager) //lint:ignore ST1005 format help message.
+	}
+
+	s.client_manager = bot.Sessions
+
 	if s.isConnected() {
 		return fmt.Errorf("session %q is already connected", s.ID)
 	}
 
-	// request a valid Gateway URL endpoint from the Discord API.
+	var err error
+
+	// request a valid Gateway URL endpoint and response from the Discord API.
 	gatewayEndpoint := s.Endpoint
-	if gatewayEndpoint == "" || !s.canReconnect() {
-		gateway := GetGatewayBot{}
-		response, err := gateway.Send(bot)
-		if err != nil {
-			return fmt.Errorf("error getting the Gateway API Endpoint: %w", err)
+	var response *GetGatewayBotResponse
+
+	if bot.Config.Gateway.ShardManager != nil {
+		if gatewayEndpoint, response, err = bot.Config.Gateway.ShardManager.SetLimit(bot); err != nil {
+			return fmt.Errorf("shardmanager: %w", err)
 		}
+	} else {
+		if gatewayEndpoint == "" || !s.canReconnect() {
+			gateway := GetGatewayBot{}
+			response, err = gateway.Send(bot)
+			if err != nil {
+				return fmt.Errorf("error getting the Gateway API Endpoint: %w", err)
+			}
 
-		gatewayEndpoint = response.URL + gatewayEndpointParams
+			gatewayEndpoint = response.URL
+		}
+	}
 
-		// set the maximum allowed (Identify) concurrency rate limit.
-		//
-		// https://discord.com/developers/docs/topics/gateway#rate-limiting
+	// set the maximum allowed (Identify) concurrency rate limit.
+	//
+	// https://discord.com/developers/docs/topics/gateway#rate-limiting
+	if response != nil {
 		bot.Config.Gateway.RateLimiter.StartTx()
 
 		identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewaySendEventNameIdentify)
 		if identifyBucket == nil {
 			identifyBucket = getBucket()
 			bot.Config.Gateway.RateLimiter.SetBucketFromID(FlagGatewaySendEventNameIdentify, identifyBucket)
-		}
-
-		if bot.Config.Gateway.ShardManager != nil {
-			reset := time.Now().Add(time.Millisecond*time.Duration(response.SessionStartLimit.ResetAfter) + 1)
-
-			bot.Config.Gateway.ShardManager.SetLimit(
-				ShardLimit{
-					MaxStarts:       response.SessionStartLimit.Total,
-					RemainingStarts: response.SessionStartLimit.Remaining,
-					Reset:           reset,
-					MaxConcurrency:  response.SessionStartLimit.MaxConcurrency,
-				},
-			)
 		}
 
 		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency)
@@ -132,14 +148,27 @@ func (s *Session) connect(bot *Client) error {
 		bot.Config.Gateway.RateLimiter.EndTx()
 	}
 
-	var err error
-
 	// connect to the Discord Gateway Websocket.
 	s.manager = new(manager)
 	s.Context, s.manager.cancel = context.WithCancel(context.Background())
-	if s.Conn, _, err = websocket.Dial(s.Context, gatewayEndpoint, nil); err != nil {
+	if s.Conn, _, err = websocket.Dial(s.Context, gatewayEndpoint+gatewayEndpointParams, nil); err != nil {
 		return fmt.Errorf("error connecting to the Discord Gateway: %w", err)
 	}
+
+	// set up the Session's Rate Limiter (applied per WebSocket Connection).
+	// https://discord.com/developers/docs/topics/gateway#rate-limiting
+	s.RateLimiter = &RateLimit{ //nolint:exhaustruct
+		ids:     make(map[string]string, totalGatewayBucketsPerConnection),
+		buckets: make(map[string]*Bucket, totalGatewayBucketsPerConnection),
+	}
+
+	s.RateLimiter.SetBucket(
+		GlobalRateLimitRouteID, &Bucket{ //nolint:exhaustruct
+			Limit:     FlagGlobalRateLimitGateway,
+			Remaining: FlagGlobalRateLimitGateway,
+			Expiry:    time.Now().Add(FlagGlobalRateLimitGatewayInterval),
+		},
+	)
 
 	// handle the incoming Hello event upon connecting to the Gateway.
 	hello := new(Hello)
@@ -240,27 +269,23 @@ func (s *Session) connect(bot *Client) error {
 // then handles the incoming Ready or Resumed packet that indicates a successful connection.
 func (s *Session) initial(bot *Client, attempt int) error {
 	if !s.canReconnect() {
-		if bot.Config.Gateway.ShardManager == nil {
-			// send an Opcode 2 Identify to the Discord Gateway.
-			identify := Identify{
-				Token: bot.Authentication.Token,
-				Properties: IdentifyConnectionProperties{
-					OS:      runtime.GOOS,
-					Browser: module,
-					Device:  module,
-				},
-				Compress:       Pointer(true),
-				LargeThreshold: Pointer(maxIdentifyLargeThreshold),
-				Shard:          nil,
-				Presence:       bot.Config.Gateway.GatewayPresenceUpdate,
-				Intents:        bot.Config.Gateway.Intents,
-			}
+		// send an Opcode 2 Identify to the Discord Gateway.
+		identify := Identify{
+			Token: bot.Authentication.Token,
+			Properties: IdentifyConnectionProperties{
+				OS:      runtime.GOOS,
+				Browser: module,
+				Device:  module,
+			},
+			Compress:       Pointer(true),
+			LargeThreshold: Pointer(maxIdentifyLargeThreshold),
+			Shard:          s.Shard,
+			Presence:       bot.Config.Gateway.GatewayPresenceUpdate,
+			Intents:        bot.Config.Gateway.Intents,
+		}
 
-			if err := identify.SendEvent(bot, s); err != nil {
-				return err
-			}
-		} else {
-			bot.Config.Gateway.ShardManager.Identify(bot, s)
+		if err := identify.SendEvent(bot, s); err != nil {
+			return err
 		}
 	} else {
 		// send an Opcode 6 Resume to the Discord Gateway to reconnect the session.
@@ -295,12 +320,15 @@ func (s *Session) initial(bot *Client, attempt int) error {
 
 			LogSession(Logger.Info(), ready.SessionID).Msg("received Ready event")
 
-			if bot.Config.Gateway.ShardManager == nil {
-				s.ID = ready.SessionID
-				atomic.StoreInt64(&s.Seq, 0)
-				s.Endpoint = ready.ResumeGatewayURL
-				bot.ApplicationID = ready.Application.ID
-			} else {
+			// Configure the session.
+			s.ID = ready.SessionID
+			atomic.StoreInt64(&s.Seq, 0)
+			s.Endpoint = ready.ResumeGatewayURL
+
+			// Store the session in the session manager.
+			s.client_manager.Gateway.Store(s.ID, s)
+
+			if bot.Config.Gateway.ShardManager != nil {
 				bot.Config.Gateway.ShardManager.Ready(bot, s, ready)
 			}
 
@@ -312,6 +340,9 @@ func (s *Session) initial(bot *Client, attempt int) error {
 		// by replaying all missed events in order, finalized by a Resumed event.
 		case *payload.EventName == FlagGatewayEventNameResumed:
 			LogSession(Logger.Info(), s.ID).Msg("received Resumed event")
+
+			// Store the session in the session manager.
+			s.client_manager.Gateway.Store(s.ID, s)
 
 			for _, handler := range bot.Handlers.Resumed {
 				go handler(&Resumed{})
@@ -332,6 +363,9 @@ func (s *Session) initial(bot *Client, attempt int) error {
 				if replayed.Op == FlagGatewayOpcodeDispatch && *replayed.EventName == FlagGatewayEventNameResumed {
 					LogSession(Logger.Info(), s.ID).Msg("received Resumed event")
 
+					// Store the session in the session manager.
+					s.client_manager.Gateway.Store(s.ID, s)
+
 					for _, handler := range bot.Handlers.Resumed {
 						go handler(&Resumed{})
 					}
@@ -346,6 +380,9 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	// When the maximum concurrency limit has been reached while connecting, or when
 	// the session does NOT reconnect in time, the Discord Gateway send an Opcode 9 Invalid Session.
 	case FlagGatewayOpcodeInvalidSession:
+		// Remove the session from the session manager.
+		s.client_manager.Gateway.Store(s.ID, nil)
+
 		if attempt < 1 {
 			// wait for Discord to close the session, then complete a fresh connect.
 			<-time.NewTimer(invalidSessionWaitTime).C
@@ -410,6 +447,9 @@ func (s *Session) disconnect(code int) error {
 	// cancel the context to kill the goroutines of the Session.
 	defer s.manager.cancel()
 
+	// Remove the session from the session manager.
+	s.client_manager.Gateway.Store(s.ID, nil)
+
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
 		return fmt.Errorf("%w", err)
 	}
@@ -451,25 +491,36 @@ func readEvent(s *Session, dst any) error {
 // writeEvent is a helper function for writing events to the WebSocket Session.
 func writeEvent(bot *Client, s *Session, op int, name string, dst any) error {
 RATELIMIT:
-	// a single command is PROCESSED at any point in time.
-	bot.Config.Gateway.RateLimiter.Lock()
+	// a single send event is PROCESSED at any point in time.
+	s.RateLimiter.Lock()
 
 	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("processing gateway command")
 
 	for {
-		bot.Config.Gateway.RateLimiter.StartTx()
+		s.RateLimiter.StartTx()
 
-		globalBucket := bot.Config.Gateway.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
+		globalBucket := s.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
+
+		// reset the Global Rate Limit Bucket when the current Bucket has passed its expiry.
+		if isExpired(globalBucket) {
+			globalBucket.Reset(time.Now().Add(time.Minute))
+		}
 
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
 		if isNotEmpty(globalBucket) {
 			switch op {
 			// Identify is also bound by the max_concurrency rate limit.
 			case FlagGatewayOpcodeIdentify:
+				bot.Config.Gateway.RateLimiter.StartTx()
+
 				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewaySendEventNameIdentify)
 
 				if isNotEmpty(identifyBucket) {
 					if globalBucket != nil {
+						if globalBucket.Remaining == FlagGlobalRateLimitGateway {
+							globalBucket.Reset(time.Now().Add(time.Minute))
+						}
+
 						globalBucket.Remaining--
 					}
 
@@ -478,12 +529,17 @@ RATELIMIT:
 					}
 
 					bot.Config.Gateway.RateLimiter.EndTx()
+					s.RateLimiter.EndTx()
 
 					goto SEND
 				}
 
 				if isExpired(identifyBucket) {
 					if globalBucket != nil {
+						if globalBucket.Remaining == FlagGlobalRateLimitGateway {
+							globalBucket.Reset(time.Now().Add(time.Minute))
+						}
+
 						globalBucket.Remaining--
 					}
 
@@ -493,6 +549,7 @@ RATELIMIT:
 					}
 
 					bot.Config.Gateway.RateLimiter.EndTx()
+					s.RateLimiter.EndTx()
 
 					goto SEND
 				}
@@ -502,9 +559,10 @@ RATELIMIT:
 					wait = identifyBucket.Expiry
 				}
 
-				// do NOT block other requests due to a Command Rate Limit.
+				// do NOT block other send events due to a Send Event Rate Limit.
 				bot.Config.Gateway.RateLimiter.EndTx()
-				bot.Config.Gateway.RateLimiter.Unlock()
+				s.RateLimiter.EndTx()
+				s.RateLimiter.Unlock()
 
 				// reduce CPU usage by blocking the current goroutine
 				// until it's eligible for action.
@@ -516,25 +574,24 @@ RATELIMIT:
 
 			default:
 				if globalBucket != nil {
+					if globalBucket.Remaining == FlagGlobalRateLimitGateway {
+						globalBucket.Reset(time.Now().Add(time.Minute))
+					}
+
 					globalBucket.Remaining--
 				}
 
-				bot.Config.Gateway.RateLimiter.EndTx()
+				s.RateLimiter.EndTx()
 
 				goto SEND
 			}
 		}
 
-		// reset the Global Rate Limit Bucket when the current Bucket has passed its expiry.
-		if isExpired(globalBucket) {
-			globalBucket.Reset(time.Now().Add(time.Minute))
-		}
-
-		bot.Config.Gateway.RateLimiter.EndTx()
+		s.RateLimiter.EndTx()
 	}
 
 SEND:
-	bot.Config.Gateway.RateLimiter.Unlock()
+	s.RateLimiter.Unlock()
 
 	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sending gateway command")
 

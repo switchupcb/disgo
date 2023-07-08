@@ -39,8 +39,8 @@ func (e ErrorRequest) Error() string {
 
 // Status Code Error Messages.
 const (
-	errStatusCodeKnown   = "Status Code %d: %v"
-	errStatusCodeUnknown = "Status Code %d: Unknown status code error from Discord"
+	errStatusCodeKnown   = "status code %d: %v"
+	errStatusCodeUnknown = "status code %d: unknown status code error from Discord"
 )
 
 // StatusCodeError handles a Discord API HTTP Status Code and returns the relevant error message.
@@ -124,6 +124,26 @@ func (e ErrorEvent) Error() string {
 		e.ClientID, e.Event, e.Action, e.Err).Error()
 }
 
+// Discord Gateway Error Messages
+const (
+	errNoSessionManager = `The client must contain a non-nil SessionManager to connect to the Discord Gateway.
+
+	Set the *Client.SessionManager using one of the following methods.
+
+	--- 1
+
+	bot := &disgo.Client{
+		...
+		Sessions: 	disgo.NewSessionManager()
+	}
+
+	--- 2
+
+	bot.Sessions = disgo.NewSessionManager()
+
+	`
+)
+
 // ErrorSession represents a WebSocket Session error that occurs during an active session.
 type ErrorSession struct {
 	// Err represents the error that occurred.
@@ -158,5 +178,6 @@ func (e ErrorDisconnect) Error() string {
 	return fmt.Errorf("error disconnecting from %q\n"+
 		"\tDisconnect(): %v\n"+
 		"\treason: %w\n",
-		e.Connection, e.Err, e.Action).Error()
+		e.Connection, e.Err, e.Action,
+	).Error() //lint:ignore ST1005 readability
 }

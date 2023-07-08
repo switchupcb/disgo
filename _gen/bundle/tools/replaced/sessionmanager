@@ -1,0 +1,18 @@
+type SessionManager struct {
+	Gateway map[string]*Session
+	Voice   map[string]*Session
+	All     []*Session
+}
+---
+type SessionManager struct {
+	// Gateway represents a map of Discord Gateway (TCP WebSocket Connections) session IDs to Sessions.
+	// map[ID]Session
+	Gateway map[string]*Session
+
+	// Voice represents a map of Discord Voice (UDP WebSocket Connection) session IDs to Sessions.
+	// map[ID]Session
+	Voice   map[string]*Session
+	
+	// All contains a pointer to every session that is being managed.	
+	All     []*Session
+}

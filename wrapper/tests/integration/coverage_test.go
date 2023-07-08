@@ -42,6 +42,7 @@ func TestCoverage(t *testing.T) {
 		Authentication: BotToken(os.Getenv("COVERAGE_TEST_TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       new(Handlers),
+		Sessions:       NewSessionManager(),
 	}
 
 	bot.Config.Request.Timeout = time.Second * time.Duration(3)

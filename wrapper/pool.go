@@ -50,10 +50,13 @@ func putSession(s *Session) {
 	s.ID = ""
 	s.Seq = 0
 	s.Endpoint = ""
+	s.Shard = nil
 	s.Context = nil
 	s.Conn = nil
 	s.heartbeat = nil
 	s.manager = nil
+	s.client_manager = nil
+	s.RateLimiter = nil
 
 	spool.Put(s)
 }

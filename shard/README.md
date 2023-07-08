@@ -1,55 +1,86 @@
 # Disgo Shard Manager
 
-The Disgo Shard Manager is a Go module that automatically handles sharding for your Discord Bot. The Disgo Shard Manager works by scaling your WebSocket Sessions through the `disgo.Client.Sessions` field. The `Client` calls `GET /gateway/bot` to retrieve the recommended number of shards to use upon joining a `variable` amount of guilds. These shards are assigned to a **Session** using the recommended number of shards by [Discord](https://discord.com/developers/docs/topics/gateway#get-gateway-bot). For more information about the concept of sharding, read [What is a Discord Shard?](/_contribution/concepts/SHARD.md).
+The Disgo Shard Manager is a Go module that automatically handles sharding for your Discord Bot. 
+
+The Disgo Shard Manager works by managing the connection of multiple `disgo.Session` and setting the `Session.Shard` field:
+1. The `Client` requests `GET /gateway/bot` to retrieve the [recommended number of shards by Discord](https://discord.com/developers/docs/topics/gateway#get-gateway-bot).
+2. These shards _(defining traffic routes of guild event data)_ are assigned to a `disgo.Session`, which is then connected to Discord.
+
+_For more information about the concept of sharding, read [What is a Discord Shard?](/_contribution/concepts/SHARD.md)._
 
 ## Implementation
 
-Sharding is a two-step process that involves implementing shard-logic in your application and sharding your infrastructure _(optional)_.
+Sharding is a three-step process that involves implementing shard-logic in your application and sharding your infrastructure _(optional)_.
 
-### Sharding the Bot
+### Import
 
-Implement shard-logic in your application by importing the **Disgo Shard Manager** module, then setting the `Client.Config.Gateway.ShardManager = new(ActiveShardManager)`. This manager will set the `Shard` field of the `Identify` payloads that are sent to Discord, which indicates that your bot is accepting data from multiple shards. **Technically, this is all that's required to implement sharding.** The purpose of Discord's sharding requirement is to minimize the amount of data that Discord sends per WebSocket Session. There is nothing stopping you from running one server that creates multiple sessions and handles them in one application.
+Get a specific version of `shard` by specifying a tag or branch.
+
+```
+go get github.com/switchupcb/disgo/shard@v1.10.1
+```
+
+_Disgo branches are referenced by API version (i.e `v10`)._
+
+### Sharding the Discord Bot
+
+Set the `Client.Config.Gateway.ShardManager` field to a `shard.InstanceShardManager`.
+
+```go
+bot.Config.Gateway.ShardManager = new(shard.InstanceShardManager)
+```
+
+Change the instantiated `disgo.Session` variable to the bot's `shard.InstanceShardManager`.
+
+```go
+// Change this line.
+s := disgo.NewSession()
+
+// To this line.
+s := bot.Config.Gateway.ShardManager
+
+// Find and replace existing `SendEvent` function calls with `SendEvents`
+// to send events with every Shard Manager session.
+```
+
+**This is all that's required to implement sharding.**
+
+Discord's sharding requirement aims to minimize the amount of data that Discord sends per WebSocket Session. Nothing is stopping you from running a Discord Bot that creates multiple sessions and handles them in one instance.
+
+_But read on if you want to shard the Discord Bot's infrastructure too._
 
 ### Sharding the Infrastructure
 
-Discord only allows you to shard by guild, so — barring a load-balanced architecture — you must handle _every_ important Discord Event in every Discord Bot application within a single codebase. As a result, the only way to shard the infrastructure of your Discord Bot application _— without requiring additional code  —_ is to host multiple copies of it _(each handling a fraction of your total load)_. This is known as **active-active load balancing**.
+Discord doesn't let you select which shard a guild is defined on. This has implications on how you shard the infrastructure of a Discord Bot.
 
-_The Disgo Shard Manager implements this approach. Read the following guide for an alternative._
+Ignoring a shard is equivalent to ignoring all incoming guild event data from that shard. So it's expected that you handle every event from a shard in a Discord Bot instance _(unless a load balancer is involved)_.
 
-# Guide
+These constraints define the most straightforward sharding strategy:
+1. Host multiple instances of your Discord Bot _(copies of a single codebase)_; each with the ability to handle all incoming events.
+2. Host a central "Shard Manager instance" that each Discord Bot instance communicates to shard.
 
-## Terminology
+This sharding strategy is based on **active-active load balancing** and must be implemented using a modified shard manager.
 
-### What is an application?
-
-An application refers to a built binary that is executed on your computer. You run applications through the terminal (i.e `run.exe`) or via visual shortcuts. In the context of this explanation, an application refers to the code that your Discord Bot uses to run on a **server**.
-
-### What is a server?
-
-A server is a computer (with a specialized use-case). You run applications on computers. A discord bot application is hosted _(ran)_ on a server.
-
-### What is a guild?
-
-Guilds in Discord represent an isolated collection of users and channels: These are often referred to as "servers" in the User Interface (UI). However, these "servers" are **NOT** the same as the **servers** described above. A Discord guild is a concept, while a **server** is a physical machine.
-
-## Approach
-
-A WebSocket Session contains **shards** that manage **multiple guilds**. Ignoring specific events across one shard would ignore those same events from _multiple guilds_ the shard manages: A guild's shard isn't able to be specified directly. Therefore, ignoring a **session's events** ignores **multiple shards' events** which ignores **multiple guilds' events**. Since Discord requires you to shard by guild, you **CANNOT** shard the infrastructure of a Discord Bot by creating multiple applications that handle a single event _(without an alternative infrastructure)_.
-
-### Alternative
-
-A **load balancer** allows you to "shard" your bot by event. This entails creating **one application** _(the load balancer)_ that accepts every event your bot receives _(and thus every shard)_, then having that **same application** forward those events to micro-applications _(which run on other servers)_. This strategy is also known as a [microservice architecture](https://en.wikipedia.org/wiki/Microservices). Placing every "shard" in a single application requires _that same application_ to maintain every session. As a result, your load balancer's only purpose — in this alternative infrastructure — is to balance the load by routing events to other applications. When the load balancer _(that handles every session)_ goes down, so does your bot.
+_Read ["Implementing a Sharding Strategy (Guide)"](https://github.com/switchupcb/disgo/discussions/65) for more information about implementing an alternative sharding strategy._
 
 ## QA
 
 ### When do I need to shard?
 
-Discord requires you to shard once you've reached a [certain number](https://discord.com/developers/docs/topics/gateway#sharding) of guilds.
+Discord requires you to shard your Discord Bot once it's in a [certain number](https://discord.com/developers/docs/topics/gateway#sharding) of guilds.
 
-### What are the implications of using one server?
+### What are the implications of using one server to shard?
 
-Servers are computers with **CPU**, **RAM**, and **Storage**. You typically run one application on a server because you expect that application to use **all** of the server's resources _(i.e 100% CPU, 100% RAM, etc)_. Placing multiple applications on one server is only useful when your application does **NOT** use all of the server's resources, cores, etc. This implies that your application handles a low amount of data, experiences a bottleneck _(i.e waiting on a network request)_, and/or maintains a consistent load. If a server with two cores — without any form of multithreading — has an application using _<100% CPU_ on one core, then you can add an additional application _(that uses the other core)_ to the server without a performance hit. 
+Servers are computers with **CPU**, **RAM**, and **Storage**. You typically run one application on a server because you expect that application to use **all** of the server's resources _(i.e 100% CPU, 100% RAM, etc)_. 
 
-_In practice, it's **NOT** this straightforward._
+Placing multiple applications on one server is only useful when your application does **NOT** use all of the server's resources, cores, etc. This strategy implies that your application handles a low amount of data, experiences a bottleneck _(e.g., waiting on a network request)_, or maintains a consistent load.
 
-If you need to shard your bot efficiently, you _probably_ need to use multiple servers with multiple applications that all represent your "Discord Bot" as a single entity: This entity — containing multiple servers — is known as a [cluster](https://en.wikipedia.org/wiki/Computer_cluster). Each servers' application(s) would accept a separate amount of shards and process the shard's data accordingly. These applications **CAN** be built from the same codebase that was used prior to sharding, but will require modification if the bot implements cross-guild functionality. Otherwise, in most cases, all you need to do is implement this module in your application.
+If a server with two cores — without any form of multithreading — has an application using _<100% CPU_ on one core, then you can add an additional application _(that uses the other core)_ to the server without a performance hit.
+
+_In practice, scaling this way is **NOT** this straightforward._
+
+If you need to shard your bot efficiently, you _probably_ need to use multiple servers with multiple applications that all represent your "Discord Bot" as a single entity: This entity — containing multiple servers — is known as a [cluster](https://en.wikipedia.org/wiki/Computer_cluster). 
+
+Each servers' application(s) would accept a different amount of shards and process the shard's data accordingly. Keep in mind that these applications **CAN** be built from the same codebase that was used before sharding, but require modification if the bot implements cross-guild functionality. 
+
+_Otherwise, all most cases require is for you to implement this module in your application._
