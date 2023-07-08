@@ -9,6 +9,34 @@ import (
 	. "github.com/switchupcb/disgo"
 )
 
+// TestSessionManager tests the Session Manager check at the start of a Session Connect() call.
+func TestSessionManager(t *testing.T) {
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
+
+	bot := &Client{
+		Authentication: BotToken(os.Getenv("TOKEN")),
+		Config:         DefaultConfig(),
+		Handlers:       new(Handlers),
+		Sessions:       NewSessionManager(),
+	}
+
+	s := NewSession()
+
+	// connecting to a connected session should result in an error.
+	err := s.Connect(bot)
+	if err == nil {
+		// disconnect from the Discord Gateway (WebSocket Connection).
+		if err := s.Disconnect(); err != nil {
+			t.Fatalf("%v", err)
+		}
+
+		// allow Discord to close the session.
+		<-time.After(time.Second * 5)
+
+		t.Fatalf("expected error while connecting to with a bot without a SessionManager")
+	}
+}
+
 // TestConnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
 // in order to ensure that WebSocket functionality works.
 func TestConnect(t *testing.T) {
@@ -21,6 +49,7 @@ func TestConnect(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       new(Handlers),
+		Sessions:       NewSessionManager(),
 	}
 
 	s := NewSession()
@@ -42,6 +71,13 @@ func TestConnect(t *testing.T) {
 	if err := s.Connect(bot); err == nil {
 		t.Fatalf("expected error while connecting to already connected session")
 	}
+
+	// check that session has been stored in the Session Manager.
+	s.RLock()
+	if session, ok := bot.Sessions.Gateway.Load(s.ID); !ok || session == nil {
+		t.Fatalf("expected session in bot.Sessions.Gateway but got nil")
+	}
+	s.RUnlock()
 
 	// wait until a Heartbeat is sent.
 	for {
@@ -96,6 +132,13 @@ DISCONNECT:
 		t.Fatalf("expected error while disconnecting from already disconnected session")
 	}
 
+	// check that session has been removed from the Session Manager.
+	s.RLock()
+	if session, ok := bot.Sessions.Gateway.Load(s.ID); ok || session != nil {
+		t.Fatalf("expected nil in bot.Sessions.Gateway but got session")
+	}
+	s.RUnlock()
+
 	// allow Discord to close the session.
 	<-time.After(time.Second * 5)
 }
@@ -112,6 +155,7 @@ func TestReconnect(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       &Handlers{},
+		Sessions:       NewSessionManager(),
 	}
 
 	s := NewSession()
@@ -157,6 +201,13 @@ RECONNECT:
 	if err := s.Reconnect(bot); err != nil {
 		t.Fatalf("%v", err)
 	}
+
+	// check that session has been stored in the Session Manager.
+	s.RLock()
+	if session, ok := bot.Sessions.Gateway.Load(s.ID); !ok || session == nil {
+		t.Fatalf("expected session in bot.Sessions.Gateway but got nil")
+	}
+	s.RUnlock()
 
 	// wait until another Ready or Resumed event is handled by the bot.
 	select {

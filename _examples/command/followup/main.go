@@ -34,6 +34,7 @@ func main() {
 		Authentication: disgo.BotToken(token), // or BearerToken("TOKEN")
 		Config:         disgo.DefaultConfig(),
 		Handlers:       new(disgo.Handlers),
+		Sessions:       disgo.NewSessionManager(),
 	}
 
 	log.Println("Creating an application command...")

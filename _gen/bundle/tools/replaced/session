@@ -1,12 +1,14 @@
 type Session struct {
-	Context   context.Context
-	Shard     *[2]int
-	Conn      *websocket.Conn
-	heartbeat *heartbeat
-	manager   *manager
-	ID        string
-	Endpoint  string
-	Seq       int64
+	Context        context.Context
+	RateLimiter    RateLimiter
+	Shard          *[2]int
+	Conn           *websocket.Conn
+	heartbeat      *heartbeat
+	manager        *manager
+	client_manager *SessionManager
+	ID             string
+	Endpoint       string
+	Seq            int64
 	sync.RWMutex
 }
 ---
@@ -15,6 +17,9 @@ type Session struct {
 	//
 	// Context is also used as a signal for the Session's goroutines.
 	Context   context.Context
+
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
 
 	// Shard represents the [shard_id, num_shards] for this session.
 	//
@@ -29,6 +34,9 @@ type Session struct {
 
 	// manager represents a manager of a Session's goroutines.
 	manager   *manager
+
+	// client_manager represents the *Client Session Manager of the Session.
+	client_manager *SessionManager
 
 	// ID represents the session ID of the Session.
 	ID        string

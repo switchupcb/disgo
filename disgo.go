@@ -17533,16 +17533,44 @@ const (
 
 // Session represents a Discord Gateway WebSocket Session.
 type Session struct {
-	Context        context.Context
-	RateLimiter    RateLimiter
-	Shard          *[2]int
-	Conn           *websocket.Conn
-	heartbeat      *heartbeat
-	manager        *manager
+	// Context carries request-scoped data for the Discord Gateway Connection.
+	//
+	// Context is also used as a signal for the Session's goroutines.
+	Context context.Context
+
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
+
+	// Shard represents the [shard_id, num_shards] for this session.
+	//
+	// https://discord.com/developers/docs/topics/gateway#sharding
+	Shard *[2]int
+
+	// Conn represents a connection to the Discord Gateway.
+	Conn *websocket.Conn
+
+	// heartbeat contains the fields required to implement the heartbeat mechanism.
+	heartbeat *heartbeat
+
+	// manager represents a manager of a Session's goroutines.
+	manager *manager
+
+	// client_manager represents the *Client Session Manager of the Session.
 	client_manager *SessionManager
-	ID             string
-	Endpoint       string
-	Seq            int64
+
+	// ID represents the session ID of the Session.
+	ID string
+
+	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
+	Endpoint string
+
+	// Seq represents the last sequence number received by the client.
+	//
+	// https://discord.com/developers/docs/topics/gateway#heartbeat
+	Seq int64
+
+	// RWMutex is used to protect the Session's variables from data races
+	// by providing transactional functionality.
 	sync.RWMutex
 }
 
@@ -17977,15 +18005,6 @@ func readEvent(s *Session, dst any) error {
 // writeEvent is a helper function for writing events to the WebSocket Session.
 func writeEvent(bot *Client, s *Session, op int, name string, dst any) error {
 RATELIMIT:
-	s.RLock()
-
-	// make sure the Session isn't disconnected while sending an event.
-	if !s.isConnected() {
-		s.RUnlock()
-
-		return fmt.Errorf("writeEvent: session is disconnected")
-	}
-
 	// a single send event is PROCESSED at any point in time.
 	s.RateLimiter.Lock()
 
@@ -18012,6 +18031,10 @@ RATELIMIT:
 
 				if isNotEmpty(identifyBucket) {
 					if globalBucket != nil {
+						if globalBucket.Remaining == FlagGlobalRateLimitGateway {
+							globalBucket.Reset(time.Now().Add(time.Minute))
+						}
+
 						globalBucket.Remaining--
 					}
 
@@ -18020,12 +18043,17 @@ RATELIMIT:
 					}
 
 					bot.Config.Gateway.RateLimiter.EndTx()
+					s.RateLimiter.EndTx()
 
 					goto SEND
 				}
 
 				if isExpired(identifyBucket) {
 					if globalBucket != nil {
+						if globalBucket.Remaining == FlagGlobalRateLimitGateway {
+							globalBucket.Reset(time.Now().Add(time.Minute))
+						}
+
 						globalBucket.Remaining--
 					}
 
@@ -18035,6 +18063,7 @@ RATELIMIT:
 					}
 
 					bot.Config.Gateway.RateLimiter.EndTx()
+					s.RateLimiter.EndTx()
 
 					goto SEND
 				}
@@ -18048,7 +18077,6 @@ RATELIMIT:
 				bot.Config.Gateway.RateLimiter.EndTx()
 				s.RateLimiter.EndTx()
 				s.RateLimiter.Unlock()
-				s.RUnlock()
 
 				// reduce CPU usage by blocking the current goroutine
 				// until it's eligible for action.
@@ -18060,6 +18088,10 @@ RATELIMIT:
 
 			default:
 				if globalBucket != nil {
+					if globalBucket.Remaining == FlagGlobalRateLimitGateway {
+						globalBucket.Reset(time.Now().Add(time.Minute))
+					}
+
 					globalBucket.Remaining--
 				}
 
@@ -18074,7 +18106,6 @@ RATELIMIT:
 
 SEND:
 	s.RateLimiter.Unlock()
-	defer s.RUnlock()
 
 	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sending gateway command")
 

@@ -494,15 +494,6 @@ func readEvent(s *Session, dst any) error {
 // writeEvent is a helper function for writing events to the WebSocket Session.
 func writeEvent(bot *Client, s *Session, op int, name string, dst any) error {
 RATELIMIT:
-	s.RLock()
-
-	// make sure the Session isn't disconnected while sending an event.
-	if !s.isConnected() {
-		s.RUnlock()
-
-		return fmt.Errorf("writeEvent: session is disconnected")
-	}
-
 	// a single send event is PROCESSED at any point in time.
 	s.RateLimiter.Lock()
 
@@ -529,6 +520,10 @@ RATELIMIT:
 
 				if isNotEmpty(identifyBucket) {
 					if globalBucket != nil {
+						if globalBucket.Remaining == FlagGlobalRateLimitGateway {
+							globalBucket.Reset(time.Now().Add(time.Minute))
+						}
+
 						globalBucket.Remaining--
 					}
 
@@ -537,12 +532,17 @@ RATELIMIT:
 					}
 
 					bot.Config.Gateway.RateLimiter.EndTx()
+					s.RateLimiter.EndTx()
 
 					goto SEND
 				}
 
 				if isExpired(identifyBucket) {
 					if globalBucket != nil {
+						if globalBucket.Remaining == FlagGlobalRateLimitGateway {
+							globalBucket.Reset(time.Now().Add(time.Minute))
+						}
+
 						globalBucket.Remaining--
 					}
 
@@ -552,6 +552,7 @@ RATELIMIT:
 					}
 
 					bot.Config.Gateway.RateLimiter.EndTx()
+					s.RateLimiter.EndTx()
 
 					goto SEND
 				}
@@ -565,7 +566,6 @@ RATELIMIT:
 				bot.Config.Gateway.RateLimiter.EndTx()
 				s.RateLimiter.EndTx()
 				s.RateLimiter.Unlock()
-				s.RUnlock()
 
 				// reduce CPU usage by blocking the current goroutine
 				// until it's eligible for action.
@@ -577,6 +577,10 @@ RATELIMIT:
 
 			default:
 				if globalBucket != nil {
+					if globalBucket.Remaining == FlagGlobalRateLimitGateway {
+						globalBucket.Reset(time.Now().Add(time.Minute))
+					}
+
 					globalBucket.Remaining--
 				}
 
@@ -591,7 +595,6 @@ RATELIMIT:
 
 SEND:
 	s.RateLimiter.Unlock()
-	defer s.RUnlock()
 
 	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sending gateway command")
 
