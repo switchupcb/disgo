@@ -38,6 +38,9 @@ s := disgo.NewSession()
 
 // To this line.
 s := bot.Config.Gateway.ShardManager
+
+// Find and replace existing `SendEvent` function calls with `SendEvents`
+// to send events with every Shard Manager session.
 ```
 
 **This is all that's required to implement sharding.**

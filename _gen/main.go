@@ -25,6 +25,8 @@ const (
 	inputDownload  = "input/dasgo.zip"
 	unzippedFolder = "dasgo-10"
 
+	copygenFolder = "_gen/tools/_copygen/"
+
 	outputEndpoints = "../wrapper/endpoints.go"
 	outputDasgo     = "../wrapper/dasgo.go"
 
@@ -163,24 +165,31 @@ func generate() error {
 	}
 
 	// send
-	sendgen := exec.Command("copygen", "-yml", "_gen/tools/_copygen/requests/setup.yml", "-xm")
+	sendgen := exec.Command("copygen", "-yml", copygenFolder+"requests/setup.yml", "-xm")
 	std, err := sendgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (send): %v", string(std))
 	}
 
 	// event handling
-	handlegen := exec.Command("copygen", "-yml", "_gen/tools/_copygen/events/setup.yml", "-xm")
+	handlegen := exec.Command("copygen", "-yml", copygenFolder+"events/setup.yml", "-xm")
 	std, err = handlegen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (handle): %v", string(std))
 	}
 
 	// sendevents
-	sendeventgen := exec.Command("copygen", "-yml", "_gen/tools/_copygen/sendevents/setup.yml", "-xm")
+	sendeventgen := exec.Command("copygen", "-yml", copygenFolder+"sendevents/setup.yml", "-xm")
 	std, err = sendeventgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (sendevents): %v", string(std))
+	}
+
+	// sendevents (shard manager)
+	shardeventgen := exec.Command("copygen", "-yml", copygenFolder+"shard/setup.yml", "-xm")
+	std, err = shardeventgen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copygen error (shardevents): %v", string(std))
 	}
 
 	// reset

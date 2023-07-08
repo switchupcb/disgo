@@ -33,12 +33,13 @@ Disgo sources Discord API objects from [dasgo](https://github.com/switchupcb/das
 
 Disgo generates code for features using [copygen](https://github.com/switchupcb/copygen). **This requires corresponding `setup.go` files to be updated.** Use the `diff` from Git to update those files accordingly.
 
-| Step           | Description                                                        |
-| :------------- | :----------------------------------------------------------------- |
-| `send.go`      | Uses copygen to generate request `Send()` functions.               |
-| `handle.go`    | Uses copygen to generate request **event handling** functionality. |
-| `sendevent.go` | Uses copygen to generate request `SendEvent()` functions.          |
-| Clean          | Cleans the generated code.                                         |
+| Step                   | Description                                                        |
+| :--------------------- | :----------------------------------------------------------------- |
+| `send.go`              | Uses copygen to generate request `Send()` functions.               |
+| `handle.go`            | Uses copygen to generate request **event handling** functionality. |
+| `sendevent.go`         | Uses copygen to generate gateway `SendEvent()` functions.          |
+| `sendevent.go` (shard) | Uses copygen to generate gateway `SendEvents()` functions.         |
+| Clean                  | Cleans the generated code.                                         |
 
 # Bundle
 
