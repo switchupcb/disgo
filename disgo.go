@@ -18772,3 +18772,69 @@ type ShardLimit struct {
 	// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
 	RecommendedShards int
 }
+
+// SendEvents sends an Opcode 1 Heartbeat event to the Discord Gateway.
+func (c *Heartbeat) SendEvents(bot *Client, sm ShardManager) error {
+	for _, session := range sm.GetSessions() {
+		if err := writeEvent(bot, session, FlagGatewayOpcodeHeartbeat, FlagGatewaySendEventNameHeartbeat, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SendEvents sends an Opcode 2 Identify event to the Discord Gateway.
+func (c *Identify) SendEvents(bot *Client, sm ShardManager) error {
+	for _, session := range sm.GetSessions() {
+		if err := writeEvent(bot, session, FlagGatewayOpcodeIdentify, FlagGatewaySendEventNameIdentify, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SendEvents sends an Opcode 3 UpdatePresence event to the Discord Gateway.
+func (c *GatewayPresenceUpdate) SendEvents(bot *Client, sm ShardManager) error {
+	for _, session := range sm.GetSessions() {
+		if err := writeEvent(bot, session, FlagGatewayOpcodePresenceUpdate, FlagGatewaySendEventNameUpdatePresence, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SendEvents sends an Opcode 4 UpdateVoiceState event to the Discord Gateway.
+func (c *VoiceStateUpdate) SendEvents(bot *Client, sm ShardManager) error {
+	for _, session := range sm.GetSessions() {
+		if err := writeEvent(bot, session, FlagGatewayOpcodeVoiceStateUpdate, FlagGatewaySendEventNameUpdateVoiceState, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SendEvents sends an Opcode 6 Resume event to the Discord Gateway.
+func (c *Resume) SendEvents(bot *Client, sm ShardManager) error {
+	for _, session := range sm.GetSessions() {
+		if err := writeEvent(bot, session, FlagGatewayOpcodeResume, FlagGatewaySendEventNameResume, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// SendEvents sends an Opcode 8 RequestGuildMembers event to the Discord Gateway.
+func (c *RequestGuildMembers) SendEvents(bot *Client, sm ShardManager) error {
+	for _, session := range sm.GetSessions() {
+		if err := writeEvent(bot, session, FlagGatewayOpcodeRequestGuildMembers, FlagGatewaySendEventNameRequestGuildMembers, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
