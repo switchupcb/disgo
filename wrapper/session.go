@@ -55,6 +55,9 @@ type Session struct {
 	// client_manager represents the *Client Session Manager of the Session.
 	client_manager *SessionManager
 
+	// RateLimiter represents an object that provides rate limit functionality.
+	RateLimiter RateLimiter
+
 	// RWMutex is used to protect the Session's variables from data races
 	// by providing transactional functionality.
 	sync.RWMutex
@@ -153,6 +156,21 @@ func (s *Session) connect(bot *Client) error {
 	if s.Conn, _, err = websocket.Dial(s.Context, gatewayEndpoint, nil); err != nil {
 		return fmt.Errorf("error connecting to the Discord Gateway: %w", err)
 	}
+
+	// set up the Session's Rate Limiter (applied per WebSocket Connection).
+	// https://discord.com/developers/docs/topics/gateway#rate-limiting
+	s.RateLimiter = &RateLimit{ //nolint:exhaustruct
+		ids:     make(map[string]string, totalGatewayBucketsPerConnection),
+		buckets: make(map[string]*Bucket, totalGatewayBucketsPerConnection),
+	}
+
+	s.RateLimiter.SetBucket(
+		GlobalRateLimitRouteID, &Bucket{ //nolint:exhaustruct
+			Limit:     FlagGlobalRateLimitGateway,
+			Remaining: FlagGlobalRateLimitGateway,
+			Expiry:    time.Now().Add(FlagGlobalRateLimitGatewayInterval),
+		},
+	)
 
 	// handle the incoming Hello event upon connecting to the Gateway.
 	hello := new(Hello)
@@ -476,21 +494,37 @@ func readEvent(s *Session, dst any) error {
 // writeEvent is a helper function for writing events to the WebSocket Session.
 func writeEvent(bot *Client, s *Session, op int, name string, dst any) error {
 RATELIMIT:
-	// a single command is PROCESSED at any point in time.
-	bot.Config.Gateway.RateLimiter.Lock()
+	s.RLock()
+
+	// make sure the Session isn't disconnected while sending an event.
+	if !s.isConnected() {
+		s.RUnlock()
+
+		return fmt.Errorf("writeEvent: session is disconnected")
+	}
+
+	// a single send event is PROCESSED at any point in time.
+	s.RateLimiter.Lock()
 
 	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("processing gateway command")
 
 	for {
-		bot.Config.Gateway.RateLimiter.StartTx()
+		s.RateLimiter.StartTx()
 
-		globalBucket := bot.Config.Gateway.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
+		globalBucket := s.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
+
+		// reset the Global Rate Limit Bucket when the current Bucket has passed its expiry.
+		if isExpired(globalBucket) {
+			globalBucket.Reset(time.Now().Add(time.Minute))
+		}
 
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
 		if isNotEmpty(globalBucket) {
 			switch op {
 			// Identify is also bound by the max_concurrency rate limit.
 			case FlagGatewayOpcodeIdentify:
+				bot.Config.Gateway.RateLimiter.StartTx()
+
 				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewaySendEventNameIdentify)
 
 				if isNotEmpty(identifyBucket) {
@@ -527,9 +561,11 @@ RATELIMIT:
 					wait = identifyBucket.Expiry
 				}
 
-				// do NOT block other requests due to a Command Rate Limit.
+				// do NOT block other send events due to a Send Event Rate Limit.
 				bot.Config.Gateway.RateLimiter.EndTx()
-				bot.Config.Gateway.RateLimiter.Unlock()
+				s.RateLimiter.EndTx()
+				s.RateLimiter.Unlock()
+				s.RUnlock()
 
 				// reduce CPU usage by blocking the current goroutine
 				// until it's eligible for action.
@@ -544,22 +580,18 @@ RATELIMIT:
 					globalBucket.Remaining--
 				}
 
-				bot.Config.Gateway.RateLimiter.EndTx()
+				s.RateLimiter.EndTx()
 
 				goto SEND
 			}
 		}
 
-		// reset the Global Rate Limit Bucket when the current Bucket has passed its expiry.
-		if isExpired(globalBucket) {
-			globalBucket.Reset(time.Now().Add(time.Minute))
-		}
-
-		bot.Config.Gateway.RateLimiter.EndTx()
+		s.RateLimiter.EndTx()
 	}
 
 SEND:
-	bot.Config.Gateway.RateLimiter.Unlock()
+	s.RateLimiter.Unlock()
+	defer s.RUnlock()
 
 	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sending gateway command")
 

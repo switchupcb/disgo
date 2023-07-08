@@ -32,7 +32,7 @@ Suppose that your Discord Bot sends a request to Discord:
 1. Disgo sends a request to Discord's API Server(s). 
 2. Discord's API Server processes the sent **request** based on several factors _(e.g., headers, endpoint, URL query string, data)_.
 3. Discord's API Server returns a **response** with a status code and other data to the Discord Bot.
-4. Disgo handles the response to provide you with the requested.
+4. Disgo handles the response to provide you with the requested data.
 
 _Disgo automatically handles request rate limits so your bot isn't blacklisted from Discord._
 
@@ -40,7 +40,7 @@ _Disgo automatically handles request rate limits so your bot isn't blacklisted f
 
 A request is sent using the `Send(bot)` function. 
 
-Disgo is a 1:1 API, meaning the objects defined in the [Discord API Documentation](https://discord.com/developers/docs/intro) are **directly** represented in Disgo. For example, the `CreateGlobalApplicationCommand` can be prepared and sent using the following code:
+Disgo is a 1:1 API, meaning the objects defined in the [Discord API Documentation](https://discord.com/developers/docs/intro) are **directly** represented in Disgo. For example, a [`CreateGlobalApplicationCommand`](https://discord.com/developers/docs/interactions/application-commands#create-global-application-command) request can be prepared and sent using the following code:
 
 ```go
 // Create a Create Global Application Command request.
@@ -79,11 +79,16 @@ _`fasthttp.ErrTimeout`  is returned from timed out requests._
 Servers use rate limits to prevent spam, abuse, and service overload. A rate limit defines the speed at which a server can handle requests _(in requests per second)_. 
 
 
-While there are many rate limit strategies a server may employ, [Google Architecture Rate Limiting Strategies](https://cloud.google.com/architecture/rate-limiting-strategies-techniques#techniques-enforcing-rate-limits) explains the most common cases. Discord enforces multiple rate limit strategies depending on the data sent to the server. These strategies include Global (Requests), Per Route (Requests), Per Resource (Requests), Global (Gateway), and Identify (Gateway) rate limits.
+While there are many rate limit strategies a server may employ, [Google Architecture Rate Limiting Strategies](https://cloud.google.com/architecture/rate-limiting-strategies-techniques#techniques-enforcing-rate-limits) explains the most common cases. Discord enforces multiple rate limit strategies depending on the data sent to the server. 
+
+The Discord rate limit strategies for requests include:
+- [Global (Requests)](https://discord.com/developers/docs/topics/rate-limits#global-rate-limit)
+- [Per Route (Requests)](https://discord.com/developers/docs/topics/rate-limits#rate-limits)
+- Per Resource (Requests)
 
 Disgo makes adhering to Discord's Rate Limits easy by providing a customizable rate limiter:
 - Use the builtin [`RateLimit`](/wrapper/ratelimit.go) implementation or develop your own by implementing the [`RateLimiter interface`](/wrapper/ratelimiter.go) _(which stores Buckets)_.
-- Set the `Client.Request.RateLimiter` or `Client.Gateway.RateLimiter` to customize how rate limiting works for HTTP Requests and Gateway Send Events.
+- Set the `Client.Request.RateLimiter` to customize how rate limiting works for HTTP Requests.
 - Set entries in the `RateLimitHashFuncs` map to control how a route is rate limited _(per-route, per-resource, etc)_.
 - Configure the `RateLimit.DefaultBucket` to control the behavior for requests that are sent without a known rate limit.
   

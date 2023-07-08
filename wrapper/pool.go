@@ -56,6 +56,7 @@ func putSession(s *Session) {
 	s.heartbeat = nil
 	s.manager = nil
 	s.client_manager = nil
+	s.RateLimiter = nil
 
 	spool.Put(s)
 }

@@ -1,5 +1,7 @@
 # What is an Event?
 
+An event is an action.
+
 A Discord Bot receives a Discord **Event** by connecting to a Discord WebSocket (Gateway). 
 
 _For example, when a User creates a message, Discord sends that (Message Create) event to the Bot._

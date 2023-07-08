@@ -232,8 +232,13 @@ const (
 	// totalIntents represents the total amount of Discord Intents.
 	totalIntents = 19
 
-	// totalGatewayBuckets represents the total amount of Discord Gateway Rate Limits.
-	totalGatewayBuckets = 2
+	// totalGatewayBucketsPerBot represents the total amount of Discord Gateway Rate Limit Buckets
+	// for a bot.
+	totalGatewayBucketsPerBot = 1
+
+	// totalGatewayBucketsPerConnection represents the total amount of Discord Gateway Rate Limits Buckets
+	// for a WebSocket Connection.
+	totalGatewayBucketsPerConnection = 1
 )
 
 // DefaultGateway returns a default Gateway configuration.
@@ -243,8 +248,8 @@ const (
 func DefaultGateway() Gateway {
 	// configure the rate limiter.
 	ratelimiter := &RateLimit{ //nolint:exhaustruct
-		ids:     make(map[string]string, totalGatewayBuckets),
-		buckets: make(map[string]*Bucket, totalGatewayBuckets),
+		ids:     make(map[string]string, totalGatewayBucketsPerBot),
+		buckets: make(map[string]*Bucket, totalGatewayBucketsPerBot),
 	}
 
 	ratelimiter.DefaultBucket = &Bucket{ //nolint:exhaustruct
@@ -253,10 +258,10 @@ func DefaultGateway() Gateway {
 
 	// https://discord.com/developers/docs/topics/gateway#rate-limiting
 	ratelimiter.SetBucket(
-		GlobalRateLimitRouteID, &Bucket{ //nolint:exhaustruct
-			Limit:     FlagGlobalRateLimitGateway,
-			Remaining: FlagGlobalRateLimitGateway,
-			Expiry:    time.Now().Add(FlagGlobalRateLimitGatewayInterval),
+		FlagGatewaySendEventNameIdentify, &Bucket{ //nolint:exhaustruct
+			Limit:     1,
+			Remaining: 1,
+			Expiry:    time.Now().Add(FlagGlobalRateLimitIdentifyInterval),
 		},
 	)
 
@@ -6831,8 +6836,8 @@ func (e ErrorRequest) Error() string {
 
 // Status Code Error Messages.
 const (
-	errStatusCodeKnown   = "Status Code %d: %v"
-	errStatusCodeUnknown = "Status Code %d: Unknown status code error from Discord"
+	errStatusCodeKnown   = "status code %d: %v"
+	errStatusCodeUnknown = "status code %d: unknown status code error from Discord"
 )
 
 // StatusCodeError handles a Discord API HTTP Status Code and returns the relevant error message.
@@ -6916,6 +6921,26 @@ func (e ErrorEvent) Error() string {
 		e.ClientID, e.Event, e.Action, e.Err).Error()
 }
 
+// Discord Gateway Error Messages
+const (
+	errNoSessionManager = `The client must contain a non-nil SessionManager to connect to the Discord Gateway.
+
+Set the *Client.SessionManager using one of the following methods.
+
+--- 1
+
+bot := &disgo.Client{
+...
+Sessions: 	disgo.NewSessionManager()
+}
+
+--- 2
+
+bot.Sessions = disgo.NewSessionManager()
+
+`
+)
+
 // ErrorSession represents a WebSocket Session error that occurs during an active session.
 type ErrorSession struct {
 	// Err represents the error that occurred.
@@ -6950,7 +6975,8 @@ func (e ErrorDisconnect) Error() string {
 	return fmt.Errorf("error disconnecting from %q\n"+
 		"\tDisconnect(): %v\n"+
 		"\treason: %w\n",
-		e.Connection, e.Err, e.Action).Error()
+		e.Connection, e.Err, e.Action,
+	).Error() //lint:ignore ST1005 readability
 }
 
 // Handlers represents a bot's event handlers.
@@ -10858,10 +10884,13 @@ func putSession(s *Session) {
 	s.ID = ""
 	s.Seq = 0
 	s.Endpoint = ""
+	s.Shard = nil
 	s.Context = nil
 	s.Conn = nil
 	s.heartbeat = nil
 	s.manager = nil
+	s.client_manager = nil
+	s.RateLimiter = nil
 
 	spool.Put(s)
 }
@@ -11029,7 +11058,7 @@ func (r *RateLimit) GetBucket(routeid string, resourceid string) *Bucket {
 			r.SetBucketID(requestid, requestid)
 
 			// DefaultBucket (Per-Route) = RateLimit.DefaultBucket
-			if "" == resourceid {
+			if resourceid == "" {
 				if r.DefaultBucket == nil {
 					return nil
 				}
@@ -11958,7 +11987,7 @@ func createFormFile(m *multipart.Writer, name, filename, contentType string) (io
 	h.Set("Content-Disposition",
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`, name, quoteEscaper.Replace(filename)))
 
-	if "" == contentType {
+	if contentType == "" {
 		contentType = contentTypeOctetStreamString
 	}
 
@@ -17504,38 +17533,16 @@ const (
 
 // Session represents a Discord Gateway WebSocket Session.
 type Session struct {
-	// Context carries request-scoped data for the Discord Gateway Connection.
-	//
-	// Context is also used as a signal for the Session's goroutines.
-	Context context.Context
-
-	// Shard represents the [shard_id, num_shards] for this session.
-	//
-	// https://discord.com/developers/docs/topics/gateway#sharding
-	Shard *[2]int
-
-	// Conn represents a connection to the Discord Gateway.
-	Conn *websocket.Conn
-
-	// heartbeat contains the fields required to implement the heartbeat mechanism.
-	heartbeat *heartbeat
-
-	// manager represents a manager of a Session's goroutines.
-	manager *manager
-
-	// ID represents the session ID of the Session.
-	ID string
-
-	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
-	Endpoint string
-
-	// Seq represents the last sequence number received by the client.
-	//
-	// https://discord.com/developers/docs/topics/gateway#heartbeat
-	Seq int64
-
-	// RWMutex is used to protect the Session's variables from data races
-	// by providing transactional functionality.
+	Context        context.Context
+	RateLimiter    RateLimiter
+	Shard          *[2]int
+	Conn           *websocket.Conn
+	heartbeat      *heartbeat
+	manager        *manager
+	client_manager *SessionManager
+	ID             string
+	Endpoint       string
+	Seq            int64
 	sync.RWMutex
 }
 
@@ -17570,6 +17577,12 @@ func (s *Session) Connect(bot *Client) error {
 
 // connect connects a session to a WebSocket Connection.
 func (s *Session) connect(bot *Client) error {
+	if bot.Sessions == nil {
+		return fmt.Errorf(errNoSessionManager) //lint:ignore ST1005 format help message.
+	}
+
+	s.client_manager = bot.Sessions
+
 	if s.isConnected() {
 		return fmt.Errorf("session %q is already connected", s.ID)
 	}
@@ -17626,6 +17639,21 @@ func (s *Session) connect(bot *Client) error {
 	if s.Conn, _, err = websocket.Dial(s.Context, gatewayEndpoint, nil); err != nil {
 		return fmt.Errorf("error connecting to the Discord Gateway: %w", err)
 	}
+
+	// set up the Session's Rate Limiter (applied per WebSocket Connection).
+	// https://discord.com/developers/docs/topics/gateway#rate-limiting
+	s.RateLimiter = &RateLimit{ //nolint:exhaustruct
+		ids:     make(map[string]string, totalGatewayBucketsPerConnection),
+		buckets: make(map[string]*Bucket, totalGatewayBucketsPerConnection),
+	}
+
+	s.RateLimiter.SetBucket(
+		GlobalRateLimitRouteID, &Bucket{ //nolint:exhaustruct
+			Limit:     FlagGlobalRateLimitGateway,
+			Remaining: FlagGlobalRateLimitGateway,
+			Expiry:    time.Now().Add(FlagGlobalRateLimitGatewayInterval),
+		},
+	)
 
 	// handle the incoming Hello event upon connecting to the Gateway.
 	hello := new(Hello)
@@ -17777,10 +17805,14 @@ func (s *Session) initial(bot *Client, attempt int) error {
 
 			LogSession(Logger.Info(), ready.SessionID).Msg("received Ready event")
 
+			// Configure the session.
 			s.ID = ready.SessionID
 			atomic.StoreInt64(&s.Seq, 0)
 			s.Endpoint = ready.ResumeGatewayURL
 			bot.ApplicationID = ready.Application.ID
+
+			// Store the session in the session manager.
+			s.client_manager.Gateway.Store(s.ID, s)
 
 			if bot.Config.Gateway.ShardManager != nil {
 				bot.Config.Gateway.ShardManager.Ready(bot, s, ready)
@@ -17794,6 +17826,9 @@ func (s *Session) initial(bot *Client, attempt int) error {
 		// by replaying all missed events in order, finalized by a Resumed event.
 		case *payload.EventName == FlagGatewayEventNameResumed:
 			LogSession(Logger.Info(), s.ID).Msg("received Resumed event")
+
+			// Store the session in the session manager.
+			s.client_manager.Gateway.Store(s.ID, s)
 
 			for _, handler := range bot.Handlers.Resumed {
 				go handler(&Resumed{})
@@ -17814,6 +17849,9 @@ func (s *Session) initial(bot *Client, attempt int) error {
 				if replayed.Op == FlagGatewayOpcodeDispatch && *replayed.EventName == FlagGatewayEventNameResumed {
 					LogSession(Logger.Info(), s.ID).Msg("received Resumed event")
 
+					// Store the session in the session manager.
+					s.client_manager.Gateway.Store(s.ID, s)
+
 					for _, handler := range bot.Handlers.Resumed {
 						go handler(&Resumed{})
 					}
@@ -17828,6 +17866,9 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	// When the maximum concurrency limit has been reached while connecting, or when
 	// the session does NOT reconnect in time, the Discord Gateway send an Opcode 9 Invalid Session.
 	case FlagGatewayOpcodeInvalidSession:
+		// Remove the session from the session manager.
+		s.client_manager.Gateway.Store(s.ID, nil)
+
 		if attempt < 1 {
 			// wait for Discord to close the session, then complete a fresh connect.
 			<-time.NewTimer(invalidSessionWaitTime).C
@@ -17892,6 +17933,9 @@ func (s *Session) disconnect(code int) error {
 	// cancel the context to kill the goroutines of the Session.
 	defer s.manager.cancel()
 
+	// Remove the session from the session manager.
+	s.client_manager.Gateway.Store(s.ID, nil)
+
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
 		return fmt.Errorf("%w", err)
 	}
@@ -17933,21 +17977,37 @@ func readEvent(s *Session, dst any) error {
 // writeEvent is a helper function for writing events to the WebSocket Session.
 func writeEvent(bot *Client, s *Session, op int, name string, dst any) error {
 RATELIMIT:
-	// a single command is PROCESSED at any point in time.
-	bot.Config.Gateway.RateLimiter.Lock()
+	s.RLock()
+
+	// make sure the Session isn't disconnected while sending an event.
+	if !s.isConnected() {
+		s.RUnlock()
+
+		return fmt.Errorf("writeEvent: session is disconnected")
+	}
+
+	// a single send event is PROCESSED at any point in time.
+	s.RateLimiter.Lock()
 
 	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("processing gateway command")
 
 	for {
-		bot.Config.Gateway.RateLimiter.StartTx()
+		s.RateLimiter.StartTx()
 
-		globalBucket := bot.Config.Gateway.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
+		globalBucket := s.RateLimiter.GetBucket(GlobalRateLimitRouteID, "")
+
+		// reset the Global Rate Limit Bucket when the current Bucket has passed its expiry.
+		if isExpired(globalBucket) {
+			globalBucket.Reset(time.Now().Add(time.Minute))
+		}
 
 		// stop waiting when the Global Rate Limit Bucket is NOT empty.
 		if isNotEmpty(globalBucket) {
 			switch op {
 			// Identify is also bound by the max_concurrency rate limit.
 			case FlagGatewayOpcodeIdentify:
+				bot.Config.Gateway.RateLimiter.StartTx()
+
 				identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewaySendEventNameIdentify)
 
 				if isNotEmpty(identifyBucket) {
@@ -17984,9 +18044,11 @@ RATELIMIT:
 					wait = identifyBucket.Expiry
 				}
 
-				// do NOT block other requests due to a Command Rate Limit.
+				// do NOT block other send events due to a Send Event Rate Limit.
 				bot.Config.Gateway.RateLimiter.EndTx()
-				bot.Config.Gateway.RateLimiter.Unlock()
+				s.RateLimiter.EndTx()
+				s.RateLimiter.Unlock()
+				s.RUnlock()
 
 				// reduce CPU usage by blocking the current goroutine
 				// until it's eligible for action.
@@ -18001,22 +18063,18 @@ RATELIMIT:
 					globalBucket.Remaining--
 				}
 
-				bot.Config.Gateway.RateLimiter.EndTx()
+				s.RateLimiter.EndTx()
 
 				goto SEND
 			}
 		}
 
-		// reset the Global Rate Limit Bucket when the current Bucket has passed its expiry.
-		if isExpired(globalBucket) {
-			globalBucket.Reset(time.Now().Add(time.Minute))
-		}
-
-		bot.Config.Gateway.RateLimiter.EndTx()
+		s.RateLimiter.EndTx()
 	}
 
 SEND:
-	bot.Config.Gateway.RateLimiter.Unlock()
+	s.RateLimiter.Unlock()
+	defer s.RUnlock()
 
 	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sending gateway command")
 
@@ -18042,32 +18100,20 @@ SEND:
 // SessionManager manages sessions.
 type SessionManager struct {
 	// Gateway represents a map of Discord Gateway (TCP WebSocket Connections) session IDs to Sessions.
-	// map[ID]Session
-	Gateway map[string]*Session
+	// map[ID]Session (map[string]*Session)
+	Gateway *sync.Map
 
 	// Voice represents a map of Discord Voice (UDP WebSocket Connection) session IDs to Sessions.
-	// map[ID]Session
-	Voice map[string]*Session
-
-	// All contains a pointer to every session that is being managed.
-	All []*Session
+	// map[ID]Session (map[string]*Session)
+	Voice *sync.Map
 }
 
 // NewSessionManager creates a new SessionManager.
 func NewSessionManager() *SessionManager {
 	return &SessionManager{
-		All:     []*Session{},
-		Gateway: make(map[string]*Session),
-		Voice:   make(map[string]*Session),
+		Gateway: new(sync.Map),
+		Voice:   new(sync.Map),
 	}
-}
-
-// NewSession creates a managed Session and returns it.
-func (sm *SessionManager) NewSession() *Session {
-	session := NewSession()
-	sm.All = append(sm.All, session)
-
-	return session
 }
 
 // SendEvent sends an Opcode 1 Heartbeat event to the Discord Gateway.
@@ -18358,6 +18404,9 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// in the context of onPayload, an Invalid Session occurs when an active session is invalidated.
 	case FlagGatewayOpcodeInvalidSession:
+		// Remove the session from the session manager.
+		s.client_manager.Gateway.Store(s.ID, nil)
+
 		// wait for Discord to close the session, then complete a fresh connect.
 		<-time.NewTimer(invalidSessionWaitTime).C
 
