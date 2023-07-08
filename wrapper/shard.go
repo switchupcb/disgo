@@ -7,11 +7,21 @@ import "time"
 // ShardManager is an interface which allows developers to use multi-application architectures,
 // which run multiple applications on separate processes or servers.
 type ShardManager interface {
-	// GetLimit gets the limit of the ShardManager.
-	GetLimit() *ShardLimit
+	// SetNumShards sets the number of shards the shard manager will use.
+	//
+	// When the Shards = 0, the automatic shard manager is used.
+	SetNumShards(shards int)
 
-	// SetLimit sets the limit of the ShardManager.
-	SetLimit(ShardLimit)
+	// SetLimit sets the ShardLimit of the ShardManager.
+	//
+	// This limit is determined using the GetGatewayBot request (which provides the Gateway Endpoint).
+	// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
+	//
+	// Called from the session.go connect() function (at L#123 in /wrapper/session.go).
+	SetLimit(bot *Client) (gatewayEndpoint string, response *GetGatewayBotResponse, err error)
+
+	// GetSessions gets the connected sessions of the bot (in order of connection).
+	GetSessions() []*Session
 
 	// Ready is called when a Session receives a ready event.
 	//
@@ -21,11 +31,11 @@ type ShardManager interface {
 	// Connect connects to the Discord Gateway using the Shard Manager.
 	Connect(bot *Client) error
 
-	// Reconnect connects to the Discord Gateway using the Shard Manager.
-	Reconnect(bot *Client) error
-
 	// Disconnect disconnects from the Discord Gateway using the Shard Manager.
 	Disconnect() error
+
+	// Reconnect reconnects to the Discord Gateway using the Shard Manager.
+	Reconnect(bot *Client) error
 }
 
 // ShardLimit contains information about sharding limits.

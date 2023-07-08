@@ -10,7 +10,7 @@ _For more information about the concept of sharding, read [What is a Discord Sha
 
 ## Implementation
 
-Sharding is a two-step process that involves implementing shard-logic in your application and sharding your infrastructure _(optional)_.
+Sharding is a three-step process that involves implementing shard-logic in your application and sharding your infrastructure _(optional)_.
 
 ### Import
 
@@ -21,21 +21,30 @@ go get github.com/switchupcb/disgo/shard@v1.10.1
 ```
 
 _Disgo branches are referenced by API version (i.e `v10`)._
+
 ### Sharding the Discord Bot
 
-Change the instantiated `disgo.Session` variable to a `shard.InstanceShardManager`.
+Set the `Client.Config.Gateway.ShardManager` field to a `shard.InstanceShardManager`.
+
+```go
+bot.Config.Gateway.ShardManager = new(shard.InstanceShardManager)
+```
+
+Change the instantiated `disgo.Session` variable to the bot's `shard.InstanceShardManager`.
 
 ```go
 // Change this line.
 s := disgo.NewSession()
 
 // To this line.
-s := new(shard.InstanceShardManager)
+s := bot.Config.Gateway.ShardManager
 ```
 
-**Technically, this change is all that's required to implement sharding.**
+**This is all that's required to implement sharding.**
 
 Discord's sharding requirement aims to minimize the amount of data that Discord sends per WebSocket Session. Nothing is stopping you from running a Discord Bot that creates multiple sessions and handles them in one instance.
+
+_But read on if you want to shard the Discord Bot's infrastructure too._
 
 ### Sharding the Infrastructure
 
@@ -49,7 +58,7 @@ These constraints define the most straightforward sharding strategy:
 
 This sharding strategy is based on **active-active load balancing** and must be implemented using a modified shard manager.
 
-_Read TODO "Implementing a Sharding Strategy (Guide)" for more information about alternative sharding strategy implementations._
+_Read ["Implementing a Sharding Strategy (Guide)"](https://github.com/switchupcb/disgo/discussions/65) for more information about implementing an alternative sharding strategy._
 
 ## QA
 

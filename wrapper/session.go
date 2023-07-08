@@ -104,38 +104,38 @@ func (s *Session) connect(bot *Client) error {
 		return fmt.Errorf("session %q is already connected", s.ID)
 	}
 
-	// request a valid Gateway URL endpoint from the Discord API.
+	var err error
+
+	// request a valid Gateway URL endpoint and response from the Discord API.
 	gatewayEndpoint := s.Endpoint
-	if gatewayEndpoint == "" || !s.canReconnect() {
-		gateway := GetGatewayBot{}
-		response, err := gateway.Send(bot)
-		if err != nil {
-			return fmt.Errorf("error getting the Gateway API Endpoint: %w", err)
+	var response *GetGatewayBotResponse
+
+	if bot.Config.Gateway.ShardManager != nil {
+		if gatewayEndpoint, response, err = bot.Config.Gateway.ShardManager.SetLimit(bot); err != nil {
+			return fmt.Errorf("shardmanager: %w", err)
 		}
+	} else {
+		if gatewayEndpoint == "" || !s.canReconnect() {
+			gateway := GetGatewayBot{}
+			response, err = gateway.Send(bot)
+			if err != nil {
+				return fmt.Errorf("error getting the Gateway API Endpoint: %w", err)
+			}
 
-		gatewayEndpoint = response.URL + gatewayEndpointParams
+			gatewayEndpoint = response.URL
+		}
+	}
 
-		// set the maximum allowed (Identify) concurrency rate limit.
-		//
-		// https://discord.com/developers/docs/topics/gateway#rate-limiting
+	// set the maximum allowed (Identify) concurrency rate limit.
+	//
+	// https://discord.com/developers/docs/topics/gateway#rate-limiting
+	if response != nil {
 		bot.Config.Gateway.RateLimiter.StartTx()
 
 		identifyBucket := bot.Config.Gateway.RateLimiter.GetBucketFromID(FlagGatewaySendEventNameIdentify)
 		if identifyBucket == nil {
 			identifyBucket = getBucket()
 			bot.Config.Gateway.RateLimiter.SetBucketFromID(FlagGatewaySendEventNameIdentify, identifyBucket)
-		}
-
-		if bot.Config.Gateway.ShardManager != nil {
-			bot.Config.Gateway.ShardManager.SetLimit(
-				ShardLimit{
-					Reset:             time.Now().Add(time.Millisecond*time.Duration(response.SessionStartLimit.ResetAfter) + 1),
-					MaxStarts:         response.SessionStartLimit.Total,
-					RemainingStarts:   response.SessionStartLimit.Remaining,
-					MaxConcurrency:    response.SessionStartLimit.MaxConcurrency,
-					RecommendedShards: response.Shards,
-				},
-			)
 		}
 
 		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency)
@@ -148,12 +148,10 @@ func (s *Session) connect(bot *Client) error {
 		bot.Config.Gateway.RateLimiter.EndTx()
 	}
 
-	var err error
-
 	// connect to the Discord Gateway Websocket.
 	s.manager = new(manager)
 	s.Context, s.manager.cancel = context.WithCancel(context.Background())
-	if s.Conn, _, err = websocket.Dial(s.Context, gatewayEndpoint, nil); err != nil {
+	if s.Conn, _, err = websocket.Dial(s.Context, gatewayEndpoint+gatewayEndpointParams, nil); err != nil {
 		return fmt.Errorf("error connecting to the Discord Gateway: %w", err)
 	}
 
