@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"testing"
 	"time"
 
@@ -131,10 +132,13 @@ func TestGatewayIdentifyRateLimit(t *testing.T) {
 
 	// a counter is used to count the amount of Ready events.
 	readyCount := 0
+	muReady := new(sync.Mutex)
 
 	// a Ready event is sent upon a successful connection.
 	if err := bot.Handle(FlagGatewayEventNameReady, func(*Ready) {
+		muReady.Lock()
 		readyCount++
+		muReady.Unlock()
 	}); err != nil {
 		t.Fatalf("%v", err)
 	}
@@ -177,6 +181,8 @@ func TestGatewayIdentifyRateLimit(t *testing.T) {
 		t.Fatalf("s2: %v", err)
 	}
 
+	muReady.Lock()
+	defer muReady.Unlock()
 	if readyCount != 2 {
 		t.Fatalf("expect to receive 2 Ready events but got %d", readyCount)
 	}
