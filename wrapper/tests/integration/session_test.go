@@ -17,7 +17,6 @@ func TestSessionManager(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       new(Handlers),
-		Sessions:       NewSessionManager(),
 	}
 
 	s := NewSession()

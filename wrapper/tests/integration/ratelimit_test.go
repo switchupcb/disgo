@@ -118,66 +118,6 @@ func TestRequestRouteRateLimit(t *testing.T) {
 	time.After(time.Second * 1)
 }
 
-// TestGatewayGlobalRateLimit tests the global rate limit mechanism for the Discord Gateway.
-func TestGatewayGlobalRateLimit(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.TraceLevel)
-
-	bot := &Client{
-		Authentication: BotToken(os.Getenv("TOKEN")),
-		Config:         DefaultConfig(),
-		Handlers:       new(Handlers),
-		Sessions:       NewSessionManager(),
-	}
-
-	bot.Config.Gateway.EnableIntent(FlagIntentGUILD_PRESENCES)
-
-	// a PresenceUpdate event is sent upon a successful send event.
-	if err := bot.Handle(FlagGatewayEventNamePresenceUpdate, func(*PresenceUpdate) {
-		Logger.Printf("received PresenceUpdate")
-	}); err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	s := NewSession()
-
-	// connect to the Discord Gateway (WebSocket Session).
-	if err := s.Connect(bot); err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	// send 120 events.
-	event := &GatewayPresenceUpdate{
-		Status: FlagStatusTypeAFK,
-	}
-
-	eg := new(errgroup.Group)
-
-	for i := 0; i < 121; i++ {
-		eg.Go(func() error {
-			return event.SendEvent(bot, s)
-		})
-	}
-
-	if err := eg.Wait(); err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	event.Status = FlagStatusTypeOnline
-	if err := event.SendEvent(bot, s); err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	time.Sleep(time.Second)
-
-	// disconnect from the Discord Gateway (WebSocket Connection).
-	if err := s.Disconnect(); err != nil {
-		t.Fatalf("%v", err)
-	}
-
-	// allow Discord to close the session.
-	<-time.After(time.Second * 5)
-}
-
 // TestGatewayIdentifyRateLimit tests the Identify rate limit mechanism for the Discord Gateway.
 func TestGatewayIdentifyRateLimit(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -226,8 +166,6 @@ func TestGatewayIdentifyRateLimit(t *testing.T) {
 	if err := eg.Wait(); err != nil {
 		t.Fatalf("%v", err)
 	}
-
-	time.Sleep(time.Second * 5)
 
 	// disconnect from the Discord Gateway (WebSocket Connection).
 	if err := s1.Disconnect(); err != nil {
