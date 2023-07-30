@@ -71,7 +71,7 @@ func main() {
 
 	// ensure that the bot has access to the channel.
 	//
-	// This is useful for the validation of this program, but not necessary.
+	// This is useful for the validation of this program, but unnecessary.
 	getChannelRequest := disgo.GetChannel{ChannelID: *channelID}
 	_, err := getChannelRequest.Send(bot)
 	if err != nil {
@@ -80,12 +80,13 @@ func main() {
 		return
 	}
 
-	// send a message in the channel.
+	// send a message to the channel.
 	//
-	// Explicitly defining every field of a Create Message struct is not necessary.
+	// Explicitly defining every field of a Create Message struct is unnecessary.
+	//
 	// In any case, a description of each field is found in the Discord API Documentation.
 	// https://discord.com/developers/docs/resources/channel#create-message-jsonform-params
-	createMessageRequest := disgo.CreateMessage{
+	createMessageRequest := &disgo.CreateMessage{
 		ChannelID:        *channelID,
 		Content:          msg,
 		Nonce:            nil,

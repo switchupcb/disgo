@@ -75,6 +75,16 @@ func TestCoverage(t *testing.T) {
 
 	// Call endpoints with no dependencies.
 	eg.Go(func() error {
+		request := &GetCurrentApplication{}
+		_, err := request.Send(bot)
+		if err != nil {
+			return fmt.Errorf("GetCurrentApplication: %w", err)
+		}
+
+		return nil
+	})
+
+	eg.Go(func() error {
 		request := &ListVoiceRegions{}
 		regions, err := request.Send(bot)
 		if err != nil {

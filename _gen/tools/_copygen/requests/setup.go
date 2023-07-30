@@ -55,6 +55,8 @@ type Copygen interface {
 	// http DELETE
 	DeleteFollowupMessage(*disgo.DeleteFollowupMessage) error
 	// http GET
+	GetCurrentApplication(*disgo.GetCurrentApplication) (*disgo.Application, error)
+	// http GET
 	GetApplicationRoleConnectionMetadataRecords(*disgo.GetApplicationRoleConnectionMetadataRecords) ([]*disgo.ApplicationRoleConnectionMetadata, error)
 	// http PUT
 	UpdateApplicationRoleConnectionMetadataRecords(*disgo.UpdateApplicationRoleConnectionMetadataRecords) ([]*disgo.ApplicationRoleConnectionMetadata, error)
@@ -248,6 +250,8 @@ type Copygen interface {
 	ModifyGuildWelcomeScreen(*disgo.ModifyGuildWelcomeScreen) (*disgo.WelcomeScreen, error)
 	// http GET
 	GetGuildOnboarding(*disgo.GetGuildOnboarding) (*disgo.GuildOnboarding, error)
+	// http PUT
+	ModifyGuildOnboarding(*disgo.ModifyGuildOnboarding) (*disgo.GuildOnboarding, error)
 	// http PATCH
 	ModifyCurrentUserVoiceState(*disgo.ModifyCurrentUserVoiceState) error
 	// http PATCH

@@ -15,6 +15,7 @@ const (
 	auditlogs          = "audit-logs"
 	authorize          = "authorize"
 	automoderation     = "auto-moderation"
+	avatardecorations  = "avatar-decorations"
 	avatars            = "avatars"
 	banners            = "banners"
 	bans               = "bans"
@@ -206,6 +207,11 @@ func EndpointEditFollowupMessage(applicationid, interactiontoken, messageid stri
 // EndpointDeleteFollowupMessage builds a query for an HTTP request.
 func EndpointDeleteFollowupMessage(applicationid, interactiontoken, messageid string) string {
 	return EndpointBaseURL + webhooks + slash + applicationid + slash + interactiontoken + slash + messages + slash + messageid
+}
+
+// EndpointGetCurrentApplication builds a query for an HTTP request.
+func EndpointGetCurrentApplication() string {
+	return EndpointBaseURL + applications + slash + me
 }
 
 // EndpointGetApplicationRoleConnectionMetadataRecords builds a query for an HTTP request.
@@ -683,6 +689,11 @@ func EndpointGetGuildOnboarding(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + onboarding
 }
 
+// EndpointModifyGuildOnboarding builds a query for an HTTP request.
+func EndpointModifyGuildOnboarding(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + onboarding
+}
+
 // EndpointModifyCurrentUserVoiceState builds a query for an HTTP request.
 func EndpointModifyCurrentUserVoiceState(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + me
@@ -1036,6 +1047,11 @@ func CDNEndpointUserAvatar(userid, useravatar string) string {
 // CDNEndpointGuildMemberAvatar builds a query for an HTTP request.
 func CDNEndpointGuildMemberAvatar(guildid, userid, memberavatar string) string {
 	return CDNEndpointBaseURL + guilds + slash + guildid + slash + users + slash + userid + slash + avatars + slash + memberavatar
+}
+
+// CDNEndpointUserAvatarDecoration builds a query for an HTTP request.
+func CDNEndpointUserAvatarDecoration(userid, useravatardecoration string) string {
+	return CDNEndpointBaseURL + avatardecorations + slash + userid + slash + useravatardecoration
 }
 
 // CDNEndpointApplicationIcon builds a query for an HTTP request.

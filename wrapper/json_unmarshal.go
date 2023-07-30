@@ -108,12 +108,12 @@ func unmarshalComponents(b []byte) ([]Component, error) {
 		// set the component (interface) to an underlying type.
 		switch unmarshalledComponent.Type {
 		case FlagComponentTypeActionRow:
-			components[i] = &ActionsRow{} //nolint:exhaustruct
+			components[i] = &ActionRow{} //nolint:exhaustruct
 
 		case FlagComponentTypeButton:
 			components[i] = &Button{} //nolint:exhaustruct
 
-		case FlagComponentTypeSelectMenu,
+		case FlagComponentTypeStringSelect,
 			FlagComponentTypeUserSelect,
 			FlagComponentTypeRoleSelect,
 			FlagComponentTypeMentionableSelect,
@@ -326,8 +326,8 @@ func (r *EditWebhookMessage) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (r *ActionsRow) UnmarshalJSON(b []byte) error {
-	type alias ActionsRow
+func (r *ActionRow) UnmarshalJSON(b []byte) error {
+	type alias ActionRow
 
 	var unmarshalled struct {
 		alias
@@ -344,10 +344,10 @@ func (r *ActionsRow) UnmarshalJSON(b []byte) error {
 	}
 
 	if r == nil {
-		r = new(ActionsRow)
+		r = new(ActionRow)
 	}
 
-	*r = ActionsRow(unmarshalled.alias)
+	*r = ActionRow(unmarshalled.alias)
 
 	return nil
 }
