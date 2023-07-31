@@ -21,9 +21,9 @@ const (
 	// redirect `>` is not guaranteed to work, so files must be written.
 	filemodewrite = 0644
 
-	downloadURL    = "https://github.com/switchupcb/dasgo/archive/main.zip"
-	inputDownload  = "input/dasgo.zip"
-	unzippedFolder = "dasgo-10"
+	downloadURL    = "https://github.com/switchupcb/dasgo/archive/voice.zip"
+	inputDownload  = "input/dasgo-voice.zip"
+	unzippedFolder = "dasgo-voice"
 
 	copygenFolder = "_gen/tools/_copygen/"
 
@@ -190,6 +190,13 @@ func generate() error {
 	std, err = shardeventgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (shardevents): %v", string(std))
+	}
+
+	// sendevents (voice server)
+	voiceeventgen := exec.Command("copygen", "-yml", copygenFolder+"voice/setup.yml", "-xm")
+	std, err = voiceeventgen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copygen error (voice): %v", string(std))
 	}
 
 	// reset

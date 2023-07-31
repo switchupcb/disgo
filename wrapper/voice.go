@@ -2,16 +2,55 @@ package wrapper
 
 import (
 	"fmt"
-
-	"github.com/switchupcb/websocket"
 )
 
-const (
-	voiceWebSocketConnectionURLProtocol = "wss://"
-)
+// VoiceConnection represents a Discord Voice Channel Connection.
+//
+// A Discord Voice Channel Connection is composed of three connections:
+//
+//  1. Gateway WebSocket Session: Used to connect to the Voice Websocket Session and
+//     receive information about who is in the voice channel.
+//
+//  2. Voice WebSocket Session: Used to connect to the Voice UDP Connection and
+//     receive information about who is speaking in the voice channel.
+//
+//  3. Voice UDP Connection: Used to send and receive audio from Discord.
+type VoiceConnection struct {
+	// State represents the Voice Status of the bot.
+	State GatewayVoiceStateUpdate
 
-// ConnectVoice connects a session to a Discord Voice Channel.
-func (s *Session) ConnectVoice(bot *Client, vc GatewayVoiceStateUpdate) error {
+	// Session represents the Discord Gateway WebSocket Session of the VoiceConnection.
+	Session *Session
+
+	// VoiceSession represents the Discord Voice WebSocket Session of the VoiceConnection.
+	VoiceSession *VoiceSession
+
+	// Connection represents the Voice UDP connection of the VoiceConnection.
+	Connection *UDPConnection
+
+	// Handlers represents a Voice Connection's Voice Session event handlers.
+	Handlers *VoiceHandlers
+
+	// client_manager represents the *Client Session Manager of the VoiceConnection.
+	client_manager *SessionManager
+}
+
+// VoiceConnection connects the bot to a Discord Voice Channel using the Discord Gateway.
+func (vc *VoiceConnection) Connect(bot *Client) error {
+	if vc.Session == nil || !vc.Session.isConnected() {
+		return fmt.Errorf("ConnectVoice: Session must be connected to the Discord Gateway to connect to voice channel")
+	}
+
+	if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] {
+		return fmt.Errorf("ConnectVoice: Session must be connected to the Discord Gateway with the GUILD_VOICE_STATES intent. " +
+			"Use `bot.Config.Gateway.EnableIntent(FlagIntentGUILD_VOICE_STATES)` before connecting the given session to the Discord Gateway to enable it.") //lint:ignore ST1005 format help message.
+	}
+
+	// check that the user (developer) has provided a ChannelID.
+	if vc.State.ChannelID == nil || *vc.State.ChannelID == "" {
+		return fmt.Errorf("ConnectVoice: Voice ChannelID must be non-nil and non-empty to connect to voice channel")
+	}
+
 	// Set up the event handler for the Voice State Update and Voice Server Update events.
 	//
 	// According to Discord, the response events of this send event should never be cached.
@@ -22,17 +61,21 @@ func (s *Session) ConnectVoice(bot *Client, vc GatewayVoiceStateUpdate) error {
 		return fmt.Errorf(errNoHandlers) //lint:ignore ST1005 format help message.
 	}
 
-	// check that the user (developer) has provided a ChannelID.
-	if vc.ChannelID == nil || *vc.ChannelID == "" {
-		return fmt.Errorf("ConnectVoice: Voice ChannelID must be non-nil and non-empty to connect to voice channel")
+	if vc.Handlers == nil {
+		vc.Handlers = new(VoiceHandlers)
 	}
+
+	vc.VoiceSession = newVoiceSession()
+	vc.client_manager = bot.Sessions
 
 	// a channel is used to wait for the each event.
 	wait := make(chan int)
 
+	// TODO: forward handlers to voice connection for simplicity?
+
 	// Voice State Update event handler.
 	if err := bot.Handle(FlagGatewayEventNameVoiceStateUpdate, func(v *VoiceStateUpdate) {
-		if s.ID == v.SessionID {
+		if vc.Session.ID == v.SessionID {
 			wait <- 0
 		}
 	}); err != nil {
@@ -44,10 +87,10 @@ func (s *Session) ConnectVoice(bot *Client, vc GatewayVoiceStateUpdate) error {
 	// Voice Server Update event handler.
 	if err := bot.Handle(FlagGatewayEventNameVoiceServerUpdate, func(v *VoiceServerUpdate) {
 		// check that the provided GuildID matches the incoming Voice Server Update GuildID.
-		if vc.GuildID == v.GuildID {
-			s.Lock()
-			s.VoiceServerInfo = v
-			s.Unlock()
+		if vc.State.GuildID == v.GuildID {
+			vc.VoiceSession.Lock()
+			vc.VoiceSession.VoiceServerInfo = v
+			vc.VoiceSession.Unlock()
 
 			// TODO: A null endpoint means that the voice server is reallocating.
 			// Disconnect from the current voice server and wait until a new voice server is allocated.
@@ -58,42 +101,34 @@ func (s *Session) ConnectVoice(bot *Client, vc GatewayVoiceStateUpdate) error {
 
 	// TODO: defer removal of handler on error
 
-	// connect to the Gateway.
-	// https://discord.com/developers/docs/topics/voice-connections#retrieving-voice-server-information
-	if !s.isConnected() {
-		if err := s.Connect(bot); err != nil {
-			return fmt.Errorf("voice: %w", err)
-		}
-	}
-
 	// Send an Opcode 4 Gateway Voice State Update to the Discord Gateway.
-	vc.SendEvent(bot, s)
+	vc.State.SendEvent(bot, vc.Session)
 
 	// Wait for the Voice State Update and Voice Server Update events.
 	select {
-	case <-s.Context.Done():
-		return <-s.manager.err
+	case <-vc.Session.Context.Done():
+		return <-vc.Session.manager.err
 	case <-wait:
 		break
 	}
 
 VOICESERVERUPDATE:
 	for {
-		s.RLock()
+		vc.VoiceSession.RLock()
 
-		if s.VoiceServerInfo != nil && s.VoiceServerInfo.Endpoint != nil {
-			s.RUnlock()
+		if vc.VoiceSession.VoiceServerInfo != nil && vc.VoiceSession.VoiceServerInfo.Endpoint != nil {
+			vc.VoiceSession.RUnlock()
 
 			break
 		}
 
 		select {
-		case <-s.Context.Done():
-			s.RUnlock()
+		case <-vc.Session.Context.Done():
+			vc.VoiceSession.RUnlock()
 
-			return <-s.manager.err
+			return <-vc.Session.manager.err
 		default:
-			s.RUnlock()
+			vc.VoiceSession.RUnlock()
 			//lint:ignore SA4011 break into for loop.
 			break
 		}
@@ -103,47 +138,37 @@ VOICESERVERUPDATE:
 	// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-websocket-connection
 	//
 	// A null endpoint means that the voice server is reallocating.
-	s.RLock()
-
-	if s.VoiceServerInfo.Endpoint == nil {
+	if vc.VoiceSession.VoiceServerInfo.Endpoint == nil {
 		goto VOICESERVERUPDATE
 	}
 
-	var err error
-
-	// connect to the Voice WebSocket Connection.
-	// TODO: Dial to new VoiceSession.
-	if s.Conn, _, err = websocket.Dial(
-		s.Context,
-		voiceWebSocketConnectionURLProtocol+*s.VoiceServerInfo.Endpoint+gatewayEndpointParams,
-		nil); err != nil {
-		return fmt.Errorf("error connecting to the Discord Voice Gateway: %w", err)
+	// TODO: Spawn on other routine for VoiceConnection manager between UDP and VoiceSession?
+	// connect to the Discord Voice Server.
+	if err := vc.VoiceSession.connect(bot, vc); err != nil {
+		return fmt.Errorf("voice: %w", err)
 	}
 
-	s.RUnlock()
-
 	Logger.Printf("works")
-	// Once connected to the voice WebSocket endpoint, we can send an Opcode 0 Identify payload with our server_id, user_id, session_id, and token:
-	//
-	// equivalent to initial() function
-
-	// The voice server should respond with an Opcode 2 Ready payload
-	//
-	// ? https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-websocket-connection-example-voice-ready-payload
 
 	// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection
 	// https://discord.com/developers/docs/topics/voice-connections#ip-discovery
-
-	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice
-	// opcode 1 send
-
-	// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection-encryption-modes
+	//
+	// 	https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice
+	// 	opcode 1 send
+	//
+	// 	https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection-encryption-modes
 	// 	opcode 4 receive
-
-	// store into client manager sessions as voice session
 
 	// Connection is established, create channel for external library to process voice
 	// https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice
+
+	// Store Voice Connection into the bot's Session Manager.
+	if slice, ok := vc.client_manager.Voice.Load(vc.Session.ID); ok {
+		vcs := slice.([]*VoiceConnection)
+		vc.client_manager.Voice.Store(vc.Session.ID, append(vcs, vc))
+	} else {
+		vc.client_manager.Voice.Store(vc.Session.ID, []*VoiceConnection{vc})
+	}
 
 	return nil
 }

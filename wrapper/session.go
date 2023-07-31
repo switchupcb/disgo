@@ -38,12 +38,6 @@ type Session struct {
 	// https://discord.com/developers/docs/topics/gateway#sharding
 	Shard *[2]int
 
-	// VoiceServerInfo represents Voice Server Update information for a session
-	// connected to a voice channel.
-	//
-	// https://discord.com/developers/docs/topics/gateway-events#voice-server-update
-	VoiceServerInfo *VoiceServerUpdate
-
 	// Context carries request-scoped data for the Discord Gateway Connection.
 	//
 	// Context is also used as a signal for the Session's goroutines.
@@ -307,7 +301,8 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	}
 
 	// handle the incoming Ready, Resumed or Replayed event (or Opcode 9 Invalid Session).
-	payload := new(GatewayPayload)
+	payload := getPayload()
+	defer putPayload(payload)
 	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
 		return fmt.Errorf("error reading initial payload: %w", err)
 	}

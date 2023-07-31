@@ -39,6 +39,7 @@ Disgo generates code for features using [copygen](https://github.com/switchupcb/
 | `handle.go`            | Uses copygen to generate request **event handling** functionality. |
 | `sendevent.go`         | Uses copygen to generate gateway `SendEvent()` functions.          |
 | `sendevent.go` (shard) | Uses copygen to generate gateway `SendEvents()` functions.         |
+| `sendevent.go` (voice) | Uses copygen to generate voice `SendEvent()` functions.            |
 | Clean                  | Cleans the generated code.                                         |
 
 # Bundle

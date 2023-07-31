@@ -4,12 +4,12 @@ import "sync"
 
 // SessionManager manages sessions.
 type SessionManager struct {
-	// Gateway represents a map of Discord Gateway (TCP WebSocket Connections) session IDs to Sessions.
+	// Gateway represents a map of Discord Gateway Session IDs to Sessions.
 	// map[ID]Session (map[string]*Session)
 	Gateway *sync.Map
 
-	// Voice represents a map of Discord Voice (UDP WebSocket Connection) session IDs to Sessions.
-	// map[ID]Session (map[string]*Session)
+	// Voice represents a map of Discord Voice Connections to Session IDs.
+	// map[ID]Session (map[string][]*VoiceConnection)
 	Voice *sync.Map
 }
 

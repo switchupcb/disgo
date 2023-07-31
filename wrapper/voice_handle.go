@@ -1,0 +1,220 @@
+package wrapper
+
+import (
+	"fmt"
+	"sync"
+
+	json "github.com/goccy/go-json"
+)
+
+// VoiceHandlers represents a voice connection's event handlers.
+type VoiceHandlers struct {
+	VoiceReady       []func(*VoiceReady)
+	Speaking         []func(*Speaking)
+	VoiceHello       []func(*VoiceHello)
+	VoiceResumed     []func(*VoiceResumed)
+	ClientDisconnect []func(*ClientDisconnect)
+	mu               sync.RWMutex
+}
+
+// Handle adds an event handler for the given event to the Voice Connection.
+func (vc *VoiceConnection) Handle(eventname string, function interface{}) error {
+	vc.Handlers.mu.Lock()
+	defer vc.Handlers.mu.Unlock()
+
+	switch eventname {
+	case FlagVoiceOpcodeNameReady:
+		if f, ok := function.(func(*VoiceReady)); ok {
+			vc.Handlers.VoiceReady = append(vc.Handlers.VoiceReady, f)
+			LogEventHandler(Logger.Info(), vc.Session.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+
+	case FlagVoiceOpcodeNameSpeaking:
+		if f, ok := function.(func(*Speaking)); ok {
+			vc.Handlers.Speaking = append(vc.Handlers.Speaking, f)
+			LogEventHandler(Logger.Info(), vc.Session.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+
+	case FlagVoiceOpcodeNameHello:
+		if f, ok := function.(func(*VoiceHello)); ok {
+			vc.Handlers.VoiceHello = append(vc.Handlers.VoiceHello, f)
+			LogEventHandler(Logger.Info(), vc.Session.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+
+	case FlagVoiceOpcodeNameResumed:
+		if f, ok := function.(func(*VoiceResumed)); ok {
+			vc.Handlers.VoiceResumed = append(vc.Handlers.VoiceResumed, f)
+			LogEventHandler(Logger.Info(), vc.Session.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+
+	case FlagVoiceOpcodeNameClientDisconnect:
+		if f, ok := function.(func(*ClientDisconnect)); ok {
+			vc.Handlers.ClientDisconnect = append(vc.Handlers.ClientDisconnect, f)
+			LogEventHandler(Logger.Info(), vc.Session.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+	}
+
+	err := ErrorEventHandler{
+		ClientID: vc.Session.ID,
+		Event:    eventname,
+		Err:      fmt.Errorf("%s", errHandleNotRemoved),
+	}
+	LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(err).Msg("")
+
+	return err
+}
+
+// Remove removes the event handler at the given index from the Voice Connection.
+func (vc *VoiceConnection) Remove(eventname string, index int) error {
+	vc.Handlers.mu.Lock()
+	defer vc.Handlers.mu.Unlock()
+
+	switch eventname {
+	case FlagVoiceOpcodeNameReady:
+		if len(vc.Handlers.VoiceReady) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.Session.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.VoiceReady = append(vc.Handlers.VoiceReady[:index], vc.Handlers.VoiceReady[index+1:]...)
+
+	case FlagVoiceOpcodeNameSpeaking:
+		if len(vc.Handlers.Speaking) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.Session.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.Speaking = append(vc.Handlers.Speaking[:index], vc.Handlers.Speaking[index+1:]...)
+
+	case FlagVoiceOpcodeNameHello:
+		if len(vc.Handlers.VoiceHello) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.Session.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.VoiceHello = append(vc.Handlers.VoiceHello[:index], vc.Handlers.VoiceHello[index+1:]...)
+
+	case FlagVoiceOpcodeNameResumed:
+		if len(vc.Handlers.VoiceResumed) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.Session.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.VoiceResumed = append(vc.Handlers.VoiceResumed[:index], vc.Handlers.VoiceResumed[index+1:]...)
+
+	case FlagVoiceOpcodeNameClientDisconnect:
+		if len(vc.Handlers.ClientDisconnect) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.Session.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.ClientDisconnect = append(vc.Handlers.ClientDisconnect[:index], vc.Handlers.ClientDisconnect[index+1:]...)
+	}
+
+	LogEventHandler(Logger.Info(), vc.Session.ID, eventname).Msg("removed voice event handler")
+
+	return nil
+}
+
+// handle handles an event using its name and data.
+func (vc *VoiceConnection) handle(eventname string, data json.RawMessage) {
+	vc.Handlers.mu.RLock()
+	defer vc.Handlers.mu.RUnlock()
+
+	switch eventname {
+	case FlagVoiceOpcodeNameReady:
+		if len(vc.Handlers.VoiceReady) != 0 {
+			event := new(VoiceReady)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(ErrorEvent{ClientID: vc.Session.ID, Event: FlagVoiceOpcodeNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.VoiceReady {
+				go handler(event)
+			}
+		}
+
+	case FlagVoiceOpcodeNameSpeaking:
+		if len(vc.Handlers.Speaking) != 0 {
+			event := new(Speaking)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(ErrorEvent{ClientID: vc.Session.ID, Event: FlagVoiceOpcodeNameSpeaking, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.Speaking {
+				go handler(event)
+			}
+		}
+
+	case FlagVoiceOpcodeNameHello:
+		if len(vc.Handlers.VoiceHello) != 0 {
+			event := new(VoiceHello)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(ErrorEvent{ClientID: vc.Session.ID, Event: FlagVoiceOpcodeNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.VoiceHello {
+				go handler(event)
+			}
+		}
+
+	case FlagVoiceOpcodeNameResumed:
+		if len(vc.Handlers.VoiceResumed) != 0 {
+			event := new(VoiceResumed)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(ErrorEvent{ClientID: vc.Session.ID, Event: FlagVoiceOpcodeNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.VoiceResumed {
+				go handler(event)
+			}
+		}
+
+	case FlagVoiceOpcodeNameClientDisconnect:
+		if len(vc.Handlers.ClientDisconnect) != 0 {
+			event := new(ClientDisconnect)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.Session.ID, eventname).Err(ErrorEvent{ClientID: vc.Session.ID, Event: FlagVoiceOpcodeNameClientDisconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.ClientDisconnect {
+				go handler(event)
+			}
+		}
+	}
+}

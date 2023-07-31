@@ -1,6 +1,7 @@
 package voice_test
 
 import (
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -19,21 +20,38 @@ func TestConnectVoice(t *testing.T) {
 		Sessions:       NewSessionManager(),
 	}
 
+	bot.Config.Gateway.EnableIntent(FlagIntentGUILD_VOICE_STATES)
+
 	s := NewSession()
 
-	voiceChannel := GatewayVoiceStateUpdate{
-		GuildID:   os.Getenv("COVERAGE_TEST_GUILD"),
-		ChannelID: Pointer(os.Getenv("COVERAGE_TEST_VOICE_CHANNEL")),
-		SelfMute:  false,
-		SelfDeaf:  false,
-	}
-
 	// connect to the Discord Gateway (WebSocket Session).
-	if err := s.ConnectVoice(bot, voiceChannel); err != nil {
+	if err := s.Connect(bot); err != nil {
 		t.Fatalf("%v", err)
 	}
 
-	time.Sleep(time.Second * 10)
+	vc := &VoiceConnection{
+		State: GatewayVoiceStateUpdate{
+			GuildID:   os.Getenv("COVERAGE_TEST_GUILD"),
+			ChannelID: Pointer(os.Getenv("COVERAGE_TEST_VOICE_CHANNEL")),
+			SelfMute:  false,
+			SelfDeaf:  false,
+		},
+		Session:      s,
+		VoiceSession: nil,
+		Connection:   nil,
+		Handlers:     nil,
+	}
+
+	// connect to a Discord Voice Channel.
+	if err := vc.Connect(bot); err != nil {
+		if sErr := s.Disconnect(); err != nil {
+			t.Fatalf("%v", fmt.Errorf("session: %q\nvoice session: %q", sErr, err))
+		}
+
+		t.Fatalf("%v", err)
+	}
+
+	time.Sleep(time.Second * 20)
 
 	if err := s.Disconnect(); err != nil {
 		t.Fatalf("%v", err)
