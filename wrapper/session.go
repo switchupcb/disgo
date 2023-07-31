@@ -38,6 +38,12 @@ type Session struct {
 	// https://discord.com/developers/docs/topics/gateway#sharding
 	Shard *[2]int
 
+	// VoiceServerInfo represents Voice Server Update information for a session
+	// connected to a voice channel.
+	//
+	// https://discord.com/developers/docs/topics/gateway-events#voice-server-update
+	VoiceServerInfo *VoiceServerUpdate
+
 	// Context carries request-scoped data for the Discord Gateway Connection.
 	//
 	// Context is also used as a signal for the Session's goroutines.

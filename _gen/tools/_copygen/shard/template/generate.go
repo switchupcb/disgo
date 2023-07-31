@@ -94,6 +94,11 @@ func generateBody(function *models.Function) string {
 		name = "PresenceUpdate"
 	}
 
+	// rename GatewayVoiceStateUpdate to VoiceStateUpdate.
+	if name == "GatewayVoiceStateUpdate" {
+		name = "VoiceStateUpdate"
+	}
+
 	body.WriteString("for _, session := range sm.GetSessions() {\n")
 	body.WriteString("if err := writeEvent(bot, session, FlagGatewayOpcode" + name + ", " +
 		flag + ", c); err != nil {\n")

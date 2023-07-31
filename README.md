@@ -157,7 +157,7 @@ s := disgo.NewSession()
 if err := s.Connect(bot); err != nil {
     log.Printf("can't open websocket session to Discord Gateway: %v", err)
 
-	return
+    return
 }
 ```
 

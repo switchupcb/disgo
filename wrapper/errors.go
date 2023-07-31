@@ -126,7 +126,7 @@ func (e ErrorEvent) Error() string {
 
 // Discord Gateway Error Messages
 const (
-	errNoSessionManager = `The client must contain a non-nil SessionManager to connect to the Discord Gateway.
+	errNoSessionManager = `The client must contain a non-nil SessionManager struct to connect to the Discord Gateway.
 
 	Set the *Client.SessionManager using one of the following methods.
 
@@ -134,12 +134,40 @@ const (
 
 	bot := &disgo.Client{
 		...
-		Sessions: 	disgo.NewSessionManager()
+		Sessions: 	disgo.NewSessionManager(),
 	}
 
 	--- 2
 
 	bot.Sessions = disgo.NewSessionManager()
+
+	`
+
+	errNoHandlers = `The client must contain a non-nil Handlers struct to connect to the Discord Gateway.
+
+	Set the *Client.Handlers using one of the following methods.
+
+	--- 1
+
+	bot := &disgo.Client{
+		...
+		Handlers: 	new(Handlers),
+	}
+
+	--- 2
+
+	bot := &disgo.Client{
+		...
+		Handlers: 	&Handlers{},
+	}
+
+	--- 3
+
+	bot.Handlers = new(Handlers)
+
+	--- 4
+
+	bot.Handlers = &Handlers{}
 
 	`
 )

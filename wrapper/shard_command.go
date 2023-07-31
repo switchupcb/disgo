@@ -36,17 +36,6 @@ func (c *GatewayPresenceUpdate) SendEvents(bot *Client, sm ShardManager) error {
 	return nil
 }
 
-// SendEvents sends an Opcode 4 UpdateVoiceState event to the Discord Gateway.
-func (c *VoiceStateUpdate) SendEvents(bot *Client, sm ShardManager) error {
-	for _, session := range sm.GetSessions() {
-		if err := writeEvent(bot, session, FlagGatewayOpcodeVoiceStateUpdate, FlagGatewaySendEventNameUpdateVoiceState, c); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // SendEvents sends an Opcode 6 Resume event to the Discord Gateway.
 func (c *Resume) SendEvents(bot *Client, sm ShardManager) error {
 	for _, session := range sm.GetSessions() {
