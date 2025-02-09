@@ -1,11 +1,8 @@
 package wrapper
 
 import (
-	"fmt"
 	"sync/atomic"
 	"time"
-
-	json "github.com/goccy/go-json"
 )
 
 // voice_heartbeat represents the heartbeat mechanism for a Session.
@@ -80,7 +77,7 @@ func (s *VoiceSession) beat(bot *Client) error {
 			}
 
 			// send a Heartbeat to the Discord Voice Server (WebSocket Connection).
-			if err := hb.SendEvent(bot, s); err != nil {
+			if err := hb.SendEvent(s); err != nil {
 				s.Unlock()
 
 				return err
@@ -138,42 +135,4 @@ func (s *VoiceSession) pulse() {
 			return
 		}
 	}
-}
-
-// respond responds to Opcode 3 Heartbeats from the Discord Voice Server.
-func (s *VoiceSession) respond(data json.RawMessage) error {
-	defer s.decrementPulses()
-
-	var heartbeat VoiceHeartbeat
-	if err := json.Unmarshal(data, &heartbeat); err != nil {
-		return fmt.Errorf("error unmarshalling incoming Heartbeat: %w", err)
-	}
-
-	atomic.StoreInt64(&s.Nonce, heartbeat.Data)
-
-	s.Lock()
-
-	// ensure that the heartbeat routine has not been closed.
-	if atomic.LoadInt32(&s.manager.pulses) <= 1 {
-		s.Unlock()
-
-		return nil
-	}
-
-	// heartbeat() checks for the amount of HeartbeatACKs received since the last Heartbeat.
-	// There is a possibility for this value to be 0 due to latency rather than a dead connection.
-	// For example, when a Heartbeat is queued, sent, responded, and sent.
-	//
-	// Prevent this possibility by treating this response from Discord as an indication that the
-	// connection is still alive.
-	atomic.AddUint32(&s.heartbeat.acks, 1)
-
-	// send an Opcode 3 Heartbeat without waiting the remainder of the current interval.
-	s.heartbeat.send <- heartbeat
-
-	LogSession(Logger.Info(), s.ID).Msg("responded to voice heartbeat")
-
-	s.Unlock()
-
-	return nil
 }

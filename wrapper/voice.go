@@ -2,19 +2,21 @@ package wrapper
 
 import (
 	"fmt"
+	"net"
+	"sync"
 )
 
 // VoiceConnection represents a Discord Voice Channel Connection.
 //
 // A Discord Voice Channel Connection is composed of three connections:
 //
-//  1. Gateway WebSocket Session: Used to connect to the Voice Websocket Session and
+//  1. Gateway WebSocket Session (TCP): Used to connect to the Voice Websocket Session and
 //     receive information about who is in the voice channel.
 //
-//  2. Voice WebSocket Session: Used to connect to the Voice UDP Connection and
+//  2. Voice WebSocket Session (TCP): Used to connect to the Voice UDP Connection and
 //     receive information about who is speaking in the voice channel.
 //
-//  3. Voice UDP Connection: Used to send and receive audio from Discord.
+//  3. Voice Connection (UDP): Used to send and receive audio from Discord.
 type VoiceConnection struct {
 	// State represents the Voice Status of the bot.
 	State GatewayVoiceStateUpdate
@@ -26,13 +28,50 @@ type VoiceConnection struct {
 	VoiceSession *VoiceSession
 
 	// Connection represents the Voice UDP connection of the VoiceConnection.
-	Connection *UDPConnection
+	Connection *net.UDPConn
 
 	// Handlers represents a Voice Connection's Voice Session event handlers.
 	Handlers *VoiceHandlers
+}
 
-	// client_manager represents the *Client Session Manager of the VoiceConnection.
-	client_manager *SessionManager
+// protectedHandlerVoiceStateUpdate represents a protected event handler for the VoiceStateUpdate event.
+func protectedHandlerVoiceStateUpdate(bot *Client, v *VoiceStateUpdate) {
+	// sessionID to map[guildID]*VoiceConnection.
+	if v, ok := bot.Sessions.Voice.Load(v.SessionID); ok {
+		gvcMap := v.(*sync.Map)
+
+		// map[guildID]*VoiceConnection.
+		v2, _ := gvcMap.Load(v.GuildID)
+		vc := v2.(*VoiceConnection)
+		if vc.Session.ID == v.SessionID {
+			// wait <- 0
+		}
+
+		// TODO: concurrency checks, can this be empty with a valid voicestateupdate?
+	} else {
+		// Session disconnected, reconnected with new id, voice connection map wasn't reset?
+		//vc.client_manager.Voice.Store(vc.Session.ID, new(sync.Map))
+
+		// goto SESSIONMANAGER
+	}
+}
+
+// protectedHandlerVoiceServerUpdate represents a protected event handler for the VoiceServerUpdate event.
+func protectedHandlerVoiceServerUpdate(bot *Client, v *VoiceServerUpdate) {
+	// check that the provided GuildID matches the incoming Voice Server Update GuildID.
+	if vc.State.GuildID == v.GuildID {
+		vc.VoiceSession.Lock()
+		vc.VoiceSession.VoiceServerInfo = v
+		vc.VoiceSession.Unlock()
+
+		// A null endpoint means that the voice server is reallocating.
+		if v.Endpoint == nil {
+			// disconnect from the current voice server.
+			vc.VoiceSession.disconnect(FlagClientCloseEventCodeNormal)
+
+			// TODO: wait until a new voice server is allocated.
+		}
+	}
 }
 
 // VoiceConnection connects the bot to a Discord Voice Channel using the Discord Gateway.
@@ -51,57 +90,37 @@ func (vc *VoiceConnection) Connect(bot *Client) error {
 		return fmt.Errorf("ConnectVoice: Voice ChannelID must be non-nil and non-empty to connect to voice channel")
 	}
 
-	// Set up the event handler for the Voice State Update and Voice Server Update events.
-	//
-	// According to Discord, the response events of this send event should never be cached.
-	//
-	// Disclaimer. The bot will not receive response events when the voice channel is full,
-	// unless the bot has the MANAGE_CHANNELS permission.
-	if bot.Handlers == nil {
-		return fmt.Errorf(errNoHandlers) //lint:ignore ST1005 format help message.
-	}
-
 	if vc.Handlers == nil {
 		vc.Handlers = new(VoiceHandlers)
 	}
 
 	vc.VoiceSession = newVoiceSession()
-	vc.client_manager = bot.Sessions
+
+SESSIONMANAGER:
+	// Store the Voice Connection into the bot's Session Manager.
+	//
+	// sessionID to map[guildID]*VoiceConnection.
+	if v, ok := vc.client_manager.Voice.Load(vc.Session.ID); ok {
+		gvcMap := v.(*sync.Map)
+
+		// map[guildID]*VoiceConnection.
+		gvcMap.Store(vc.State.GuildID, vc)
+	} else {
+		vc.client_manager.Voice.Store(vc.Session.ID, new(sync.Map))
+
+		goto SESSIONMANAGER
+	}
+	// TODO: SessionManager voice connection reset on gateway session disconnect?
 
 	// a channel is used to wait for the each event.
 	wait := make(chan int)
 
-	// TODO: forward handlers to voice connection for simplicity?
-
-	// Voice State Update event handler.
-	if err := bot.Handle(FlagGatewayEventNameVoiceStateUpdate, func(v *VoiceStateUpdate) {
-		if vc.Session.ID == v.SessionID {
-			wait <- 0
-		}
-	}); err != nil {
-		return fmt.Errorf("ConnectVoice: %w", err)
-	}
-
-	// TODO: defer removal of handler on error
-
-	// Voice Server Update event handler.
-	if err := bot.Handle(FlagGatewayEventNameVoiceServerUpdate, func(v *VoiceServerUpdate) {
-		// check that the provided GuildID matches the incoming Voice Server Update GuildID.
-		if vc.State.GuildID == v.GuildID {
-			vc.VoiceSession.Lock()
-			vc.VoiceSession.VoiceServerInfo = v
-			vc.VoiceSession.Unlock()
-
-			// TODO: A null endpoint means that the voice server is reallocating.
-			// Disconnect from the current voice server and wait until a new voice server is allocated.
-		}
-	}); err != nil {
-		return fmt.Errorf("ConnectVoice: %w", err)
-	}
-
-	// TODO: defer removal of handler on error
-
 	// Send an Opcode 4 Gateway Voice State Update to the Discord Gateway.
+	//
+	// According to Discord, the response events of this send event should never be cached.
+	//
+	// Disclaimer. The bot will not receive response events when the voice channel is full,
+	// unless the bot has the MANAGE_CHANNELS permission.
 	vc.State.SendEvent(bot, vc.Session)
 
 	// Wait for the Voice State Update and Voice Server Update events.
@@ -134,41 +153,19 @@ VOICESERVERUPDATE:
 		}
 	}
 
-	// Establish a Voice WebSocket Connection (UDP).
-	// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-websocket-connection
-	//
 	// A null endpoint means that the voice server is reallocating.
 	if vc.VoiceSession.VoiceServerInfo.Endpoint == nil {
 		goto VOICESERVERUPDATE
 	}
 
+	// Establish a Voice WebSocket Connection (TCP).
+	// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-websocket-connection
 	// TODO: Spawn on other routine for VoiceConnection manager between UDP and VoiceSession?
-	// connect to the Discord Voice Server.
 	if err := vc.VoiceSession.connect(bot, vc); err != nil {
 		return fmt.Errorf("voice: %w", err)
 	}
 
 	Logger.Printf("works")
-
-	// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection
-	// https://discord.com/developers/docs/topics/voice-connections#ip-discovery
-	//
-	// 	https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice
-	// 	opcode 1 send
-	//
-	// 	https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection-encryption-modes
-	// 	opcode 4 receive
-
-	// Connection is established, create channel for external library to process voice
-	// https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice
-
-	// Store Voice Connection into the bot's Session Manager.
-	if slice, ok := vc.client_manager.Voice.Load(vc.Session.ID); ok {
-		vcs := slice.([]*VoiceConnection)
-		vc.client_manager.Voice.Store(vc.Session.ID, append(vcs, vc))
-	} else {
-		vc.client_manager.Voice.Store(vc.Session.ID, []*VoiceConnection{vc})
-	}
 
 	return nil
 }

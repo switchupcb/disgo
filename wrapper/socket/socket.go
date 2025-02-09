@@ -4,6 +4,7 @@ import (
 	"compress/zlib"
 	"context"
 	"fmt"
+	"log"
 
 	json "github.com/goccy/go-json"
 
@@ -32,6 +33,8 @@ func Read(ctx context.Context, conn *websocket.Conn, dst any) error {
 		}
 
 		// unmarshal the message into dst.
+		log.Printf("DEBUG C: %v", string(b.Bytes()))
+
 		if err = json.Unmarshal(b.Bytes(), &dst); err != nil {
 			return fmt.Errorf("socket.Read (websocket.MessageText) to %T: %w\n%s", dst, err, b.String())
 		}
@@ -49,6 +52,8 @@ func Read(ctx context.Context, conn *websocket.Conn, dst any) error {
 		}
 
 		// unmarshal the message into dst.
+		log.Printf("DEBUG D: %v", string(b.Bytes()))
+
 		if err = json.Unmarshal(b.Bytes(), &dst); err != nil {
 			return fmt.Errorf("socket.Read (websocket.MessageBinary) to %T: %w\n%s", dst, err, b.String())
 		}

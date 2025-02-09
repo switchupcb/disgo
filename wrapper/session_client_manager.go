@@ -5,11 +5,14 @@ import "sync"
 // SessionManager manages sessions.
 type SessionManager struct {
 	// Gateway represents a map of Discord Gateway Session IDs to Sessions.
-	// map[ID]Session (map[string]*Session)
+	//
+	// map[SessionID]Session (map[string]*Session)
 	Gateway *sync.Map
 
-	// Voice represents a map of Discord Voice Connections to Session IDs.
-	// map[ID]Session (map[string][]*VoiceConnection)
+	// Voice represents a map of Discord Gateway Session IDs to
+	// a set of Discord Guild IDs to Discord Voice Connections.
+	//
+	// map[SessionID]map[GuildID]VoiceConnection (map[string]map[string]*VoiceConnection)
 	Voice *sync.Map
 }
 

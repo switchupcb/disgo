@@ -45,7 +45,7 @@ func generateComment(function *models.Function) string {
 
 // generateSignature generates a function's signature.
 func generateSignature(function *models.Function) string {
-	return "func (c " + function.From[0].Field.FullDefinition() + ") SendEvent(bot *Client, session *VoiceSession) (" +
+	return "func (c " + function.From[0].Field.FullDefinition() + ") SendEvent(session *VoiceSession) (" +
 		generateResultParameters(function) + ") {"
 }
 
@@ -104,7 +104,7 @@ func generateBody(function *models.Function) string {
 		name = "Resume"
 	}
 
-	body.WriteString("if err := writeEventVoice(bot, session, FlagVoiceOpcode" + name + ", " +
+	body.WriteString("if err := writeEventVoice(session, FlagVoiceOpcode" + name + ", " +
 		flag + ", c); err != nil {\n")
 	body.WriteString("return err\n")
 	body.WriteString("}\n\n")

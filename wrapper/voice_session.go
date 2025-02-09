@@ -8,6 +8,7 @@ import (
 	"time"
 
 	json "github.com/goccy/go-json"
+	"github.com/rs/zerolog/log"
 	"github.com/switchupcb/disgo/wrapper/socket"
 	"github.com/switchupcb/websocket"
 	"golang.org/x/sync/errgroup"
@@ -182,6 +183,13 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceConnection) error {
 		return nil
 	})
 
+	// spawn the manager goroutine.
+	s.manager.routines.Add(1)
+	go s.manage()
+
+	// ensure that the Session's goroutines are spawned.
+	s.manager.routines.Wait()
+
 	return nil
 }
 
@@ -197,7 +205,7 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceConnection, attempt int) er
 			Token:     bot.Authentication.Token,
 		}
 
-		if err := identify.SendEvent(bot, s); err != nil {
+		if err := identify.SendEvent(s); err != nil {
 			return err
 		}
 	} else {
@@ -208,7 +216,7 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceConnection, attempt int) er
 			Token:     bot.Authentication.Token,
 		}
 
-		if err := resume.SendEvent(bot, s); err != nil {
+		if err := resume.SendEvent(s); err != nil {
 			return err
 		}
 	}
@@ -236,6 +244,12 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceConnection, attempt int) er
 			go handler(ready)
 		}
 
+		// Establish a Voice Connection (UDP).
+		// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection
+		if err := vc.connectUDP(ready); err != nil {
+			return fmt.Errorf("error connecting to UDP Voice Server: %w", err)
+		}
+
 	// When a reconnection is successful, the Discord Voice Server will respond
 	// with a Resumed payload.
 	case FlagVoiceOpcodeResumed:
@@ -244,6 +258,8 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceConnection, attempt int) er
 		for _, handler := range vc.Handlers.VoiceResumed {
 			go handler(&VoiceResumed{})
 		}
+
+		// TODO: connectudp?
 
 		// When a reconnection is unsuccessful, the Discord Voice Server will close
 		// with an appropriate close event code.
@@ -292,8 +308,8 @@ func readEventVoice(s *VoiceSession, dst any) error {
 }
 
 // writeEventVoice is a helper function for writing voice events to the WebSocket Session.
-func writeEventVoice(bot *Client, s *VoiceSession, op int, name string, dst any) error {
-	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sending voice server command")
+func writeEventVoice(s *VoiceSession, op int, name string, dst any) error {
+	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
 
 	// write the event to the WebSocket Connection.
 	event, err := json.Marshal(dst)
@@ -309,7 +325,7 @@ func writeEventVoice(bot *Client, s *VoiceSession, op int, name string, dst any)
 		return fmt.Errorf("writeEvent: %w", err)
 	}
 
-	LogCommand(LogSession(Logger.Trace(), s.ID), bot.ApplicationID, op, name).Msg("sent voice server command")
+	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
 
 	return nil
 }

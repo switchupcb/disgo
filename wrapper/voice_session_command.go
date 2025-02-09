@@ -4,8 +4,8 @@
 package wrapper
 
 // SendEvent sends an Opcode 0 Identify event to the Discord Voice Server.
-func (c *VoiceIdentify) SendEvent(bot *Client, session *VoiceSession) error {
-	if err := writeEventVoice(bot, session, FlagVoiceOpcodeIdentify, FlagVoiceSendEventNameIdentify, c); err != nil {
+func (c *VoiceIdentify) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeIdentify, FlagVoiceSendEventNameIdentify, c); err != nil {
 		return err
 	}
 
@@ -13,8 +13,8 @@ func (c *VoiceIdentify) SendEvent(bot *Client, session *VoiceSession) error {
 }
 
 // SendEvent sends an Opcode 1 SelectProtocol event to the Discord Voice Server.
-func (c *SelectProtocol) SendEvent(bot *Client, session *VoiceSession) error {
-	if err := writeEventVoice(bot, session, FlagVoiceOpcodeSelectProtocol, FlagVoiceSendEventNameSelectProtocol, c); err != nil {
+func (c *SelectProtocol) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeSelectProtocol, FlagVoiceSendEventNameSelectProtocol, c); err != nil {
 		return err
 	}
 
@@ -22,8 +22,8 @@ func (c *SelectProtocol) SendEvent(bot *Client, session *VoiceSession) error {
 }
 
 // SendEvent sends an Opcode 3 Heartbeat event to the Discord Voice Server.
-func (c *VoiceHeartbeat) SendEvent(bot *Client, session *VoiceSession) error {
-	if err := writeEventVoice(bot, session, FlagVoiceOpcodeHeartbeat, FlagVoiceSendEventNameHeartbeat, c); err != nil {
+func (c *VoiceHeartbeat) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeHeartbeat, FlagVoiceSendEventNameHeartbeat, c); err != nil {
 		return err
 	}
 
@@ -31,8 +31,8 @@ func (c *VoiceHeartbeat) SendEvent(bot *Client, session *VoiceSession) error {
 }
 
 // SendEvent sends an Opcode 5 Speaking event to the Discord Voice Server.
-func (c *Speaking) SendEvent(bot *Client, session *VoiceSession) error {
-	if err := writeEventVoice(bot, session, FlagVoiceOpcodeSpeaking, FlagVoiceSendEventNameSpeaking, c); err != nil {
+func (c *Speaking) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeSpeaking, FlagVoiceSendEventNameSpeaking, c); err != nil {
 		return err
 	}
 
@@ -40,8 +40,8 @@ func (c *Speaking) SendEvent(bot *Client, session *VoiceSession) error {
 }
 
 // SendEvent sends an Opcode 7 Resume event to the Discord Voice Server.
-func (c *VoiceResume) SendEvent(bot *Client, session *VoiceSession) error {
-	if err := writeEventVoice(bot, session, FlagVoiceOpcodeResume, FlagVoiceSendEventNameResume, c); err != nil {
+func (c *VoiceResume) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeResume, FlagVoiceSendEventNameResume, c); err != nil {
 		return err
 	}
 

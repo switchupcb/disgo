@@ -2539,6 +2539,8 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 				return
 			}
 
+			go protectedHandlerVoiceStateUpdate(bot, event)
+
 			for _, handler := range bot.Handlers.VoiceStateUpdate {
 				go handler(event)
 			}
