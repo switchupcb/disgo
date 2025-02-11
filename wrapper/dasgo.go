@@ -9,17 +9,18 @@ import (
 // Gateway Opcodes
 // https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
 const (
-	FlagGatewayOpcodeDispatch            = 0
-	FlagGatewayOpcodeHeartbeat           = 1
-	FlagGatewayOpcodeIdentify            = 2
-	FlagGatewayOpcodePresenceUpdate      = 3
-	FlagGatewayOpcodeVoiceStateUpdate    = 4
-	FlagGatewayOpcodeResume              = 6
-	FlagGatewayOpcodeReconnect           = 7
-	FlagGatewayOpcodeRequestGuildMembers = 8
-	FlagGatewayOpcodeInvalidSession      = 9
-	FlagGatewayOpcodeHello               = 10
-	FlagGatewayOpcodeHeartbeatACK        = 11
+	FlagGatewayOpcodeDispatch                = 0
+	FlagGatewayOpcodeHeartbeat               = 1
+	FlagGatewayOpcodeIdentify                = 2
+	FlagGatewayOpcodePresenceUpdate          = 3
+	FlagGatewayOpcodeVoiceStateUpdate        = 4
+	FlagGatewayOpcodeResume                  = 6
+	FlagGatewayOpcodeReconnect               = 7
+	FlagGatewayOpcodeRequestGuildMembers     = 8
+	FlagGatewayOpcodeInvalidSession          = 9
+	FlagGatewayOpcodeHello                   = 10
+	FlagGatewayOpcodeHeartbeatACK            = 11
+	FlagGatewayOpcodeRequestSoundboardSounds = 31
 )
 
 // Gateway Close Event Codes
@@ -197,7 +198,7 @@ var (
 	FlagVoiceCloseEventCodeNotAuthenticated = VoiceCloseEventCode{
 		Code:        4003,
 		Description: "Not authenticated",
-		Explanation: "You sent a payload before identifying with the Gateway.",
+		Explanation: "You sent a payload before identifying with the Gateway or this session has been invalidated.",
 	}
 
 	FlagVoiceCloseEventCodeAuthenticationFailed = VoiceCloseEventCode{
@@ -254,6 +255,12 @@ var (
 		Explanation: "We didn't recognize your encryption.",
 	}
 
+	FlagVoiceCloseEventCodeBadRequest = VoiceCloseEventCode{
+		Code:        4020,
+		Description: "Bad request",
+		Explanation: "You sent a malformed request.",
+	}
+
 	VoiceCloseEventCodes = map[int]*VoiceCloseEventCode{
 		FlagVoiceCloseEventCodeUnknownOpcode.Code:         &FlagVoiceCloseEventCodeUnknownOpcode,
 		FlagVoiceCloseEventCodeFailedDecode.Code:          &FlagVoiceCloseEventCodeFailedDecode,
@@ -267,6 +274,7 @@ var (
 		FlagVoiceCloseEventCodeDisconnectedChannel.Code:   &FlagVoiceCloseEventCodeDisconnectedChannel,
 		FlagVoiceCloseEventCodeVoiceServerCrash.Code:      &FlagVoiceCloseEventCodeVoiceServerCrash,
 		FlagVoiceCloseEventCodeUnknownEncryptionMode.Code: &FlagVoiceCloseEventCodeUnknownEncryptionMode,
+		FlagVoiceCloseEventCodeBadRequest.Code:            &FlagVoiceCloseEventCodeBadRequest,
 	}
 )
 
@@ -326,6 +334,7 @@ var (
 		10015:  "Unknown webhook",
 		10016:  "Unknown webhook service",
 		10020:  "Unknown session",
+		10021:  "Unknown asset",
 		10026:  "Unknown ban",
 		10027:  "Unknown SKU",
 		10028:  "Unknown Store Listing",
@@ -341,6 +350,7 @@ var (
 		10057:  "Unknown guild template",
 		10059:  "Unknown discoverable server category",
 		10060:  "Unknown sticker",
+		10061:  "Unknown sticker pack",
 		10062:  "Unknown interaction",
 		10063:  "Unknown application command",
 		10065:  "Unknown voice state",
@@ -404,6 +414,8 @@ var (
 		40006:  "This feature has been temporarily disabled server-side",
 		40007:  "The user is banned from this guild",
 		40012:  "Connection has been revoked",
+		40018:  "Only consumable SKUs can be consumed",
+		40019:  "You can only delete sandbox entitlements.",
 		40032:  "Target user is not connected to voice",
 		40033:  "This message has already been crossposted",
 		40041:  "An application command with that name already exists",
@@ -414,6 +426,9 @@ var (
 		40062:  "Service resource is being rate limited",
 		40066:  "There are no tags available that can be set by non-moderators",
 		40067:  "A tag is required to create a forum post in this channel",
+		40074:  "An entitlement has already been granted for this resource",
+		40094:  "This interaction has hit the maximum number of follow up messages",
+		40333:  "Cloudflare is blocking your request. This can often be resolved by setting a proper User Agent.",
 		50001:  "Missing access",
 		50002:  "Invalid account type",
 		50003:  "Cannot execute action on a DM channel",
@@ -449,6 +464,7 @@ var (
 		50046:  "Invalid file uploaded",
 		50054:  "Cannot self-redeem this gift",
 		50055:  "Invalid Guild",
+		50057:  "Invalid SKU",
 		50067:  "Invalid request origin",
 		50068:  "Invalid message type",
 		50070:  "Payment source required to redeem gift",
@@ -480,6 +496,7 @@ var (
 		60003:  "Two factor is required for this operation",
 		80004:  "No users with DiscordTag exist",
 		90001:  "Reaction was blocked",
+		90002:  "User cannot use burst reactions",
 		110001: "Application not yet available. Try again later",
 		130000: "API resource is currently overloaded. Try again a little later",
 		150006: "The Stage is already open",
@@ -583,6 +600,250 @@ const (
 	IsValueValid PointerIndicator = 2
 )
 
+// Gateway Payload Structure
+// https://discord.com/developers/docs/topics/gateway-events#payload-structure
+type GatewayPayload struct {
+	Op             int             `json:"op"`
+	Data           json.RawMessage `json:"d"`
+	SequenceNumber *int64          `json:"s,omitempty"`
+	EventName      *string         `json:"t,omitempty"`
+}
+
+// Gateway URL Query String Params
+// https://discord.com/developers/docs/topics/gateway#connecting-gateway-url-query-string-params
+type GatewayURLQueryString struct {
+	V        int     `url:"v"`
+	Encoding string  `url:"encoding"`
+	Compress *string `url:"compress,omitempty"`
+}
+
+// Session Start Limit Structure
+// https://discord.com/developers/docs/topics/gateway#session-start-limit-object-session-start-limit-structure
+type SessionStartLimit struct {
+	Total          int `json:"total"`
+	Remaining      int `json:"remaining"`
+	ResetAfter     int `json:"reset_after"`
+	MaxConcurrency int `json:"max_concurrency"`
+}
+
+// List of Intents
+// https://discord.com/developers/docs/topics/gateway#list-of-intents
+const (
+	// GUILD_CREATE
+	// GUILD_UPDATE
+	// GUILD_DELETE
+	// GUILD_ROLE_CREATE
+	// GUILD_ROLE_UPDATE
+	// GUILD_ROLE_DELETE
+	// CHANNEL_CREATE
+	// CHANNEL_UPDATE
+	// CHANNEL_DELETE
+	// CHANNEL_PINS_UPDATE
+	// THREAD_CREATE
+	// THREAD_UPDATE
+	// THREAD_DELETE
+	// THREAD_LIST_SYNC
+	// THREAD_MEMBER_UPDATE
+	// THREAD_MEMBERS_UPDATE *
+	// STAGE_INSTANCE_CREATE
+	// STAGE_INSTANCE_UPDATE
+	// STAGE_INSTANCE_DELETE
+	FlagIntentGUILDS BitFlag = 1 << 0
+
+	// GUILD_MEMBER_ADD
+	// GUILD_MEMBER_UPDATE
+	// GUILD_MEMBER_REMOVE
+	// THREAD_MEMBERS_UPDATE *
+	FlagIntentGUILD_MEMBERS BitFlag = 1 << 1
+
+	// GUILD_AUDIT_LOG_ENTRY_CREATE
+	// GUILD_BAN_ADD
+	// GUILD_BAN_REMOVE
+	FlagIntentGUILD_MODERATION BitFlag = 1 << 2
+
+	// GUILD_EMOJIS_UPDATE
+	// GUILD_STICKERS_UPDATE
+	// GUILD_SOUNDBOARD_SOUND_CREATE
+	// GUILD_SOUNDBOARD_SOUND_UPDATE
+	// GUILD_SOUNDBOARD_SOUND_DELETE
+	// GUILD_SOUNDBOARD_SOUNDS_UPDATE
+	FlagIntentGUILD_EXPRESSIONS BitFlag = 1 << 3
+
+	// GUILD_INTEGRATIONS_UPDATE
+	// INTEGRATION_CREATE
+	// INTEGRATION_UPDATE
+	// INTEGRATION_DELETE
+	FlagIntentGUILD_INTEGRATIONS BitFlag = 1 << 4
+
+	// WEBHOOKS_UPDATE
+	FlagIntentGUILD_WEBHOOKS BitFlag = 1 << 5
+
+	// INVITE_CREATE
+	// INVITE_DELETE
+	FlagIntentGUILD_INVITES BitFlag = 1 << 6
+
+	// VOICE_CHANNEL_EFFECT_SEND
+	// VOICE_STATE_UPDATE
+	FlagIntentGUILD_VOICE_STATES BitFlag = 1 << 7
+
+	// PRESENCE_UPDATE
+	FlagIntentGUILD_PRESENCES BitFlag = 1 << 8
+
+	// MESSAGE_CREATE
+	// MESSAGE_UPDATE
+	// MESSAGE_DELETE
+	// MESSAGE_DELETE_BULK
+	FlagIntentGUILD_MESSAGES BitFlag = 1 << 9
+
+	// MESSAGE_REACTION_ADD
+	// MESSAGE_REACTION_REMOVE
+	// MESSAGE_REACTION_REMOVE_ALL
+	// MESSAGE_REACTION_REMOVE_EMOJI
+	FlagIntentGUILD_MESSAGE_REACTIONS BitFlag = 1 << 10
+
+	// TYPING_START
+	FlagIntentGUILD_MESSAGE_TYPING  BitFlag = 1 << 11
+	FlagIntentDIRECT_MESSAGE_TYPING BitFlag = 1 << 14
+
+	// MESSAGE_CREATE
+	// MESSAGE_UPDATE
+	// MESSAGE_DELETE
+	// CHANNEL_PINS_UPDATE
+	FlagIntentDIRECT_MESSAGES BitFlag = 1 << 12
+
+	// MESSAGE_REACTION_ADD
+	// MESSAGE_REACTION_REMOVE
+	// MESSAGE_REACTION_REMOVE_ALL
+	// MESSAGE_REACTION_REMOVE_EMOJI
+	FlagIntentDIRECT_MESSAGE_REACTIONS BitFlag = 1 << 13
+
+	FlagIntentMESSAGE_CONTENT BitFlag = 1 << 15
+
+	// GUILD_SCHEDULED_EVENT_CREATE
+	// GUILD_SCHEDULED_EVENT_UPDATE
+	// GUILD_SCHEDULED_EVENT_DELETE
+	// GUILD_SCHEDULED_EVENT_USER_ADD
+	// GUILD_SCHEDULED_EVENT_USER_REMOVE
+	FlagIntentGUILD_SCHEDULED_EVENTS BitFlag = 1 << 16
+
+	// AUTO_MODERATION_RULE_CREATE
+	// AUTO_MODERATION_RULE_UPDATE
+	// AUTO_MODERATION_RULE_DELETE
+	FlagIntentAUTO_MODERATION_CONFIGURATION BitFlag = 1 << 20
+
+	// AUTO_MODERATION_ACTION_EXECUTION
+	FlagIntentAUTO_MODERATION_EXECUTION BitFlag = 1 << 21
+
+	// MESSAGE_POLL_VOTE_ADD
+	// MESSAGE_POLL_VOTE_REMOVE
+	FlagIntentGUILD_MESSAGE_POLLS BitFlag = 1 << 24
+
+	// MESSAGE_POLL_VOTE_ADD
+	// MESSAGE_POLL_VOTE_REMOVE
+	FlagIntentDIRECT_MESSAGE_POLLS BitFlag = 1 << 25
+)
+
+// Privileged Intents
+// https://discord.com/developers/docs/topics/gateway#privileged-intents
+var (
+	PrivilegedIntents = map[BitFlag]bool{
+		FlagIntentGUILD_PRESENCES: true,
+		FlagIntentGUILD_MEMBERS:   true,
+		FlagIntentMESSAGE_CONTENT: true,
+	}
+)
+
+// Gateway SendEvent Names
+// https://discord.com/developers/docs/topics/gateway-events#send-events
+const (
+	FlagGatewaySendEventNameHeartbeat               = "Heartbeat"
+	FlagGatewaySendEventNameIdentify                = "Identify"
+	FlagGatewaySendEventNameUpdatePresence          = "UpdatePresence"
+	FlagGatewaySendEventNameUpdateVoiceState        = "UpdateVoiceState "
+	FlagGatewaySendEventNameResume                  = "Resume"
+	FlagGatewaySendEventNameRequestGuildMembers     = "RequestGuildMembers"
+	FlagGatewaySendEventNameRequestSoundboardSounds = "RequestSoundboardSounds"
+)
+
+// Identify Structure
+// https://discord.com/developers/docs/topics/gateway-events#identify-identify-structure
+type Identify struct {
+	Token          string                       `json:"token"`
+	Properties     IdentifyConnectionProperties `json:"properties"`
+	Compress       *bool                        `json:"compress,omitempty"`
+	LargeThreshold *int                         `json:"large_threshold,omitempty"`
+	Shard          *[2]int                      `json:"shard,omitempty"`
+	Presence       *GatewayPresenceUpdate       `json:"presence,omitempty"`
+	Intents        BitFlag                      `json:"intents"`
+}
+
+// Identify Connection Properties
+// https://discord.com/developers/docs/topics/gateway-events#identify-identify-connection-properties
+type IdentifyConnectionProperties struct {
+	OS      string `json:"os"`
+	Browser string `json:"browser"`
+	Device  string `json:"device"`
+}
+
+// Resume Structure
+// https://discord.com/developers/docs/topics/gateway-events#resume-resume-structure
+type Resume struct {
+	Token     string `json:"token"`
+	SessionID string `json:"session_id"`
+	Seq       int64  `json:"seq"`
+}
+
+// Heartbeat Structure
+// https://discord.com/developers/docs/topics/gateway-events#heartbeat
+type Heartbeat struct {
+	Data int64 `json:"d"`
+}
+
+// Request Guild Members Structure
+// https://discord.com/developers/docs/topics/gateway-events#request-guild-members-guild-request-members-structure
+type RequestGuildMembers struct {
+	GuildID   string   `json:"guild_id"`
+	Query     *string  `json:"query,omitempty"`
+	Limit     *int     `json:"limit,omitempty"`
+	Presences *bool    `json:"presences,omitempty"`
+	UserIDs   []string `json:"user_ids,omitempty"`
+	Nonce     *string  `json:"nonce,omitempty"`
+}
+
+// Request Soundboard Sounds Structure
+// https://discord.com/developers/docs/events/gateway-events#request-soundboard-sounds-request-soundboard-sounds-structure
+type RequestSoundboardSounds struct {
+	GuildIDs []string `json:"guild_ids"`
+}
+
+// Gateway Voice State Update Structure
+// https://discord.com/developers/docs/topics/gateway-events#update-voice-state-gateway-voice-state-update-structure
+type GatewayVoiceStateUpdate struct {
+	GuildID   string  `json:"guild_id"`
+	ChannelID *string `json:"channel_id"`
+	SelfMute  bool    `json:"self_mute"`
+	SelfDeaf  bool    `json:"self_deaf"`
+}
+
+// Gateway Presence Update Structure
+// https://discord.com/developers/docs/topics/gateway-events#update-presence-gateway-presence-update-structure
+type GatewayPresenceUpdate struct {
+	Since  *int        `json:"since"`
+	Game   []*Activity `json:"game"`
+	Status string      `json:"status"`
+	AFK    bool        `json:"afk"`
+}
+
+// Status Types
+// https://discord.com/developers/docs/topics/gateway#update-presence-status-types
+const (
+	FlagStatusTypeOnline       = "online"
+	FlagStatusTypeDoNotDisturb = "dnd"
+	FlagStatusTypeAFK          = "idle"
+	FlagStatusTypeInvisible    = "invisible"
+	FlagStatusTypeOffline      = "offline"
+)
+
 // Gateway Events
 // https://discord.com/developers/docs/topics/gateway#gateway-events
 type Event interface{}
@@ -610,6 +871,9 @@ const (
 	FlagGatewayEventNameThreadListSync                      = "THREAD_LIST_SYNC"
 	FlagGatewayEventNameThreadMemberUpdate                  = "THREAD_MEMBER_UPDATE"
 	FlagGatewayEventNameThreadMembersUpdate                 = "THREAD_MEMBERS_UPDATE"
+	FlagGatewayEventNameEntitlementCreate                   = "ENTITLEMENT_CREATE"
+	FlagGatewayEventNameEntitlementUpdate                   = "ENTITLEMENT_UPDATE"
+	FlagGatewayEventNameEntitlementDelete                   = "ENTITLEMENT_DELETE"
 	FlagGatewayEventNameGuildCreate                         = "GUILD_CREATE"
 	FlagGatewayEventNameGuildUpdate                         = "GUILD_UPDATE"
 	FlagGatewayEventNameGuildDelete                         = "GUILD_DELETE"
@@ -631,6 +895,11 @@ const (
 	FlagGatewayEventNameGuildScheduledEventDelete           = "GUILD_SCHEDULED_EVENT_DELETE"
 	FlagGatewayEventNameGuildScheduledEventUserAdd          = "GUILD_SCHEDULED_EVENT_USER_ADD"
 	FlagGatewayEventNameGuildScheduledEventUserRemove       = "GUILD_SCHEDULED_EVENT_USER_REMOVE"
+	FlagGatewayEventNameGuildSoundboardSoundCreate          = "GUILD_SOUNDBOARD_SOUND_CREATE"
+	FlagGatewayEventNameGuildSoundboardSoundUpdate          = "GUILD_SOUNDBOARD_SOUND_UPDATE"
+	FlagGatewayEventNameGuildSoundboardSoundDelete          = "GUILD_SOUNDBOARD_SOUND_DELETE"
+	FlagGatewayEventNameGuildSoundboardSoundsUpdate         = "GUILD_SOUNDBOARD_SOUNDS_UPDATE"
+	FlagGatewayEventNameSoundboardSounds                    = "SOUNDBOARD_SOUNDS"
 	FlagGatewayEventNameIntegrationCreate                   = "INTEGRATION_CREATE"
 	FlagGatewayEventNameIntegrationUpdate                   = "INTEGRATION_UPDATE"
 	FlagGatewayEventNameIntegrationDelete                   = "INTEGRATION_DELETE"
@@ -649,11 +918,17 @@ const (
 	FlagGatewayEventNameStageInstanceCreate                 = "STAGE_INSTANCE_CREATE"
 	FlagGatewayEventNameStageInstanceDelete                 = "STAGE_INSTANCE_DELETE"
 	FlagGatewayEventNameStageInstanceUpdate                 = "STAGE_INSTANCE_UPDATE"
+	FlagGatewayEventNameSubscriptionCreate                  = "SUBSCRIPTION_CREATE"
+	FlagGatewayEventNameSubscriptionUpdate                  = "SUBSCRIPTION_UPDATE"
+	FlagGatewayEventNameSubscriptionDelete                  = "SUBSCRIPTION_DELETE"
 	FlagGatewayEventNameTypingStart                         = "TYPING_START"
 	FlagGatewayEventNameUserUpdate                          = "USER_UPDATE"
+	FlagGatewayEventNameVoiceChannelEffectSend              = "VOICE_CHANNEL_EFFECT_SEND"
 	FlagGatewayEventNameVoiceStateUpdate                    = "VOICE_STATE_UPDATE"
 	FlagGatewayEventNameVoiceServerUpdate                   = "VOICE_SERVER_UPDATE"
 	FlagGatewayEventNameWebhooksUpdate                      = "WEBHOOKS_UPDATE"
+	FlagGatewayEventNameMessagePollVoteAdd                  = "MESSAGE_POLL_VOTE_ADD"
+	FlagGatewayEventNameMessagePollVoteRemove               = "MESSAGE_POLL_VOTE_REMOVE"
 )
 
 // Hello Structure
@@ -797,6 +1072,24 @@ type ChannelPinsUpdate struct {
 	GuildID          string      `json:"guild_id,omitempty"`
 	ChannelID        string      `json:"channel_id"`
 	LastPinTimestamp **time.Time `json:"last_pin_timestamp,omitempty"`
+}
+
+// Entitlement Create
+// https://discord.com/developers/docs/events/gateway-events#entitlement-create
+type EntitlementCreate struct {
+	*Entitlement
+}
+
+// Entitlement Update
+// https://discord.com/developers/docs/events/gateway-events#entitlement-update
+type EntitlementUpdate struct {
+	*Entitlement
+}
+
+// Entitlement Delete
+// https://discord.com/developers/docs/events/gateway-events#entitlement-delete
+type EntitlementDelete struct {
+	*Entitlement
 }
 
 // Guild Create
@@ -948,6 +1241,39 @@ type GuildScheduledEventUserRemove struct {
 	GuildID               string `json:"guild_id"`
 }
 
+// Guild Soundboard Sound Create
+// https://discord.com/developers/docs/events/gateway-events#guild-soundboard-sound-create
+type GuildSoundboardSoundCreate struct {
+	*SoundboardSound
+}
+
+// Guild Soundboard Sound Update
+// https://discord.com/developers/docs/events/gateway-events#guild-soundboard-sound-update
+type GuildSoundboardSoundUpdate struct {
+	*SoundboardSound
+}
+
+// Guild Soundboard Sound Delete
+// https://discord.com/developers/docs/events/gateway-events#guild-soundboard-sound-delete
+type GuildSoundboardSoundDelete struct {
+	SoundID string `json:"sound_id"`
+	GuildID string `json:"guild_id"`
+}
+
+// Guild Soundboard Sounds Update
+// https://discord.com/developers/docs/events/gateway-events#guild-soundboard-sounds-update
+type GuildSoundboardSoundsUpdate struct {
+	SoundboardSounds []*SoundboardSound `json:"soundboard_sounds"`
+	GuildID          string             `json:"guild_id"`
+}
+
+// Soundboard Sounds
+// https://discord.com/developers/docs/events/gateway-events#soundboard-sounds
+type SoundboardSounds struct {
+	SoundboardSounds []*SoundboardSound `json:"soundboard_sounds"`
+	GuildID          string             `json:"guild_id"`
+}
+
 // Integration Create
 // https://discord.com/developers/docs/topics/gateway-events#integration-create
 type IntegrationCreate struct {
@@ -1039,6 +1365,9 @@ type MessageReactionAdd struct {
 	GuildID         *string      `json:"guild_id,omitempty"`
 	Member          *GuildMember `json:"member,omitempty"`
 	Emoji           *Emoji       `json:"emoji"`
+	Burst           bool         `json:"burst"`
+	BurstColors     []string     `json:"burst_colors,omitempty"`
+	Type            Flag         `json:"type"`
 }
 
 // Message Reaction Remove
@@ -1049,6 +1378,8 @@ type MessageReactionRemove struct {
 	MessageID string  `json:"message_id"`
 	GuildID   *string `json:"guild_id,omitempty"`
 	Emoji     *Emoji  `json:"emoji"`
+	Burst     bool    `json:"burst"`
+	Type      Flag    `json:"type"`
 }
 
 // Message Reaction Remove All
@@ -1096,6 +1427,24 @@ type StageInstanceDelete struct {
 	*StageInstance
 }
 
+// Subscription Create
+// https://discord.com/developers/docs/events/gateway-events#subscription-create
+type SubscriptionCreate struct {
+	*Subscription
+}
+
+// Subscription Update
+// https://discord.com/developers/docs/events/gateway-events#subscription-update
+type SubscriptionUpdate struct {
+	*Subscription
+}
+
+// Subscription Delete
+// https://discord.com/developers/docs/events/gateway-events#subscription-delete
+type SubscriptionDelete struct {
+	*Subscription
+}
+
 // Typing Start
 // https://discord.com/developers/docs/topics/gateway-events#typing-start
 type TypingStart struct {
@@ -1110,6 +1459,19 @@ type TypingStart struct {
 // https://discord.com/developers/docs/topics/gateway-events#user-update
 type UserUpdate struct {
 	*User
+}
+
+// Voice Channel Effect Send
+// https://discord.com/developers/docs/events/gateway-events#voice-channel-effect-send-voice-channel-effect-send-event-fields
+type VoiceChannelEffectSend struct {
+	ChannelID     string   `json:"channel_id"`
+	GuildID       string   `json:"guild_id"`
+	UserID        string   `json:"user_id"`
+	Emoji         **Emoji  `json:"emoji,omitempty"`
+	AnimationType **Flag   `json:"animation_type,omitempty"`
+	AnimationID   *string  `json:"animation_id,omitempty"`
+	SoundID       *string  `json:"sound_id,omitempty"`
+	SoundVolume   *float64 `json:"sound_volume,omitempty"`
 }
 
 // Voice State Update
@@ -1133,229 +1495,25 @@ type WebhooksUpdate struct {
 	ChannelID string `json:"channel_id"`
 }
 
-// Gateway Payload Structure
-// https://discord.com/developers/docs/topics/gateway-events#payload-structure
-type GatewayPayload struct {
-	Op             int             `json:"op"`
-	Data           json.RawMessage `json:"d"`
-	SequenceNumber *int64          `json:"s,omitempty"`
-	EventName      *string         `json:"t,omitempty"`
+// Message Poll Vote Add
+// https://discord.com/developers/docs/events/gateway-events#message-poll-vote-add
+type MessagePollVoteAdd struct {
+	UserID    string  `json:"user_id"`
+	ChannelID string  `json:"channel_id"`
+	MessageID string  `json:"message_id"`
+	GuildID   *string `json:"guild_id,omitempty"`
+	AnswerID  int     `json:"answer_id"`
 }
 
-// Gateway URL Query String Params
-// https://discord.com/developers/docs/topics/gateway#connecting-gateway-url-query-string-params
-type GatewayURLQueryString struct {
-	V        int     `url:"v"`
-	Encoding string  `url:"encoding"`
-	Compress *string `url:"compress,omitempty"`
+// Message Poll Vote Remove
+// https://discord.com/developers/docs/events/gateway-events#message-poll-vote-remove
+type MessagePollVoteRemove struct {
+	UserID    string  `json:"user_id"`
+	ChannelID string  `json:"channel_id"`
+	MessageID string  `json:"message_id"`
+	GuildID   *string `json:"guild_id,omitempty"`
+	AnswerID  int     `json:"answer_id"`
 }
-
-// Session Start Limit Structure
-// https://discord.com/developers/docs/topics/gateway#session-start-limit-object-session-start-limit-structure
-type SessionStartLimit struct {
-	Total          int `json:"total"`
-	Remaining      int `json:"remaining"`
-	ResetAfter     int `json:"reset_after"`
-	MaxConcurrency int `json:"max_concurrency"`
-}
-
-// List of Intents
-// https://discord.com/developers/docs/topics/gateway#list-of-intents
-const (
-	// GUILD_CREATE
-	// GUILD_UPDATE
-	// GUILD_DELETE
-	// GUILD_ROLE_CREATE
-	// GUILD_ROLE_UPDATE
-	// GUILD_ROLE_DELETE
-	// CHANNEL_CREATE
-	// CHANNEL_UPDATE
-	// CHANNEL_DELETE
-	// CHANNEL_PINS_UPDATE
-	// THREAD_CREATE
-	// THREAD_UPDATE
-	// THREAD_DELETE
-	// THREAD_LIST_SYNC
-	// THREAD_MEMBER_UPDATE
-	// THREAD_MEMBERS_UPDATE *
-	// STAGE_INSTANCE_CREATE
-	// STAGE_INSTANCE_UPDATE
-	// STAGE_INSTANCE_DELETE
-	FlagIntentGUILDS BitFlag = 1 << 0
-
-	// GUILD_MEMBER_ADD
-	// GUILD_MEMBER_UPDATE
-	// GUILD_MEMBER_REMOVE
-	// THREAD_MEMBERS_UPDATE *
-	FlagIntentGUILD_MEMBERS BitFlag = 1 << 1
-
-	// GUILD_AUDIT_LOG_ENTRY_CREATE
-	// GUILD_BAN_ADD
-	// GUILD_BAN_REMOVE
-	FlagIntentGUILD_MODERATION BitFlag = 1 << 2
-
-	// GUILD_EMOJIS_UPDATE
-	// GUILD_STICKERS_UPDATE
-	FlagIntentGUILD_EMOJIS_AND_STICKERS BitFlag = 1 << 3
-
-	// GUILD_INTEGRATIONS_UPDATE
-	// INTEGRATION_CREATE
-	// INTEGRATION_UPDATE
-	// INTEGRATION_DELETE
-	FlagIntentGUILD_INTEGRATIONS BitFlag = 1 << 4
-
-	// WEBHOOKS_UPDATE
-	FlagIntentGUILD_WEBHOOKS BitFlag = 1 << 5
-
-	// INVITE_CREATE
-	// INVITE_DELETE
-	FlagIntentGUILD_INVITES BitFlag = 1 << 6
-
-	// VOICE_STATE_UPDATE
-	FlagIntentGUILD_VOICE_STATES BitFlag = 1 << 7
-
-	// PRESENCE_UPDATE
-	FlagIntentGUILD_PRESENCES BitFlag = 1 << 8
-
-	// MESSAGE_CREATE
-	// MESSAGE_UPDATE
-	// MESSAGE_DELETE
-	// MESSAGE_DELETE_BULK
-	FlagIntentGUILD_MESSAGES BitFlag = 1 << 9
-
-	// MESSAGE_REACTION_ADD
-	// MESSAGE_REACTION_REMOVE
-	// MESSAGE_REACTION_REMOVE_ALL
-	// MESSAGE_REACTION_REMOVE_EMOJI
-	FlagIntentGUILD_MESSAGE_REACTIONS BitFlag = 1 << 10
-
-	// TYPING_START
-	FlagIntentGUILD_MESSAGE_TYPING  BitFlag = 1 << 11
-	FlagIntentDIRECT_MESSAGE_TYPING BitFlag = 1 << 14
-
-	// MESSAGE_CREATE
-	// MESSAGE_UPDATE
-	// MESSAGE_DELETE
-	// CHANNEL_PINS_UPDATE
-	FlagIntentDIRECT_MESSAGES BitFlag = 1 << 12
-
-	// MESSAGE_REACTION_ADD
-	// MESSAGE_REACTION_REMOVE
-	// MESSAGE_REACTION_REMOVE_ALL
-	// MESSAGE_REACTION_REMOVE_EMOJI
-	FlagIntentDIRECT_MESSAGE_REACTIONS BitFlag = 1 << 13
-
-	FlagIntentMESSAGE_CONTENT BitFlag = 1 << 15
-
-	// GUILD_SCHEDULED_EVENT_CREATE
-	// GUILD_SCHEDULED_EVENT_UPDATE
-	// GUILD_SCHEDULED_EVENT_DELETE
-	// GUILD_SCHEDULED_EVENT_USER_ADD
-	// GUILD_SCHEDULED_EVENT_USER_REMOVE
-	FlagIntentGUILD_SCHEDULED_EVENTS BitFlag = 1 << 16
-
-	// AUTO_MODERATION_RULE_CREATE
-	// AUTO_MODERATION_RULE_UPDATE
-	// AUTO_MODERATION_RULE_DELETE
-	FlagIntentAUTO_MODERATION_CONFIGURATION BitFlag = 1 << 20
-
-	// AUTO_MODERATION_ACTION_EXECUTION
-	FlagIntentAUTO_MODERATION_EXECUTION BitFlag = 1 << 21
-)
-
-// Privileged Intents
-// https://discord.com/developers/docs/topics/gateway#privileged-intents
-var (
-	PrivilegedIntents = map[BitFlag]bool{
-		FlagIntentGUILD_PRESENCES: true,
-		FlagIntentGUILD_MEMBERS:   true,
-		FlagIntentMESSAGE_CONTENT: true,
-	}
-)
-
-// Gateway SendEvent Names
-// https://discord.com/developers/docs/topics/gateway-events#send-events
-const (
-	FlagGatewaySendEventNameHeartbeat           = "Heartbeat"
-	FlagGatewaySendEventNameIdentify            = "Identify"
-	FlagGatewaySendEventNameUpdatePresence      = "UpdatePresence"
-	FlagGatewaySendEventNameUpdateVoiceState    = "UpdateVoiceState "
-	FlagGatewaySendEventNameResume              = "Resume"
-	FlagGatewaySendEventNameRequestGuildMembers = "RequestGuildMembers"
-)
-
-// Identify Structure
-// https://discord.com/developers/docs/topics/gateway-events#identify-identify-structure
-type Identify struct {
-	Token          string                       `json:"token"`
-	Properties     IdentifyConnectionProperties `json:"properties"`
-	Compress       *bool                        `json:"compress,omitempty"`
-	LargeThreshold *int                         `json:"large_threshold,omitempty"`
-	Shard          *[2]int                      `json:"shard,omitempty"`
-	Presence       *GatewayPresenceUpdate       `json:"presence,omitempty"`
-	Intents        BitFlag                      `json:"intents"`
-}
-
-// Identify Connection Properties
-// https://discord.com/developers/docs/topics/gateway-events#identify-identify-connection-properties
-type IdentifyConnectionProperties struct {
-	OS      string `json:"os"`
-	Browser string `json:"browser"`
-	Device  string `json:"device"`
-}
-
-// Resume Structure
-// https://discord.com/developers/docs/topics/gateway-events#resume-resume-structure
-type Resume struct {
-	Token     string `json:"token"`
-	SessionID string `json:"session_id"`
-	Seq       int64  `json:"seq"`
-}
-
-// Heartbeat Structure
-// https://discord.com/developers/docs/topics/gateway-events#heartbeat
-type Heartbeat struct {
-	Data int64 `json:"d"`
-}
-
-// Request Guild Members Structure
-// https://discord.com/developers/docs/topics/gateway-events#request-guild-members-guild-request-members-structure
-type RequestGuildMembers struct {
-	GuildID   string   `json:"guild_id"`
-	Query     *string  `json:"query,omitempty"`
-	Limit     *int     `json:"limit,omitempty"`
-	Presences *bool    `json:"presences,omitempty"`
-	UserIDs   []string `json:"user_ids,omitempty"`
-	Nonce     *string  `json:"nonce,omitempty"`
-}
-
-// Gateway Voice State Update Structure
-// https://discord.com/developers/docs/topics/gateway-events#update-voice-state-gateway-voice-state-update-structure
-type GatewayVoiceStateUpdate struct {
-	GuildID   string  `json:"guild_id"`
-	ChannelID *string `json:"channel_id"`
-	SelfMute  bool    `json:"self_mute"`
-	SelfDeaf  bool    `json:"self_deaf"`
-}
-
-// Gateway Presence Update Structure
-// https://discord.com/developers/docs/topics/gateway-events#update-presence-gateway-presence-update-structure
-type GatewayPresenceUpdate struct {
-	Since  *int        `json:"since"`
-	Game   []*Activity `json:"game"`
-	Status string      `json:"status"`
-	AFK    bool        `json:"afk"`
-}
-
-// Status Types
-// https://discord.com/developers/docs/topics/gateway#update-presence-status-types
-const (
-	FlagStatusTypeOnline       = "online"
-	FlagStatusTypeDoNotDisturb = "dnd"
-	FlagStatusTypeAFK          = "idle"
-	FlagStatusTypeInvisible    = "invisible"
-	FlagStatusTypeOffline      = "offline"
-)
 
 // Rate Limit Headers
 // https://discord.com/developers/docs/topics/rate-limits#header-format-rate-limit-header-examples
@@ -1516,7 +1674,8 @@ type CreateGlobalApplicationCommand struct {
 	DescriptionLocalizations *map[string]string          `json:"description_localizations,omitempty"`
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
 	DefaultMemberPermissions **string                    `json:"default_member_permissions,omitempty"`
-	DMPermission             **bool                      `json:"dm_permission,omitempty"`
+	IntegrationTypes         []Flag                      `json:"integration_types,omitempty"`
+	Contexts                 []Flag                      `json:"contexts"`
 	Type                     *Flag                       `json:"type,omitempty"`
 	NSFW                     *bool                       `json:"nsfw,omitempty"`
 }
@@ -1539,7 +1698,6 @@ type EditGlobalApplicationCommand struct {
 	DescriptionLocalizations *map[string]string          `json:"description_localizations,omitempty"`
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
 	DefaultMemberPermissions **string                    `json:"default_member_permissions,omitempty"`
-	DMPermission             **bool                      `json:"dm_permission,omitempty"`
 	NSFW                     *bool                       `json:"nsfw,omitempty"`
 }
 
@@ -1747,6 +1905,32 @@ type DeleteFollowupMessage struct {
 // https://discord.com/developers/docs/resources/application#get-current-application
 type GetCurrentApplication struct{}
 
+// Edit Current Application
+// PATCH /applications/@me
+// https://discord.com/developers/docs/resources/application#edit-current-application
+type EditCurrentApplication struct {
+	CustomInstallURL               string          `json:"custom_install_url"`
+	Description                    string          `json:"string"`
+	RoleConnectionsVerificationURL string          `json:"role_connections_verification_url"`
+	InstallParams                  *InstallParams  `json:"install_params"`
+	IntegrationTypesConfig         map[string]Flag `json:"integration_types_config"`
+	Flags                          BitFlag         `json:"flags"`
+	Icon                           *string         `json:"icon"`
+	CoverImage                     *string         `json:"cover_image"`
+	InteractionsEndpointURL        string          `json:"interactions_endpoint_url"`
+	Tags                           []string        `json:"tags"`
+	EventWebhooksURL               string          `json:"event_webhooks_url"`
+	EventWebhooksStatus            Flag            `json:"event_webhooks_status"`
+	EventWebhooksTypes             []string        `json:"event_webhooks_types"`
+}
+
+// Get Application Activity Instance
+// GET /applications/{application.id}/activity-instances/{instance_id}
+// https://discord.com/developers/docs/resources/application#get-application-activity-instance
+type GetApplicationActivityInstance struct {
+	InstanceID string
+}
+
 // Get Application Role Connection Metadata Records
 // GET /applications/{application.id}/role-connections/metadata
 // https://discord.com/developers/docs/resources/application-role-connection-metadata#get-application-role-connection-metadata-records
@@ -1932,6 +2116,7 @@ type CreateMessage struct {
 	Files            []*File           `json:"-" dasgo:"files,omitempty"`
 	Attachments      []*Attachment     `json:"attachments,omitempty"`
 	Flags            *BitFlag          `json:"flags,omitempty"`
+	EnforceNonce     *bool             `json:"enforce_nonce,omitempty"`
 }
 
 // Crosspost Message
@@ -1977,6 +2162,7 @@ type GetReactions struct {
 	ChannelID string  `url:"-"`
 	MessageID string  `url:"-"`
 	Emoji     string  `url:"-"`
+	Type      *Flag   `url:"type,omitempty"`
 	After     *string `url:"after,omitempty"`
 	Limit     *int    `url:"limit,omitempty"`
 }
@@ -2027,6 +2213,92 @@ type DeleteMessage struct {
 type BulkDeleteMessages struct {
 	ChannelID string    `json:"-"`
 	Messages  []*string `json:"messages"`
+}
+
+// Get Answer Voters
+// GET /channels/{channel.id}/polls/{message.id}/answers/{answer_id}
+// https://discord.com/developers/docs/resources/poll#get-answer-voters
+type GetAnswerVoters struct {
+	ChannelID string  `url:"-"`
+	MessageID string  `url:"-"`
+	AnswerID  string  `url:"-"`
+	After     *string `url:"after,omitempty"`
+	Limit     *int    `url:"limit"`
+}
+
+// End Poll
+// POST /channels/{channel.id}/polls/{message.id}/expire
+// https://discord.com/developers/docs/resources/poll#get-answer-voters
+type EndPoll struct {
+	ChannelID string
+	MessageID string
+}
+
+// List SKUs
+// GET applications/{application.id}/skus
+// https://discord.com/developers/docs/resources/sku#list-skus
+type ListSKUs struct {
+}
+
+// Send Soundboard Sound
+// POST channels/{channel.id}/send-soundboard-sound
+// https://discord.com/developers/docs/resources/soundboard#send-soundboard-sound
+type SendSoundboardSound struct {
+	ChannelID     string  `json:"-"`
+	SoundID       string  `json:"sound_id"`
+	SourceGuildID *string `json:"source_guild_id,omitempty"`
+}
+
+// List Default Soundboard Sounds
+// GET /soundboard-default-sounds
+// https://discord.com/developers/docs/resources/soundboard#list-default-soundboard-sounds
+type ListDefaultSoundboardSounds struct{}
+
+// List Guild Soundboard Sounds
+// GET /guilds/{guild.id}/soundboard-sounds
+// https://discord.com/developers/docs/resources/soundboard#list-guild-soundboard-sounds
+type ListGuildSoundboardSounds struct {
+	GuildID string
+}
+
+// Get Guild Soundboard Sound
+// GET /guilds/{guild.id}/soundboard-sounds/{sound.id}
+// https://discord.com/developers/docs/resources/soundboard#get-guild-soundboard-sound
+type GetGuildSoundboardSound struct {
+	GuildID string
+	SoundID string
+}
+
+// Create Guild Soundboard Sound
+// POST /guilds/{guild.id}/soundboard-sounds
+// https://discord.com/developers/docs/resources/soundboard#create-guild-soundboard-sound
+type CreateGuildSoundboardSound struct {
+	GuildID   string    `json:"-"`
+	Name      string    `json:"name"`
+	Sound     string    `json:"sound"`
+	Volume    **float64 `json:"volume,omitempty"`
+	EmojiID   **string  `json:"emoji_id,omitempty"`
+	EmojiName **string  `json:"emoji_name,omitempty"`
+}
+
+// Modify Guild Soundboard Sound
+// PATCH/guilds/{guild.id}/soundboard-sounds/{sound.id}
+// https://discord.com/developers/docs/resources/soundboard#modify-guild-soundboard-sound
+type ModifyGuildSoundboardSound struct {
+	GuildID   string   `json:"-"`
+	SoundID   string   `json:"-"`
+	Name      string   `json:"name"`
+	Volume    *float64 `json:"volume"`
+	EmojiID   *string  `json:"emoji_id"`
+	EmojiName *string  `json:"emoji_name"`
+}
+
+// Delete Guild Soundboard Sound
+// DELETE /guilds/{guild.id}/soundboard-sounds/{sound.id}
+// https://discord.com/developers/docs/resources/soundboard#delete-guild-soundboard-sound
+type DeleteGuildSoundboardSound struct {
+	GuildID string
+	SoundID string
 }
 
 // Edit Channel Permissions
@@ -2152,24 +2424,24 @@ type StartThreadwithoutMessage struct {
 // POST /channels/{channel.id}/threads
 // https://discord.com/developers/docs/resources/channel#start-thread-in-forum-channel
 type StartThreadinForumChannel struct {
-	ChannelID           string                    `json:"-"`
-	Name                string                    `json:"name"`
-	AutoArchiveDuration *int                      `json:"auto_archive_duration,omitempty"`
-	RateLimitPerUser    **int                     `json:"rate_limit_per_user,omitempty"`
-	Message             *ForumThreadMessageParams `json:"message"`
-	AppliedTags         []string                  `json:"applied_tags,omitempty"`
+	ChannelID           string                            `json:"-"`
+	Name                string                            `json:"name"`
+	AutoArchiveDuration *int                              `json:"auto_archive_duration,omitempty"`
+	RateLimitPerUser    **int                             `json:"rate_limit_per_user,omitempty"`
+	Message             *ForumAndMediaThreadMessageParams `json:"message"`
+	AppliedTags         []string                          `json:"applied_tags,omitempty"`
+	Files               []*File                           `json:"-" url:"-" dasgo:"files"`
 }
 
-// Forum Thread Message Params Object
-// https://discord.com/developers/docs/resources/channel#start-thread-in-forum-channel-forum-thread-message-params-object
-type ForumThreadMessageParams struct {
+// Forum and Media Thread Message Params Object
+// https://discord.com/developers/docs/resources/channel#start-thread-in-forum-or-media-channel-forum-and-media-thread-message-params-object
+type ForumAndMediaThreadMessageParams struct {
 	Content         *string          `json:"content,omitempty"`
 	Embeds          []*Embed         `json:"embeds,omitempty"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
 	Components      []Component      `json:"components,omitempty"`
 	StickerIDS      []*string        `json:"sticker_ids,omitempty"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
-	Files           []*File          `json:"-" dasgo:"files"`
 	Flags           *BitFlag         `json:"flags,omitempty"`
 }
 
@@ -2290,6 +2562,86 @@ type ModifyGuildEmoji struct {
 type DeleteGuildEmoji struct {
 	GuildID string
 	EmojiID string
+}
+
+// List Application Emojis
+// GET /applications/{application.id}/emojis
+// https://discord.com/developers/docs/resources/emoji#list-application-emojis
+type ListApplicationEmojis struct {
+}
+
+// Get Application Emoji
+// GET /applications/{application.id}/emojis/{emoji.id}
+// https://discord.com/developers/docs/resources/emoji#get-application-emoji
+type GetApplicationEmoji struct {
+	EmojiID string
+}
+
+// Create Application Emoji
+// POST /applications/{application.id}/emojis
+// https://discord.com/developers/docs/resources/emoji#create-application-emoji
+type CreateApplicationEmoji struct {
+	Name  string `json:"name"`
+	Image string `json:"image"`
+}
+
+// Modify Application Emoji
+// PATCH /applications/{application.id}/emojis/{emoji.id}
+// https://discord.com/developers/docs/resources/emoji#modify-application-emoji
+type ModifyApplicationEmoji struct {
+	EmojiID string `json:"-"`
+	Name    string `json:"name"`
+}
+
+// Delete Application Emoji
+// DELETE /applications/{application.id}/emojis/{emoji.id}
+// https://discord.com/developers/docs/resources/emoji#delete-application-emoji
+type DeleteApplicationEmoji struct {
+	EmojiID string
+}
+
+// List Entitlements
+// GET /applications/{application.id}/entitlements
+// https://discord.com/developers/docs/resources/entitlement#list-entitlements
+type ListEntitlements struct {
+	UserID         *string  `url:"user_id,omitempty"`
+	SKUIDs         []string `url:"sku_ids,omitempty"`
+	Before         *string  `url:"before,omitempty"`
+	After          *string  `url:"after,omitempty"`
+	Limit          *int     `url:"limit,omitempty"`
+	GuildID        *string  `url:"guild_id,omitempty"`
+	ExcludeEnded   *bool    `url:"exclude_ended,omitempty"`
+	ExcludeDeleted *bool    `url:"exclude_deleted,omitempty"`
+}
+
+// Get Entitlement
+// GET /applications/{application.id}/entitlements/{entitlement.id}
+// https://discord.com/developers/docs/resources/entitlement#get-entitlement
+type GetEntitlement struct {
+	EntitlementID string
+}
+
+// Consume an Entitlement
+// POST /applications/{application.id}/entitlements/{entitlement.id}/consume
+// https://discord.com/developers/docs/resources/entitlement#consume-an-entitlement
+type ConsumeEntitlement struct {
+	EntitlementID string
+}
+
+// Create Test Entitlement
+// POST /applications/{application.id}/entitlements
+// https://discord.com/developers/docs/resources/entitlement#create-test-entitlement
+type CreateTestEntitlement struct {
+	SKUID     string `json:"sku_id"`
+	OwnerID   string `json:"owner_id"`
+	OwnerType Flag   `json:"owner_type"`
+}
+
+// Delete Test Entitlement
+// DELETE /applications/{application.id}/entitlements/{entitlement.id}
+// https://discord.com/developers/docs/resources/entitlement#delete-test-entitlement
+type DeleteTestEntitlement struct {
+	EntitlementID string
 }
 
 // Create Guild
@@ -2556,6 +2908,14 @@ type CreateGuildRole struct {
 	Icon         **string `json:"icon,omitempty"`
 	UnicodeEmoji **string `json:"unicode_emoji,omitempty"`
 	Mentionable  *bool    `json:"mentionable,omitempty"`
+}
+
+// Get Guild Role
+// GET /guilds/{guild.id}/roles/{role.id}
+// https://discord.com/developers/docs/resources/guild#get-guild-role
+type GetGuildRole struct {
+	GuildID string
+	RoleID  string
 }
 
 // Modify Guild Role Positions
@@ -2908,10 +3268,11 @@ type DeleteInvite struct {
 // POST /stage-instances
 // https://discord.com/developers/docs/resources/stage-instance#create-stage-instance
 type CreateStageInstance struct {
-	ChannelID             string `json:"channel_id"`
-	Topic                 string `json:"topic"`
-	PrivacyLevel          *Flag  `json:"privacy_level,omitempty"`
-	SendStartNotification *bool  `json:"send_start_notification,omitempty"`
+	ChannelID             string  `json:"channel_id"`
+	Topic                 string  `json:"topic"`
+	PrivacyLevel          *Flag   `json:"privacy_level,omitempty"`
+	SendStartNotification *bool   `json:"send_start_notification,omitempty"`
+	GuildScheduledEventID *string `json:"guild_scheduled_event_id,omitempty"`
 }
 
 // Get Stage Instance
@@ -2944,10 +3305,17 @@ type GetSticker struct {
 	StickerID string
 }
 
-// List Nitro Sticker Packs
+// List Sticker Packs
 // GET /sticker-packs
-// https://discord.com/developers/docs/resources/sticker#list-nitro-sticker-packs
-type ListNitroStickerPacks struct{}
+// https://discord.com/developers/docs/resources/sticker#list-sticker-packs
+type ListStickerPacks struct{}
+
+// Get Sticker Pack
+// GET /sticker-packs/{pack.id}
+// https://discord.com/developers/docs/resources/sticker#get-sticker-pack
+type GetStickerPack struct {
+	PackID string `url:"-"`
+}
 
 // List Guild Stickers
 // GET /guilds/{guild.id}/stickers
@@ -2994,6 +3362,25 @@ type DeleteGuildSticker struct {
 	StickerID string
 }
 
+// List SKU Subscriptions
+// GET skus/{sku.id}/subscriptions
+// https://discord.com/developers/docs/resources/subscription#list-sku-subscriptions
+type ListSKUSubscriptions struct {
+	SKUID  string  `url:"-"`
+	Before *string `url:"before,omitempty"`
+	After  *string `url:"after,omitempty"`
+	Limit  *int    `url:"limit,omitempty"`
+	UserID *string `url:"user_id,omitempty"`
+}
+
+// Get SKU Subscription
+// GET /skus/{sku.id}/subscriptions/{subscription.id}
+// https://discord.com/developers/docs/resources/subscription#get-sku-subscription
+type GetSKUSubscription struct {
+	SKUID          string
+	SubscriptionID string
+}
+
 // Get Current User
 // GET/users/@me
 // https://discord.com/developers/docs/resources/user#get-current-user
@@ -3012,6 +3399,7 @@ type GetUser struct {
 type ModifyCurrentUser struct {
 	Username *string `json:"username,omitempty"`
 	Avatar   *string `json:"avatar,omitempty"`
+	Banner   *string `json:"banner,omitempty"`
 }
 
 // Get Current User Guilds
@@ -3056,18 +3444,18 @@ type CreateGroupDM struct {
 // Get User Connections
 // GET /users/@me/connections
 // https://discord.com/developers/docs/resources/user#get-user-connections
-type GetUserConnections struct{}
+type GetCurrentUserConnections struct{}
 
 // Get User Application Role Connection
 // GET /users/@me/applications/{application.id}/role-connection
 // https://discord.com/developers/docs/resources/user#get-user-application-role-connection
-type GetUserApplicationRoleConnection struct {
+type GetCurrentUserApplicationRoleConnection struct {
 }
 
 // Update User Application Role Connection
 // PUT /users/@me/applications/{application.id}/role-connection
 // https://discord.com/developers/docs/resources/user#update-user-application-role-connection
-type UpdateUserApplicationRoleConnection struct {
+type UpdateCurrentUserApplicationRoleConnection struct {
 	PlatformName     *string           `json:"platform_name,omitempty"`
 	PlatformUsername *string           `json:"platform_user,omitempty"`
 	Metadata         map[string]string `json:"metadata,omitempty"`
@@ -3170,6 +3558,8 @@ type ExecuteWebhook struct {
 	Attachments     []*Attachment    `json:"attachments,omitempty" url:"-"`
 	Flags           *BitFlag         `json:"flags,omitempty" url:"-"`
 	ThreadName      *string          `json:"thread_name,omitempty" url:"-"`
+	AppliedTags     []string         `json:"applied_tags" url:"-"`
+	Poll            *Poll            `json:"poll" url:"-"`
 }
 
 // Execute Slack-Compatible Webhook
@@ -3216,6 +3606,7 @@ type EditWebhookMessage struct {
 	Files           []*File           `json:"-" url:"-" dasgo:"files"`
 	AllowedMentions **AllowedMentions `json:"allowed_mentions,omitempty" url:"-"`
 	Attachments     *[]*Attachment    `json:"attachments,omitempty" url:"-"`
+	Poll            *Poll             `json:"poll,omitempty" url:"-"`
 }
 
 // Delete Webhook Message
@@ -3313,17 +3704,20 @@ type ApplicationCommand struct {
 	DescriptionLocalizations *map[string]string          `json:"description_localizations,omitempty"`
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
 	DefaultMemberPermissions *string                     `json:"default_member_permissions"`
-	DMPermission             *bool                       `json:"dm_permission,omitempty"`
 	NSFW                     *bool                       `json:"nsfw,omitempty"`
+	IntegrationTypes         []Flag                      `json:"integration_types,omitempty"`
+	Contexts                 *[]Flag                     `json:"contexts,omitempty"`
 	Version                  string                      `json:"version,omitempty"`
+	Handler                  Flag                        `json:"handler,omitempty"`
 }
 
 // Application Command Types
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types
 const (
-	FlagApplicationCommandTypeCHAT_INPUT Flag = 1
-	FlagApplicationCommandTypeUSER       Flag = 2
-	FlagApplicationCommandTypeMESSAGE    Flag = 3
+	FlagApplicationCommandTypeCHAT_INPUT          Flag = 1
+	FlagApplicationCommandTypeUSER                Flag = 2
+	FlagApplicationCommandTypeMESSAGE             Flag = 3
+	FlagApplicationCommandTypePRIMARY_ENTRY_POINT Flag = 4
 )
 
 // Application Command Option Structure
@@ -3368,6 +3762,13 @@ type ApplicationCommandOptionChoice struct {
 	NameLocalizations *map[string]string `json:"name_localizations,omitempty"`
 	Value             Value              `json:"value"`
 }
+
+// Entry Point Command Handler Types
+// https://discord.com/developers/docs/interactions/application-commands#application-command-object-entry-point-command-handler-types
+const (
+	FlagEntryPointCommandHandlerTypesAPP_HANDLER             Flag = 1
+	FlagEntryPointCommandHandlerTypesDISCORD_LAUNCH_ACTIVITY Flag = 2
+)
 
 // Guild Application Command Permissions Object
 // https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-guild-application-command-permissions-structure
@@ -3428,6 +3829,7 @@ type Button struct {
 	Label    *string `json:"label,omitempty"`
 	Emoji    *Emoji  `json:"emoji,omitempty"`
 	CustomID *string `json:"custom_id,omitempty"`
+	SKUID    *string `json:"sku_id,omitempty"`
 	URL      *string `json:"url,omitempty"`
 	Disabled *bool   `json:"disabled,omitempty"`
 }
@@ -3444,19 +3846,21 @@ const (
 	FlagButtonStyleDanger    Flag = 4
 	FlagButtonStyleRED       Flag = 4
 	FlagButtonStyleLINK      Flag = 5
+	FlagButtonStylePremium   Flag = 6
 )
 
 // Select Menu Structure
 // https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-menu-structure
 type SelectMenu struct {
-	Type         Flag               `json:"type"`
-	CustomID     string             `json:"custom_id"`
-	Options      []SelectMenuOption `json:"options"`
-	ChannelTypes Flags              `json:"channel_types,omitempty"`
-	Placeholder  *string            `json:"placeholder,omitempty"`
-	MinValues    *Flag              `json:"min_values,omitempty"`
-	MaxValues    *Flag              `json:"max_values,omitempty"`
-	Disabled     *bool              `json:"disabled,omitempty"`
+	Type          Flag                  `json:"type"`
+	CustomID      string                `json:"custom_id"`
+	Options       []*SelectMenuOption   `json:"options"`
+	ChannelTypes  Flags                 `json:"channel_types,omitempty"`
+	Placeholder   *string               `json:"placeholder,omitempty"`
+	DefaultValues []*SelectDefaultValue `json:"default_values,omitempty"`
+	MinValues     *Flag                 `json:"min_values,omitempty"`
+	MaxValues     *Flag                 `json:"max_values,omitempty"`
+	Disabled      *bool                 `json:"disabled,omitempty"`
 }
 
 // Select Menu Option Structure
@@ -3467,6 +3871,13 @@ type SelectMenuOption struct {
 	Description *string `json:"description,omitempty"`
 	Emoji       *Emoji  `json:"emoji,omitempty"`
 	Default     *bool   `json:"default,omitempty"`
+}
+
+// Select Default Value Structure
+// https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-default-value-structure
+type SelectDefaultValue struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
 }
 
 // Text Input Structure
@@ -3493,21 +3904,25 @@ const (
 // Interaction Object
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-structure
 type Interaction struct {
-	ID             string          `json:"id"`
-	ApplicationID  string          `json:"application_id"`
-	Type           Flag            `json:"type"`
-	Data           InteractionData `json:"data,omitempty"`
-	GuildID        *string         `json:"guild_id,omitempty"`
-	Channel        *Channel        `json:"channel,omitempty"`
-	ChannelID      *string         `json:"channel_id,omitempty"`
-	Member         *GuildMember    `json:"member,omitempty"`
-	User           *User           `json:"user,omitempty"`
-	Token          string          `json:"token"`
-	Version        int             `json:"version,omitempty"`
-	Message        *Message        `json:"message,omitempty"`
-	AppPermissions *BitFlag        `json:"app_permissions,omitempty,string"`
-	Locale         *string         `json:"locale,omitempty"`
-	GuildLocale    *string         `json:"guild_locale,omitempty"`
+	ID                           string          `json:"id"`
+	ApplicationID                string          `json:"application_id"`
+	Type                         Flag            `json:"type"`
+	Data                         InteractionData `json:"data,omitempty"`
+	Guild                        *Guild          `json:"guild,omitempty"`
+	GuildID                      *string         `json:"guild_id,omitempty"`
+	Channel                      *Channel        `json:"channel,omitempty"`
+	ChannelID                    *string         `json:"channel_id,omitempty"`
+	Member                       *GuildMember    `json:"member,omitempty"`
+	User                         *User           `json:"user,omitempty"`
+	Token                        string          `json:"token"`
+	Version                      int             `json:"version,omitempty"`
+	Message                      *Message        `json:"message,omitempty"`
+	AppPermissions               *BitFlag        `json:"app_permissions,omitempty,string"`
+	Locale                       *string         `json:"locale,omitempty"`
+	GuildLocale                  *string         `json:"guild_locale,omitempty"`
+	Entitlements                 []*Entitlement  `json:"entitlement"`
+	AuthorizingIntegrationOwners map[Flag]string `json:"authorizing_integration_owners"`
+	Context                      *Flag           `json:"context,omitempty"`
 }
 
 // Interaction Type
@@ -3518,6 +3933,14 @@ const (
 	FlagInteractionTypeMESSAGE_COMPONENT                Flag = 3
 	FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE Flag = 4
 	FlagInteractionTypeMODAL_SUBMIT                     Flag = 5
+)
+
+// Interaction Context Type
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-context-types
+const (
+	FlagInteractionContextTypeGUILD           Flag = 0
+	FlagInteractionContextTypeBOT_DM          Flag = 1
+	FlagInteractionContextTypePRIVATE_CHANNEL      = 2
 )
 
 // Interaction Data
@@ -3544,6 +3967,7 @@ type MessageComponentData struct {
 	CustomID      string              `json:"custom_id"`
 	ComponentType Flag                `json:"component_type"`
 	Values        []*SelectMenuOption `json:"values,omitempty"`
+	Resolved      *ResolvedData       `json:"resolved,omitempty"`
 }
 
 // Modal Submit Data Structure
@@ -3601,6 +4025,7 @@ const (
 	FlagInteractionCallbackTypeUPDATE_MESSAGE                          Flag = 7
 	FlagInteractionCallbackTypeAPPLICATION_COMMAND_AUTOCOMPLETE_RESULT Flag = 8
 	FlagInteractionCallbackTypeMODAL                                   Flag = 9
+	FlagInteractionCallbackTypeLAUNCH_ACTIVITY                         Flag = 12
 )
 
 // Interaction Callback Data Structure
@@ -3619,6 +4044,7 @@ type Messages struct {
 	Flags           *BitFlag         `json:"flags,omitempty"`
 	Components      []Component      `json:"components,omitempty"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
+	Poll            *Poll            `json:"poll,omitempty"`
 }
 
 // Autocomplete
@@ -3638,30 +4064,59 @@ type Modal struct {
 // Application Object
 // https://discord.com/developers/docs/resources/application
 type Application struct {
-	ID                             string         `json:"id"`
-	Name                           string         `json:"name"`
-	Icon                           *string        `json:"icon"`
-	Description                    string         `json:"description"`
-	RPCOrigins                     []string       `json:"rpc_origins,omitempty"`
-	BotPublic                      bool           `json:"bot_public"`
-	BotRequireCodeGrant            bool           `json:"bot_require_code_grant"`
-	TermsOfServiceURL              *string        `json:"terms_of_service_url,omitempty"`
-	PrivacyProxyURL                *string        `json:"privacy_policy_url,omitempty"`
-	Owner                          *User          `json:"owner,omitempty"`
-	VerifyKey                      string         `json:"verify_key"`
-	Team                           *Team          `json:"team"`
-	GuildID                        *string        `json:"guild_id,omitempty"`
-	Guild                          *Guild         `json:"guild,omitempty"`
-	PrimarySKUID                   *string        `json:"primary_sku_id,omitempty"`
-	Slug                           *string        `json:"slug,omitempty"`
-	CoverImage                     *string        `json:"cover_image,omitempty"`
-	Flags                          *BitFlag       `json:"flags,omitempty"`
-	ApproximateGuildCount          *int           `json:"approximate_guild_count,omitempty"`
-	Tags                           []string       `json:"tags,omitempty"`
-	InstallParams                  *InstallParams `json:"install_params,omitempty"`
-	CustomInstallURL               *string        `json:"custom_install_url,omitempty"`
-	RoleConnectionsVerificationURL *string        `json:"role_connections_verification_url,omitempty"`
+	ID                             string                                            `json:"id"`
+	Name                           string                                            `json:"name"`
+	Icon                           *string                                           `json:"icon"`
+	Description                    string                                            `json:"description"`
+	RPCOrigins                     []string                                          `json:"rpc_origins,omitempty"`
+	BotPublic                      bool                                              `json:"bot_public"`
+	BotRequireCodeGrant            bool                                              `json:"bot_require_code_grant"`
+	Bot                            *User                                             `json:"bot,omitempty"`
+	TermsOfServiceURL              *string                                           `json:"terms_of_service_url,omitempty"`
+	PrivacyProxyURL                *string                                           `json:"privacy_policy_url,omitempty"`
+	Owner                          *User                                             `json:"owner,omitempty"`
+	VerifyKey                      string                                            `json:"verify_key"`
+	Team                           *Team                                             `json:"team"`
+	GuildID                        *string                                           `json:"guild_id,omitempty"`
+	Guild                          *Guild                                            `json:"guild,omitempty"`
+	PrimarySKUID                   *string                                           `json:"primary_sku_id,omitempty"`
+	Slug                           *string                                           `json:"slug,omitempty"`
+	CoverImage                     *string                                           `json:"cover_image,omitempty"`
+	Flags                          *BitFlag                                          `json:"flags,omitempty"`
+	ApproximateGuildCount          *int                                              `json:"approximate_guild_count,omitempty"`
+	ApproximateUserInstallCount    *int                                              `json:"approximate_user_install_count,omitempty"`
+	RedirectURIs                   []string                                          `json:"redirect_uris,omitempty"`
+	InteractionsEndpointURL        **string                                          `json:"interactions_endpoint_url,omitempty"`
+	RoleConnectionsVerificationURL **string                                          `json:"role_connections_verification_url,omitempty"`
+	EventWebhooksURL               **string                                          `json:"event_webhooks_url,omitempty"`
+	EventWebhooksStatus            Flag                                              `json:"event_webhooks_status"`
+	EventWebhooksTypes             []string                                          `json:"event_webhooks_types,omitempty"`
+	Tags                           []string                                          `json:"tags,omitempty"`
+	InstallParams                  *InstallParams                                    `json:"install_params,omitempty"`
+	IntegrationTypesConfig         map[Flag]*ApplicationIntegrationTypeConfiguration `json:"integration_types_config,omitempty"`
+	CustomInstallURL               *string                                           `json:"custom_install_url,omitempty"`
 }
+
+// Application Integration Type Configuration Object
+// https://discord.com/developers/docs/resources/application#application-object-application-integration-type-configuration-object
+type ApplicationIntegrationTypeConfiguration struct {
+	OAuth2InstallParams *InstallParams `json:"oauth2_install_params,omitempty"`
+}
+
+// Application Integration Types
+// https://discord.com/developers/docs/resources/application#application-object-application-integration-types
+const (
+	FlagApplicationIntegrationTypeGUILD_INSTALL Flag = 0
+	FlagApplicationIntegrationTypeUSER_INSTALL  Flag = 1
+)
+
+// Application Event Webhook Status
+// https://discord.com/developers/docs/resources/application#application-object-application-event-webhook-status
+const (
+	FlagApplicationEventWebhookStatusDISABLED            Flag = 1
+	FlagApplicationEventWebhookStatusENABLED             Flag = 2
+	FlagApplicationEventWebhookStatusDISABLED_BY_DISCORD Flag = 3
+)
 
 // Application Flags
 // https://discord.com/developers/docs/resources/application#application-object-application-flags
@@ -3684,6 +4139,34 @@ type InstallParams struct {
 	Scopes      []string `json:"scopes"`
 	Permissions string   `json:"permissions"`
 }
+
+// Activity Instance Object
+// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-instance-object
+type ActivityInstance struct {
+	ApplicationID string            `json:"application_id"`
+	InstanceID    string            `json:"instance_id"`
+	LaunchID      string            `json:"launch_id"`
+	Location      *ActivityLocation `json:"location"`
+	Users         []string          `json:"users"`
+}
+
+// Activity Location Object
+// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-object
+type ActivityLocation struct {
+	ID        string   `json:"id"`
+	Kind      string   `json:"kind"`
+	ChannelID string   `json:"channel_id"`
+	GuildID   **string `json:"guild_id,omitempty"`
+}
+
+// Activity Location Kind Enum
+// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-kind-enum
+var (
+	ActivityLocationKindEnum = map[string]string{
+		"gc": "Location is a Guild Channel",
+		"pc": "Location is a Private Channel, such as a DM or GDM",
+	}
+)
 
 // Application Role Connection Metadata Object
 // https://discord.com/developers/docs/resources/application-role-connection-metadata#application-role-connection-metadata-object-application-role-connection-metadata-structure
@@ -3792,6 +4275,13 @@ const (
 	FlagAuditLogEventAUTO_MODERATION_USER_COMMUNICATION_DISABLED Flag = 145
 	FlagAuditLogEventCREATOR_MONETIZATION_REQUEST_CREATED        Flag = 150
 	FlagAuditLogEventCREATOR_MONETIZATION_TERMS_ACCEPTED         Flag = 151
+	FlagAuditLogEventONBOARDING_PROMPT_CREATE                    Flag = 163
+	FlagAuditLogEventONBOARDING_PROMPT_UPDATE                    Flag = 164
+	FlagAuditLogEventONBOARDING_PROMPT_DELETE                    Flag = 165
+	FlagAuditLogEventONBOARDING_CREATE                           Flag = 166
+	FlagAuditLogEventONBOARDING_UPDATE                           Flag = 167
+	FlagAuditLogEventHOME_SETTINGS_CREATE                        Flag = 190
+	FlagAuditLogEventHOME_SETTINGS_UPDATE                        Flag = 191
 )
 
 // Optional Audit Entry Info
@@ -3845,6 +4335,7 @@ const (
 	FlagTriggerTypeSPAM           Flag = 3
 	FlagTriggerTypeKEYWORD_PRESET Flag = 4
 	FlagTriggerTypeMENTION_SPAM   Flag = 5
+	FlagTriggerTypeMEMBER_PROFILE Flag = 6
 )
 
 // Trigger Metadata
@@ -3870,7 +4361,8 @@ const (
 // Event Types
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-event-types
 const (
-	FlagEventTypeMESSAGE_SEND Flag = 1
+	FlagEventTypeMESSAGE_SEND  Flag = 1
+	FlagEventTypeMEMBER_UPDATE Flag = 2
 )
 
 // Auto Moderation Action Structure
@@ -3883,9 +4375,10 @@ type AutoModerationAction struct {
 // Action Types
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-action-object-action-types
 const (
-	FlagActionTypeBLOCK_MESSAGE      Flag = 1
-	FlagActionTypeSEND_ALERT_MESSAGE Flag = 2
-	FlagActionTypeTIMEOUT            Flag = 3
+	FlagActionTypeBLOCK_MESSAGE            Flag = 1
+	FlagActionTypeSEND_ALERT_MESSAGE       Flag = 2
+	FlagActionTypeTIMEOUT                  Flag = 3
+	FlagActionTypeBLOCK_MEMBER_INTERACTION Flag = 4
 )
 
 // Action Metadata
@@ -3951,6 +4444,7 @@ const (
 	FlagChannelTypeGUILD_STAGE_VOICE   Flag = 13
 	FlagChannelTypeGUILD_DIRECTORY     Flag = 14
 	FlagChannelTypeGUILD_FORUM         Flag = 15
+	FlagChannelTypeGUILD_MEDIA         Flag = 16
 )
 
 // Video Quality Modes
@@ -3982,40 +4476,51 @@ const (
 	FlagForumLayoutTypeGALLERY_VIEW Flag = 2
 )
 
+// Followed Channel Structure
+// https://discord.com/developers/docs/resources/channel#followed-channel-object-followed-channel-structure
+type FollowedChannel struct {
+	ChannelID string `json:"channel_id"`
+	WebhookID string `json:"webhook_id"`
+}
+
 // Message Object
 // https://discord.com/developers/docs/resources/channel#message-object
 type Message struct {
-	ID                   string                `json:"id"`
-	ChannelID            string                `json:"channel_id"`
-	Author               *User                 `json:"author"`
-	Content              string                `json:"content"`
-	Timestamp            time.Time             `json:"timestamp"`
-	EditedTimestamp      *time.Time            `json:"edited_timestamp"`
-	TTS                  bool                  `json:"tts"`
-	MentionEveryone      bool                  `json:"mention_everyone"`
-	Mentions             []*User               `json:"mentions"`
-	MentionRoles         []*string             `json:"mention_roles"`
-	MentionChannels      []*ChannelMention     `json:"mention_channels,omitempty"`
-	Attachments          []*Attachment         `json:"attachments"`
-	Embeds               []*Embed              `json:"embeds"`
-	Reactions            []*Reaction           `json:"reactions,omitempty"`
-	Nonce                *Nonce                `json:"nonce,omitempty"`
-	Pinned               bool                  `json:"pinned"`
-	WebhookID            *string               `json:"webhook_id,omitempty"`
-	Type                 Flag                  `json:"type"`
-	Activity             *MessageActivity      `json:"activity,omitempty"`
-	Application          *Application          `json:"application,omitempty"`
-	ApplicationID        *string               `json:"application_id,omitempty"`
-	MessageReference     *MessageReference     `json:"message_reference,omitempty"`
-	Flags                *BitFlag              `json:"flags,omitempty"`
-	ReferencedMessage    **Message             `json:"referenced_message,omitempty"`
-	Interaction          *Interaction          `json:"interaction"`
-	Thread               *Channel              `json:"thread"`
-	Components           []Component           `json:"components"`
-	StickerItems         []*StickerItem        `json:"sticker_items"`
-	Stickers             []*Sticker            `json:"stickers"`
-	Position             *int                  `json:"position,omitempty"`
-	RoleSubscriptionData *RoleSubscriptionData `json:"role_subscription_data,omitempty"`
+	ID                   string                              `json:"id"`
+	ChannelID            string                              `json:"channel_id"`
+	Author               *User                               `json:"author"`
+	Content              string                              `json:"content"`
+	Timestamp            time.Time                           `json:"timestamp"`
+	EditedTimestamp      *time.Time                          `json:"edited_timestamp"`
+	TTS                  bool                                `json:"tts"`
+	MentionEveryone      bool                                `json:"mention_everyone"`
+	Mentions             []*User                             `json:"mentions"`
+	MentionRoles         []*string                           `json:"mention_roles"`
+	MentionChannels      []*ChannelMention                   `json:"mention_channels,omitempty"`
+	Attachments          []*Attachment                       `json:"attachments"`
+	Embeds               []*Embed                            `json:"embeds"`
+	Reactions            []*Reaction                         `json:"reactions,omitempty"`
+	Nonce                *Nonce                              `json:"nonce,omitempty"`
+	Pinned               bool                                `json:"pinned"`
+	WebhookID            *string                             `json:"webhook_id,omitempty"`
+	Type                 Flag                                `json:"type"`
+	Activity             *MessageActivity                    `json:"activity,omitempty"`
+	Application          *Application                        `json:"application,omitempty"`
+	ApplicationID        *string                             `json:"application_id,omitempty"`
+	Flags                *BitFlag                            `json:"flags,omitempty"`
+	MessageReference     *MessageReference                   `json:"message_reference,omitempty"`
+	MessageSnapshots     []*MessageSnapshot                  `json:"message_snapshots,omitempty"`
+	ReferencedMessage    **Message                           `json:"referenced_message,omitempty"`
+	InteractionMetadata  MessageComponentInteractionMetadata `json:"interaction_metadata,omitempty"`
+	Interaction          *MessageInteraction                 `json:"interaction"`
+	Thread               *Channel                            `json:"thread"`
+	Components           []Component                         `json:"components"`
+	StickerItems         []*StickerItem                      `json:"sticker_items"`
+	Position             *int                                `json:"position,omitempty"`
+	RoleSubscriptionData *RoleSubscriptionData               `json:"role_subscription_data,omitempty"`
+	Resolved             *ResolvedData                       `json:"resolved,omitempty"`
+	Poll                 *Poll                               `json:"poll,omitempty"`
+	Call                 *MessageCall                        `json:"call,omitempty"`
 
 	// MessageCreate Event Extra Fields
 	// https://discord.com/developers/docs/topics/gateway-events#message-create
@@ -4058,6 +4563,12 @@ const (
 	FlagMessageTypeSTAGE_RAISE_HAND                             Flag = 30
 	FlagMessageTypeSTAGE_TOPIC                                  Flag = 31
 	FlagMessageTypeGUILD_APPLICATION_PREMIUM_SUBSCRIPTION       Flag = 32
+	FlagMessageTypeGUILD_INCIDENT_ALERT_MODE_ENABLED            Flag = 36
+	FlagMessageTypeGUILD_INCIDENT_ALERT_MODE_DISABLED           Flag = 37
+	FlagMessageTypeGUILD_INCIDENT_REPORT_RAID                   Flag = 38
+	FlagMessageTypeGUILD_INCIDENT_REPORT_FALSE_ALARM            Flag = 39
+	FlagMessageTypePURCHASE_NOTIFICATION                        Flag = 44
+	FlagMessageTypePOLL_RESULT                                  Flag = 46
 )
 
 // Message Activity Structure
@@ -4090,30 +4601,95 @@ const (
 	FlagMessageFAILED_TO_MENTION_SOME_ROLES_IN_THREAD BitFlag = 1 << 8
 	FlagMessageSUPPRESS_NOTIFICATIONS                 BitFlag = 1 << 12
 	FlagMessageIS_VOICE_MESSAGE                       BitFlag = 1 << 13
+	FlagMessageHAS_SNAPSHOT                           BitFlag = 1 << 14
 )
+
+// Message Interaction Metadata Object
+// https://discord.com/developers/docs/resources/message#message-interaction-metadata-object
+type MessageInteractionMetadata interface {
+	MessageInteractionMetadata() Flag
+}
+
+// Application Command Interaction Metadata Structure
+// https://discord.com/developers/docs/resources/message#message-interaction-metadata-object-application-command-interaction-metadata-structure
+type ApplicationCommandInteractionMetadata struct {
+	ID                           string          `json:"id"`
+	Type                         Flag            `json:"type"`
+	User                         *User           `json:"user"`
+	AuthorizingIntegrationOwners map[Flag]string `json:"authorizing_integration_owners"`
+	OriginalResponseMessageID    *string         `json:"original_response_message_id,omitempty"`
+	TargetUser                   *User           `json:"target_user,omitempty"`
+	TargetMessageID              *string         `json:"target_message_id,omitempty"`
+}
+
+// Message Component Interaction Metadata Structure
+// https://discord.com/developers/docs/resources/message#message-interaction-metadata-object-message-component-interaction-metadata-structure
+type MessageComponentInteractionMetadata struct {
+	ID                           string          `json:"id"`
+	Type                         Flag            `json:"type"`
+	User                         *User           `json:"user"`
+	AuthorizingIntegrationOwners map[Flag]string `json:"authorizing_integration_owners"`
+	OriginalResponseMessageID    *string         `json:"original_response_message_id,omitempty"`
+	InteractedMessageID          string          `json:"interacted_message_id"`
+}
+
+// Modal Submit Interaction Metadata Structure
+// https://discord.com/developers/docs/resources/message#message-interaction-metadata-object-modal-submit-interaction-metadata-structure
+type ModalSubmitInteractionMetadata struct {
+	ID                            string                     `json:"id"`
+	Type                          Flag                       `json:"type"`
+	User                          *User                      `json:"user"`
+	AuthorizingIntegrationOwners  map[Flag]string            `json:"authorizing_integration_owners"`
+	OriginalResponseMessageID     *string                    `json:"original_response_message_id,omitempty"`
+	TriggeringInteractionMetadata MessageInteractionMetadata `json:"triggering_interaction_metadata"`
+}
+
+// Message Call Object Structure
+// https://discord.com/developers/docs/resources/message#message-call-object
+type MessageCall struct {
+	Participants   []string    `json:"participants"`
+	EndedTimestamp **time.Time `json:"ended_timestamp,omitempty"`
+}
 
 // Message Reference Object
 // https://discord.com/developers/docs/resources/channel#message-reference-object
 type MessageReference struct {
+	Type            Flag    `json:"type"`
 	MessageID       *string `json:"message_id,omitempty"`
 	ChannelID       *string `json:"channel_id,omitempty"`
 	GuildID         *string `json:"guild_id,omitempty"`
 	FailIfNotExists *bool   `json:"fail_if_not_exists,omitempty"`
 }
 
-// Followed Channel Structure
-// https://discord.com/developers/docs/resources/channel#followed-channel-object-followed-channel-structure
-type FollowedChannel struct {
-	ChannelID string `json:"channel_id"`
-	WebhookID string `json:"webhook_id"`
+// Message Reference Types
+// https://discord.com/developers/docs/resources/message#message-reference-types
+const (
+	FlagMessageReferenceTypeDEFAULT Flag = 0
+	FlagMessageReferenceTypeFORWARD Flag = 1
+)
+
+// Message Snapshot Structure
+// https://discord.com/developers/docs/resources/message#message-snapshot-structure
+type MessageSnapshot struct {
+	Message *Message `json:"message"`
 }
 
 // Reaction Object
 // https://discord.com/developers/docs/resources/channel#reaction-object
 type Reaction struct {
-	Count int    `json:"count"`
-	Me    bool   `json:"me"`
-	Emoji *Emoji `json:"emoji"`
+	Count        int                   `json:"count"`
+	CountDetails *ReactionCountDetails `json:"count_details"`
+	Me           bool                  `json:"me"`
+	MeBurst      bool                  `json:"me_burst"`
+	Emoji        *Emoji                `json:"emoji"`
+	BurstColors  []string              `json:"burst_colors"`
+}
+
+// Reaction Count Details Structure
+// https://discord.com/developers/docs/resources/message#reaction-count-details-object-reaction-count-details-structure
+type ReactionCountDetails struct {
+	Burst  int `json:"burst"`
+	Normal int `json:"normal"`
 }
 
 // Overwrite Object
@@ -4252,11 +4828,12 @@ const (
 	FlagEmbedLimitAuthorName  = 256
 )
 
-// Message Attachment Object
-// https://discord.com/developers/docs/resources/channel#attachment-object-attachment-structure
+// Attachment Object
+// https://discord.com/developers/docs/resources/message#attachment-object-attachment-structure
 type Attachment struct {
 	ID              string   `json:"id"`
 	Filename        string   `json:"filename"`
+	Title           *string  `json:"title,omitempty"`
 	Description     *string  `json:"description,omitempty"`
 	ContentType     *string  `json:"content_type,omitempty"`
 	Size            int      `json:"size"`
@@ -4311,6 +4888,110 @@ type RoleSubscriptionData struct {
 	IsRenewal                 bool   `json:"is_renewal"`
 }
 
+// Reaction Types
+// https://discord.com/developers/docs/resources/message#get-reactions-reaction-types
+const (
+	FlagReactionTypeNORMAL = 0
+	FlagReactionTypeBURST  = 1
+)
+
+// Poll
+// https://discord.com/developers/docs/resources/poll
+type Poll struct {
+	Question         *PollMedia    `json:"question"`
+	Answers          []*PollAnswer `json:"answers"`
+	Expiry           *time.Time    `json:"expiry"`
+	AllowMultiselect bool          `json:"allow_multiselect"`
+	LayoutType       int           `json:"layout_type"`
+	Results          *PollResults  `json:"results,omitempty"`
+}
+
+// Poll Create Request Object Structure
+// https://discord.com/developers/docs/resources/poll#poll-create-request-object-poll-create-request-object-structure
+type PollCreateRequest struct {
+	Question         *PollMedia    `json:"question"`
+	Answers          []*PollAnswer `json:"answers"`
+	Duration         *int          `json:"expiry,omitempty"`
+	AllowMultiselect *bool         `json:"allow_multiselect,omitempty"`
+	LayoutType       *int          `json:"layout_type,omitempty"`
+}
+
+// Poll Layout Types
+// https://discord.com/developers/docs/resources/poll#layout-type
+const (
+	FlagPollLayoutTypeDEFAULT Flag = 1
+)
+
+// Poll Media Object Structure
+// https://discord.com/developers/docs/resources/poll#layout-type
+type PollMedia struct {
+	Text  *string `json:"text,omitempty"`
+	Emoji *Emoji  `json:"emoji,omitempty"`
+}
+
+// Poll Answer Object Structure
+// https://discord.com/developers/docs/resources/poll#poll-answer-object-poll-answer-object-structure
+type PollAnswer struct {
+	AnswerID  int        `json:"answer_id"`
+	PollMedia *PollMedia `json:"poll_media"`
+}
+
+// Poll Results Object Structure
+// https://discord.com/developers/docs/resources/poll#poll-results-object-poll-results-object-structure
+type PollResults struct {
+	IsFinalized  bool               `json:"is_finalized"`
+	AnswerCounts []*PollAnswerCount `json:"answer_counts"`
+}
+
+// Poll Answer Count Object Structure
+// https://discord.com/developers/docs/resources/poll#poll-results-object-poll-answer-count-object-structure
+type PollAnswerCount struct {
+	ID      int  `json:"id"`
+	Count   int  `json:"count"`
+	MeVoted bool `json:"me_voted"`
+}
+
+// SKU Structure
+// https://discord.com/developers/docs/resources/sku#sku-object-sku-structure
+type SKU struct {
+	ID            string  `json:"id"`
+	Type          Flag    `json:"type"`
+	ApplicationID string  `json:"application_id"`
+	Name          string  `json:"name"`
+	Slug          string  `json:"slug"`
+	Flags         BitFlag `json:"flags"`
+}
+
+// SKU Types
+// https://discord.com/developers/docs/resources/sku#sku-object-sku-types
+const (
+	FlagSKUTypeDURABLE            Flag = 2
+	FlagSKUTypeCONSUMABLE         Flag = 3
+	FlagSKUTypeSUBSCRIPTION       Flag = 5
+	FlagSKUTypeSUBSCRIPTION_GROUP Flag = 6
+)
+
+// SKU Flags
+// https://discord.com/developers/docs/resources/sku#sku-object-sku-flags
+const (
+	FlagSKUFlagAVAILABLE          BitFlag = 1 << 2
+	FlagSKUFlagGUILD_SUBSCRIPTION BitFlag = 1 << 7
+	FlagSKUFlagUSER_SUBSCRIPTION  BitFlag = 1 << 8
+)
+
+// Soundboard Sound Structure
+// https://discord.com/developers/docs/resources/soundboard#soundboard-sound-object-soundboard-sound-structure
+type SoundboardSound struct {
+	Name      string  `json:"name"`
+	SoundID   string  `json:"sound_id"`
+	Volume    float64 `json:"volume"`
+	EmojiID   *string `json:"emoji_id"`
+	EmojiName *string `json:"emoji_name"`
+	GuildID   *string `json:"guild_id,omitempty"`
+	Available bool    `json:"available"`
+	User      *User   `json:"user,omitempty"`
+}
+
 // Emoji Object
 // https://discord.com/developers/docs/resources/emoji#emoji-object-emoji-structure
 type Emoji struct {
@@ -4324,6 +5005,34 @@ type Emoji struct {
 	Available     *bool    `json:"available,omitempty"`
 }
 
+// Entitlement Structure
+// https://discord.com/developers/docs/resources/entitlement#entitlement-object-entitlement-structure
+type Entitlement struct {
+	ID            string     `json:"id"`
+	SKUID         string     `json:"sku_id"`
+	ApplicationID string     `json:"application_id"`
+	UserID        *string    `json:"user_id,omitempty"`
+	Type          Flag       `json:"type"`
+	Deleted       bool       `json:"deleted"`
+	StartsAt      *time.Time `json:"starts_at"`
+	EndsAt        *time.Time `json:"ends_at"`
+	GuildID       *string    `json:"guild_id,omitempty"`
+	Consumed      *bool      `json:"consumed,omitempty"`
+}
+
+// Entitlement Types
+// https://discord.com/developers/docs/resources/entitlement#entitlement-object-entitlement-types
+const (
+	FlagEntitlementTypePURCHASE                 Flag = 1
+	FlagEntitlementTypePREMIUM_SUBSCRIPTION     Flag = 2
+	FlagEntitlementTypeDEVELOPER_GIFT           Flag = 3
+	FlagEntitlementTypeTEST_MODE_PURCHASE       Flag = 4
+	FlagEntitlementTypeFREE_PURCHASE            Flag = 5
+	FlagEntitlementTypeUSER_GIFT                Flag = 6
+	FlagEntitlementTypePREMIUM_PURCHASE         Flag = 7
+	FlagEntitlementTypeAPPLICATION_SUBSCRIPTION Flag = 8
+)
+
 // Guild Object
 // https://discord.com/developers/docs/resources/guild#guild-object
 type Guild struct {
@@ -4336,7 +5045,6 @@ type Guild struct {
 	Owner                       *bool          `json:"owner,omitempty"`
 	OwnerID                     string         `json:"owner_id"`
 	Permissions                 *string        `json:"permissions,omitempty"`
-	Region                      **string       `json:"region,omitempty"`
 	AfkChannelID                *string        `json:"afk_channel_id"`
 	AfkTimeout                  int            `json:"afk_timeout"`
 	WidgetEnabled               *bool          `json:"widget_enabled,omitempty"`
@@ -4517,27 +5225,34 @@ type GuildWidget struct {
 // Guild Member Object
 // https://discord.com/developers/docs/resources/guild#guild-member-object
 type GuildMember struct {
-	User                       *User       `json:"user,omitempty"`
-	Nick                       **string    `json:"nick,omitempty"`
-	Avatar                     **string    `json:"avatar,omitempty"`
-	Roles                      []*string   `json:"roles"`
-	JoinedAt                   time.Time   `json:"joined_at"`
-	PremiumSince               **time.Time `json:"premium_since,omitempty"`
-	Deaf                       bool        `json:"deaf"`
-	Mute                       bool        `json:"mute"`
-	Flags                      BitFlag     `json:"flags"`
-	Pending                    *bool       `json:"pending,omitempty"`
-	Permissions                *string     `json:"permissions,omitempty"`
-	CommunicationDisabledUntil **time.Time `json:"communication_disabled_until,omitempty"`
+	User                       *User                  `json:"user,omitempty"`
+	Nick                       **string               `json:"nick,omitempty"`
+	Avatar                     **string               `json:"avatar,omitempty"`
+	Banner                     **string               `json:"banner,omitempty"`
+	Roles                      []*string              `json:"roles"`
+	JoinedAt                   time.Time              `json:"joined_at"`
+	PremiumSince               **time.Time            `json:"premium_since,omitempty"`
+	Deaf                       bool                   `json:"deaf"`
+	Mute                       bool                   `json:"mute"`
+	Flags                      BitFlag                `json:"flags"`
+	Pending                    *bool                  `json:"pending,omitempty"`
+	Permissions                *string                `json:"permissions,omitempty"`
+	CommunicationDisabledUntil **time.Time            `json:"communication_disabled_until,omitempty"`
+	AvatarDecorationData       **AvatarDecorationData `json:"avatar_decoration_data,omitempty"`
 }
 
 // Guild Member Flags
 // https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-flags
 const (
-	FlagGuildMemberDID_REJOIN            BitFlag = 1 << 0
-	FlagGuildMemberCOMPLETED_ONBOARDING  BitFlag = 1 << 1
-	FlagGuildMemberBYPASSES_VERIFICATION BitFlag = 1 << 2
-	FlagGuildMemberSTARTED_ONBOARDING    BitFlag = 1 << 3
+	FlagGuildMemberDID_REJOIN                      BitFlag = 1 << 0
+	FlagGuildMemberCOMPLETED_ONBOARDING            BitFlag = 1 << 1
+	FlagGuildMemberBYPASSES_VERIFICATION           BitFlag = 1 << 2
+	FlagGuildMemberSTARTED_ONBOARDING              BitFlag = 1 << 3
+	FlagGuildMemberIS_GUEST                        BitFlag = 1 << 4
+	FlagGuildMemberSTARTED_HOME_ACTIONS            BitFlag = 1 << 5
+	FlagGuildMemberCOMPLETED_HOME_ACTIONS          BitFlag = 1 << 6
+	FlagGuildMemberAUTOMOD_QUARANTINED_USERNAME    BitFlag = 1 << 7
+	FlagGuildMemberDM_SETTINGS_UPSELL_ACKNOWLEDGED BitFlag = 1 << 9
 )
 
 // Integration Object
@@ -4633,12 +5348,15 @@ type OnboardingPrompt struct {
 // Prompt Option Structure
 // https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-option-structure
 type PromptOption struct {
-	ID          string   `json:"id"`
-	ChannelIDs  []string `json:"channel_ids"`
-	RoleIDs     []string `json:"role_ids"`
-	Emoji       []*Emoji `json:"emoji"`
-	Title       string   `json:"title"`
-	Description *string  `json:"description"`
+	ID            string   `json:"id"`
+	ChannelIDs    []string `json:"channel_ids"`
+	RoleIDs       []string `json:"role_ids"`
+	Emoji         []*Emoji `json:"emoji"`
+	EmojiID       *string  `json:"emoji_id,omitempty"`
+	EmojiName     *string  `json:"emoji_name,omitempty"`
+	EmojiAnimated *bool    `json:"emoji_animated,omitempty"`
+	Title         string   `json:"title"`
+	Description   *string  `json:"description"`
 }
 
 // Onboarding Mode
@@ -4674,6 +5392,7 @@ type GuildScheduledEvent struct {
 	Creator            *User                              `json:"creator,omitempty"`
 	UserCount          *int                               `json:"user_count,omitempty"`
 	Image              **string                           `json:"image,omitempty"`
+	RecurrenceRule     *GuildScheduledEventRecurrenceRule `json:"recurrence_rule"`
 }
 
 // Guild Scheduled Event Privacy Level
@@ -4713,6 +5432,66 @@ type GuildScheduledEventUser struct {
 	Member                *GuildMember `json:"member,omitempty"`
 }
 
+// Guild Scheduled Event Recurrence Rule Structure
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-structure
+type GuildScheduledEventRecurrenceRule struct {
+	Start      time.Time                                    `json:"start"`
+	End        *time.Time                                   `json:"end"`
+	Frequency  Flag                                         `json:"frequency"`
+	Interval   int                                          `json:"interval"`
+	ByWeekday  []Flag                                       `json:"by_weekday"`
+	ByNWeekday []*GuildScheduledEventRecurrenceRuleNWeekday `json:"by_n_weekday"`
+	ByMonth    []Flag                                       `json:"by_month"`
+	ByMonthDay []int                                        `json:"by_month_day"`
+	ByYearDay  []int                                        `json:"by_year_day"`
+	Count      *int                                         `json:"count"`
+}
+
+// Guild Scheduled Event Recurrence Rule - Frequency
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-frequency
+const (
+	FlagGuildScheduledEventRecurrenceRuleFrequencyYEARLY  Flag = 0
+	FlagGuildScheduledEventRecurrenceRuleFrequencyMONTHLY Flag = 1
+	FlagGuildScheduledEventRecurrenceRuleFrequencyWEEKLY  Flag = 2
+	FlagGuildScheduledEventRecurrenceRuleFrequencyDAILY   Flag = 3
+)
+
+// Guild Scheduled Event Recurrence Rule - Weekday
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-weekday
+const (
+	FlagGuildScheduledEventRecurrenceRuleWeekdayMONDAY    Flag = 0
+	FlagGuildScheduledEventRecurrenceRuleWeekdayTUESDAY   Flag = 1
+	FlagGuildScheduledEventRecurrenceRuleWeekdayWEDNESDAY Flag = 2
+	FlagGuildScheduledEventRecurrenceRuleWeekdayTHURSDAY  Flag = 3
+	FlagGuildScheduledEventRecurrenceRuleWeekdayFRIDAY    Flag = 4
+	FlagGuildScheduledEventRecurrenceRuleWeekdaySATURDAY  Flag = 5
+	FlagGuildScheduledEventRecurrenceRuleWeekdaySUNDAY    Flag = 6
+)
+
+// Guild Scheduled Event Recurrence Rule - N_Weekday Structure
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-weekday
+type GuildScheduledEventRecurrenceRuleNWeekday struct {
+	N   int  `json:"n"`
+	Day Flag `json:"day"`
+}
+
+// Guild Scheduled Event Recurrence Rule - Month
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-month
+const (
+	FlagGuildScheduledEventRecurrenceRuleJANUARY   Flag = 1
+	FlagGuildScheduledEventRecurrenceRuleFEBRUARY  Flag = 2
+	FlagGuildScheduledEventRecurrenceRuleMARCH     Flag = 3
+	FlagGuildScheduledEventRecurrenceRuleAPRIL     Flag = 4
+	FlagGuildScheduledEventRecurrenceRuleMAY       Flag = 5
+	FlagGuildScheduledEventRecurrenceRuleJUNE      Flag = 6
+	FlagGuildScheduledEventRecurrenceRuleJULY      Flag = 7
+	FlagGuildScheduledEventRecurrenceRuleAUGUST    Flag = 8
+	FlagGuildScheduledEventRecurrenceRuleSEPTEMBER Flag = 9
+	FlagGuildScheduledEventRecurrenceRuleOCTOBER   Flag = 10
+	FlagGuildScheduledEventRecurrenceRuleNOVEMBER  Flag = 11
+	FlagGuildScheduledEventRecurrenceRuleDECEMBER  Flag = 12
+)
+
 // Guild Template Object
 // https://discord.com/developers/docs/resources/guild-template#guild-template-object
 type GuildTemplate struct {
@@ -4732,6 +5511,7 @@ type GuildTemplate struct {
 // Invite Object
 // https://discord.com/developers/docs/resources/invite#invite-object
 type Invite struct {
+	Type                     Flag                 `json:"type"`
 	Code                     string               `json:"code"`
 	Guild                    *Guild               `json:"guild,omitempty"`
 	Channel                  *Channel             `json:"channel"`
@@ -4744,6 +5524,14 @@ type Invite struct {
 	ExpiresAt                **time.Time          `json:"expires_at,omitempty"`
 	GuildScheduledEvent      *GuildScheduledEvent `json:"guild_scheduled_event,omitempty"`
 }
+
+// Invite Types
+// https://discord.com/developers/docs/resources/invite#invite-object-invite-types
+const (
+	FlagInviteTypesGUILD    Flag = 0
+	FlagInviteTypesGROUP_DM Flag = 1
+	FlagInviteTypesFRIEND   Flag = 2
+)
 
 // Invite Target Types
 // https://discord.com/developers/docs/resources/invite#invite-object-invite-target-types
@@ -4788,7 +5576,6 @@ type Sticker struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description"`
 	Tags        string  `json:"tags"`
-	Asset       *string `json:"asset,omitempty"`
 	Type        Flag    `json:"type"`
 	FormatType  Flag    `json:"format_type"`
 	Available   *bool   `json:"available,omitempty"`
@@ -4832,26 +5619,49 @@ type StickerPack struct {
 	BannerAssetID  *string    `json:"banner_asset_id,omitempty"`
 }
 
+// Subscription Object
+// https://discord.com/developers/docs/resources/subscription#subscription-object
+type Subscription struct {
+	ID                 string     `json:"id"`
+	UserID             string     `json:"user_id"`
+	SKUIDs             []string   `json:"sku_ids"`
+	EntitlementIDs     []string   `json:"entitlement_ids"`
+	RenewalSKUIDs      []string   `json:"renewal_sku_ids"`
+	CurrentPeriodStart time.Time  `json:"current_period_start"`
+	CurrentPeriodEnd   time.Time  `json:"current_period_end"`
+	Status             Flag       `json:"status"`
+	CanceledAt         *time.Time `json:"canceled_at"`
+	Country            *string    `json:"country,omitempty"`
+}
+
+// Subscription Statuses
+// https://discord.com/developers/docs/resources/subscription#subscription-statuses
+const (
+	FlagSubscriptionStatusACTIVE   Flag = 0
+	FlagSubscriptionStatusENDING   Flag = 1
+	FlagSubscriptionStatusINACTIVE Flag = 2
+)
+
 // User Object
 // https://discord.com/developers/docs/resources/user#user-object
 type User struct {
-	ID               string   `json:"id"`
-	Username         string   `json:"username"`
-	Discriminator    string   `json:"discriminator"`
-	GlobalName       *string  `json:"global_name"`
-	Avatar           *string  `json:"avatar"`
-	Bot              *bool    `json:"bot,omitempty"`
-	System           *bool    `json:"system,omitempty"`
-	MFAEnabled       *bool    `json:"mfa_enabled,omitempty"`
-	Banner           **string `json:"banner,omitempty"`
-	AccentColor      **int    `json:"accent_color,omitempty"`
-	Locale           *string  `json:"locale,omitempty"`
-	Verified         *bool    `json:"verified,omitempty"`
-	Email            **string `json:"email,omitempty"`
-	Flags            *BitFlag `json:"flag,omitempty"`
-	PremiumType      *Flag    `json:"premium_type,omitempty"`
-	PublicFlags      *BitFlag `json:"public_flag,omitempty"`
-	AvatarDecoration **string `json:"avatar_decoration,omitempty"`
+	ID               string                 `json:"id"`
+	Username         string                 `json:"username"`
+	Discriminator    string                 `json:"discriminator"`
+	GlobalName       *string                `json:"global_name"`
+	Avatar           *string                `json:"avatar"`
+	Bot              *bool                  `json:"bot,omitempty"`
+	System           *bool                  `json:"system,omitempty"`
+	MFAEnabled       *bool                  `json:"mfa_enabled,omitempty"`
+	Banner           **string               `json:"banner,omitempty"`
+	AccentColor      **int                  `json:"accent_color,omitempty"`
+	Locale           *string                `json:"locale,omitempty"`
+	Verified         *bool                  `json:"verified,omitempty"`
+	Email            **string               `json:"email,omitempty"`
+	Flags            *BitFlag               `json:"flag,omitempty"`
+	PremiumType      *Flag                  `json:"premium_type,omitempty"`
+	PublicFlags      *BitFlag               `json:"public_flag,omitempty"`
+	AvatarDecoration **AvatarDecorationData `json:"avatar_decoration,omitempty"`
 }
 
 // User Flags
@@ -4883,6 +5693,13 @@ const (
 	FlagPremiumTypeNITRO        Flag = 2
 	FlagPremiumTypeNITROBASIC   Flag = 3
 )
+
+// Avatar Decoration Data Structure
+// https://discord.com/developers/docs/resources/user#avatar-decoration-data-object-avatar-decoration-data-structure
+type AvatarDecorationData struct {
+	Asset string `json:"asset"`
+	SKUID string `json:"sku_id"`
+}
 
 // User Connection Object
 // https://discord.com/developers/docs/resources/user#connection-object-connection-structure
@@ -5013,8 +5830,12 @@ const (
 	FlagBitwisePermissionMODERATE_MEMBERS                    BitFlag = 1 << 40
 	FlagBitwisePermissionVIEW_CREATOR_MONETIZATION_ANALYTICS BitFlag = 1 << 41
 	FlagBitwisePermissionUSE_SOUNDBOARD                      BitFlag = 1 << 42
+	FlagBitwisePermissionCREATE_GUILD_EXPRESSIONS            BitFlag = 1 << 43
+	FlagBitwisePermissionCREATE_EVENTS                       BitFlag = 1 << 44
 	FlagBitwisePermissionUSE_EXTERNAL_SOUNDS                 BitFlag = 1 << 45
 	FlagBitwisePermissionSEND_VOICE_MESSAGES                 BitFlag = 1 << 46
+	FlagBitwisePermissionSEND_POLLS                          BitFlag = 1 << 49
+	FlagBitwisePermissionUSE_EXTERNAL_APPS                   BitFlag = 1 << 50
 )
 
 // Permission Overwrite Types
@@ -5057,6 +5878,15 @@ const (
 	IN_PROMPT BitFlag = 1 << 0
 )
 
+// Team Member Role Types
+// https://discord.com/developers/docs/topics/teams#team-member-roles-team-member-role-types
+const (
+	FlagTeamMemberRoleTypeOwner     = ""
+	FlagTeamMemberRoleTypeAdmin     = "admin"
+	FlagTeamMemberRoleTypeDeveloper = "developer"
+	FlagTeamMemberRoleTypeReadOnly  = "read_only"
+)
+
 // Team Object
 // https://discord.com/developers/docs/topics/teams#data-models-team-object
 type Team struct {
@@ -5071,10 +5901,10 @@ type Team struct {
 // Team Member Object
 // https://discord.com/developers/docs/topics/teams#data-models-team-member-object
 type TeamMember struct {
-	MembershipState Flag     `json:"membership_state"`
-	Permissions     []string `json:"permissions"`
-	TeamID          string   `json:"team_id"`
-	User            *User    `json:"user"`
+	MembershipState Flag   `json:"membership_state"`
+	TeamID          string `json:"team_id"`
+	User            *User  `json:"user"`
+	Role            string `json:"role"`
 }
 
 // Membership State Enum
@@ -5183,6 +6013,13 @@ const (
 	FlagActivityEMBEDDED                    BitFlag = 1 << 8
 )
 
+// Animation Types
+// https://discord.com/developers/docs/events/gateway-events#voice-channel-effect-send-animation-types
+const (
+	FlagAnimationTypePREMIUM Flag = 0
+	FlagAnimationTypeBASIC   Flag = 1
+)
+
 // OAuth2 Scopes
 // https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
 const (
@@ -5240,6 +6077,12 @@ type ListJoinedPrivateArchivedThreadsResponse struct {
 	HasMore bool            `json:"has_more"`
 }
 
+// List Application Emojis Response
+// https://discord.com/developers/docs/resources/emoji#list-application-emojis
+type ListApplicationEmojisResponse struct {
+	Items []*Emoji `json:"items"`
+}
+
 // List Active Guild Threads Response Body
 // https://discord.com/developers/docs/resources/guild#list-active-guild-threads-response-body
 type ListActiveGuildThreadsResponse struct {
@@ -5259,9 +6102,21 @@ type ModifyGuildMFALevelResponse struct {
 	Level Flag `json:"level"`
 }
 
-// List Nitro Sticker Packs Response
-// https://discord.com/developers/docs/resources/sticker#list-nitro-sticker-packs
-type ListNitroStickerPacksResponse struct {
+// Get Answer Voters Response
+// https://discord.com/developers/docs/resources/poll#get-answer-voters-response-body
+type GetAnswerVotersResponse struct {
+	Users []*User `json:"users"`
+}
+
+// List Guild Soundboard Sounds Response
+// https://discord.com/developers/docs/resources/soundboard#list-guild-soundboard-sounds-response-structure
+type ListGuildSoundboardSoundsResponse struct {
+	Items []*SoundboardSound `json:"items"`
+}
+
+// List Sticker Packs Response
+// https://discord.com/developers/docs/resources/sticker#list-sticker-packs-response-structure
+type ListStickerPacksResponse struct {
 	StickerPacks []*StickerPack `json:"sticker_packs"`
 }
 
@@ -5584,4 +6439,16 @@ func (d Autocomplete) InteractionCallbackDataType() Flag {
 
 func (d Modal) InteractionCallbackDataType() Flag {
 	return FlagInteractionCallbackTypeMODAL
+}
+
+func (d ApplicationCommandInteractionMetadata) MessageInteractionMetadata() Flag {
+	return FlagInteractionTypeAPPLICATION_COMMAND
+}
+
+func (d MessageComponentInteractionMetadata) MessageInteractionMetadata() Flag {
+	return FlagInteractionTypeMESSAGE_COMPONENT
+}
+
+func (d ModalSubmitInteractionMetadata) MessageInteractionMetadata() Flag {
+	return FlagInteractionTypeMODAL_SUBMIT
 }

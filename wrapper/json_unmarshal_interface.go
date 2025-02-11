@@ -234,8 +234,8 @@ func (r *EditMessage) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (r *ForumThreadMessageParams) UnmarshalJSON(b []byte) error {
-	type alias ForumThreadMessageParams
+func (r *ForumAndMediaThreadMessageParams) UnmarshalJSON(b []byte) error {
+	type alias ForumAndMediaThreadMessageParams
 
 	var unmarshalled struct {
 		alias
@@ -252,10 +252,10 @@ func (r *ForumThreadMessageParams) UnmarshalJSON(b []byte) error {
 	}
 
 	if r == nil {
-		r = new(ForumThreadMessageParams)
+		r = new(ForumAndMediaThreadMessageParams)
 	}
 
-	*r = ForumThreadMessageParams(unmarshalled.alias)
+	*r = ForumAndMediaThreadMessageParams(unmarshalled.alias)
 
 	return nil
 }

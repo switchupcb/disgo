@@ -56,3 +56,12 @@ func (c *RequestGuildMembers) SendEvent(bot *Client, session *Session) error {
 
 	return nil
 }
+
+// SendEvent sends an Opcode 31 RequestSoundboardSounds event to the Discord Gateway.
+func (c *RequestSoundboardSounds) SendEvent(bot *Client, session *Session) error {
+	if err := writeEvent(bot, session, FlagGatewayOpcodeRequestSoundboardSounds, FlagGatewaySendEventNameRequestSoundboardSounds, c); err != nil {
+		return err
+	}
+
+	return nil
+}
