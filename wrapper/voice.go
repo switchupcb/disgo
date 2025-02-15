@@ -1,6 +1,7 @@
 package wrapper
 
 import (
+	"errors"
 	"fmt"
 	"net"
 )
@@ -87,21 +88,21 @@ func addDefaultHandlerSessionDescription(vc *VoiceChannelConnection) error {
 // VoiceConnection connects the bot to a Discord Voice Channel using the Discord Gateway.
 func (vc *VoiceChannelConnection) Connect(bot *Client) error {
 	if bot.ApplicationID == "" {
-		return fmt.Errorf("ConnectVoice: Client must have an ApplicationID to connect to voice channel." +
+		return errors.New("ConnectVoice: Client must have an ApplicationID to connect to voice channel." +
 			"Set `bot.ApplicationID` before connecting to a voice channel.") //lint:ignore ST1005 format help message.
 	}
 
 	// check that the user (developer) has provided a ChannelID.
 	if vc.State.ChannelID == nil || *vc.State.ChannelID == "" {
-		return fmt.Errorf("ConnectVoice: Voice ChannelID must be non-nil and non-empty to connect to voice channel")
+		return errors.New("ConnectVoice: Voice ChannelID must be non-nil and non-empty to connect to voice channel")
 	}
 
 	if vc.GatewaySession == nil || !vc.GatewaySession.isConnected() {
-		return fmt.Errorf("ConnectVoice: Session must be connected to the Discord Gateway to connect to voice channel")
+		return errors.New("ConnectVoice: Session must be connected to the Discord Gateway to connect to voice channel")
 	}
 
 	if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] {
-		return fmt.Errorf("ConnectVoice: Session must be connected to the Discord Gateway with the GUILD_VOICE_STATES intent. " +
+		return errors.New("ConnectVoice: Session must be connected to the Discord Gateway with the GUILD_VOICE_STATES intent. " +
 			"Use `bot.Config.Gateway.EnableIntent(FlagIntentGUILD_VOICE_STATES)` before connecting the Gateway Session to the Discord Gateway.") //lint:ignore ST1005 format help message.
 	}
 

@@ -2,11 +2,11 @@ package wrapper
 
 import (
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"net"
+	"slices"
 	"strconv"
-
-	"golang.org/x/exp/slices"
 )
 
 // connectUDP connects to the Discord UDP Voice Server using the given Ready payload.
@@ -28,13 +28,15 @@ func (vc *VoiceChannelConnection) connectUDP(r *VoiceReady) error {
 
 	// Perform an IP Discovery.
 	// https://discord.com/developers/docs/topics/voice-connections#ip-discovery
-	ipDiscoveryPacket := make([]byte, 74)
-	binary.BigEndian.PutUint16(ipDiscoveryPacket, 1)                   // Type: 0x1 = request, 0x2 = response
-	binary.BigEndian.PutUint16(ipDiscoveryPacket[2:4], 70)             // Message Length: 70
-	binary.BigEndian.PutUint32(ipDiscoveryPacket[4:8], uint32(r.SSRC)) // SSRC
-	vc.Connection.Write(ipDiscoveryPacket)
+	ipDiscoveryPacket := make([]byte, 74)                              //nolint:mnd // TODO add numbers as dasgo flags
+	binary.BigEndian.PutUint16(ipDiscoveryPacket, 1)                   //nolint:nolintlint //nolint:mnd // Type: 0x1 = request, 0x2 = response
+	binary.BigEndian.PutUint16(ipDiscoveryPacket[2:4], 70)             //nolint:mnd // Message Length: 70
+	binary.BigEndian.PutUint32(ipDiscoveryPacket[4:8], uint32(r.SSRC)) //nolint:gosec // disable G115 // SSRC
+	if _, err := vc.Connection.Write(ipDiscoveryPacket); err != nil {
+		return fmt.Errorf("udp: %w", err)
+	}
 
-	ipDiscoveryPacket = make([]byte, 74)
+	ipDiscoveryPacket = make([]byte, 74) //nolint:mnd
 	_, externalAddr, err := vc.Connection.ReadFromUDP(ipDiscoveryPacket)
 	if err != nil {
 		return fmt.Errorf("udp: %w", err)
@@ -45,12 +47,13 @@ func (vc *VoiceChannelConnection) connectUDP(r *VoiceReady) error {
 	// select a supported encryption mode (in order of priority).
 	// https://discord.com/developers/docs/topics/voice-connections#transport-encryption-and-sending-voice
 	var mode string
-	if slices.Contains(r.Modes, FlagVoiceEncryptionModeAES256) {
+	switch {
+	case slices.Contains(r.Modes, FlagVoiceEncryptionModeAES256):
 		mode = FlagVoiceEncryptionModeAES256
-	} else if slices.Contains(r.Modes, FlagVoiceEncryptionModeXChaCha20) {
+	case slices.Contains(r.Modes, FlagVoiceEncryptionModeXChaCha20):
 		mode = FlagVoiceEncryptionModeXChaCha20
-	} else {
-		return fmt.Errorf("udp: supported mode is not available")
+	default:
+		return errors.New("udp: supported mode is not available")
 	}
 
 	// send an Opcode 1 Select Protocol Payload.

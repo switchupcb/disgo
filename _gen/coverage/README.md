@@ -13,7 +13,7 @@ The test is run within the context of a Guild.
 
 ### Optimization
 
-The test is optimized to run in less than 10 seconds. 
+The test is optimized to run in ~10 seconds. 
 
 Discord's Global Rate Limit allows 50 requests per second. However, **certain requests are dependent on other requests**. So, the "order of the request" calls must be optimized to increase the speed of the test.
 

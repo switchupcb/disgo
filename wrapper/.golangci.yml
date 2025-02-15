@@ -12,6 +12,7 @@ linters:
     - tagliatelle # Tags defined by Discord.
     - gochecknoglobals # Types defined by Dasgo. Don't change maps that are global.
     - lll # Types defined by Dasgo.
+    - recvcheck # Types defined by Dasgo.
     - godot # Dasgo comments.
     - gochecknoinits # Required by gorilla/schema to parse URL Query Strings correctly.
     - gocognit # Discord API is endless complexity.
@@ -23,10 +24,11 @@ linters:
     - ireturn # Required for UnmarshalJSON
 
     - contextcheck # To be re-evaluated.
+    - godox # Remove when Voice is fully implemented.
 
     - containedctx
     - depguard
-    - exhaustivestruct
+    - dupl
     - forbidigo
     - funlen
     - goerr113
@@ -37,24 +39,14 @@ linters:
     - varnamelen
     - wsl
 
-    - deadcode # Deprecated
-    - golint # Deprecated
-    - exhaustivestruct # Deprecated
-    - ifshort # Deprecated
-    - interfacer # Deprecated
-    - scopelint # Deprecated
-    - structcheck # Deprecated
-    - nosnakecase # Deprecated
-    - maligned # Deprecated
-    - varcheck # Deprecated
-
+    - tenv # Deprecated
     - gci # Error
 
 linters-settings:
-  gomnd:
-      ignored-files:
-        - dasgo.go
-  
+  mnd:
+    ignored-files:
+      - dasgo.go
+
   govet:
     enable-all: true
     disable:

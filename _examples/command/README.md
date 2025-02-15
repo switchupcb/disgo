@@ -1,6 +1,8 @@
 # Example: Create an Application Command
 
-This example creates an application command, listens for an interaction _(while connected to the Discord Gateway)_, then responds to the interaction. The bot waits until the program receives a signal to terminate, then disconnects from the Discord Gateway and deletes the created command. For more information about Application Commands, read the [Discord API Documentation](https://discord.com/developers/docs/interactions/application-commands#application-commands).
+This example creates an application command, listens for an interaction _(while connected to the Discord Gateway)_, then responds to the interaction. The bot waits until the program receives a signal to terminate, then disconnects from the Discord Gateway and deletes the created command. 
+
+For more information about Application Commands, read the [Discord API Documentation](https://discord.com/developers/docs/interactions/application-commands#application-commands).
 
 _Use this example to create commands users can interact with._
 

@@ -138,7 +138,7 @@ func (s *Session) connect(bot *Client) error {
 			bot.Config.Gateway.RateLimiter.SetBucketFromID(FlagGatewaySendEventNameIdentify, identifyBucket)
 		}
 
-		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency)
+		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency) //nolint:gosec // disable G115
 
 		if identifyBucket.Expiry.IsZero() {
 			identifyBucket.Remaining = identifyBucket.Limit

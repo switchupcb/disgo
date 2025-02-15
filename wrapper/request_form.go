@@ -3,6 +3,7 @@ package wrapper
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -24,7 +25,7 @@ func randomBoundary() string {
 		panic(err)
 	}
 
-	return fmt.Sprintf("%x", buf[:])
+	return hex.EncodeToString(buf[:])
 }
 
 // quoteEscaper escapes quotes and backslashes in a multipart form.

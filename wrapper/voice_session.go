@@ -204,7 +204,6 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceChannelConnection) error {
 		if err := identify.SendEvent(s); err != nil {
 			return err
 		}
-
 	} else {
 		// send an Opcode 7 Resume to the Discord Voice Server to reconnect the session.
 		resume := VoiceResume{

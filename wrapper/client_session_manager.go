@@ -41,17 +41,17 @@ func (sm *SessionManager) RemoveGatewaySession(id string) {
 	//
 	// v = map[GuildID]*VoiceChannelConnection
 	if v, ok := sm.Voice.Load(id); ok {
-		knownSessionIDMap := v.(*sync.Map)
+		knownSessionIDMap := v.(*sync.Map) //nolint:forcetypeassert
 
 		// remove the mapped Voice Channel Connections with an unknown Session ID.
 		//
 		// u = map[GuildID]*VoiceChannelConnection
 		if u, ok := sm.Voice.Load(SessionManagerVoiceKeyUnknownSession); ok {
-			unknownSessionIDMap := u.(*sync.Map)
+			unknownSessionIDMap := u.(*sync.Map) //nolint:forcetypeassert
 
 			knownSessionIDMap.Range(func(key, value any) bool {
 				// key = Guild ID
-				guildID := key.(string)
+				guildID := key.(string) //nolint:forcetypeassert
 				unknownSessionIDMap.Delete(guildID)
 
 				return true
@@ -69,7 +69,7 @@ func (sm *SessionManager) StoreVoiceChannelConnection(sessionid string, guildid 
 LOADMAP:
 	// v = map[GuildID]*VoiceChannelConnection
 	if v, ok := sm.Voice.Load(sessionid); ok {
-		guildIDvoiceChannelConnectionMap := v.(*sync.Map)
+		guildIDvoiceChannelConnectionMap := v.(*sync.Map) //nolint:forcetypeassert
 		guildIDvoiceChannelConnectionMap.Store(vc.State.GuildID, vc)
 	} else {
 		// Store the Gateway Session ID into the bot's Session Manager.
@@ -87,11 +87,11 @@ LOADMAP:
 func (sm *SessionManager) GetVoiceChannelConnection(sessionid string, guildid string) *VoiceChannelConnection {
 	// v = map[GuildID]*VoiceChannelConnection
 	if v, ok := sm.Voice.Load(sessionid); ok {
-		guildIDvoiceChannelConnectionMap := v.(*sync.Map)
+		guildIDvoiceChannelConnectionMap := v.(*sync.Map) //nolint:forcetypeassert
 
 		// v2 = *VoiceChannelConnection
 		if v2, ok := guildIDvoiceChannelConnectionMap.Load(guildid); ok {
-			return v2.(*VoiceChannelConnection)
+			return v2.(*VoiceChannelConnection) //nolint:forcetypeassert
 		}
 	}
 
