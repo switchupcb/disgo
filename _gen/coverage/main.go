@@ -23,10 +23,27 @@ func main() {
 	}
 	fmt.Println()
 
+	// unused endpoints are not used in the coverage test.
 	fmt.Printf("%d endpoints marked unused on purpose.\n\n", len(unused))
 
-	fmt.Printf("Here is the coverage test order of requests.\n")
-	for i, endpoint := range filterOutput(unused, findOrder(endpointGraph)) {
+	// orderOfRequests represents the order requests should be called in the coverage test.
+	orderOfRequests := filterOutput(unused, findOrder(endpointGraph))
+	fmt.Printf("Here is the coverage test order of requests.\n\n")
+	for i, endpoint := range orderOfRequests {
+		fmt.Printf("%d. %v\n", i, endpoint)
+	}
+	fmt.Println()
+
+	// uncalledRequests represents the requests that should be called in the coverage test, but aren't.
+	uncalledRequests, err := checkCoverageTest(orderOfRequests)
+	fmt.Printf("Here are requests which are not present in the current coverage test, but should be.\n\n")
+	if err != nil {
+		fmt.Printf("%q", err)
+
+		return
+	}
+
+	for i, endpoint := range uncalledRequests {
 		fmt.Printf("%d. %v\n", i, endpoint)
 	}
 }

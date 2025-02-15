@@ -79,7 +79,7 @@ func findOrder(endpoints map[string][]string) []string {
 	}
 
 	if numEndpoints != 0 {
-		fmt.Println("WARNING: dependency cycle occurred (i.e [a: b],[b: a]) or necessary endpoint is unused.\n")
+		fmt.Printf("WARNING: dependency cycle occurred (i.e [a: b],[b: a]) or necessary endpoint is unused.\n\n")
 		fmt.Println("Examine the following endpoints.")
 
 		for endpoint, dependencies := range endpoints {
