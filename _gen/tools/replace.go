@@ -3,9 +3,8 @@ package tools
 import (
 	"fmt"
 	"go/format"
+	"slices"
 	"strings"
-
-	"golang.org/x/exp/slices"
 )
 
 // TypeFix replaces dasgo references to a type with another type.

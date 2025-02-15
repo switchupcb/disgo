@@ -1,8 +1,9 @@
 run:
   timeout: 5m
   tests: false
-  skip-dirs:
-    - copygen
+  issues:
+    exclude-dirs:
+      - copygen
 
 linters:
   fast: false
@@ -10,29 +11,21 @@ linters:
   disable:
     - cyclop
     - depguard
+    - err113
     - forbidigo
     - funlen
     - gochecknoglobals
     - gocognit
-    - goerr113
     - gofumpt
-    - gomnd
+    - intrange
+    - mnd
     - stylecheck
     - unused
     - varnamelen
     - whitespace
     - wsl
 
-    - deadcode # Deprecated
-    - golint # Deprecated
-    - exhaustivestruct # Deprecated
-    - ifshort # Deprecated
-    - interfacer # Deprecated
-    - scopelint # Deprecated
-    - structcheck # Deprecated
-    - nosnakecase # Deprecated
-    - maligned # Deprecated
-    - varcheck # Deprecated
+    - tenv # Deprecated
 
     - gci # Error
     - musttag # Error

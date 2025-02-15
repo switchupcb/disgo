@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -47,7 +48,7 @@ func check() error {
 	cwdDir := filepath.Dir(cwd)
 	base := filepath.Base(cwdDir) + "/" + filepath.Base(cwd)
 	if base != exeDir && filepath.Base(filepath.Dir(cwdDir)) != "disgo" {
-		return fmt.Errorf("This executable must be run from disgo/" + exeDir)
+		return errors.New("This executable must be run from disgo/" + exeDir)
 	}
 
 	return nil
@@ -85,7 +86,7 @@ func generate() error {
 		if err != nil && err.Error() == "exit status 3" {
 			fieldalignmentOutput = append(fieldalignmentOutput, std...)
 			fmt.Printf("WARNING (fieldalignment): %v\n", err)
-			fmt.Println("running fieldalignment again...\n")
+			fmt.Printf("running fieldalignment again...\n\n")
 
 			continue
 
@@ -96,7 +97,7 @@ func generate() error {
 		fieldalignmentOutput = append(fieldalignmentOutput, std...)
 
 		if i == 4 {
-			return fmt.Errorf("fieldalignment: more calls to fieldalignment were required")
+			return errors.New("fieldalignment: more calls to fieldalignment were required")
 		}
 
 		break

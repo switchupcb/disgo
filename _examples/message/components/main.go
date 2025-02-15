@@ -100,7 +100,7 @@ func main() {
 						Type:        disgo.FlagComponentTypeStringSelect,
 						CustomID:    "example-select-menu",
 						Placeholder: disgo.Pointer("Select an option."),
-						Options: []disgo.SelectMenuOption{
+						Options: []*disgo.SelectMenuOption{
 							{
 								Label:       "Yes",
 								Value:       "yes",

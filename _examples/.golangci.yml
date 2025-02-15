@@ -9,16 +9,19 @@ linters:
   disable:
     - cyclop
     - depguard
+    - err113
     - exhaustive
+    - exhaustruct
     - funlen
     - forbidigo
     - gocognit
     - gochecknoglobals
     - gofumpt
-    - gomnd
     - gosmopolitan
     - lll
+    - mnd
     - noctx
+    - perfsprint
     - stylecheck
     - wsl
 

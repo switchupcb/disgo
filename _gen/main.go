@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -83,7 +84,7 @@ func check() error {
 	}
 
 	if filepath.Base(cwd) != exeDir && filepath.Base(filepath.Dir(cwd)) != "disgo" {
-		return fmt.Errorf("This executable must be run from disgo/" + exeDir)
+		return errors.New("This executable must be run from disgo/" + exeDir)
 	}
 
 	return nil

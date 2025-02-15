@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	// integrationTestFilepath represents the integrationTestFilepath from ./coverage
+	// integrationTestFilepath represents the integrationTestFilepath from `./coverage`.
 	integrationTestFilepath = "../../wrapper/tests/integration/coverage_test.go"
 )
 
