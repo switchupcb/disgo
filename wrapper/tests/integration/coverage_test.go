@@ -99,8 +99,8 @@ func TestCoverage(t *testing.T) {
 	})
 
 	eg.Go(func() error {
-		if _, err := new(ListNitroStickerPacks).Send(bot); err != nil {
-			return fmt.Errorf("ListNitroStickerPacks: %w", err)
+		if _, err := new(ListStickerPacks).Send(bot); err != nil {
+			return fmt.Errorf("ListStickerPacks: %w", err)
 		}
 
 		return nil

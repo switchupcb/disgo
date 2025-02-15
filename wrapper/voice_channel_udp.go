@@ -41,17 +41,14 @@ func (vc *VoiceChannelConnection) connectUDP(r *VoiceReady) error {
 	}
 
 	// Send the client's external IP and UDP Port to the Discord Voice WebSocket.
-	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice
 	//
 	// select a supported encryption mode (in order of priority).
-	// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection-encryption-modes
+	// https://discord.com/developers/docs/topics/voice-connections#transport-encryption-and-sending-voice
 	var mode string
-	if slices.Contains(r.Modes, FlagVoiceEncryptionModeLite) {
-		mode = FlagVoiceEncryptionModeLite
-	} else if slices.Contains(r.Modes, FlagVoiceEncryptionModeSuffix) {
-		mode = FlagVoiceEncryptionModeSuffix
-	} else if slices.Contains(r.Modes, FlagVoiceEncryptionModeNormal) {
-		mode = FlagVoiceEncryptionModeNormal
+	if slices.Contains(r.Modes, FlagVoiceEncryptionModeAES256) {
+		mode = FlagVoiceEncryptionModeAES256
+	} else if slices.Contains(r.Modes, FlagVoiceEncryptionModeXChaCha20) {
+		mode = FlagVoiceEncryptionModeXChaCha20
 	} else {
 		return fmt.Errorf("udp: supported mode is not available")
 	}

@@ -21,9 +21,9 @@ const (
 	// redirect `>` is not guaranteed to work, so files must be written.
 	filemodewrite = 0644
 
-	downloadURL    = "https://github.com/switchupcb/dasgo/archive/voice.zip"
-	inputDownload  = "input/dasgo-voice.zip"
-	unzippedFolder = "dasgo-voice"
+	downloadURL    = "https://github.com/switchupcb/dasgo/archive/main.zip"
+	inputDownload  = "input/dasgo.zip"
+	unzippedFolder = "dasgo-10"
 
 	copygenFolder = "_gen/tools/_copygen/"
 
@@ -165,10 +165,24 @@ func generate() error {
 	}
 
 	// send
-	sendgen := exec.Command("copygen", "-yml", copygenFolder+"requests/setup.yml", "-xm")
+	sendgen := exec.Command("copygen", "-yml", copygenFolder+"requests/request_send.yml", "-xm")
 	std, err := sendgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (send): %v", string(std))
+	}
+
+	// send: ratelimit algorithm map
+	sendramgen := exec.Command("copygen", "-yml", copygenFolder+"requests/coverage_endpoint_map.yml", "-xm")
+	std, err = sendramgen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copygen error (send: ratelimit algorithm map): %v", string(std))
+	}
+
+	// send: coverage test map
+	sendctmgen := exec.Command("copygen", "-yml", copygenFolder+"requests/ratelimit_algorithm_map.yml", "-xm")
+	std, err = sendctmgen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copygen error (send: coverage test map): %v", string(std))
 	}
 
 	// event handling

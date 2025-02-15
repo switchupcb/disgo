@@ -1,4 +1,4 @@
-package voice_test
+package integration_test
 
 import (
 	"fmt"
@@ -52,12 +52,13 @@ func TestConnectVoice(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	time.Sleep(time.Second * 15)
+	<-time.After(time.Second * 5)
 
 	// disconnect from a Discord Voice Channel.
 	if err := s.Disconnect(); err != nil {
 		t.Fatalf("%v", err)
 	}
 
-	time.Sleep(time.Second * 5)
+	// allow Discord to close the session.
+	<-time.After(time.Second * 5)
 }

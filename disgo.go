@@ -6,10 +6,12 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
+	"net"
 	"net/textproto"
 	"net/url"
 	"os"
@@ -24,9 +26,11 @@ import (
 	"github.com/gorilla/schema"
 	"github.com/rs/xid"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/switchupcb/disgo/wrapper/socket"
 	"github.com/switchupcb/websocket"
 	"github.com/valyala/fasthttp"
+	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -317,20 +321,117 @@ func (g Gateway) DisableIntent(intent BitFlag) {
 	g.IntentSet[intent] = true
 }
 
+const (
+	// SessionManagerVoiceKeyUnknownSession represents an unknown Session ID key for SessionManager.Voice
+	SessionManagerVoiceKeyUnknownSession = "UNKNOWN"
+)
+
+// SessionManager manages sessions.
+type SessionManager struct {
+	// Gateway represents a map of Discord Gateway Session IDs to Sessions.
+	//
+	// map[SessionID]Session (map[string]*Session)
+	Gateway *sync.Map
+
+	// Voice represents a map of Discord Gateway Session IDs
+	// to a set (map) of Discord GuildIDs to Discord Voice Channel Connections.
+	//
+	// Use the SessionID Key `SessionManagerVoiceKeyUnknownSession` to find a Discord Voice Channel Connection
+	// using a GuildID when the SessionID is unknown.
+	//
+	// map[SessionID]map[GuildID]*VoiceChannelConnection (map[string]map[string]*VoiceChannelConnection)
+	Voice *sync.Map
+}
+
+// NewSessionManager creates a new SessionManager.
+func NewSessionManager() *SessionManager {
+	return &SessionManager{
+		Gateway: new(sync.Map),
+		Voice:   new(sync.Map),
+	}
+}
+
+// RemoveGatewaySession removes a Gateway Session and its Voice Channel Connections from the Session Manager.
+func (sm *SessionManager) RemoveGatewaySession(id string) {
+	// remove the mapped Gateway Session ID.
+	sm.Gateway.Delete(id)
+
+	// remove the mapped Voice Channel Connections.
+	//
+	// v = map[GuildID]*VoiceChannelConnection
+	if v, ok := sm.Voice.Load(id); ok {
+		knownSessionIDMap := v.(*sync.Map)
+
+		// remove the mapped Voice Channel Connections with an unknown Session ID.
+		//
+		// u = map[GuildID]*VoiceChannelConnection
+		if u, ok := sm.Voice.Load(SessionManagerVoiceKeyUnknownSession); ok {
+			unknownSessionIDMap := u.(*sync.Map)
+
+			knownSessionIDMap.Range(func(key, value any) bool {
+				// key = Guild ID
+				guildID := key.(string)
+				unknownSessionIDMap.Delete(guildID)
+
+				return true
+			})
+		}
+
+		knownSessionIDMap.Clear()
+	}
+
+	sm.Voice.Delete(id)
+}
+
+// StoreVoiceChannelConnection stores a Voice Channel Connection.
+func (sm *SessionManager) StoreVoiceChannelConnection(sessionid string, guildid string, vc *VoiceChannelConnection) {
+LOADMAP:
+	// v = map[GuildID]*VoiceChannelConnection
+	if v, ok := sm.Voice.Load(sessionid); ok {
+		guildIDvoiceChannelConnectionMap := v.(*sync.Map)
+		guildIDvoiceChannelConnectionMap.Store(vc.State.GuildID, vc)
+	} else {
+		// Store the Gateway Session ID into the bot's Session Manager.
+		sm.Voice.Store(sessionid, new(sync.Map))
+
+		goto LOADMAP
+	}
+
+	if sessionid != SessionManagerVoiceKeyUnknownSession {
+		sm.StoreVoiceChannelConnection(SessionManagerVoiceKeyUnknownSession, guildid, vc)
+	}
+}
+
+// GetVoiceChannelConnection gets a Voice Channel Connection using a given Guild ID.
+func (sm *SessionManager) GetVoiceChannelConnection(sessionid string, guildid string) *VoiceChannelConnection {
+	// v = map[GuildID]*VoiceChannelConnection
+	if v, ok := sm.Voice.Load(sessionid); ok {
+		guildIDvoiceChannelConnectionMap := v.(*sync.Map)
+
+		// v2 = *VoiceChannelConnection
+		if v2, ok := guildIDvoiceChannelConnectionMap.Load(guildid); ok {
+			return v2.(*VoiceChannelConnection)
+		}
+	}
+
+	return nil
+}
+
 // Gateway Opcodes
 // https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
 const (
-	FlagGatewayOpcodeDispatch            = 0
-	FlagGatewayOpcodeHeartbeat           = 1
-	FlagGatewayOpcodeIdentify            = 2
-	FlagGatewayOpcodePresenceUpdate      = 3
-	FlagGatewayOpcodeVoiceStateUpdate    = 4
-	FlagGatewayOpcodeResume              = 6
-	FlagGatewayOpcodeReconnect           = 7
-	FlagGatewayOpcodeRequestGuildMembers = 8
-	FlagGatewayOpcodeInvalidSession      = 9
-	FlagGatewayOpcodeHello               = 10
-	FlagGatewayOpcodeHeartbeatACK        = 11
+	FlagGatewayOpcodeDispatch                = 0
+	FlagGatewayOpcodeHeartbeat               = 1
+	FlagGatewayOpcodeIdentify                = 2
+	FlagGatewayOpcodePresenceUpdate          = 3
+	FlagGatewayOpcodeVoiceStateUpdate        = 4
+	FlagGatewayOpcodeResume                  = 6
+	FlagGatewayOpcodeReconnect               = 7
+	FlagGatewayOpcodeRequestGuildMembers     = 8
+	FlagGatewayOpcodeInvalidSession          = 9
+	FlagGatewayOpcodeHello                   = 10
+	FlagGatewayOpcodeHeartbeatACK            = 11
+	FlagGatewayOpcodeRequestSoundboardSounds = 31
 )
 
 // Gateway Close Event Codes
@@ -471,17 +572,29 @@ var (
 // Voice Opcodes
 // https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-opcodes
 const (
-	FlagVoiceOpcodeIdentify           = 0
-	FlagVoiceOpcodeSelectProtocol     = 1
-	FlagVoiceOpcodeReadyServer        = 2
-	FlagVoiceOpcodeHeartbeat          = 3
-	FlagVoiceOpcodeSessionDescription = 4
-	FlagVoiceOpcodeSpeaking           = 5
-	FlagVoiceOpcodeHeartbeatACK       = 6
-	FlagVoiceOpcodeResume             = 7
-	FlagVoiceOpcodeHello              = 8
-	FlagVoiceOpcodeResumed            = 9
-	FlagVoiceOpcodeClientDisconnect   = 13
+	FlagVoiceOpcodeIdentify                        = 0
+	FlagVoiceOpcodeSelectProtocol                  = 1
+	FlagVoiceOpcodeReadyServer                     = 2
+	FlagVoiceOpcodeHeartbeat                       = 3
+	FlagVoiceOpcodeSessionDescription              = 4
+	FlagVoiceOpcodeSpeaking                        = 5
+	FlagVoiceOpcodeHeartbeatACK                    = 6
+	FlagVoiceOpcodeResume                          = 7
+	FlagVoiceOpcodeHello                           = 8
+	FlagVoiceOpcodeResumed                         = 9
+	FlagVoiceOpcodeClientsConnect                  = 11
+	FlagVoiceOpcodeClientDisconnect                = 13
+	FlagVoiceOpcodeDAVEPrepareTransition           = 21
+	FlagVoiceOpcodeDAVEExecuteTransition           = 22
+	FlagVoiceOpcodeDAVETransitionReady             = 23
+	FlagVoiceOpcodeDAVEPrepareEpoch                = 24
+	FlagVoiceOpcodeDAVEMLSExternalSender           = 25
+	FlagVoiceOpcodeDAVEMLSKeyPackage               = 26
+	FlagVoiceOpcodeDAVEMLSProposals                = 27
+	FlagVoiceOpcodeDAVEMLSCommitWelcome            = 28
+	FlagVoiceOpcodeDAVEMLSAnnounceCommitTransition = 29
+	FlagVoiceOpcodeDAVEMLSWelcome                  = 30
+	FlagVoiceOpcodeDAVEMLSInvalidCommitWelcome     = 31
 )
 
 // Voice Close Event Codes
@@ -508,7 +621,7 @@ var (
 	FlagVoiceCloseEventCodeNotAuthenticated = VoiceCloseEventCode{
 		Code:        4003,
 		Description: "Not authenticated",
-		Explanation: "You sent a payload before identifying with the Gateway.",
+		Explanation: "You sent a payload before identifying with the Gateway or this session has been invalidated.",
 	}
 
 	FlagVoiceCloseEventCodeAuthenticationFailed = VoiceCloseEventCode{
@@ -565,6 +678,12 @@ var (
 		Explanation: "We didn't recognize your encryption.",
 	}
 
+	FlagVoiceCloseEventCodeBadRequest = VoiceCloseEventCode{
+		Code:        4020,
+		Description: "Bad request",
+		Explanation: "You sent a malformed request.",
+	}
+
 	VoiceCloseEventCodes = map[int]*VoiceCloseEventCode{
 		FlagVoiceCloseEventCodeUnknownOpcode.Code:         &FlagVoiceCloseEventCodeUnknownOpcode,
 		FlagVoiceCloseEventCodeFailedDecode.Code:          &FlagVoiceCloseEventCodeFailedDecode,
@@ -578,6 +697,7 @@ var (
 		FlagVoiceCloseEventCodeDisconnectedChannel.Code:   &FlagVoiceCloseEventCodeDisconnectedChannel,
 		FlagVoiceCloseEventCodeVoiceServerCrash.Code:      &FlagVoiceCloseEventCodeVoiceServerCrash,
 		FlagVoiceCloseEventCodeUnknownEncryptionMode.Code: &FlagVoiceCloseEventCodeUnknownEncryptionMode,
+		FlagVoiceCloseEventCodeBadRequest.Code:            &FlagVoiceCloseEventCodeBadRequest,
 	}
 )
 
@@ -637,6 +757,7 @@ var (
 		10015:  "Unknown webhook",
 		10016:  "Unknown webhook service",
 		10020:  "Unknown session",
+		10021:  "Unknown asset",
 		10026:  "Unknown ban",
 		10027:  "Unknown SKU",
 		10028:  "Unknown Store Listing",
@@ -652,6 +773,7 @@ var (
 		10057:  "Unknown guild template",
 		10059:  "Unknown discoverable server category",
 		10060:  "Unknown sticker",
+		10061:  "Unknown sticker pack",
 		10062:  "Unknown interaction",
 		10063:  "Unknown application command",
 		10065:  "Unknown voice state",
@@ -715,6 +837,8 @@ var (
 		40006:  "This feature has been temporarily disabled server-side",
 		40007:  "The user is banned from this guild",
 		40012:  "Connection has been revoked",
+		40018:  "Only consumable SKUs can be consumed",
+		40019:  "You can only delete sandbox entitlements.",
 		40032:  "Target user is not connected to voice",
 		40033:  "This message has already been crossposted",
 		40041:  "An application command with that name already exists",
@@ -725,6 +849,9 @@ var (
 		40062:  "Service resource is being rate limited",
 		40066:  "There are no tags available that can be set by non-moderators",
 		40067:  "A tag is required to create a forum post in this channel",
+		40074:  "An entitlement has already been granted for this resource",
+		40094:  "This interaction has hit the maximum number of follow up messages",
+		40333:  "Cloudflare is blocking your request. This can often be resolved by setting a proper User Agent.",
 		50001:  "Missing access",
 		50002:  "Invalid account type",
 		50003:  "Cannot execute action on a DM channel",
@@ -760,6 +887,7 @@ var (
 		50046:  "Invalid file uploaded",
 		50054:  "Cannot self-redeem this gift",
 		50055:  "Invalid Guild",
+		50057:  "Invalid SKU",
 		50067:  "Invalid request origin",
 		50068:  "Invalid message type",
 		50070:  "Payment source required to redeem gift",
@@ -791,6 +919,7 @@ var (
 		60003:  "Two factor is required for this operation",
 		80004:  "No users with DiscordTag exist",
 		90001:  "Reaction was blocked",
+		90002:  "User cannot use burst reactions",
 		110001: "Application not yet available. Try again later",
 		130000: "API resource is currently overloaded. Try again a little later",
 		150006: "The Stage is already open",
@@ -894,6 +1023,250 @@ const (
 	IsValueValid PointerIndicator = 2
 )
 
+// Gateway Payload Structure
+// https://discord.com/developers/docs/topics/gateway-events#payload-structure
+type GatewayPayload struct {
+	SequenceNumber *int64          `json:"s,omitempty"`
+	EventName      *string         `json:"t,omitempty"`
+	Data           json.RawMessage `json:"d"`
+	Op             int             `json:"op"`
+}
+
+// Gateway URL Query String Params
+// https://discord.com/developers/docs/topics/gateway#connecting-gateway-url-query-string-params
+type GatewayURLQueryString struct {
+	Compress *string `url:"compress,omitempty"`
+	Encoding string  `url:"encoding"`
+	V        int     `url:"v"`
+}
+
+// Session Start Limit Structure
+// https://discord.com/developers/docs/topics/gateway#session-start-limit-object-session-start-limit-structure
+type SessionStartLimit struct {
+	Total          int `json:"total"`
+	Remaining      int `json:"remaining"`
+	ResetAfter     int `json:"reset_after"`
+	MaxConcurrency int `json:"max_concurrency"`
+}
+
+// List of Intents
+// https://discord.com/developers/docs/topics/gateway#list-of-intents
+const (
+	// GUILD_CREATE
+	// GUILD_UPDATE
+	// GUILD_DELETE
+	// GUILD_ROLE_CREATE
+	// GUILD_ROLE_UPDATE
+	// GUILD_ROLE_DELETE
+	// CHANNEL_CREATE
+	// CHANNEL_UPDATE
+	// CHANNEL_DELETE
+	// CHANNEL_PINS_UPDATE
+	// THREAD_CREATE
+	// THREAD_UPDATE
+	// THREAD_DELETE
+	// THREAD_LIST_SYNC
+	// THREAD_MEMBER_UPDATE
+	// THREAD_MEMBERS_UPDATE *
+	// STAGE_INSTANCE_CREATE
+	// STAGE_INSTANCE_UPDATE
+	// STAGE_INSTANCE_DELETE
+	FlagIntentGUILDS BitFlag = 1 << 0
+
+	// GUILD_MEMBER_ADD
+	// GUILD_MEMBER_UPDATE
+	// GUILD_MEMBER_REMOVE
+	// THREAD_MEMBERS_UPDATE *
+	FlagIntentGUILD_MEMBERS BitFlag = 1 << 1
+
+	// GUILD_AUDIT_LOG_ENTRY_CREATE
+	// GUILD_BAN_ADD
+	// GUILD_BAN_REMOVE
+	FlagIntentGUILD_MODERATION BitFlag = 1 << 2
+
+	// GUILD_EMOJIS_UPDATE
+	// GUILD_STICKERS_UPDATE
+	// GUILD_SOUNDBOARD_SOUND_CREATE
+	// GUILD_SOUNDBOARD_SOUND_UPDATE
+	// GUILD_SOUNDBOARD_SOUND_DELETE
+	// GUILD_SOUNDBOARD_SOUNDS_UPDATE
+	FlagIntentGUILD_EXPRESSIONS BitFlag = 1 << 3
+
+	// GUILD_INTEGRATIONS_UPDATE
+	// INTEGRATION_CREATE
+	// INTEGRATION_UPDATE
+	// INTEGRATION_DELETE
+	FlagIntentGUILD_INTEGRATIONS BitFlag = 1 << 4
+
+	// WEBHOOKS_UPDATE
+	FlagIntentGUILD_WEBHOOKS BitFlag = 1 << 5
+
+	// INVITE_CREATE
+	// INVITE_DELETE
+	FlagIntentGUILD_INVITES BitFlag = 1 << 6
+
+	// VOICE_CHANNEL_EFFECT_SEND
+	// VOICE_STATE_UPDATE
+	FlagIntentGUILD_VOICE_STATES BitFlag = 1 << 7
+
+	// PRESENCE_UPDATE
+	FlagIntentGUILD_PRESENCES BitFlag = 1 << 8
+
+	// MESSAGE_CREATE
+	// MESSAGE_UPDATE
+	// MESSAGE_DELETE
+	// MESSAGE_DELETE_BULK
+	FlagIntentGUILD_MESSAGES BitFlag = 1 << 9
+
+	// MESSAGE_REACTION_ADD
+	// MESSAGE_REACTION_REMOVE
+	// MESSAGE_REACTION_REMOVE_ALL
+	// MESSAGE_REACTION_REMOVE_EMOJI
+	FlagIntentGUILD_MESSAGE_REACTIONS BitFlag = 1 << 10
+
+	// TYPING_START
+	FlagIntentGUILD_MESSAGE_TYPING  BitFlag = 1 << 11
+	FlagIntentDIRECT_MESSAGE_TYPING BitFlag = 1 << 14
+
+	// MESSAGE_CREATE
+	// MESSAGE_UPDATE
+	// MESSAGE_DELETE
+	// CHANNEL_PINS_UPDATE
+	FlagIntentDIRECT_MESSAGES BitFlag = 1 << 12
+
+	// MESSAGE_REACTION_ADD
+	// MESSAGE_REACTION_REMOVE
+	// MESSAGE_REACTION_REMOVE_ALL
+	// MESSAGE_REACTION_REMOVE_EMOJI
+	FlagIntentDIRECT_MESSAGE_REACTIONS BitFlag = 1 << 13
+
+	FlagIntentMESSAGE_CONTENT BitFlag = 1 << 15
+
+	// GUILD_SCHEDULED_EVENT_CREATE
+	// GUILD_SCHEDULED_EVENT_UPDATE
+	// GUILD_SCHEDULED_EVENT_DELETE
+	// GUILD_SCHEDULED_EVENT_USER_ADD
+	// GUILD_SCHEDULED_EVENT_USER_REMOVE
+	FlagIntentGUILD_SCHEDULED_EVENTS BitFlag = 1 << 16
+
+	// AUTO_MODERATION_RULE_CREATE
+	// AUTO_MODERATION_RULE_UPDATE
+	// AUTO_MODERATION_RULE_DELETE
+	FlagIntentAUTO_MODERATION_CONFIGURATION BitFlag = 1 << 20
+
+	// AUTO_MODERATION_ACTION_EXECUTION
+	FlagIntentAUTO_MODERATION_EXECUTION BitFlag = 1 << 21
+
+	// MESSAGE_POLL_VOTE_ADD
+	// MESSAGE_POLL_VOTE_REMOVE
+	FlagIntentGUILD_MESSAGE_POLLS BitFlag = 1 << 24
+
+	// MESSAGE_POLL_VOTE_ADD
+	// MESSAGE_POLL_VOTE_REMOVE
+	FlagIntentDIRECT_MESSAGE_POLLS BitFlag = 1 << 25
+)
+
+// Privileged Intents
+// https://discord.com/developers/docs/topics/gateway#privileged-intents
+var (
+	PrivilegedIntents = map[BitFlag]bool{
+		FlagIntentGUILD_PRESENCES: true,
+		FlagIntentGUILD_MEMBERS:   true,
+		FlagIntentMESSAGE_CONTENT: true,
+	}
+)
+
+// Gateway SendEvent Names
+// https://discord.com/developers/docs/topics/gateway-events#send-events
+const (
+	FlagGatewaySendEventNameHeartbeat               = "Heartbeat"
+	FlagGatewaySendEventNameIdentify                = "Identify"
+	FlagGatewaySendEventNameUpdatePresence          = "UpdatePresence"
+	FlagGatewaySendEventNameUpdateVoiceState        = "UpdateVoiceState "
+	FlagGatewaySendEventNameResume                  = "Resume"
+	FlagGatewaySendEventNameRequestGuildMembers     = "RequestGuildMembers"
+	FlagGatewaySendEventNameRequestSoundboardSounds = "RequestSoundboardSounds"
+)
+
+// Identify Structure
+// https://discord.com/developers/docs/topics/gateway-events#identify-identify-structure
+type Identify struct {
+	Compress       *bool                        `json:"compress,omitempty"`
+	LargeThreshold *int                         `json:"large_threshold,omitempty"`
+	Shard          *[2]int                      `json:"shard,omitempty"`
+	Presence       *GatewayPresenceUpdate       `json:"presence,omitempty"`
+	Properties     IdentifyConnectionProperties `json:"properties"`
+	Token          string                       `json:"token"`
+	Intents        BitFlag                      `json:"intents"`
+}
+
+// Identify Connection Properties
+// https://discord.com/developers/docs/topics/gateway-events#identify-identify-connection-properties
+type IdentifyConnectionProperties struct {
+	OS      string `json:"os"`
+	Browser string `json:"browser"`
+	Device  string `json:"device"`
+}
+
+// Resume Structure
+// https://discord.com/developers/docs/topics/gateway-events#resume-resume-structure
+type Resume struct {
+	Token     string `json:"token"`
+	SessionID string `json:"session_id"`
+	Seq       int64  `json:"seq"`
+}
+
+// Heartbeat Structure
+// https://discord.com/developers/docs/topics/gateway-events#heartbeat
+type Heartbeat struct {
+	Data int64 `json:"d"`
+}
+
+// Request Guild Members Structure
+// https://discord.com/developers/docs/topics/gateway-events#request-guild-members-guild-request-members-structure
+type RequestGuildMembers struct {
+	Query     *string  `json:"query,omitempty"`
+	Limit     *int     `json:"limit,omitempty"`
+	Presences *bool    `json:"presences,omitempty"`
+	Nonce     *string  `json:"nonce,omitempty"`
+	GuildID   string   `json:"guild_id"`
+	UserIDs   []string `json:"user_ids,omitempty"`
+}
+
+// Request Soundboard Sounds Structure
+// https://discord.com/developers/docs/events/gateway-events#request-soundboard-sounds-request-soundboard-sounds-structure
+type RequestSoundboardSounds struct {
+	GuildIDs []string `json:"guild_ids"`
+}
+
+// Gateway Voice State Update Structure
+// https://discord.com/developers/docs/topics/gateway-events#update-voice-state-gateway-voice-state-update-structure
+type GatewayVoiceStateUpdate struct {
+	ChannelID *string `json:"channel_id"`
+	GuildID   string  `json:"guild_id"`
+	SelfMute  bool    `json:"self_mute"`
+	SelfDeaf  bool    `json:"self_deaf"`
+}
+
+// Gateway Presence Update Structure
+// https://discord.com/developers/docs/topics/gateway-events#update-presence-gateway-presence-update-structure
+type GatewayPresenceUpdate struct {
+	Since  *int        `json:"since"`
+	Status string      `json:"status"`
+	Game   []*Activity `json:"game"`
+	AFK    bool        `json:"afk"`
+}
+
+// Status Types
+// https://discord.com/developers/docs/topics/gateway#update-presence-status-types
+const (
+	FlagStatusTypeOnline       = "online"
+	FlagStatusTypeDoNotDisturb = "dnd"
+	FlagStatusTypeAFK          = "idle"
+	FlagStatusTypeInvisible    = "invisible"
+	FlagStatusTypeOffline      = "offline"
+)
+
 // Gateway Events
 // https://discord.com/developers/docs/topics/gateway#gateway-events
 type Event interface{}
@@ -921,6 +1294,9 @@ const (
 	FlagGatewayEventNameThreadListSync                      = "THREAD_LIST_SYNC"
 	FlagGatewayEventNameThreadMemberUpdate                  = "THREAD_MEMBER_UPDATE"
 	FlagGatewayEventNameThreadMembersUpdate                 = "THREAD_MEMBERS_UPDATE"
+	FlagGatewayEventNameEntitlementCreate                   = "ENTITLEMENT_CREATE"
+	FlagGatewayEventNameEntitlementUpdate                   = "ENTITLEMENT_UPDATE"
+	FlagGatewayEventNameEntitlementDelete                   = "ENTITLEMENT_DELETE"
 	FlagGatewayEventNameGuildCreate                         = "GUILD_CREATE"
 	FlagGatewayEventNameGuildUpdate                         = "GUILD_UPDATE"
 	FlagGatewayEventNameGuildDelete                         = "GUILD_DELETE"
@@ -942,6 +1318,11 @@ const (
 	FlagGatewayEventNameGuildScheduledEventDelete           = "GUILD_SCHEDULED_EVENT_DELETE"
 	FlagGatewayEventNameGuildScheduledEventUserAdd          = "GUILD_SCHEDULED_EVENT_USER_ADD"
 	FlagGatewayEventNameGuildScheduledEventUserRemove       = "GUILD_SCHEDULED_EVENT_USER_REMOVE"
+	FlagGatewayEventNameGuildSoundboardSoundCreate          = "GUILD_SOUNDBOARD_SOUND_CREATE"
+	FlagGatewayEventNameGuildSoundboardSoundUpdate          = "GUILD_SOUNDBOARD_SOUND_UPDATE"
+	FlagGatewayEventNameGuildSoundboardSoundDelete          = "GUILD_SOUNDBOARD_SOUND_DELETE"
+	FlagGatewayEventNameGuildSoundboardSoundsUpdate         = "GUILD_SOUNDBOARD_SOUNDS_UPDATE"
+	FlagGatewayEventNameSoundboardSounds                    = "SOUNDBOARD_SOUNDS"
 	FlagGatewayEventNameIntegrationCreate                   = "INTEGRATION_CREATE"
 	FlagGatewayEventNameIntegrationUpdate                   = "INTEGRATION_UPDATE"
 	FlagGatewayEventNameIntegrationDelete                   = "INTEGRATION_DELETE"
@@ -960,11 +1341,17 @@ const (
 	FlagGatewayEventNameStageInstanceCreate                 = "STAGE_INSTANCE_CREATE"
 	FlagGatewayEventNameStageInstanceDelete                 = "STAGE_INSTANCE_DELETE"
 	FlagGatewayEventNameStageInstanceUpdate                 = "STAGE_INSTANCE_UPDATE"
+	FlagGatewayEventNameSubscriptionCreate                  = "SUBSCRIPTION_CREATE"
+	FlagGatewayEventNameSubscriptionUpdate                  = "SUBSCRIPTION_UPDATE"
+	FlagGatewayEventNameSubscriptionDelete                  = "SUBSCRIPTION_DELETE"
 	FlagGatewayEventNameTypingStart                         = "TYPING_START"
 	FlagGatewayEventNameUserUpdate                          = "USER_UPDATE"
+	FlagGatewayEventNameVoiceChannelEffectSend              = "VOICE_CHANNEL_EFFECT_SEND"
 	FlagGatewayEventNameVoiceStateUpdate                    = "VOICE_STATE_UPDATE"
 	FlagGatewayEventNameVoiceServerUpdate                   = "VOICE_SERVER_UPDATE"
 	FlagGatewayEventNameWebhooksUpdate                      = "WEBHOOKS_UPDATE"
+	FlagGatewayEventNameMessagePollVoteAdd                  = "MESSAGE_POLL_VOTE_ADD"
+	FlagGatewayEventNameMessagePollVoteRemove               = "MESSAGE_POLL_VOTE_REMOVE"
 )
 
 // Hello Structure
@@ -1108,6 +1495,24 @@ type ChannelPinsUpdate struct {
 	LastPinTimestamp **time.Time `json:"last_pin_timestamp,omitempty"`
 	GuildID          string      `json:"guild_id,omitempty"`
 	ChannelID        string      `json:"channel_id"`
+}
+
+// Entitlement Create
+// https://discord.com/developers/docs/events/gateway-events#entitlement-create
+type EntitlementCreate struct {
+	*Entitlement
+}
+
+// Entitlement Update
+// https://discord.com/developers/docs/events/gateway-events#entitlement-update
+type EntitlementUpdate struct {
+	*Entitlement
+}
+
+// Entitlement Delete
+// https://discord.com/developers/docs/events/gateway-events#entitlement-delete
+type EntitlementDelete struct {
+	*Entitlement
 }
 
 // Guild Create
@@ -1259,6 +1664,39 @@ type GuildScheduledEventUserRemove struct {
 	GuildID               string `json:"guild_id"`
 }
 
+// Guild Soundboard Sound Create
+// https://discord.com/developers/docs/events/gateway-events#guild-soundboard-sound-create
+type GuildSoundboardSoundCreate struct {
+	*SoundboardSound
+}
+
+// Guild Soundboard Sound Update
+// https://discord.com/developers/docs/events/gateway-events#guild-soundboard-sound-update
+type GuildSoundboardSoundUpdate struct {
+	*SoundboardSound
+}
+
+// Guild Soundboard Sound Delete
+// https://discord.com/developers/docs/events/gateway-events#guild-soundboard-sound-delete
+type GuildSoundboardSoundDelete struct {
+	SoundID string `json:"sound_id"`
+	GuildID string `json:"guild_id"`
+}
+
+// Guild Soundboard Sounds Update
+// https://discord.com/developers/docs/events/gateway-events#guild-soundboard-sounds-update
+type GuildSoundboardSoundsUpdate struct {
+	GuildID          string             `json:"guild_id"`
+	SoundboardSounds []*SoundboardSound `json:"soundboard_sounds"`
+}
+
+// Soundboard Sounds
+// https://discord.com/developers/docs/events/gateway-events#soundboard-sounds
+type SoundboardSounds struct {
+	GuildID          string             `json:"guild_id"`
+	SoundboardSounds []*SoundboardSound `json:"soundboard_sounds"`
+}
+
 // Integration Create
 // https://discord.com/developers/docs/topics/gateway-events#integration-create
 type IntegrationCreate struct {
@@ -1350,6 +1788,9 @@ type MessageReactionAdd struct {
 	UserID          string       `json:"user_id"`
 	ChannelID       string       `json:"channel_id"`
 	MessageID       string       `json:"message_id"`
+	BurstColors     []string     `json:"burst_colors,omitempty"`
+	Burst           bool         `json:"burst"`
+	Type            Flag         `json:"type"`
 }
 
 // Message Reaction Remove
@@ -1360,6 +1801,8 @@ type MessageReactionRemove struct {
 	UserID    string  `json:"user_id"`
 	ChannelID string  `json:"channel_id"`
 	MessageID string  `json:"message_id"`
+	Burst     bool    `json:"burst"`
+	Type      Flag    `json:"type"`
 }
 
 // Message Reaction Remove All
@@ -1407,6 +1850,24 @@ type StageInstanceDelete struct {
 	*StageInstance
 }
 
+// Subscription Create
+// https://discord.com/developers/docs/events/gateway-events#subscription-create
+type SubscriptionCreate struct {
+	*Subscription
+}
+
+// Subscription Update
+// https://discord.com/developers/docs/events/gateway-events#subscription-update
+type SubscriptionUpdate struct {
+	*Subscription
+}
+
+// Subscription Delete
+// https://discord.com/developers/docs/events/gateway-events#subscription-delete
+type SubscriptionDelete struct {
+	*Subscription
+}
+
 // Typing Start
 // https://discord.com/developers/docs/topics/gateway-events#typing-start
 type TypingStart struct {
@@ -1421,6 +1882,19 @@ type TypingStart struct {
 // https://discord.com/developers/docs/topics/gateway-events#user-update
 type UserUpdate struct {
 	*User
+}
+
+// Voice Channel Effect Send
+// https://discord.com/developers/docs/events/gateway-events#voice-channel-effect-send-voice-channel-effect-send-event-fields
+type VoiceChannelEffectSend struct {
+	Emoji         **Emoji  `json:"emoji,omitempty"`
+	AnimationType **Flag   `json:"animation_type,omitempty"`
+	AnimationID   *string  `json:"animation_id,omitempty"`
+	SoundID       *string  `json:"sound_id,omitempty"`
+	SoundVolume   *float64 `json:"sound_volume,omitempty"`
+	ChannelID     string   `json:"channel_id"`
+	GuildID       string   `json:"guild_id"`
+	UserID        string   `json:"user_id"`
 }
 
 // Voice State Update
@@ -1444,233 +1918,25 @@ type WebhooksUpdate struct {
 	ChannelID string `json:"channel_id"`
 }
 
-// Gateway Payload Structure
-// https://discord.com/developers/docs/topics/gateway-events#payload-structure
-type GatewayPayload struct {
-	SequenceNumber *int64          `json:"s,omitempty"`
-	EventName      *string         `json:"t,omitempty"`
-	Data           json.RawMessage `json:"d"`
-	Op             int             `json:"op"`
+// Message Poll Vote Add
+// https://discord.com/developers/docs/events/gateway-events#message-poll-vote-add
+type MessagePollVoteAdd struct {
+	GuildID   *string `json:"guild_id,omitempty"`
+	UserID    string  `json:"user_id"`
+	ChannelID string  `json:"channel_id"`
+	MessageID string  `json:"message_id"`
+	AnswerID  int     `json:"answer_id"`
 }
 
-// Gateway URL Query String Params
-// https://discord.com/developers/docs/topics/gateway#connecting-gateway-url-query-string-params
-type GatewayURLQueryString struct {
-	Compress *string `url:"compress,omitempty"`
-	Encoding string  `url:"encoding"`
-	V        int     `url:"v"`
+// Message Poll Vote Remove
+// https://discord.com/developers/docs/events/gateway-events#message-poll-vote-remove
+type MessagePollVoteRemove struct {
+	GuildID   *string `json:"guild_id,omitempty"`
+	UserID    string  `json:"user_id"`
+	ChannelID string  `json:"channel_id"`
+	MessageID string  `json:"message_id"`
+	AnswerID  int     `json:"answer_id"`
 }
-
-// Session Start Limit Structure
-// https://discord.com/developers/docs/topics/gateway#session-start-limit-object-session-start-limit-structure
-type SessionStartLimit struct {
-	Total          int `json:"total"`
-	Remaining      int `json:"remaining"`
-	ResetAfter     int `json:"reset_after"`
-	MaxConcurrency int `json:"max_concurrency"`
-}
-
-// List of Intents
-// https://discord.com/developers/docs/topics/gateway#list-of-intents
-const (
-	// GUILD_CREATE
-	// GUILD_UPDATE
-	// GUILD_DELETE
-	// GUILD_ROLE_CREATE
-	// GUILD_ROLE_UPDATE
-	// GUILD_ROLE_DELETE
-	// CHANNEL_CREATE
-	// CHANNEL_UPDATE
-	// CHANNEL_DELETE
-	// CHANNEL_PINS_UPDATE
-	// THREAD_CREATE
-	// THREAD_UPDATE
-	// THREAD_DELETE
-	// THREAD_LIST_SYNC
-	// THREAD_MEMBER_UPDATE
-	// THREAD_MEMBERS_UPDATE *
-	// STAGE_INSTANCE_CREATE
-	// STAGE_INSTANCE_UPDATE
-	// STAGE_INSTANCE_DELETE
-	FlagIntentGUILDS BitFlag = 1 << 0
-
-	// GUILD_MEMBER_ADD
-	// GUILD_MEMBER_UPDATE
-	// GUILD_MEMBER_REMOVE
-	// THREAD_MEMBERS_UPDATE *
-	FlagIntentGUILD_MEMBERS BitFlag = 1 << 1
-
-	// GUILD_AUDIT_LOG_ENTRY_CREATE
-	// GUILD_BAN_ADD
-	// GUILD_BAN_REMOVE
-	FlagIntentGUILD_MODERATION BitFlag = 1 << 2
-
-	// GUILD_EMOJIS_UPDATE
-	// GUILD_STICKERS_UPDATE
-	FlagIntentGUILD_EMOJIS_AND_STICKERS BitFlag = 1 << 3
-
-	// GUILD_INTEGRATIONS_UPDATE
-	// INTEGRATION_CREATE
-	// INTEGRATION_UPDATE
-	// INTEGRATION_DELETE
-	FlagIntentGUILD_INTEGRATIONS BitFlag = 1 << 4
-
-	// WEBHOOKS_UPDATE
-	FlagIntentGUILD_WEBHOOKS BitFlag = 1 << 5
-
-	// INVITE_CREATE
-	// INVITE_DELETE
-	FlagIntentGUILD_INVITES BitFlag = 1 << 6
-
-	// VOICE_STATE_UPDATE
-	FlagIntentGUILD_VOICE_STATES BitFlag = 1 << 7
-
-	// PRESENCE_UPDATE
-	FlagIntentGUILD_PRESENCES BitFlag = 1 << 8
-
-	// MESSAGE_CREATE
-	// MESSAGE_UPDATE
-	// MESSAGE_DELETE
-	// MESSAGE_DELETE_BULK
-	FlagIntentGUILD_MESSAGES BitFlag = 1 << 9
-
-	// MESSAGE_REACTION_ADD
-	// MESSAGE_REACTION_REMOVE
-	// MESSAGE_REACTION_REMOVE_ALL
-	// MESSAGE_REACTION_REMOVE_EMOJI
-	FlagIntentGUILD_MESSAGE_REACTIONS BitFlag = 1 << 10
-
-	// TYPING_START
-	FlagIntentGUILD_MESSAGE_TYPING  BitFlag = 1 << 11
-	FlagIntentDIRECT_MESSAGE_TYPING BitFlag = 1 << 14
-
-	// MESSAGE_CREATE
-	// MESSAGE_UPDATE
-	// MESSAGE_DELETE
-	// CHANNEL_PINS_UPDATE
-	FlagIntentDIRECT_MESSAGES BitFlag = 1 << 12
-
-	// MESSAGE_REACTION_ADD
-	// MESSAGE_REACTION_REMOVE
-	// MESSAGE_REACTION_REMOVE_ALL
-	// MESSAGE_REACTION_REMOVE_EMOJI
-	FlagIntentDIRECT_MESSAGE_REACTIONS BitFlag = 1 << 13
-
-	FlagIntentMESSAGE_CONTENT BitFlag = 1 << 15
-
-	// GUILD_SCHEDULED_EVENT_CREATE
-	// GUILD_SCHEDULED_EVENT_UPDATE
-	// GUILD_SCHEDULED_EVENT_DELETE
-	// GUILD_SCHEDULED_EVENT_USER_ADD
-	// GUILD_SCHEDULED_EVENT_USER_REMOVE
-	FlagIntentGUILD_SCHEDULED_EVENTS BitFlag = 1 << 16
-
-	// AUTO_MODERATION_RULE_CREATE
-	// AUTO_MODERATION_RULE_UPDATE
-	// AUTO_MODERATION_RULE_DELETE
-	FlagIntentAUTO_MODERATION_CONFIGURATION BitFlag = 1 << 20
-
-	// AUTO_MODERATION_ACTION_EXECUTION
-	FlagIntentAUTO_MODERATION_EXECUTION BitFlag = 1 << 21
-)
-
-// Privileged Intents
-// https://discord.com/developers/docs/topics/gateway#privileged-intents
-var (
-	PrivilegedIntents = map[BitFlag]bool{
-		FlagIntentGUILD_PRESENCES: true,
-		FlagIntentGUILD_MEMBERS:   true,
-		FlagIntentMESSAGE_CONTENT: true,
-	}
-)
-
-// Gateway SendEvent
-// https://discord.com/developers/docs/topics/gateway-events#send-events
-type SendEvent interface{}
-
-// Gateway SendEvent Names
-// https://discord.com/developers/docs/topics/gateway-events#send-events
-const (
-	FlagGatewaySendEventNameHeartbeat           = "Heartbeat"
-	FlagGatewaySendEventNameIdentify            = "Identify"
-	FlagGatewaySendEventNameUpdatePresence      = "UpdatePresence"
-	FlagGatewaySendEventNameUpdateVoiceState    = "UpdateVoiceState "
-	FlagGatewaySendEventNameResume              = "Resume"
-	FlagGatewaySendEventNameRequestGuildMembers = "RequestGuildMembers"
-)
-
-// Identify Structure
-// https://discord.com/developers/docs/topics/gateway-events#identify-identify-structure
-type Identify struct {
-	Compress       *bool                        `json:"compress,omitempty"`
-	LargeThreshold *int                         `json:"large_threshold,omitempty"`
-	Shard          *[2]int                      `json:"shard,omitempty"`
-	Presence       *GatewayPresenceUpdate       `json:"presence,omitempty"`
-	Properties     IdentifyConnectionProperties `json:"properties"`
-	Token          string                       `json:"token"`
-	Intents        BitFlag                      `json:"intents"`
-}
-
-// Identify Connection Properties
-// https://discord.com/developers/docs/topics/gateway-events#identify-identify-connection-properties
-type IdentifyConnectionProperties struct {
-	OS      string `json:"os"`
-	Browser string `json:"browser"`
-	Device  string `json:"device"`
-}
-
-// Resume Structure
-// https://discord.com/developers/docs/topics/gateway-events#resume-resume-structure
-type Resume struct {
-	Token     string `json:"token"`
-	SessionID string `json:"session_id"`
-	Seq       int64  `json:"seq"`
-}
-
-// Heartbeat
-// https://discord.com/developers/docs/topics/gateway-events#heartbeat
-type Heartbeat struct {
-	Data int64 `json:"d"`
-}
-
-// Request Guild Members Structure
-// https://discord.com/developers/docs/topics/gateway-events#request-guild-members-guild-request-members-structure
-type RequestGuildMembers struct {
-	Query     *string  `json:"query,omitempty"`
-	Limit     *int     `json:"limit,omitempty"`
-	Presences *bool    `json:"presences,omitempty"`
-	Nonce     *string  `json:"nonce,omitempty"`
-	GuildID   string   `json:"guild_id"`
-	UserIDs   []string `json:"user_ids,omitempty"`
-}
-
-// Gateway Voice State Update Structure
-// https://discord.com/developers/docs/topics/gateway-events#update-voice-state-gateway-voice-state-update-structure
-type GatewayVoiceStateUpdate struct {
-	ChannelID *string `json:"channel_id"`
-	GuildID   string  `json:"guild_id"`
-	SelfMute  bool    `json:"self_mute"`
-	SelfDeaf  bool    `json:"self_deaf"`
-}
-
-// Gateway Presence Update Structure
-// https://discord.com/developers/docs/topics/gateway-events#update-presence-gateway-presence-update-structure
-type GatewayPresenceUpdate struct {
-	Since  *int        `json:"since"`
-	Status string      `json:"status"`
-	Game   []*Activity `json:"game"`
-	AFK    bool        `json:"afk"`
-}
-
-// Status Types
-// https://discord.com/developers/docs/topics/gateway#update-presence-status-types
-const (
-	FlagStatusTypeOnline       = "online"
-	FlagStatusTypeDoNotDisturb = "dnd"
-	FlagStatusTypeAFK          = "idle"
-	FlagStatusTypeInvisible    = "invisible"
-	FlagStatusTypeOffline      = "offline"
-)
 
 // Rate Limit Headers
 // https://discord.com/developers/docs/topics/rate-limits#header-format-rate-limit-header-examples
@@ -1752,7 +2018,7 @@ var (
 // https://discord.com/developers/docs/reference#api-versioning
 const (
 	VersionDiscordAPI          = "10"
-	VersionDiscordVoiceGateway = "?v=4"
+	VersionDiscordVoiceGateway = "7"
 )
 
 // time.Time Format
@@ -1829,11 +2095,12 @@ type CreateGlobalApplicationCommand struct {
 	Description              *string                     `json:"description,omitempty"`
 	DescriptionLocalizations *map[string]string          `json:"description_localizations,omitempty"`
 	DefaultMemberPermissions **string                    `json:"default_member_permissions,omitempty"`
-	DMPermission             **bool                      `json:"dm_permission,omitempty"`
 	Type                     *Flag                       `json:"type,omitempty"`
 	NSFW                     *bool                       `json:"nsfw,omitempty"`
 	Name                     string                      `json:"name,omitempty"`
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
+	IntegrationTypes         []Flag                      `json:"integration_types,omitempty"`
+	Contexts                 []Flag                      `json:"contexts"`
 }
 
 // Get Global Application Command
@@ -1852,7 +2119,6 @@ type EditGlobalApplicationCommand struct {
 	Description              *string                     `json:"description,omitempty"`
 	DescriptionLocalizations *map[string]string          `json:"description_localizations,omitempty"`
 	DefaultMemberPermissions **string                    `json:"default_member_permissions,omitempty"`
-	DMPermission             **bool                      `json:"dm_permission,omitempty"`
 	NSFW                     *bool                       `json:"nsfw,omitempty"`
 	CommandID                string                      `json:"-"`
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
@@ -2062,6 +2328,32 @@ type DeleteFollowupMessage struct {
 // https://discord.com/developers/docs/resources/application#get-current-application
 type GetCurrentApplication struct{}
 
+// Edit Current Application
+// PATCH /applications/@me
+// https://discord.com/developers/docs/resources/application#edit-current-application
+type EditCurrentApplication struct {
+	Icon                           *string         `json:"icon"`
+	InstallParams                  *InstallParams  `json:"install_params"`
+	IntegrationTypesConfig         map[string]Flag `json:"integration_types_config"`
+	CoverImage                     *string         `json:"cover_image"`
+	Description                    string          `json:"string"`
+	RoleConnectionsVerificationURL string          `json:"role_connections_verification_url"`
+	CustomInstallURL               string          `json:"custom_install_url"`
+	InteractionsEndpointURL        string          `json:"interactions_endpoint_url"`
+	EventWebhooksURL               string          `json:"event_webhooks_url"`
+	Tags                           []string        `json:"tags"`
+	EventWebhooksTypes             []string        `json:"event_webhooks_types"`
+	Flags                          BitFlag         `json:"flags"`
+	EventWebhooksStatus            Flag            `json:"event_webhooks_status"`
+}
+
+// Get Application Activity Instance
+// GET /applications/{application.id}/activity-instances/{instance_id}
+// https://discord.com/developers/docs/resources/application#get-application-activity-instance
+type GetApplicationActivityInstance struct {
+	InstanceID string
+}
+
 // Get Application Role Connection Metadata Records
 // GET /applications/{application.id}/role-connections/metadata
 // https://discord.com/developers/docs/resources/application-role-connection-metadata#get-application-role-connection-metadata-records
@@ -2235,12 +2527,13 @@ type GetChannelMessage struct {
 // POST /channels/{channel.id}/messages
 // https://discord.com/developers/docs/resources/channel#create-message
 type CreateMessage struct {
+	MessageReference *MessageReference `json:"message_reference,omitempty"`
 	Content          *string           `json:"content,omitempty"`
 	Nonce            *Nonce            `json:"nonce,omitempty"`
 	TTS              *bool             `json:"tts,omitempty"`
 	AllowedMentions  *AllowedMentions  `json:"allowed_mentions,omitempty"`
-	MessageReference *MessageReference `json:"message_reference,omitempty"`
 	Flags            *BitFlag          `json:"flags,omitempty"`
+	EnforceNonce     *bool             `json:"enforce_nonce,omitempty"`
 	ChannelID        string            `json:"-"`
 	Embeds           []*Embed          `json:"embeds,omitempty"`
 	Components       []Component       `json:"components,omitempty"`
@@ -2289,6 +2582,7 @@ type DeleteUserReaction struct {
 // GET /channels/{channel.id}/messages/{message.id}/reactions/{emoji}
 // https://discord.com/developers/docs/resources/channel#get-reactions
 type GetReactions struct {
+	Type      *Flag   `url:"type,omitempty"`
 	After     *string `url:"after,omitempty"`
 	Limit     *int    `url:"limit,omitempty"`
 	ChannelID string  `url:"-"`
@@ -2342,6 +2636,92 @@ type DeleteMessage struct {
 type BulkDeleteMessages struct {
 	ChannelID string    `json:"-"`
 	Messages  []*string `json:"messages"`
+}
+
+// Get Answer Voters
+// GET /channels/{channel.id}/polls/{message.id}/answers/{answer_id}
+// https://discord.com/developers/docs/resources/poll#get-answer-voters
+type GetAnswerVoters struct {
+	After     *string `url:"after,omitempty"`
+	Limit     *int    `url:"limit"`
+	ChannelID string  `url:"-"`
+	MessageID string  `url:"-"`
+	AnswerID  string  `url:"-"`
+}
+
+// End Poll
+// POST /channels/{channel.id}/polls/{message.id}/expire
+// https://discord.com/developers/docs/resources/poll#get-answer-voters
+type EndPoll struct {
+	ChannelID string
+	MessageID string
+}
+
+// List SKUs
+// GET applications/{application.id}/skus
+// https://discord.com/developers/docs/resources/sku#list-skus
+type ListSKUs struct {
+}
+
+// Send Soundboard Sound
+// POST channels/{channel.id}/send-soundboard-sound
+// https://discord.com/developers/docs/resources/soundboard#send-soundboard-sound
+type SendSoundboardSound struct {
+	SourceGuildID *string `json:"source_guild_id,omitempty"`
+	ChannelID     string  `json:"-"`
+	SoundID       string  `json:"sound_id"`
+}
+
+// List Default Soundboard Sounds
+// GET /soundboard-default-sounds
+// https://discord.com/developers/docs/resources/soundboard#list-default-soundboard-sounds
+type ListDefaultSoundboardSounds struct{}
+
+// List Guild Soundboard Sounds
+// GET /guilds/{guild.id}/soundboard-sounds
+// https://discord.com/developers/docs/resources/soundboard#list-guild-soundboard-sounds
+type ListGuildSoundboardSounds struct {
+	GuildID string
+}
+
+// Get Guild Soundboard Sound
+// GET /guilds/{guild.id}/soundboard-sounds/{sound.id}
+// https://discord.com/developers/docs/resources/soundboard#get-guild-soundboard-sound
+type GetGuildSoundboardSound struct {
+	GuildID string
+	SoundID string
+}
+
+// Create Guild Soundboard Sound
+// POST /guilds/{guild.id}/soundboard-sounds
+// https://discord.com/developers/docs/resources/soundboard#create-guild-soundboard-sound
+type CreateGuildSoundboardSound struct {
+	Volume    **float64 `json:"volume,omitempty"`
+	EmojiID   **string  `json:"emoji_id,omitempty"`
+	EmojiName **string  `json:"emoji_name,omitempty"`
+	GuildID   string    `json:"-"`
+	Name      string    `json:"name"`
+	Sound     string    `json:"sound"`
+}
+
+// Modify Guild Soundboard Sound
+// PATCH/guilds/{guild.id}/soundboard-sounds/{sound.id}
+// https://discord.com/developers/docs/resources/soundboard#modify-guild-soundboard-sound
+type ModifyGuildSoundboardSound struct {
+	Volume    *float64 `json:"volume"`
+	EmojiID   *string  `json:"emoji_id"`
+	EmojiName *string  `json:"emoji_name"`
+	GuildID   string   `json:"-"`
+	SoundID   string   `json:"-"`
+	Name      string   `json:"name"`
+}
+
+// Delete Guild Soundboard Sound
+// DELETE /guilds/{guild.id}/soundboard-sounds/{sound.id}
+// https://discord.com/developers/docs/resources/soundboard#delete-guild-soundboard-sound
+type DeleteGuildSoundboardSound struct {
+	GuildID string
+	SoundID string
 }
 
 // Edit Channel Permissions
@@ -2467,17 +2847,18 @@ type StartThreadwithoutMessage struct {
 // POST /channels/{channel.id}/threads
 // https://discord.com/developers/docs/resources/channel#start-thread-in-forum-channel
 type StartThreadinForumChannel struct {
-	ChannelID           string                    `json:"-"`
-	Name                string                    `json:"name"`
-	AutoArchiveDuration *int                      `json:"auto_archive_duration,omitempty"`
-	RateLimitPerUser    **int                     `json:"rate_limit_per_user,omitempty"`
-	Message             *ForumThreadMessageParams `json:"message"`
-	AppliedTags         []string                  `json:"applied_tags,omitempty"`
+	ChannelID           string                            `json:"-"`
+	Name                string                            `json:"name"`
+	AutoArchiveDuration *int                              `json:"auto_archive_duration,omitempty"`
+	RateLimitPerUser    **int                             `json:"rate_limit_per_user,omitempty"`
+	Message             *ForumAndMediaThreadMessageParams `json:"message"`
+	AppliedTags         []string                          `json:"applied_tags,omitempty"`
+	Files               []*File                           `json:"-" url:"-" dasgo:"files"`
 }
 
-// Forum Thread Message Params Object
-// https://discord.com/developers/docs/resources/channel#start-thread-in-forum-channel-forum-thread-message-params-object
-type ForumThreadMessageParams struct {
+// Forum and Media Thread Message Params Object
+// https://discord.com/developers/docs/resources/channel#start-thread-in-forum-or-media-channel-forum-and-media-thread-message-params-object
+type ForumAndMediaThreadMessageParams struct {
 	Content         *string          `json:"content,omitempty"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
 	Flags           *BitFlag         `json:"flags,omitempty"`
@@ -2485,7 +2866,6 @@ type ForumThreadMessageParams struct {
 	Components      []Component      `json:"components,omitempty"`
 	StickerIDS      []*string        `json:"sticker_ids,omitempty"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
-	Files           []*File          `json:"-" dasgo:"files"`
 }
 
 // Join Thread
@@ -2605,6 +2985,86 @@ type ModifyGuildEmoji struct {
 type DeleteGuildEmoji struct {
 	GuildID string
 	EmojiID string
+}
+
+// List Application Emojis
+// GET /applications/{application.id}/emojis
+// https://discord.com/developers/docs/resources/emoji#list-application-emojis
+type ListApplicationEmojis struct {
+}
+
+// Get Application Emoji
+// GET /applications/{application.id}/emojis/{emoji.id}
+// https://discord.com/developers/docs/resources/emoji#get-application-emoji
+type GetApplicationEmoji struct {
+	EmojiID string
+}
+
+// Create Application Emoji
+// POST /applications/{application.id}/emojis
+// https://discord.com/developers/docs/resources/emoji#create-application-emoji
+type CreateApplicationEmoji struct {
+	Name  string `json:"name"`
+	Image string `json:"image"`
+}
+
+// Modify Application Emoji
+// PATCH /applications/{application.id}/emojis/{emoji.id}
+// https://discord.com/developers/docs/resources/emoji#modify-application-emoji
+type ModifyApplicationEmoji struct {
+	EmojiID string `json:"-"`
+	Name    string `json:"name"`
+}
+
+// Delete Application Emoji
+// DELETE /applications/{application.id}/emojis/{emoji.id}
+// https://discord.com/developers/docs/resources/emoji#delete-application-emoji
+type DeleteApplicationEmoji struct {
+	EmojiID string
+}
+
+// List Entitlements
+// GET /applications/{application.id}/entitlements
+// https://discord.com/developers/docs/resources/entitlement#list-entitlements
+type ListEntitlements struct {
+	UserID         *string  `url:"user_id,omitempty"`
+	Before         *string  `url:"before,omitempty"`
+	After          *string  `url:"after,omitempty"`
+	Limit          *int     `url:"limit,omitempty"`
+	GuildID        *string  `url:"guild_id,omitempty"`
+	ExcludeEnded   *bool    `url:"exclude_ended,omitempty"`
+	ExcludeDeleted *bool    `url:"exclude_deleted,omitempty"`
+	SKUIDs         []string `url:"sku_ids,omitempty"`
+}
+
+// Get Entitlement
+// GET /applications/{application.id}/entitlements/{entitlement.id}
+// https://discord.com/developers/docs/resources/entitlement#get-entitlement
+type GetEntitlement struct {
+	EntitlementID string
+}
+
+// Consume an Entitlement
+// POST /applications/{application.id}/entitlements/{entitlement.id}/consume
+// https://discord.com/developers/docs/resources/entitlement#consume-an-entitlement
+type ConsumeEntitlement struct {
+	EntitlementID string
+}
+
+// Create Test Entitlement
+// POST /applications/{application.id}/entitlements
+// https://discord.com/developers/docs/resources/entitlement#create-test-entitlement
+type CreateTestEntitlement struct {
+	SKUID     string `json:"sku_id"`
+	OwnerID   string `json:"owner_id"`
+	OwnerType Flag   `json:"owner_type"`
+}
+
+// Delete Test Entitlement
+// DELETE /applications/{application.id}/entitlements/{entitlement.id}
+// https://discord.com/developers/docs/resources/entitlement#delete-test-entitlement
+type DeleteTestEntitlement struct {
+	EntitlementID string
 }
 
 // Create Guild
@@ -2871,6 +3331,14 @@ type CreateGuildRole struct {
 	UnicodeEmoji **string `json:"unicode_emoji,omitempty"`
 	Mentionable  *bool    `json:"mentionable,omitempty"`
 	GuildID      string   `json:"-"`
+}
+
+// Get Guild Role
+// GET /guilds/{guild.id}/roles/{role.id}
+// https://discord.com/developers/docs/resources/guild#get-guild-role
+type GetGuildRole struct {
+	GuildID string
+	RoleID  string
 }
 
 // Modify Guild Role Positions
@@ -3223,10 +3691,11 @@ type DeleteInvite struct {
 // POST /stage-instances
 // https://discord.com/developers/docs/resources/stage-instance#create-stage-instance
 type CreateStageInstance struct {
-	PrivacyLevel          *Flag  `json:"privacy_level,omitempty"`
-	SendStartNotification *bool  `json:"send_start_notification,omitempty"`
-	ChannelID             string `json:"channel_id"`
-	Topic                 string `json:"topic"`
+	PrivacyLevel          *Flag   `json:"privacy_level,omitempty"`
+	SendStartNotification *bool   `json:"send_start_notification,omitempty"`
+	GuildScheduledEventID *string `json:"guild_scheduled_event_id,omitempty"`
+	ChannelID             string  `json:"channel_id"`
+	Topic                 string  `json:"topic"`
 }
 
 // Get Stage Instance
@@ -3259,10 +3728,17 @@ type GetSticker struct {
 	StickerID string
 }
 
-// List Nitro Sticker Packs
+// List Sticker Packs
 // GET /sticker-packs
-// https://discord.com/developers/docs/resources/sticker#list-nitro-sticker-packs
-type ListNitroStickerPacks struct{}
+// https://discord.com/developers/docs/resources/sticker#list-sticker-packs
+type ListStickerPacks struct{}
+
+// Get Sticker Pack
+// GET /sticker-packs/{pack.id}
+// https://discord.com/developers/docs/resources/sticker#get-sticker-pack
+type GetStickerPack struct {
+	PackID string `url:"-"`
+}
 
 // List Guild Stickers
 // GET /guilds/{guild.id}/stickers
@@ -3309,6 +3785,25 @@ type DeleteGuildSticker struct {
 	StickerID string
 }
 
+// List SKU Subscriptions
+// GET skus/{sku.id}/subscriptions
+// https://discord.com/developers/docs/resources/subscription#list-sku-subscriptions
+type ListSKUSubscriptions struct {
+	Before *string `url:"before,omitempty"`
+	After  *string `url:"after,omitempty"`
+	Limit  *int    `url:"limit,omitempty"`
+	UserID *string `url:"user_id,omitempty"`
+	SKUID  string  `url:"-"`
+}
+
+// Get SKU Subscription
+// GET /skus/{sku.id}/subscriptions/{subscription.id}
+// https://discord.com/developers/docs/resources/subscription#get-sku-subscription
+type GetSKUSubscription struct {
+	SKUID          string
+	SubscriptionID string
+}
+
 // Get Current User
 // GET/users/@me
 // https://discord.com/developers/docs/resources/user#get-current-user
@@ -3327,6 +3822,7 @@ type GetUser struct {
 type ModifyCurrentUser struct {
 	Username *string `json:"username,omitempty"`
 	Avatar   *string `json:"avatar,omitempty"`
+	Banner   *string `json:"banner,omitempty"`
 }
 
 // Get Current User Guilds
@@ -3371,18 +3867,18 @@ type CreateGroupDM struct {
 // Get User Connections
 // GET /users/@me/connections
 // https://discord.com/developers/docs/resources/user#get-user-connections
-type GetUserConnections struct{}
+type GetCurrentUserConnections struct{}
 
 // Get User Application Role Connection
 // GET /users/@me/applications/{application.id}/role-connection
 // https://discord.com/developers/docs/resources/user#get-user-application-role-connection
-type GetUserApplicationRoleConnection struct {
+type GetCurrentUserApplicationRoleConnection struct {
 }
 
 // Update User Application Role Connection
 // PUT /users/@me/applications/{application.id}/role-connection
 // https://discord.com/developers/docs/resources/user#update-user-application-role-connection
-type UpdateUserApplicationRoleConnection struct {
+type UpdateCurrentUserApplicationRoleConnection struct {
 	PlatformName     *string           `json:"platform_name,omitempty"`
 	PlatformUsername *string           `json:"platform_user,omitempty"`
 	Metadata         map[string]string `json:"metadata,omitempty"`
@@ -3470,20 +3966,22 @@ type DeleteWebhookwithToken struct {
 // POST /webhooks/{webhook.id}/{webhook.token}
 // https://discord.com/developers/docs/resources/webhook#execute-webhook
 type ExecuteWebhook struct {
-	AvatarURL       *string          `json:"avatar_url,omitempty" url:"-"`
 	Flags           *BitFlag         `json:"flags,omitempty" url:"-"`
 	Wait            *bool            `json:"-" url:"wait,omitempty"`
 	ThreadID        *string          `json:"-" url:"thread_id,omitempty"`
 	Content         *string          `json:"content,omitempty" url:"-"`
 	Username        *string          `json:"username,omitempty" url:"-"`
+	AvatarURL       *string          `json:"avatar_url,omitempty" url:"-"`
 	TTS             *bool            `json:"tts,omitempty" url:"-"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty" url:"-"`
+	Poll            *Poll            `json:"poll" url:"-"`
 	ThreadName      *string          `json:"thread_name,omitempty" url:"-"`
 	WebhookToken    string           `json:"-" url:"-"`
 	WebhookID       string           `json:"-" url:"-"`
 	Embeds          []*Embed         `json:"embeds,omitempty" url:"-"`
 	Attachments     []*Attachment    `json:"attachments,omitempty" url:"-"`
 	Files           []*File          `json:"-" url:"-" dasgo:"files"`
+	AppliedTags     []string         `json:"applied_tags" url:"-"`
 	Components      []Component      `json:"components,omitempty" url:"-"`
 }
 
@@ -3527,6 +4025,7 @@ type EditWebhookMessage struct {
 	Components      *[]Component      `json:"components,omitempty" url:"-"`
 	AllowedMentions **AllowedMentions `json:"allowed_mentions,omitempty" url:"-"`
 	Attachments     *[]*Attachment    `json:"attachments,omitempty" url:"-"`
+	Poll            *Poll             `json:"poll,omitempty" url:"-"`
 	WebhookID       string            `json:"-" url:"-"`
 	WebhookToken    string            `json:"-" url:"-"`
 	MessageID       string            `json:"-" url:"-"`
@@ -3619,26 +4118,29 @@ type BotAuth struct {
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-structure
 type ApplicationCommand struct {
 	DefaultMemberPermissions *string                     `json:"default_member_permissions"`
-	Type                     *Flag                       `json:"type,omitempty"`
-	GuildID                  *string                     `json:"guild_id,omitempty"`
-	NameLocalizations        *map[string]string          `json:"name_localizations,omitempty"`
-	DescriptionLocalizations *map[string]string          `json:"description_localizations,omitempty"`
-	DMPermission             *bool                       `json:"dm_permission,omitempty"`
 	NSFW                     *bool                       `json:"nsfw,omitempty"`
-	ApplicationID            string                      `json:"application_id"`
+	Contexts                 *[]Flag                     `json:"contexts,omitempty"`
+	GuildID                  *string                     `json:"guild_id,omitempty"`
+	DescriptionLocalizations *map[string]string          `json:"description_localizations,omitempty"`
+	NameLocalizations        *map[string]string          `json:"name_localizations,omitempty"`
+	Type                     *Flag                       `json:"type,omitempty"`
 	Name                     string                      `json:"name"`
 	Description              string                      `json:"description"`
 	ID                       string                      `json:"id"`
+	ApplicationID            string                      `json:"application_id"`
 	Version                  string                      `json:"version,omitempty"`
 	Options                  []*ApplicationCommandOption `json:"options,omitempty"`
+	IntegrationTypes         []Flag                      `json:"integration_types,omitempty"`
+	Handler                  Flag                        `json:"handler,omitempty"`
 }
 
 // Application Command Types
 // https://discord.com/developers/docs/interactions/application-commands#application-command-object-application-command-types
 const (
-	FlagApplicationCommandTypeCHAT_INPUT Flag = 1
-	FlagApplicationCommandTypeUSER       Flag = 2
-	FlagApplicationCommandTypeMESSAGE    Flag = 3
+	FlagApplicationCommandTypeCHAT_INPUT          Flag = 1
+	FlagApplicationCommandTypeUSER                Flag = 2
+	FlagApplicationCommandTypeMESSAGE             Flag = 3
+	FlagApplicationCommandTypePRIMARY_ENTRY_POINT Flag = 4
 )
 
 // Application Command Option Structure
@@ -3683,6 +4185,13 @@ type ApplicationCommandOptionChoice struct {
 	NameLocalizations *map[string]string `json:"name_localizations,omitempty"`
 	Value             Value              `json:"value"`
 }
+
+// Entry Point Command Handler Types
+// https://discord.com/developers/docs/interactions/application-commands#application-command-object-entry-point-command-handler-types
+const (
+	FlagEntryPointCommandHandlerTypesAPP_HANDLER             Flag = 1
+	FlagEntryPointCommandHandlerTypesDISCORD_LAUNCH_ACTIVITY Flag = 2
+)
 
 // Guild Application Command Permissions Object
 // https://discord.com/developers/docs/interactions/application-commands#application-command-permissions-object-guild-application-command-permissions-structure
@@ -3741,6 +4250,7 @@ type Button struct {
 	Label    *string `json:"label,omitempty"`
 	Emoji    *Emoji  `json:"emoji,omitempty"`
 	CustomID *string `json:"custom_id,omitempty"`
+	SKUID    *string `json:"sku_id,omitempty"`
 	URL      *string `json:"url,omitempty"`
 	Disabled *bool   `json:"disabled,omitempty"`
 	Type     Flag    `json:"type"`
@@ -3759,19 +4269,21 @@ const (
 	FlagButtonStyleDanger    Flag = 4
 	FlagButtonStyleRED       Flag = 4
 	FlagButtonStyleLINK      Flag = 5
+	FlagButtonStylePremium   Flag = 6
 )
 
 // Select Menu Structure
 // https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-menu-structure
 type SelectMenu struct {
-	Placeholder  *string            `json:"placeholder,omitempty"`
-	MinValues    *Flag              `json:"min_values,omitempty"`
-	MaxValues    *Flag              `json:"max_values,omitempty"`
-	Disabled     *bool              `json:"disabled,omitempty"`
-	CustomID     string             `json:"custom_id"`
-	Options      []SelectMenuOption `json:"options"`
-	ChannelTypes Flags              `json:"channel_types,omitempty"`
-	Type         Flag               `json:"type"`
+	Placeholder   *string               `json:"placeholder,omitempty"`
+	MinValues     *Flag                 `json:"min_values,omitempty"`
+	MaxValues     *Flag                 `json:"max_values,omitempty"`
+	Disabled      *bool                 `json:"disabled,omitempty"`
+	CustomID      string                `json:"custom_id"`
+	Options       []*SelectMenuOption   `json:"options"`
+	ChannelTypes  Flags                 `json:"channel_types,omitempty"`
+	DefaultValues []*SelectDefaultValue `json:"default_values,omitempty"`
+	Type          Flag                  `json:"type"`
 }
 
 // Select Menu Option Structure
@@ -3782,6 +4294,13 @@ type SelectMenuOption struct {
 	Default     *bool   `json:"default,omitempty"`
 	Label       string  `json:"label"`
 	Value       string  `json:"value"`
+}
+
+// Select Default Value Structure
+// https://discord.com/developers/docs/interactions/message-components#select-menu-object-select-default-value-structure
+type SelectDefaultValue struct {
+	ID   string `json:"id"`
+	Type string `json:"type"`
 }
 
 // Text Input Structure
@@ -3808,21 +4327,25 @@ const (
 // Interaction Object
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-structure
 type Interaction struct {
-	Data           InteractionData `json:"data,omitempty"`
-	ChannelID      *string         `json:"channel_id,omitempty"`
-	User           *User           `json:"user,omitempty"`
-	GuildLocale    *string         `json:"guild_locale,omitempty"`
-	GuildID        *string         `json:"guild_id,omitempty"`
-	Channel        *Channel        `json:"channel,omitempty"`
-	Locale         *string         `json:"locale,omitempty"`
-	Member         *GuildMember    `json:"member,omitempty"`
-	AppPermissions *BitFlag        `json:"app_permissions,omitempty,string"`
-	Message        *Message        `json:"message,omitempty"`
-	Token          string          `json:"token"`
-	ID             string          `json:"id"`
-	ApplicationID  string          `json:"application_id"`
-	Version        int             `json:"version,omitempty"`
-	Type           Flag            `json:"type"`
+	Data                         InteractionData `json:"data,omitempty"`
+	Member                       *GuildMember    `json:"member,omitempty"`
+	Locale                       *string         `json:"locale,omitempty"`
+	User                         *User           `json:"user,omitempty"`
+	AuthorizingIntegrationOwners map[Flag]string `json:"authorizing_integration_owners"`
+	GuildID                      *string         `json:"guild_id,omitempty"`
+	Channel                      *Channel        `json:"channel,omitempty"`
+	ChannelID                    *string         `json:"channel_id,omitempty"`
+	GuildLocale                  *string         `json:"guild_locale,omitempty"`
+	Context                      *Flag           `json:"context,omitempty"`
+	AppPermissions               *BitFlag        `json:"app_permissions,omitempty,string"`
+	Guild                        *Guild          `json:"guild,omitempty"`
+	Message                      *Message        `json:"message,omitempty"`
+	ApplicationID                string          `json:"application_id"`
+	ID                           string          `json:"id"`
+	Token                        string          `json:"token"`
+	Entitlements                 []*Entitlement  `json:"entitlement"`
+	Version                      int             `json:"version,omitempty"`
+	Type                         Flag            `json:"type"`
 }
 
 // Interaction Type
@@ -3833,6 +4356,14 @@ const (
 	FlagInteractionTypeMESSAGE_COMPONENT                Flag = 3
 	FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE Flag = 4
 	FlagInteractionTypeMODAL_SUBMIT                     Flag = 5
+)
+
+// Interaction Context Type
+// https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-interaction-context-types
+const (
+	FlagInteractionContextTypeGUILD           Flag = 0
+	FlagInteractionContextTypeBOT_DM          Flag = 1
+	FlagInteractionContextTypePRIVATE_CHANNEL      = 2
 )
 
 // Interaction Data
@@ -3856,6 +4387,7 @@ type ApplicationCommandData struct {
 // Message Component Data Structure
 // https://discord.com/developers/docs/interactions/receiving-and-responding#interaction-object-message-component-data-structure
 type MessageComponentData struct {
+	Resolved      *ResolvedData       `json:"resolved,omitempty"`
 	CustomID      string              `json:"custom_id"`
 	Values        []*SelectMenuOption `json:"values,omitempty"`
 	ComponentType Flag                `json:"component_type"`
@@ -3916,6 +4448,7 @@ const (
 	FlagInteractionCallbackTypeUPDATE_MESSAGE                          Flag = 7
 	FlagInteractionCallbackTypeAPPLICATION_COMMAND_AUTOCOMPLETE_RESULT Flag = 8
 	FlagInteractionCallbackTypeMODAL                                   Flag = 9
+	FlagInteractionCallbackTypeLAUNCH_ACTIVITY                         Flag = 12
 )
 
 // Interaction Callback Data Structure
@@ -3929,9 +4462,10 @@ type InteractionCallbackData interface {
 type Messages struct {
 	TTS             *bool            `json:"tts,omitempty"`
 	Content         *string          `json:"content,omitempty"`
-	Embeds          []*Embed         `json:"embeds,omitempty"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
 	Flags           *BitFlag         `json:"flags,omitempty"`
+	Poll            *Poll            `json:"poll,omitempty"`
+	Embeds          []*Embed         `json:"embeds,omitempty"`
 	Components      []Component      `json:"components,omitempty"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
 }
@@ -3953,30 +4487,59 @@ type Modal struct {
 // Application Object
 // https://discord.com/developers/docs/resources/application
 type Application struct {
-	Flags                          *BitFlag       `json:"flags,omitempty"`
-	PrivacyProxyURL                *string        `json:"privacy_policy_url,omitempty"`
-	Icon                           *string        `json:"icon"`
-	CustomInstallURL               *string        `json:"custom_install_url,omitempty"`
-	InstallParams                  *InstallParams `json:"install_params,omitempty"`
-	ApproximateGuildCount          *int           `json:"approximate_guild_count,omitempty"`
-	RoleConnectionsVerificationURL *string        `json:"role_connections_verification_url,omitempty"`
-	TermsOfServiceURL              *string        `json:"terms_of_service_url,omitempty"`
-	Slug                           *string        `json:"slug,omitempty"`
-	Owner                          *User          `json:"owner,omitempty"`
-	CoverImage                     *string        `json:"cover_image,omitempty"`
-	Team                           *Team          `json:"team"`
-	GuildID                        *string        `json:"guild_id,omitempty"`
-	Guild                          *Guild         `json:"guild,omitempty"`
-	PrimarySKUID                   *string        `json:"primary_sku_id,omitempty"`
-	VerifyKey                      string         `json:"verify_key"`
-	ID                             string         `json:"id"`
-	Description                    string         `json:"description"`
-	Name                           string         `json:"name"`
-	Tags                           []string       `json:"tags,omitempty"`
-	RPCOrigins                     []string       `json:"rpc_origins,omitempty"`
-	BotRequireCodeGrant            bool           `json:"bot_require_code_grant"`
-	BotPublic                      bool           `json:"bot_public"`
+	Guild                          *Guild                                            `json:"guild,omitempty"`
+	CustomInstallURL               *string                                           `json:"custom_install_url,omitempty"`
+	PrimarySKUID                   *string                                           `json:"primary_sku_id,omitempty"`
+	IntegrationTypesConfig         map[Flag]*ApplicationIntegrationTypeConfiguration `json:"integration_types_config,omitempty"`
+	InstallParams                  *InstallParams                                    `json:"install_params,omitempty"`
+	EventWebhooksURL               **string                                          `json:"event_webhooks_url,omitempty"`
+	RoleConnectionsVerificationURL **string                                          `json:"role_connections_verification_url,omitempty"`
+	Bot                            *User                                             `json:"bot,omitempty"`
+	TermsOfServiceURL              *string                                           `json:"terms_of_service_url,omitempty"`
+	PrivacyProxyURL                *string                                           `json:"privacy_policy_url,omitempty"`
+	Owner                          *User                                             `json:"owner,omitempty"`
+	InteractionsEndpointURL        **string                                          `json:"interactions_endpoint_url,omitempty"`
+	Team                           *Team                                             `json:"team"`
+	GuildID                        *string                                           `json:"guild_id,omitempty"`
+	Icon                           *string                                           `json:"icon"`
+	Slug                           *string                                           `json:"slug,omitempty"`
+	ApproximateUserInstallCount    *int                                              `json:"approximate_user_install_count,omitempty"`
+	CoverImage                     *string                                           `json:"cover_image,omitempty"`
+	Flags                          *BitFlag                                          `json:"flags,omitempty"`
+	ApproximateGuildCount          *int                                              `json:"approximate_guild_count,omitempty"`
+	Name                           string                                            `json:"name"`
+	VerifyKey                      string                                            `json:"verify_key"`
+	Description                    string                                            `json:"description"`
+	ID                             string                                            `json:"id"`
+	RedirectURIs                   []string                                          `json:"redirect_uris,omitempty"`
+	EventWebhooksTypes             []string                                          `json:"event_webhooks_types,omitempty"`
+	Tags                           []string                                          `json:"tags,omitempty"`
+	RPCOrigins                     []string                                          `json:"rpc_origins,omitempty"`
+	BotRequireCodeGrant            bool                                              `json:"bot_require_code_grant"`
+	BotPublic                      bool                                              `json:"bot_public"`
+	EventWebhooksStatus            Flag                                              `json:"event_webhooks_status"`
 }
+
+// Application Integration Type Configuration Object
+// https://discord.com/developers/docs/resources/application#application-object-application-integration-type-configuration-object
+type ApplicationIntegrationTypeConfiguration struct {
+	OAuth2InstallParams *InstallParams `json:"oauth2_install_params,omitempty"`
+}
+
+// Application Integration Types
+// https://discord.com/developers/docs/resources/application#application-object-application-integration-types
+const (
+	FlagApplicationIntegrationTypeGUILD_INSTALL Flag = 0
+	FlagApplicationIntegrationTypeUSER_INSTALL  Flag = 1
+)
+
+// Application Event Webhook Status
+// https://discord.com/developers/docs/resources/application#application-object-application-event-webhook-status
+const (
+	FlagApplicationEventWebhookStatusDISABLED            Flag = 1
+	FlagApplicationEventWebhookStatusENABLED             Flag = 2
+	FlagApplicationEventWebhookStatusDISABLED_BY_DISCORD Flag = 3
+)
 
 // Application Flags
 // https://discord.com/developers/docs/resources/application#application-object-application-flags
@@ -3999,6 +4562,34 @@ type InstallParams struct {
 	Permissions string   `json:"permissions"`
 	Scopes      []string `json:"scopes"`
 }
+
+// Activity Instance Object
+// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-instance-object
+type ActivityInstance struct {
+	ApplicationID string            `json:"application_id"`
+	InstanceID    string            `json:"instance_id"`
+	LaunchID      string            `json:"launch_id"`
+	Location      *ActivityLocation `json:"location"`
+	Users         []string          `json:"users"`
+}
+
+// Activity Location Object
+// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-object
+type ActivityLocation struct {
+	GuildID   **string `json:"guild_id,omitempty"`
+	ID        string   `json:"id"`
+	Kind      string   `json:"kind"`
+	ChannelID string   `json:"channel_id"`
+}
+
+// Activity Location Kind Enum
+// https://discord.com/developers/docs/resources/application#get-application-activity-instance-activity-location-kind-enum
+var (
+	ActivityLocationKindEnum = map[string]string{
+		"gc": "Location is a Guild Channel",
+		"pc": "Location is a Private Channel, such as a DM or GDM",
+	}
+)
 
 // Application Role Connection Metadata Object
 // https://discord.com/developers/docs/resources/application-role-connection-metadata#application-role-connection-metadata-object-application-role-connection-metadata-structure
@@ -4107,6 +4698,13 @@ const (
 	FlagAuditLogEventAUTO_MODERATION_USER_COMMUNICATION_DISABLED Flag = 145
 	FlagAuditLogEventCREATOR_MONETIZATION_REQUEST_CREATED        Flag = 150
 	FlagAuditLogEventCREATOR_MONETIZATION_TERMS_ACCEPTED         Flag = 151
+	FlagAuditLogEventONBOARDING_PROMPT_CREATE                    Flag = 163
+	FlagAuditLogEventONBOARDING_PROMPT_UPDATE                    Flag = 164
+	FlagAuditLogEventONBOARDING_PROMPT_DELETE                    Flag = 165
+	FlagAuditLogEventONBOARDING_CREATE                           Flag = 166
+	FlagAuditLogEventONBOARDING_UPDATE                           Flag = 167
+	FlagAuditLogEventHOME_SETTINGS_CREATE                        Flag = 190
+	FlagAuditLogEventHOME_SETTINGS_UPDATE                        Flag = 191
 )
 
 // Optional Audit Entry Info
@@ -4160,6 +4758,7 @@ const (
 	FlagTriggerTypeSPAM           Flag = 3
 	FlagTriggerTypeKEYWORD_PRESET Flag = 4
 	FlagTriggerTypeMENTION_SPAM   Flag = 5
+	FlagTriggerTypeMEMBER_PROFILE Flag = 6
 )
 
 // Trigger Metadata
@@ -4185,7 +4784,8 @@ const (
 // Event Types
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-rule-object-event-types
 const (
-	FlagEventTypeMESSAGE_SEND Flag = 1
+	FlagEventTypeMESSAGE_SEND  Flag = 1
+	FlagEventTypeMEMBER_UPDATE Flag = 2
 )
 
 // Auto Moderation Action Structure
@@ -4198,9 +4798,10 @@ type AutoModerationAction struct {
 // Action Types
 // https://discord.com/developers/docs/resources/auto-moderation#auto-moderation-action-object-action-types
 const (
-	FlagActionTypeBLOCK_MESSAGE      Flag = 1
-	FlagActionTypeSEND_ALERT_MESSAGE Flag = 2
-	FlagActionTypeTIMEOUT            Flag = 3
+	FlagActionTypeBLOCK_MESSAGE            Flag = 1
+	FlagActionTypeSEND_ALERT_MESSAGE       Flag = 2
+	FlagActionTypeTIMEOUT                  Flag = 3
+	FlagActionTypeBLOCK_MEMBER_INTERACTION Flag = 4
 )
 
 // Action Metadata
@@ -4266,6 +4867,7 @@ const (
 	FlagChannelTypeGUILD_STAGE_VOICE   Flag = 13
 	FlagChannelTypeGUILD_DIRECTORY     Flag = 14
 	FlagChannelTypeGUILD_FORUM         Flag = 15
+	FlagChannelTypeGUILD_MEDIA         Flag = 16
 )
 
 // Video Quality Modes
@@ -4297,48 +4899,53 @@ const (
 	FlagForumLayoutTypeGALLERY_VIEW Flag = 2
 )
 
+// Followed Channel Structure
+// https://discord.com/developers/docs/resources/channel#followed-channel-object-followed-channel-structure
+type FollowedChannel struct {
+	ChannelID string `json:"channel_id"`
+	WebhookID string `json:"webhook_id"`
+}
+
 // Message Object
 // https://discord.com/developers/docs/resources/channel#message-object
 type Message struct {
-	Timestamp         time.Time    `json:"timestamp"`
-	Interaction       *Interaction `json:"interaction"`
-	ReferencedMessage **Message    `json:"referenced_message,omitempty"`
-
-	// MessageCreate Event Extra Field
-	// https://discord.com/developers/docs/topics/gateway-events#message-create
-	GuildID          *string           `json:"guild_id,omitempty"`
-	WebhookID        *string           `json:"webhook_id,omitempty"`
-	EditedTimestamp  *time.Time        `json:"edited_timestamp"`
-	Position         *int              `json:"position,omitempty"`
-	Thread           *Channel          `json:"thread"`
-	Author           *User             `json:"author"`
-	Flags            *BitFlag          `json:"flags,omitempty"`
-	MessageReference *MessageReference `json:"message_reference,omitempty"`
-	ApplicationID    *string           `json:"application_id,omitempty"`
-	Application      *Application      `json:"application,omitempty"`
-	Activity         *MessageActivity  `json:"activity,omitempty"`
-	Nonce            *Nonce            `json:"nonce,omitempty"`
-
-	// MessageCreate Event Extra Field
-	// https://discord.com/developers/docs/topics/gateway-events#message-create
-	Member               *GuildMember          `json:"member,omitempty"`
-	RoleSubscriptionData *RoleSubscriptionData `json:"role_subscription_data,omitempty"`
-	ChannelID            string                `json:"channel_id"`
-	ID                   string                `json:"id"`
-	Content              string                `json:"content"`
-	Attachments          []*Attachment         `json:"attachments"`
-	MentionChannels      []*ChannelMention     `json:"mention_channels,omitempty"`
-	MentionRoles         []*string             `json:"mention_roles"`
-	Components           []Component           `json:"components"`
-	Reactions            []*Reaction           `json:"reactions,omitempty"`
-	Mentions             []*User               `json:"mentions"`
-	StickerItems         []*StickerItem        `json:"sticker_items"`
-	Stickers             []*Sticker            `json:"stickers"`
-	Embeds               []*Embed              `json:"embeds"`
-	MentionEveryone      bool                  `json:"mention_everyone"`
-	TTS                  bool                  `json:"tts"`
-	Type                 Flag                  `json:"type"`
-	Pinned               bool                  `json:"pinned"`
+	Timestamp            time.Time                           `json:"timestamp"`
+	Thread               *Channel                            `json:"thread"`
+	RoleSubscriptionData *RoleSubscriptionData               `json:"role_subscription_data,omitempty"`
+	Member               *GuildMember                        `json:"member,omitempty"`
+	Activity             *MessageActivity                    `json:"activity,omitempty"`
+	EditedTimestamp      *time.Time                          `json:"edited_timestamp"`
+	GuildID              *string                             `json:"guild_id,omitempty"`
+	Call                 *MessageCall                        `json:"call,omitempty"`
+	Poll                 *Poll                               `json:"poll,omitempty"`
+	Resolved             *ResolvedData                       `json:"resolved,omitempty"`
+	Flags                *BitFlag                            `json:"flags,omitempty"`
+	Position             *int                                `json:"position,omitempty"`
+	Interaction          *MessageInteraction                 `json:"interaction"`
+	ApplicationID        *string                             `json:"application_id,omitempty"`
+	Nonce                *Nonce                              `json:"nonce,omitempty"`
+	ReferencedMessage    **Message                           `json:"referenced_message,omitempty"`
+	WebhookID            *string                             `json:"webhook_id,omitempty"`
+	MessageReference     *MessageReference                   `json:"message_reference,omitempty"`
+	Application          *Application                        `json:"application,omitempty"`
+	Author               *User                               `json:"author"`
+	InteractionMetadata  MessageComponentInteractionMetadata `json:"interaction_metadata,omitempty"`
+	ChannelID            string                              `json:"channel_id"`
+	ID                   string                              `json:"id"`
+	Content              string                              `json:"content"`
+	Components           []Component                         `json:"components"`
+	Reactions            []*Reaction                         `json:"reactions,omitempty"`
+	Embeds               []*Embed                            `json:"embeds"`
+	MessageSnapshots     []*MessageSnapshot                  `json:"message_snapshots,omitempty"`
+	StickerItems         []*StickerItem                      `json:"sticker_items"`
+	Attachments          []*Attachment                       `json:"attachments"`
+	MentionChannels      []*ChannelMention                   `json:"mention_channels,omitempty"`
+	MentionRoles         []*string                           `json:"mention_roles"`
+	Mentions             []*User                             `json:"mentions"`
+	Pinned               bool                                `json:"pinned"`
+	MentionEveryone      bool                                `json:"mention_everyone"`
+	TTS                  bool                                `json:"tts"`
+	Type                 Flag                                `json:"type"`
 }
 
 // Message Types
@@ -4376,6 +4983,12 @@ const (
 	FlagMessageTypeSTAGE_RAISE_HAND                             Flag = 30
 	FlagMessageTypeSTAGE_TOPIC                                  Flag = 31
 	FlagMessageTypeGUILD_APPLICATION_PREMIUM_SUBSCRIPTION       Flag = 32
+	FlagMessageTypeGUILD_INCIDENT_ALERT_MODE_ENABLED            Flag = 36
+	FlagMessageTypeGUILD_INCIDENT_ALERT_MODE_DISABLED           Flag = 37
+	FlagMessageTypeGUILD_INCIDENT_REPORT_RAID                   Flag = 38
+	FlagMessageTypeGUILD_INCIDENT_REPORT_FALSE_ALARM            Flag = 39
+	FlagMessageTypePURCHASE_NOTIFICATION                        Flag = 44
+	FlagMessageTypePOLL_RESULT                                  Flag = 46
 )
 
 // Message Activity Structure
@@ -4408,7 +5021,55 @@ const (
 	FlagMessageFAILED_TO_MENTION_SOME_ROLES_IN_THREAD BitFlag = 1 << 8
 	FlagMessageSUPPRESS_NOTIFICATIONS                 BitFlag = 1 << 12
 	FlagMessageIS_VOICE_MESSAGE                       BitFlag = 1 << 13
+	FlagMessageHAS_SNAPSHOT                           BitFlag = 1 << 14
 )
+
+// Message Interaction Metadata Object
+// https://discord.com/developers/docs/resources/message#message-interaction-metadata-object
+type MessageInteractionMetadata interface {
+	MessageInteractionMetadata() Flag
+}
+
+// Application Command Interaction Metadata Structure
+// https://discord.com/developers/docs/resources/message#message-interaction-metadata-object-application-command-interaction-metadata-structure
+type ApplicationCommandInteractionMetadata struct {
+	User                         *User           `json:"user"`
+	AuthorizingIntegrationOwners map[Flag]string `json:"authorizing_integration_owners"`
+	OriginalResponseMessageID    *string         `json:"original_response_message_id,omitempty"`
+	TargetUser                   *User           `json:"target_user,omitempty"`
+	TargetMessageID              *string         `json:"target_message_id,omitempty"`
+	ID                           string          `json:"id"`
+	Type                         Flag            `json:"type"`
+}
+
+// Message Component Interaction Metadata Structure
+// https://discord.com/developers/docs/resources/message#message-interaction-metadata-object-message-component-interaction-metadata-structure
+type MessageComponentInteractionMetadata struct {
+	User                         *User           `json:"user"`
+	AuthorizingIntegrationOwners map[Flag]string `json:"authorizing_integration_owners"`
+	OriginalResponseMessageID    *string         `json:"original_response_message_id,omitempty"`
+	ID                           string          `json:"id"`
+	InteractedMessageID          string          `json:"interacted_message_id"`
+	Type                         Flag            `json:"type"`
+}
+
+// Modal Submit Interaction Metadata Structure
+// https://discord.com/developers/docs/resources/message#message-interaction-metadata-object-modal-submit-interaction-metadata-structure
+type ModalSubmitInteractionMetadata struct {
+	TriggeringInteractionMetadata MessageInteractionMetadata `json:"triggering_interaction_metadata"`
+	User                          *User                      `json:"user"`
+	AuthorizingIntegrationOwners  map[Flag]string            `json:"authorizing_integration_owners"`
+	OriginalResponseMessageID     *string                    `json:"original_response_message_id,omitempty"`
+	ID                            string                     `json:"id"`
+	Type                          Flag                       `json:"type"`
+}
+
+// Message Call Object Structure
+// https://discord.com/developers/docs/resources/message#message-call-object
+type MessageCall struct {
+	EndedTimestamp **time.Time `json:"ended_timestamp,omitempty"`
+	Participants   []string    `json:"participants"`
+}
 
 // Message Reference Object
 // https://discord.com/developers/docs/resources/channel#message-reference-object
@@ -4417,21 +5078,38 @@ type MessageReference struct {
 	ChannelID       *string `json:"channel_id,omitempty"`
 	GuildID         *string `json:"guild_id,omitempty"`
 	FailIfNotExists *bool   `json:"fail_if_not_exists,omitempty"`
+	Type            Flag    `json:"type"`
 }
 
-// Followed Channel Structure
-// https://discord.com/developers/docs/resources/channel#followed-channel-object-followed-channel-structure
-type FollowedChannel struct {
-	ChannelID string `json:"channel_id"`
-	WebhookID string `json:"webhook_id"`
+// Message Reference Types
+// https://discord.com/developers/docs/resources/message#message-reference-types
+const (
+	FlagMessageReferenceTypeDEFAULT Flag = 0
+	FlagMessageReferenceTypeFORWARD Flag = 1
+)
+
+// Message Snapshot Structure
+// https://discord.com/developers/docs/resources/message#message-snapshot-structure
+type MessageSnapshot struct {
+	Message *Message `json:"message"`
 }
 
 // Reaction Object
 // https://discord.com/developers/docs/resources/channel#reaction-object
 type Reaction struct {
-	Emoji *Emoji `json:"emoji"`
-	Count int    `json:"count"`
-	Me    bool   `json:"me"`
+	CountDetails *ReactionCountDetails `json:"count_details"`
+	Emoji        *Emoji                `json:"emoji"`
+	BurstColors  []string              `json:"burst_colors"`
+	Count        int                   `json:"count"`
+	Me           bool                  `json:"me"`
+	MeBurst      bool                  `json:"me_burst"`
+}
+
+// Reaction Count Details Structure
+// https://discord.com/developers/docs/resources/message#reaction-count-details-object-reaction-count-details-structure
+type ReactionCountDetails struct {
+	Burst  int `json:"burst"`
+	Normal int `json:"normal"`
 }
 
 // Overwrite Object
@@ -4570,21 +5248,22 @@ const (
 	FlagEmbedLimitAuthorName  = 256
 )
 
-// Message Attachment Object
-// https://discord.com/developers/docs/resources/channel#attachment-object-attachment-structure
+// Attachment Object
+// https://discord.com/developers/docs/resources/message#attachment-object-attachment-structure
 type Attachment struct {
-	Emphemeral      *bool    `json:"ephemeral,omitempty"`
+	Width           **int    `json:"width,omitempty"`
+	Height          **int    `json:"height,omitempty"`
+	Title           *string  `json:"title,omitempty"`
 	Description     *string  `json:"description,omitempty"`
 	ContentType     *string  `json:"content_type,omitempty"`
-	Height          **int    `json:"height,omitempty"`
-	Width           **int    `json:"width,omitempty"`
-	DurationSeconds *float64 `json:"duration_secs,omitempty"`
-	Waveform        *string  `json:"waveform,omitempty"`
 	Flags           *BitFlag `json:"flags,omitempty"`
-	Filename        string   `json:"filename"`
-	URL             string   `json:"url"`
-	ProxyURL        string   `json:"proxy_url"`
+	Waveform        *string  `json:"waveform,omitempty"`
+	DurationSeconds *float64 `json:"duration_secs,omitempty"`
+	Emphemeral      *bool    `json:"ephemeral,omitempty"`
 	ID              string   `json:"id"`
+	ProxyURL        string   `json:"proxy_url"`
+	URL             string   `json:"url"`
+	Filename        string   `json:"filename"`
 	Size            int      `json:"size"`
 }
 
@@ -4629,6 +5308,110 @@ type RoleSubscriptionData struct {
 	IsRenewal                 bool   `json:"is_renewal"`
 }
 
+// Reaction Types
+// https://discord.com/developers/docs/resources/message#get-reactions-reaction-types
+const (
+	FlagReactionTypeNORMAL = 0
+	FlagReactionTypeBURST  = 1
+)
+
+// Poll
+// https://discord.com/developers/docs/resources/poll
+type Poll struct {
+	Question         *PollMedia    `json:"question"`
+	Expiry           *time.Time    `json:"expiry"`
+	Results          *PollResults  `json:"results,omitempty"`
+	Answers          []*PollAnswer `json:"answers"`
+	LayoutType       int           `json:"layout_type"`
+	AllowMultiselect bool          `json:"allow_multiselect"`
+}
+
+// Poll Create Request Object Structure
+// https://discord.com/developers/docs/resources/poll#poll-create-request-object-poll-create-request-object-structure
+type PollCreateRequest struct {
+	Question         *PollMedia    `json:"question"`
+	Duration         *int          `json:"expiry,omitempty"`
+	AllowMultiselect *bool         `json:"allow_multiselect,omitempty"`
+	LayoutType       *int          `json:"layout_type,omitempty"`
+	Answers          []*PollAnswer `json:"answers"`
+}
+
+// Poll Layout Types
+// https://discord.com/developers/docs/resources/poll#layout-type
+const (
+	FlagPollLayoutTypeDEFAULT Flag = 1
+)
+
+// Poll Media Object Structure
+// https://discord.com/developers/docs/resources/poll#layout-type
+type PollMedia struct {
+	Text  *string `json:"text,omitempty"`
+	Emoji *Emoji  `json:"emoji,omitempty"`
+}
+
+// Poll Answer Object Structure
+// https://discord.com/developers/docs/resources/poll#poll-answer-object-poll-answer-object-structure
+type PollAnswer struct {
+	PollMedia *PollMedia `json:"poll_media"`
+	AnswerID  int        `json:"answer_id"`
+}
+
+// Poll Results Object Structure
+// https://discord.com/developers/docs/resources/poll#poll-results-object-poll-results-object-structure
+type PollResults struct {
+	AnswerCounts []*PollAnswerCount `json:"answer_counts"`
+	IsFinalized  bool               `json:"is_finalized"`
+}
+
+// Poll Answer Count Object Structure
+// https://discord.com/developers/docs/resources/poll#poll-results-object-poll-answer-count-object-structure
+type PollAnswerCount struct {
+	ID      int  `json:"id"`
+	Count   int  `json:"count"`
+	MeVoted bool `json:"me_voted"`
+}
+
+// SKU Structure
+// https://discord.com/developers/docs/resources/sku#sku-object-sku-structure
+type SKU struct {
+	ID            string  `json:"id"`
+	ApplicationID string  `json:"application_id"`
+	Name          string  `json:"name"`
+	Slug          string  `json:"slug"`
+	Flags         BitFlag `json:"flags"`
+	Type          Flag    `json:"type"`
+}
+
+// SKU Types
+// https://discord.com/developers/docs/resources/sku#sku-object-sku-types
+const (
+	FlagSKUTypeDURABLE            Flag = 2
+	FlagSKUTypeCONSUMABLE         Flag = 3
+	FlagSKUTypeSUBSCRIPTION       Flag = 5
+	FlagSKUTypeSUBSCRIPTION_GROUP Flag = 6
+)
+
+// SKU Flags
+// https://discord.com/developers/docs/resources/sku#sku-object-sku-flags
+const (
+	FlagSKUFlagAVAILABLE          BitFlag = 1 << 2
+	FlagSKUFlagGUILD_SUBSCRIPTION BitFlag = 1 << 7
+	FlagSKUFlagUSER_SUBSCRIPTION  BitFlag = 1 << 8
+)
+
+// Soundboard Sound Structure
+// https://discord.com/developers/docs/resources/soundboard#soundboard-sound-object-soundboard-sound-structure
+type SoundboardSound struct {
+	EmojiID   *string `json:"emoji_id"`
+	EmojiName *string `json:"emoji_name"`
+	GuildID   *string `json:"guild_id,omitempty"`
+	User      *User   `json:"user,omitempty"`
+	Name      string  `json:"name"`
+	SoundID   string  `json:"sound_id"`
+	Volume    float64 `json:"volume"`
+	Available bool    `json:"available"`
+}
+
 // Emoji Object
 // https://discord.com/developers/docs/resources/emoji#emoji-object-emoji-structure
 type Emoji struct {
@@ -4642,56 +5425,80 @@ type Emoji struct {
 	Roles         []string `json:"roles,omitempty"`
 }
 
+// Entitlement Structure
+// https://discord.com/developers/docs/resources/entitlement#entitlement-object-entitlement-structure
+type Entitlement struct {
+	UserID        *string    `json:"user_id,omitempty"`
+	StartsAt      *time.Time `json:"starts_at"`
+	EndsAt        *time.Time `json:"ends_at"`
+	GuildID       *string    `json:"guild_id,omitempty"`
+	Consumed      *bool      `json:"consumed,omitempty"`
+	ID            string     `json:"id"`
+	SKUID         string     `json:"sku_id"`
+	ApplicationID string     `json:"application_id"`
+	Type          Flag       `json:"type"`
+	Deleted       bool       `json:"deleted"`
+}
+
+// Entitlement Types
+// https://discord.com/developers/docs/resources/entitlement#entitlement-object-entitlement-types
+const (
+	FlagEntitlementTypePURCHASE                 Flag = 1
+	FlagEntitlementTypePREMIUM_SUBSCRIPTION     Flag = 2
+	FlagEntitlementTypeDEVELOPER_GIFT           Flag = 3
+	FlagEntitlementTypeTEST_MODE_PURCHASE       Flag = 4
+	FlagEntitlementTypeFREE_PURCHASE            Flag = 5
+	FlagEntitlementTypeUSER_GIFT                Flag = 6
+	FlagEntitlementTypePREMIUM_PURCHASE         Flag = 7
+	FlagEntitlementTypeAPPLICATION_SUBSCRIPTION Flag = 8
+)
+
 // Guild Object
 // https://discord.com/developers/docs/resources/guild#guild-object
 type Guild struct {
-	PublicUpdatesChannelID   *string `json:"public_updates_channel_id"`
-	PremiumSubscriptionCount *int    `json:"premium_subscription_count,omitempty"`
-	Icon                     *string `json:"icon"`
-	ApplicationID            *string `json:"application_id"`
-	Splash                   *string `json:"splash"`
-	DiscoverySplash          *string `json:"discovery_splash"`
-	Owner                    *bool   `json:"owner,omitempty"`
-
-	// Unavailable Guild Object
-	// https://discord.com/developers/docs/resources/guild#unavailable-guild-object
+	PremiumSubscriptionCount    *int           `json:"premium_subscription_count,omitempty"`
+	IconHash                    **string       `json:"icon_hash,omitempty"`
+	Icon                        *string        `json:"icon"`
+	SystemChannelID             *string        `json:"system_channel_id"`
+	Splash                      *string        `json:"splash"`
+	DiscoverySplash             *string        `json:"discovery_splash"`
+	Owner                       *bool          `json:"owner,omitempty"`
 	Unavailable                 *bool          `json:"unavailable,omitempty"`
 	Permissions                 *string        `json:"permissions,omitempty"`
-	Region                      **string       `json:"region,omitempty"`
-	SafetyAlertsChannelID       *string        `json:"safety_alerts_channel_id"`
-	WelcomeScreen               *WelcomeScreen `json:"welcome_screen,omitempty"`
-	SystemChannelID             *string        `json:"system_channel_id"`
+	AfkChannelID                *string        `json:"afk_channel_id"`
+	ApplicationID               *string        `json:"application_id"`
+	WidgetEnabled               *bool          `json:"widget_enabled,omitempty"`
 	WidgetChannelID             **string       `json:"widget_channel_id,omitempty"`
+	WelcomeScreen               *WelcomeScreen `json:"welcome_screen,omitempty"`
 	ApproximatePresenceCount    *int           `json:"approximate_presence_count,omitempty"`
 	ApproximateMemberCount      *int           `json:"approximate_member_count,omitempty"`
 	MaxStageVideoChannelUsers   *int           `json:"max_stage_video_channel_users,omitempty"`
 	MaxVideoChannelUsers        *int           `json:"max_video_channel_users,omitempty"`
+	PublicUpdatesChannelID      *string        `json:"public_updates_channel_id"`
 	Banner                      *string        `json:"banner"`
+	SafetyAlertsChannelID       *string        `json:"safety_alerts_channel_id"`
 	Description                 *string        `json:"description"`
-	AfkChannelID                *string        `json:"afk_channel_id"`
-	IconHash                    **string       `json:"icon_hash,omitempty"`
-	WidgetEnabled               *bool          `json:"widget_enabled,omitempty"`
 	VanityUrl                   *string        `json:"vanity_url_code"`
 	RulesChannelID              *string        `json:"rules_channel_id"`
 	MaxPresences                **int          `json:"max_presences,omitempty"`
 	MaxMembers                  *int           `json:"max_members,omitempty"`
 	Name                        string         `json:"name"`
-	OwnerID                     string         `json:"owner_id"`
 	ID                          string         `json:"id"`
+	OwnerID                     string         `json:"owner_id"`
 	PreferredLocale             string         `json:"preferred_locale"`
-	Features                    []*string      `json:"features"`
-	Emojis                      []*Emoji       `json:"emojis"`
-	Stickers                    []*Sticker     `json:"stickers,omitempty"`
 	Roles                       []*Role        `json:"roles"`
-	SystemChannelFlags          BitFlag        `json:"system_channel_flags"`
+	Emojis                      []*Emoji       `json:"emojis"`
+	Features                    []*string      `json:"features"`
+	Stickers                    []*Sticker     `json:"stickers,omitempty"`
 	AfkTimeout                  int            `json:"afk_timeout"`
-	PremiumTier                 Flag           `json:"premium_tier"`
+	SystemChannelFlags          BitFlag        `json:"system_channel_flags"`
 	DefaultMessageNotifications Flag           `json:"default_message_notifications"`
-	ExplicitContentFilter       Flag           `json:"explicit_content_filter"`
-	VerificationLevel           Flag           `json:"verification_level"`
-	NSFWLevel                   Flag           `json:"nsfw_level"`
-	PremiumProgressBarEnabled   bool           `json:"premium_progress_bar_enabled"`
 	MFALevel                    Flag           `json:"mfa_level"`
+	NSFWLevel                   Flag           `json:"nsfw_level"`
+	VerificationLevel           Flag           `json:"verification_level"`
+	PremiumProgressBarEnabled   bool           `json:"premium_progress_bar_enabled"`
+	ExplicitContentFilter       Flag           `json:"explicit_content_filter"`
+	PremiumTier                 Flag           `json:"premium_tier"`
 }
 
 // Default Message Notification Level
@@ -4835,27 +5642,34 @@ type GuildWidget struct {
 // Guild Member Object
 // https://discord.com/developers/docs/resources/guild#guild-member-object
 type GuildMember struct {
-	JoinedAt                   time.Time   `json:"joined_at"`
-	User                       *User       `json:"user,omitempty"`
-	Nick                       **string    `json:"nick,omitempty"`
-	Avatar                     **string    `json:"avatar,omitempty"`
-	PremiumSince               **time.Time `json:"premium_since,omitempty"`
-	Pending                    *bool       `json:"pending,omitempty"`
-	Permissions                *string     `json:"permissions,omitempty"`
-	CommunicationDisabledUntil **time.Time `json:"communication_disabled_until,omitempty"`
-	Roles                      []*string   `json:"roles"`
-	Flags                      BitFlag     `json:"flags"`
-	Deaf                       bool        `json:"deaf"`
-	Mute                       bool        `json:"mute"`
+	JoinedAt                   time.Time              `json:"joined_at"`
+	PremiumSince               **time.Time            `json:"premium_since,omitempty"`
+	Avatar                     **string               `json:"avatar,omitempty"`
+	Banner                     **string               `json:"banner,omitempty"`
+	Nick                       **string               `json:"nick,omitempty"`
+	User                       *User                  `json:"user,omitempty"`
+	Pending                    *bool                  `json:"pending,omitempty"`
+	Permissions                *string                `json:"permissions,omitempty"`
+	CommunicationDisabledUntil **time.Time            `json:"communication_disabled_until,omitempty"`
+	AvatarDecorationData       **AvatarDecorationData `json:"avatar_decoration_data,omitempty"`
+	Roles                      []*string              `json:"roles"`
+	Flags                      BitFlag                `json:"flags"`
+	Deaf                       bool                   `json:"deaf"`
+	Mute                       bool                   `json:"mute"`
 }
 
 // Guild Member Flags
 // https://discord.com/developers/docs/resources/guild#guild-member-object-guild-member-flags
 const (
-	FlagGuildMemberDID_REJOIN            BitFlag = 1 << 0
-	FlagGuildMemberCOMPLETED_ONBOARDING  BitFlag = 1 << 1
-	FlagGuildMemberBYPASSES_VERIFICATION BitFlag = 1 << 2
-	FlagGuildMemberSTARTED_ONBOARDING    BitFlag = 1 << 3
+	FlagGuildMemberDID_REJOIN                      BitFlag = 1 << 0
+	FlagGuildMemberCOMPLETED_ONBOARDING            BitFlag = 1 << 1
+	FlagGuildMemberBYPASSES_VERIFICATION           BitFlag = 1 << 2
+	FlagGuildMemberSTARTED_ONBOARDING              BitFlag = 1 << 3
+	FlagGuildMemberIS_GUEST                        BitFlag = 1 << 4
+	FlagGuildMemberSTARTED_HOME_ACTIONS            BitFlag = 1 << 5
+	FlagGuildMemberCOMPLETED_HOME_ACTIONS          BitFlag = 1 << 6
+	FlagGuildMemberAUTOMOD_QUARANTINED_USERNAME    BitFlag = 1 << 7
+	FlagGuildMemberDM_SETTINGS_UPSELL_ACKNOWLEDGED BitFlag = 1 << 9
 )
 
 // Integration Object
@@ -4951,12 +5765,15 @@ type OnboardingPrompt struct {
 // Prompt Option Structure
 // https://discord.com/developers/docs/resources/guild#guild-onboarding-object-prompt-option-structure
 type PromptOption struct {
-	Description *string  `json:"description"`
-	ID          string   `json:"id"`
-	Title       string   `json:"title"`
-	ChannelIDs  []string `json:"channel_ids"`
-	RoleIDs     []string `json:"role_ids"`
-	Emoji       []*Emoji `json:"emoji"`
+	EmojiID       *string  `json:"emoji_id,omitempty"`
+	EmojiName     *string  `json:"emoji_name,omitempty"`
+	EmojiAnimated *bool    `json:"emoji_animated,omitempty"`
+	Description   *string  `json:"description"`
+	ID            string   `json:"id"`
+	Title         string   `json:"title"`
+	ChannelIDs    []string `json:"channel_ids"`
+	RoleIDs       []string `json:"role_ids"`
+	Emoji         []*Emoji `json:"emoji"`
 }
 
 // Onboarding Mode
@@ -4978,12 +5795,13 @@ const (
 type GuildScheduledEvent struct {
 	ScheduledStartTime time.Time                          `json:"scheduled_start_time"`
 	EntityID           *string                            `json:"entity_id"`
-	Image              **string                           `json:"image,omitempty"`
+	RecurrenceRule     *GuildScheduledEventRecurrenceRule `json:"recurrence_rule"`
 	ChannelID          *string                            `json:"channel_id"`
 	CreatorID          **string                           `json:"creator_id,omitempty"`
-	UserCount          *int                               `json:"user_count,omitempty"`
+	Image              **string                           `json:"image,omitempty"`
 	Description        **string                           `json:"description,omitempty"`
 	ScheduledEndTime   *time.Time                         `json:"scheduled_end_time"`
+	UserCount          *int                               `json:"user_count,omitempty"`
 	Creator            *User                              `json:"creator,omitempty"`
 	EntityMetadata     *GuildScheduledEventEntityMetadata `json:"entity_metadata"`
 	Name               string                             `json:"name"`
@@ -5031,6 +5849,66 @@ type GuildScheduledEventUser struct {
 	GuildScheduledEventID string       `json:"guild_scheduled_event_id"`
 }
 
+// Guild Scheduled Event Recurrence Rule Structure
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-structure
+type GuildScheduledEventRecurrenceRule struct {
+	Start      time.Time                                    `json:"start"`
+	End        *time.Time                                   `json:"end"`
+	Count      *int                                         `json:"count"`
+	ByWeekday  []Flag                                       `json:"by_weekday"`
+	ByNWeekday []*GuildScheduledEventRecurrenceRuleNWeekday `json:"by_n_weekday"`
+	ByMonth    []Flag                                       `json:"by_month"`
+	ByMonthDay []int                                        `json:"by_month_day"`
+	ByYearDay  []int                                        `json:"by_year_day"`
+	Interval   int                                          `json:"interval"`
+	Frequency  Flag                                         `json:"frequency"`
+}
+
+// Guild Scheduled Event Recurrence Rule - Frequency
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-frequency
+const (
+	FlagGuildScheduledEventRecurrenceRuleFrequencyYEARLY  Flag = 0
+	FlagGuildScheduledEventRecurrenceRuleFrequencyMONTHLY Flag = 1
+	FlagGuildScheduledEventRecurrenceRuleFrequencyWEEKLY  Flag = 2
+	FlagGuildScheduledEventRecurrenceRuleFrequencyDAILY   Flag = 3
+)
+
+// Guild Scheduled Event Recurrence Rule - Weekday
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-weekday
+const (
+	FlagGuildScheduledEventRecurrenceRuleWeekdayMONDAY    Flag = 0
+	FlagGuildScheduledEventRecurrenceRuleWeekdayTUESDAY   Flag = 1
+	FlagGuildScheduledEventRecurrenceRuleWeekdayWEDNESDAY Flag = 2
+	FlagGuildScheduledEventRecurrenceRuleWeekdayTHURSDAY  Flag = 3
+	FlagGuildScheduledEventRecurrenceRuleWeekdayFRIDAY    Flag = 4
+	FlagGuildScheduledEventRecurrenceRuleWeekdaySATURDAY  Flag = 5
+	FlagGuildScheduledEventRecurrenceRuleWeekdaySUNDAY    Flag = 6
+)
+
+// Guild Scheduled Event Recurrence Rule - N_Weekday Structure
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-weekday
+type GuildScheduledEventRecurrenceRuleNWeekday struct {
+	N   int  `json:"n"`
+	Day Flag `json:"day"`
+}
+
+// Guild Scheduled Event Recurrence Rule - Month
+// https://discord.com/developers/docs/resources/guild-scheduled-event#guild-scheduled-event-recurrence-rule-object-guild-scheduled-event-recurrence-rule-month
+const (
+	FlagGuildScheduledEventRecurrenceRuleJANUARY   Flag = 1
+	FlagGuildScheduledEventRecurrenceRuleFEBRUARY  Flag = 2
+	FlagGuildScheduledEventRecurrenceRuleMARCH     Flag = 3
+	FlagGuildScheduledEventRecurrenceRuleAPRIL     Flag = 4
+	FlagGuildScheduledEventRecurrenceRuleMAY       Flag = 5
+	FlagGuildScheduledEventRecurrenceRuleJUNE      Flag = 6
+	FlagGuildScheduledEventRecurrenceRuleJULY      Flag = 7
+	FlagGuildScheduledEventRecurrenceRuleAUGUST    Flag = 8
+	FlagGuildScheduledEventRecurrenceRuleSEPTEMBER Flag = 9
+	FlagGuildScheduledEventRecurrenceRuleOCTOBER   Flag = 10
+	FlagGuildScheduledEventRecurrenceRuleNOVEMBER  Flag = 11
+	FlagGuildScheduledEventRecurrenceRuleDECEMBER  Flag = 12
+)
+
 // Guild Template Object
 // https://discord.com/developers/docs/resources/guild-template#guild-template-object
 type GuildTemplate struct {
@@ -5061,7 +5939,16 @@ type Invite struct {
 	ExpiresAt                **time.Time          `json:"expires_at,omitempty"`
 	GuildScheduledEvent      *GuildScheduledEvent `json:"guild_scheduled_event,omitempty"`
 	Code                     string               `json:"code"`
+	Type                     Flag                 `json:"type"`
 }
+
+// Invite Types
+// https://discord.com/developers/docs/resources/invite#invite-object-invite-types
+const (
+	FlagInviteTypesGUILD    Flag = 0
+	FlagInviteTypesGROUP_DM Flag = 1
+	FlagInviteTypesFRIEND   Flag = 2
+)
 
 // Invite Target Types
 // https://discord.com/developers/docs/resources/invite#invite-object-invite-target-types
@@ -5103,7 +5990,6 @@ const (
 type Sticker struct {
 	PackID      *string `json:"pack_id,omitempty"`
 	Description *string `json:"description"`
-	Asset       *string `json:"asset,omitempty"`
 	Available   *bool   `json:"available,omitempty"`
 	GuildID     *string `json:"guild_id,omitempty"`
 	User        *User   `json:"user,omitempty"`
@@ -5150,26 +6036,49 @@ type StickerPack struct {
 	Stickers       []*Sticker `json:"stickers"`
 }
 
+// Subscription Object
+// https://discord.com/developers/docs/resources/subscription#subscription-object
+type Subscription struct {
+	CurrentPeriodStart time.Time  `json:"current_period_start"`
+	CurrentPeriodEnd   time.Time  `json:"current_period_end"`
+	CanceledAt         *time.Time `json:"canceled_at"`
+	Country            *string    `json:"country,omitempty"`
+	ID                 string     `json:"id"`
+	UserID             string     `json:"user_id"`
+	SKUIDs             []string   `json:"sku_ids"`
+	EntitlementIDs     []string   `json:"entitlement_ids"`
+	RenewalSKUIDs      []string   `json:"renewal_sku_ids"`
+	Status             Flag       `json:"status"`
+}
+
+// Subscription Statuses
+// https://discord.com/developers/docs/resources/subscription#subscription-statuses
+const (
+	FlagSubscriptionStatusACTIVE   Flag = 0
+	FlagSubscriptionStatusENDING   Flag = 1
+	FlagSubscriptionStatusINACTIVE Flag = 2
+)
+
 // User Object
 // https://discord.com/developers/docs/resources/user#user-object
 type User struct {
-	Banner           **string `json:"banner,omitempty"`
-	Avatar           *string  `json:"avatar"`
-	AvatarDecoration **string `json:"avatar_decoration,omitempty"`
-	GlobalName       *string  `json:"global_name"`
-	AccentColor      **int    `json:"accent_color,omitempty"`
-	Bot              *bool    `json:"bot,omitempty"`
-	System           *bool    `json:"system,omitempty"`
-	Locale           *string  `json:"locale,omitempty"`
-	PublicFlags      *BitFlag `json:"public_flag,omitempty"`
-	PremiumType      *Flag    `json:"premium_type,omitempty"`
-	MFAEnabled       *bool    `json:"mfa_enabled,omitempty"`
-	Verified         *bool    `json:"verified,omitempty"`
-	Email            **string `json:"email,omitempty"`
-	Flags            *BitFlag `json:"flag,omitempty"`
-	Username         string   `json:"username"`
-	Discriminator    string   `json:"discriminator"`
-	ID               string   `json:"id"`
+	Banner           **string               `json:"banner,omitempty"`
+	Avatar           *string                `json:"avatar"`
+	AvatarDecoration **AvatarDecorationData `json:"avatar_decoration,omitempty"`
+	GlobalName       *string                `json:"global_name"`
+	AccentColor      **int                  `json:"accent_color,omitempty"`
+	Bot              *bool                  `json:"bot,omitempty"`
+	System           *bool                  `json:"system,omitempty"`
+	Locale           *string                `json:"locale,omitempty"`
+	PublicFlags      *BitFlag               `json:"public_flag,omitempty"`
+	PremiumType      *Flag                  `json:"premium_type,omitempty"`
+	MFAEnabled       *bool                  `json:"mfa_enabled,omitempty"`
+	Verified         *bool                  `json:"verified,omitempty"`
+	Email            **string               `json:"email,omitempty"`
+	Flags            *BitFlag               `json:"flag,omitempty"`
+	Username         string                 `json:"username"`
+	Discriminator    string                 `json:"discriminator"`
+	ID               string                 `json:"id"`
 }
 
 // User Flags
@@ -5201,6 +6110,13 @@ const (
 	FlagPremiumTypeNITRO        Flag = 2
 	FlagPremiumTypeNITROBASIC   Flag = 3
 )
+
+// Avatar Decoration Data Structure
+// https://discord.com/developers/docs/resources/user#avatar-decoration-data-object-avatar-decoration-data-structure
+type AvatarDecorationData struct {
+	Asset string `json:"asset"`
+	SKUID string `json:"sku_id"`
+}
 
 // User Connection Object
 // https://discord.com/developers/docs/resources/user#connection-object-connection-structure
@@ -5331,8 +6247,12 @@ const (
 	FlagBitwisePermissionMODERATE_MEMBERS                    BitFlag = 1 << 40
 	FlagBitwisePermissionVIEW_CREATOR_MONETIZATION_ANALYTICS BitFlag = 1 << 41
 	FlagBitwisePermissionUSE_SOUNDBOARD                      BitFlag = 1 << 42
+	FlagBitwisePermissionCREATE_GUILD_EXPRESSIONS            BitFlag = 1 << 43
+	FlagBitwisePermissionCREATE_EVENTS                       BitFlag = 1 << 44
 	FlagBitwisePermissionUSE_EXTERNAL_SOUNDS                 BitFlag = 1 << 45
 	FlagBitwisePermissionSEND_VOICE_MESSAGES                 BitFlag = 1 << 46
+	FlagBitwisePermissionSEND_POLLS                          BitFlag = 1 << 49
+	FlagBitwisePermissionUSE_EXTERNAL_APPS                   BitFlag = 1 << 50
 )
 
 // Permission Overwrite Types
@@ -5375,6 +6295,15 @@ const (
 	IN_PROMPT BitFlag = 1 << 0
 )
 
+// Team Member Role Types
+// https://discord.com/developers/docs/topics/teams#team-member-roles-team-member-role-types
+const (
+	FlagTeamMemberRoleTypeOwner     = ""
+	FlagTeamMemberRoleTypeAdmin     = "admin"
+	FlagTeamMemberRoleTypeDeveloper = "developer"
+	FlagTeamMemberRoleTypeReadOnly  = "read_only"
+)
+
 // Team Object
 // https://discord.com/developers/docs/topics/teams#data-models-team-object
 type Team struct {
@@ -5389,10 +6318,10 @@ type Team struct {
 // Team Member Object
 // https://discord.com/developers/docs/topics/teams#data-models-team-member-object
 type TeamMember struct {
-	User            *User    `json:"user"`
-	TeamID          string   `json:"team_id"`
-	Permissions     []string `json:"permissions"`
-	MembershipState Flag     `json:"membership_state"`
+	User            *User  `json:"user"`
+	TeamID          string `json:"team_id"`
+	Role            string `json:"role"`
+	MembershipState Flag   `json:"membership_state"`
 }
 
 // Membership State Enum
@@ -5501,6 +6430,13 @@ const (
 	FlagActivityEMBEDDED                    BitFlag = 1 << 8
 )
 
+// Animation Types
+// https://discord.com/developers/docs/events/gateway-events#voice-channel-effect-send-animation-types
+const (
+	FlagAnimationTypePREMIUM Flag = 0
+	FlagAnimationTypeBASIC   Flag = 1
+)
+
 // OAuth2 Scopes
 // https://discord.com/developers/docs/topics/oauth2#shared-resources-oauth2-scopes
 const (
@@ -5558,6 +6494,12 @@ type ListJoinedPrivateArchivedThreadsResponse struct {
 	HasMore bool            `json:"has_more"`
 }
 
+// List Application Emojis Response
+// https://discord.com/developers/docs/resources/emoji#list-application-emojis
+type ListApplicationEmojisResponse struct {
+	Items []*Emoji `json:"items"`
+}
+
 // List Active Guild Threads Response Body
 // https://discord.com/developers/docs/resources/guild#list-active-guild-threads-response-body
 type ListActiveGuildThreadsResponse struct {
@@ -5577,9 +6519,21 @@ type ModifyGuildMFALevelResponse struct {
 	Level Flag `json:"level"`
 }
 
-// List Nitro Sticker Packs Response
-// https://discord.com/developers/docs/resources/sticker#list-nitro-sticker-packs
-type ListNitroStickerPacksResponse struct {
+// Get Answer Voters Response
+// https://discord.com/developers/docs/resources/poll#get-answer-voters-response-body
+type GetAnswerVotersResponse struct {
+	Users []*User `json:"users"`
+}
+
+// List Guild Soundboard Sounds Response
+// https://discord.com/developers/docs/resources/soundboard#list-guild-soundboard-sounds-response-structure
+type ListGuildSoundboardSoundsResponse struct {
+	Items []*SoundboardSound `json:"items"`
+}
+
+// List Sticker Packs Response
+// https://discord.com/developers/docs/resources/sticker#list-sticker-packs-response-structure
+type ListStickerPacksResponse struct {
 	StickerPacks []*StickerPack `json:"sticker_packs"`
 }
 
@@ -5666,6 +6620,145 @@ type ExtendedBotAuthorizationAccessTokenResponse struct {
 	Scope        string        `json:"scope,omitempty"`
 	RefreshToken string        `json:"refresh_token,omitempty"`
 	ExpiresIn    time.Duration `json:"expires_in,omitempty"`
+}
+
+// Voice Payload Structure
+// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-websocket-connection
+type VoicePayload struct {
+	Data json.RawMessage `json:"d"`
+	Op   int             `json:"op"`
+}
+
+// Voice Server Opcode (Event) Names
+// https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-opcodes
+const (
+	FlagVoiceOpcodeNameIdentify           = "IDENTIFY"
+	FlagVoiceOpcodeNameSelectProtocol     = "SELECT_PROTOCOL"
+	FlagVoiceOpcodeNameReady              = "READY"
+	FlagVoiceOpcodeNameHeartbeat          = "HEARTBEAT"
+	FlagVoiceOpcodeNameSessionDescription = "SESSION_DESCRIPTION"
+	FlagVoiceOpcodeNameSpeaking           = "SPEAKING"
+	FlagVoiceOpcodeNameResume             = "RESUME"
+	FlagVoiceOpcodeNameHello              = "HELLO"
+	FlagVoiceOpcodeNameResumed            = "RESUMED"
+	FlagVoiceOpcodeNameClientDisconnect   = "CLIENT_DISCONNECT"
+)
+
+// Voice Server SendEvent Names
+// https://discord.com/developers/docs/topics/opcodes-and-status-codes#voice-voice-opcodes
+const (
+	FlagVoiceSendEventNameIdentify       = "Identify"
+	FlagVoiceSendEventNameSelectProtocol = "SelectProtocol "
+	FlagVoiceSendEventNameHeartbeat      = "Heartbeat"
+	FlagVoiceSendEventNameSpeaking       = "Speaking"
+	FlagVoiceSendEventNameResume         = "Resume"
+)
+
+// Voice Identify Structure
+// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-websocket-connection-example-voice-identify-payload
+type VoiceIdentify struct {
+	ServerID  string `json:"server_id"`
+	UserID    string `json:"user_id"`
+	SessionID string `json:"session_id"`
+	Token     string `json:"token"`
+}
+
+// Select Protocol Structure
+// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection-example-select-protocol-payload
+type SelectProtocol struct {
+	Protocol string             `json:"protocol"`
+	Data     SelectProtocolData `json:"data"`
+}
+
+// Select Protocol Data Structure
+// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection-example-select-protocol-payload
+type SelectProtocolData struct {
+	Address string `json:"address"`
+	Mode    string `json:"mode"`
+	Port    int    `json:"port"`
+}
+
+// Voice Ready Structure
+// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-websocket-connection-example-voice-ready-payload
+type VoiceReady struct {
+	IP    string   `json:"ip"`
+	Modes []string `json:"modes"`
+	SSRC  int      `json:"ssrc"`
+	Port  int      `json:"port"`
+}
+
+// Voice Heartbeat Structure
+// https://discord.com/developers/docs/topics/voice-connections#heartbeating-example-heartbeat-payload
+type VoiceHeartbeat struct {
+	Data int64 `json:"d"`
+}
+
+// Session Description Structure
+// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection-example-session-description-payload
+type SessionDescription struct {
+	Mode      string `json:"mode"`
+	SecretKey []int  `json:"secret_key"`
+}
+
+// Speaking Structure
+// https://discord.com/developers/docs/topics/voice-connections#speaking-example-speaking-payload
+type Speaking struct {
+	Speaking BitFlag `json:"speaking"`
+	Delay    int     `json:"delay"`
+	SSRC     int     `json:"ssrc"`
+}
+
+// Speaking Flags
+// https://discord.com/developers/docs/topics/voice-connections#speaking
+const (
+	FlagSpeakingMicrophone BitFlag = 1 << 0
+	FlagSpeakingSoundshare BitFlag = 1 << 1
+	FlagSpeakingPriority   BitFlag = 1 << 2
+)
+
+// Voice HeartbeatACK Structure
+// https://discord.com/developers/docs/topics/voice-connections#heartbeating-example-heartbeat-ack-payload
+type VoiceHeartbeatACK struct {
+	Data int64 `json:"d"`
+}
+
+// Voice Resume Structure
+// https://discord.com/developers/docs/topics/voice-connections#resuming-voice-connection-example-resume-connection-payload
+type VoiceResume struct {
+	ServerID  string `json:"server_id"`
+	SessionID string `json:"session_id"`
+	Token     string `json:"token"`
+}
+
+// Voice Hello Structure
+// https://discord.com/developers/docs/topics/voice-connections#heartbeating-example-hello-payload-since-v3
+type VoiceHello struct {
+	HeartbeatInterval int64 `json:"heartbeat_interval"`
+}
+
+// Voice Resumed Structure
+// https://discord.com/developers/docs/topics/voice-connections#resuming-voice-connection-example-resumed-payload
+type VoiceResumed struct{}
+
+// Client Disconnect Structure
+type ClientDisconnect struct{}
+
+// Voice Connection Encryption Modes
+// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection-encryption-modes
+const (
+	FlagVoiceEncryptionModeAES256    = "aead_aes256_gcm_rtpsize"
+	FlagVoiceEncryptionModeXChaCha20 = "aead_xchacha20_poly1305_rtpsize"
+)
+
+// Voice Packet Structure
+// https://discord.com/developers/docs/topics/voice-connections#transport-encryption-modes-voice-packet-structure
+type VoicePacket struct {
+	Timestamp      time.Time
+	VersionFlags   []byte
+	PayloadType    []byte
+	EncryptedAudio []byte
+	SSRC           uint32
+	Sequence       uint16
 }
 
 // Pointer returns a pointer to the given value.
@@ -5775,93 +6868,119 @@ func (d Modal) InteractionCallbackDataType() Flag {
 	return FlagInteractionCallbackTypeMODAL
 }
 
+func (d ApplicationCommandInteractionMetadata) MessageInteractionMetadata() Flag {
+	return FlagInteractionTypeAPPLICATION_COMMAND
+}
+
+func (d MessageComponentInteractionMetadata) MessageInteractionMetadata() Flag {
+	return FlagInteractionTypeMESSAGE_COMPONENT
+}
+
+func (d ModalSubmitInteractionMetadata) MessageInteractionMetadata() Flag {
+	return FlagInteractionTypeMODAL_SUBMIT
+}
+
 // Discord API Endpoints
 const (
-	EndpointBaseURL    = "https://discord.com/api/v" + VersionDiscordAPI + "/"
-	CDNEndpointBaseURL = "https://cdn.discordapp.com/"
-	achievements       = "achievements"
-	active             = "active"
-	appassets          = "app-assets"
-	appicons           = "app-icons"
-	applicationid      = "application_id"
-	applications       = "applications"
-	archived           = "archived"
-	assetid            = "asset_id"
-	auditlogs          = "audit-logs"
-	authorize          = "authorize"
-	automoderation     = "auto-moderation"
-	avatardecorations  = "avatar-decorations"
-	avatars            = "avatars"
-	banners            = "banners"
-	bans               = "bans"
-	bot                = "bot"
-	bulkdelete         = "bulk-delete"
-	callback           = "callback"
-	channels           = "channels"
-	commands           = "commands"
-	connections        = "connections"
-	crosspost          = "crosspost"
-	discoverysplashes  = "discovery-splashes"
-	embed              = "embed"
-	emojis             = "emojis"
-	followers          = "followers"
-	gateway            = "gateway"
-	github             = "github"
-	guildevents        = "guild-events"
-	guilds             = "guilds"
-	icons              = "icons"
-	integrations       = "integrations"
-	interactions       = "interactions"
-	invites            = "invites"
-	me                 = "@me"
-	member             = "member"
-	members            = "members"
-	messages           = "messages"
-	metadata           = "metadata"
-	mfa                = "mfa"
-	nick               = "nick"
-	oauth              = "oauth2"
-	onboarding         = "onboarding"
-	original           = "@original"
-	permissions        = "permissions"
-	pins               = "pins"
-	preview            = "preview"
-	private            = "private"
-	prune              = "prune"
-	public             = "public"
-	reactions          = "reactions"
-	recipients         = "recipients"
-	regions            = "regions"
-	revoke             = "revoke"
-	roleconnection     = "role-connection"
-	roleconnections    = "role-connections"
-	roleicons          = "role-icons"
-	roles              = "roles"
-	rules              = "rules"
-	scheduledevents    = "scheduled-events"
-	search             = "search"
-	slack              = "slack"
-	slash              = "/"
-	splashes           = "splashes"
-	stageinstances     = "stage-instances"
-	stickerpacks       = "sticker-packs"
-	stickers           = "stickers"
-	store              = "store"
-	teamicons          = "team-icons"
-	templates          = "templates"
-	threadmembers      = "thread-members"
-	threads            = "threads"
-	token              = "token"
-	typing             = "typing"
-	users              = "users"
-	vanityurl          = "vanity-url"
-	voice              = "voice"
-	voicestates        = "voice-states"
-	webhooks           = "webhooks"
-	welcomescreen      = "welcome-screen"
-	widget             = "widget"
-	widgetjson         = "widget.json"
-	widgetpng          = "widget.png"
+	EndpointBaseURL         = "https://discord.com/api/v" + VersionDiscordAPI + "/"
+	CDNEndpointBaseURL      = "https://cdn.discordapp.com/"
+	achievements            = "achievements"
+	active                  = "active"
+	activityinstances       = "activity-instances"
+	answers                 = "answers"
+	appassets               = "app-assets"
+	appicons                = "app-icons"
+	applicationid           = "application.id"
+	applications            = "applications"
+	archived                = "archived"
+	assetid                 = "asset.id"
+	auditlogs               = "audit-logs"
+	authorize               = "authorize"
+	automoderation          = "auto-moderation"
+	avatardecorations       = "avatar-decorations"
+	avatars                 = "avatars"
+	banners                 = "banners"
+	bans                    = "bans"
+	bot                     = "bot"
+	bulkdelete              = "bulk-delete"
+	callback                = "callback"
+	channels                = "channels"
+	commands                = "commands"
+	connections             = "connections"
+	consume                 = "consume"
+	crosspost               = "crosspost"
+	discoverysplashes       = "discovery-splashes"
+	embed                   = "embed"
+	emojis                  = "emojis"
+	entitlements            = "entitlements"
+	ex                      = "ex"
+	expire                  = "expire"
+	followers               = "followers"
+	gateway                 = "gateway"
+	github                  = "github"
+	guildevents             = "guild-events"
+	guilds                  = "guilds"
+	hm                      = "hm"
+	icons                   = "icons"
+	integrations            = "integrations"
+	interactions            = "interactions"
+	invites                 = "invites"
+	is                      = "is"
+	me                      = "@me"
+	member                  = "member"
+	members                 = "members"
+	messages                = "messages"
+	metadata                = "metadata"
+	mfa                     = "mfa"
+	nick                    = "nick"
+	oauth                   = "oauth2"
+	onboarding              = "onboarding"
+	original                = "@original"
+	permissions             = "permissions"
+	pins                    = "pins"
+	polls                   = "polls"
+	preview                 = "preview"
+	private                 = "private"
+	prune                   = "prune"
+	public                  = "public"
+	reactions               = "reactions"
+	recipients              = "recipients"
+	regions                 = "regions"
+	revoke                  = "revoke"
+	roleconnection          = "role-connection"
+	roleconnections         = "role-connections"
+	roleicons               = "role-icons"
+	roles                   = "roles"
+	rules                   = "rules"
+	scheduledevents         = "scheduled-events"
+	search                  = "search"
+	sendsoundboardsound     = "send-soundboard-sound"
+	skus                    = "skus"
+	slack                   = "slack"
+	slash                   = "/"
+	soundboarddefaultsounds = "soundboard-default-sounds"
+	soundboardsounds        = "soundboard-sounds"
+	splashes                = "splashes"
+	stageinstances          = "stage-instances"
+	stickerpacks            = "sticker-packs"
+	stickers                = "stickers"
+	store                   = "store"
+	subscriptions           = "subscriptions"
+	teamicons               = "team-icons"
+	templates               = "templates"
+	threadmembers           = "thread-members"
+	threads                 = "threads"
+	token                   = "token"
+	typing                  = "typing"
+	users                   = "users"
+	vanityurl               = "vanity-url"
+	voice                   = "voice"
+	voicestates             = "voice-states"
+	webhooks                = "webhooks"
+	welcomescreen           = "welcome-screen"
+	widget                  = "widget"
+	widgetjson              = "widget.json"
+	widgetpng               = "widget.png"
 )
 
 // EndpointGetGlobalApplicationCommands builds a query for an HTTP request.
@@ -5989,6 +7108,16 @@ func EndpointGetCurrentApplication() string {
 	return EndpointBaseURL + applications + slash + me
 }
 
+// EndpointEditCurrentApplication builds a query for an HTTP request.
+func EndpointEditCurrentApplication() string {
+	return EndpointBaseURL + applications + slash + me
+}
+
+// EndpointGetApplicationActivityInstance builds a query for an HTTP request.
+func EndpointGetApplicationActivityInstance(applicationid, instanceid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + activityinstances + slash + instanceid
+}
+
 // EndpointGetApplicationRoleConnectionMetadataRecords builds a query for an HTTP request.
 func EndpointGetApplicationRoleConnectionMetadataRecords(applicationid string) string {
 	return EndpointBaseURL + applications + slash + applicationid + slash + roleconnections + slash + metadata
@@ -6042,71 +7171,6 @@ func EndpointModifyChannel(channelid string) string {
 // EndpointDeleteCloseChannel builds a query for an HTTP request.
 func EndpointDeleteCloseChannel(channelid string) string {
 	return EndpointBaseURL + channels + slash + channelid
-}
-
-// EndpointGetChannelMessages builds a query for an HTTP request.
-func EndpointGetChannelMessages(channelid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages
-}
-
-// EndpointGetChannelMessage builds a query for an HTTP request.
-func EndpointGetChannelMessage(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
-}
-
-// EndpointCreateMessage builds a query for an HTTP request.
-func EndpointCreateMessage(channelid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages
-}
-
-// EndpointCrosspostMessage builds a query for an HTTP request.
-func EndpointCrosspostMessage(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + crosspost
-}
-
-// EndpointCreateReaction builds a query for an HTTP request.
-func EndpointCreateReaction(channelid, messageid, emoji string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
-}
-
-// EndpointDeleteOwnReaction builds a query for an HTTP request.
-func EndpointDeleteOwnReaction(channelid, messageid, emoji string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
-}
-
-// EndpointDeleteUserReaction builds a query for an HTTP request.
-func EndpointDeleteUserReaction(channelid, messageid, emoji, userid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + userid
-}
-
-// EndpointGetReactions builds a query for an HTTP request.
-func EndpointGetReactions(channelid, messageid, emoji string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
-}
-
-// EndpointDeleteAllReactions builds a query for an HTTP request.
-func EndpointDeleteAllReactions(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions
-}
-
-// EndpointDeleteAllReactionsforEmoji builds a query for an HTTP request.
-func EndpointDeleteAllReactionsforEmoji(channelid, messageid, emoji string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
-}
-
-// EndpointEditMessage builds a query for an HTTP request.
-func EndpointEditMessage(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
-}
-
-// EndpointDeleteMessage builds a query for an HTTP request.
-func EndpointDeleteMessage(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
-}
-
-// EndpointBulkDeleteMessages builds a query for an HTTP request.
-func EndpointBulkDeleteMessages(channelid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + bulkdelete
 }
 
 // EndpointEditChannelPermissions builds a query for an HTTP request.
@@ -6249,6 +7313,56 @@ func EndpointDeleteGuildEmoji(guildid, emojiid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + emojis + slash + emojiid
 }
 
+// EndpointListApplicationEmojis builds a query for an HTTP request.
+func EndpointListApplicationEmojis(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis
+}
+
+// EndpointGetApplicationEmoji builds a query for an HTTP request.
+func EndpointGetApplicationEmoji(applicationid, emojiid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis + slash + emojiid
+}
+
+// EndpointCreateApplicationEmoji builds a query for an HTTP request.
+func EndpointCreateApplicationEmoji(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis
+}
+
+// EndpointModifyApplicationEmoji builds a query for an HTTP request.
+func EndpointModifyApplicationEmoji(applicationid, emojiid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis + slash + emojiid
+}
+
+// EndpointDeleteApplicationEmoji builds a query for an HTTP request.
+func EndpointDeleteApplicationEmoji(applicationid, emojiid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis + slash + emojiid
+}
+
+// EndpointListEntitlements builds a query for an HTTP request.
+func EndpointListEntitlements(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements
+}
+
+// EndpointGetEntitlement builds a query for an HTTP request.
+func EndpointGetEntitlement(applicationid, entitlementid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements + slash + entitlementid
+}
+
+// EndpointConsumeEntitlement builds a query for an HTTP request.
+func EndpointConsumeEntitlement(applicationid, entitlementid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements + slash + entitlementid + slash + consume
+}
+
+// EndpointCreateTestEntitlement builds a query for an HTTP request.
+func EndpointCreateTestEntitlement(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements
+}
+
+// EndpointDeleteTestEntitlement builds a query for an HTTP request.
+func EndpointDeleteTestEntitlement(applicationid, entitlementid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements + slash + entitlementid
+}
+
 // EndpointCreateGuild builds a query for an HTTP request.
 func EndpointCreateGuild() string {
 	return EndpointBaseURL + guilds
@@ -6369,6 +7483,11 @@ func EndpointGetGuildRoles(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + roles
 }
 
+// EndpointGetGuildRole builds a query for an HTTP request.
+func EndpointGetGuildRole(guildid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles + slash + roleid
+}
+
 // EndpointCreateGuildRole builds a query for an HTTP request.
 func EndpointCreateGuildRole(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + roles
@@ -6469,16 +7588,6 @@ func EndpointModifyGuildOnboarding(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + onboarding
 }
 
-// EndpointModifyCurrentUserVoiceState builds a query for an HTTP request.
-func EndpointModifyCurrentUserVoiceState(guildid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + me
-}
-
-// EndpointModifyUserVoiceState builds a query for an HTTP request.
-func EndpointModifyUserVoiceState(guildid, userid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + userid
-}
-
 // EndpointListScheduledEventsforGuild builds a query for an HTTP request.
 func EndpointListScheduledEventsforGuild(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
@@ -6554,6 +7663,121 @@ func EndpointDeleteInvite(invitecode string) string {
 	return EndpointBaseURL + invites + slash + invitecode
 }
 
+// EndpointGetChannelMessages builds a query for an HTTP request.
+func EndpointGetChannelMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages
+}
+
+// EndpointGetChannelMessage builds a query for an HTTP request.
+func EndpointGetChannelMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
+}
+
+// EndpointCreateMessage builds a query for an HTTP request.
+func EndpointCreateMessage(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages
+}
+
+// EndpointCrosspostMessage builds a query for an HTTP request.
+func EndpointCrosspostMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + crosspost
+}
+
+// EndpointCreateReaction builds a query for an HTTP request.
+func EndpointCreateReaction(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
+}
+
+// EndpointDeleteOwnReaction builds a query for an HTTP request.
+func EndpointDeleteOwnReaction(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
+}
+
+// EndpointDeleteUserReaction builds a query for an HTTP request.
+func EndpointDeleteUserReaction(channelid, messageid, emoji, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + userid
+}
+
+// EndpointGetReactions builds a query for an HTTP request.
+func EndpointGetReactions(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
+}
+
+// EndpointDeleteAllReactions builds a query for an HTTP request.
+func EndpointDeleteAllReactions(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions
+}
+
+// EndpointDeleteAllReactionsforEmoji builds a query for an HTTP request.
+func EndpointDeleteAllReactionsforEmoji(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
+}
+
+// EndpointEditMessage builds a query for an HTTP request.
+func EndpointEditMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
+}
+
+// EndpointDeleteMessage builds a query for an HTTP request.
+func EndpointDeleteMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
+}
+
+// EndpointBulkDeleteMessages builds a query for an HTTP request.
+func EndpointBulkDeleteMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + bulkdelete
+}
+
+// EndpointGetAnswerVoters builds a query for an HTTP request.
+func EndpointGetAnswerVoters(channelid, messageid, answerid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + polls + slash + messageid + slash + answers + slash + answerid
+}
+
+// EndpointEndPoll builds a query for an HTTP request.
+func EndpointEndPoll(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + polls + slash + messageid + slash + expire
+}
+
+// EndpointListSKUs builds a query for an HTTP request.
+func EndpointListSKUs(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + skus
+}
+
+// EndpointSendSoundboardSound builds a query for an HTTP request.
+func EndpointSendSoundboardSound(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + sendsoundboardsound
+}
+
+// EndpointListDefaultSoundboardSounds builds a query for an HTTP request.
+func EndpointListDefaultSoundboardSounds() string {
+	return EndpointBaseURL + soundboarddefaultsounds
+}
+
+// EndpointListGuildSoundboardSounds builds a query for an HTTP request.
+func EndpointListGuildSoundboardSounds(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds
+}
+
+// EndpointGetGuildSoundboardSound builds a query for an HTTP request.
+func EndpointGetGuildSoundboardSound(guildid, soundid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds + slash + soundid
+}
+
+// EndpointCreateGuildSoundboardSound builds a query for an HTTP request.
+func EndpointCreateGuildSoundboardSound(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds
+}
+
+// EndpointModifyGuildSoundboardSound builds a query for an HTTP request.
+func EndpointModifyGuildSoundboardSound(guildid, soundid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds + slash + soundid
+}
+
+// EndpointDeleteGuildSoundboardSound builds a query for an HTTP request.
+func EndpointDeleteGuildSoundboardSound(guildid, soundid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds + slash + soundid
+}
+
 // EndpointCreateStageInstance builds a query for an HTTP request.
 func EndpointCreateStageInstance() string {
 	return EndpointBaseURL + stageinstances
@@ -6579,9 +7803,14 @@ func EndpointGetSticker(stickerid string) string {
 	return EndpointBaseURL + stickers + slash + stickerid
 }
 
-// EndpointListNitroStickerPacks builds a query for an HTTP request.
-func EndpointListNitroStickerPacks() string {
+// EndpointListStickerPacks builds a query for an HTTP request.
+func EndpointListStickerPacks() string {
 	return EndpointBaseURL + stickerpacks
+}
+
+// EndpointGetStickerPack builds a query for an HTTP request.
+func EndpointGetStickerPack(packid string) string {
+	return EndpointBaseURL + stickerpacks + slash + packid
 }
 
 // EndpointListGuildStickers builds a query for an HTTP request.
@@ -6607,6 +7836,26 @@ func EndpointModifyGuildSticker(guildid, stickerid string) string {
 // EndpointDeleteGuildSticker builds a query for an HTTP request.
 func EndpointDeleteGuildSticker(guildid, stickerid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + stickers + slash + stickerid
+}
+
+// EndpointListSKUSubscriptions builds a query for an HTTP request.
+func EndpointListSKUSubscriptions(skuid string) string {
+	return EndpointBaseURL + skus + slash + skuid + slash + subscriptions
+}
+
+// EndpointGetSKUSubscription builds a query for an HTTP request.
+func EndpointGetSKUSubscription(skuid, subscriptionid string) string {
+	return EndpointBaseURL + skus + slash + skuid + slash + subscriptions + slash + subscriptionid
+}
+
+// EndpointModifyCurrentUserVoiceState builds a query for an HTTP request.
+func EndpointModifyCurrentUserVoiceState(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + me
+}
+
+// EndpointModifyUserVoiceState builds a query for an HTTP request.
+func EndpointModifyUserVoiceState(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + userid
 }
 
 // EndpointGetCurrentUser builds a query for an HTTP request.
@@ -6649,18 +7898,18 @@ func EndpointCreateGroupDM() string {
 	return EndpointBaseURL + users + slash + me + slash + channels
 }
 
-// EndpointGetUserConnections builds a query for an HTTP request.
-func EndpointGetUserConnections() string {
+// EndpointGetCurrentUserConnections builds a query for an HTTP request.
+func EndpointGetCurrentUserConnections() string {
 	return EndpointBaseURL + users + slash + me + slash + connections
 }
 
-// EndpointGetUserApplicationRoleConnection builds a query for an HTTP request.
-func EndpointGetUserApplicationRoleConnection(applicationid string) string {
+// EndpointGetCurrentUserApplicationRoleConnection builds a query for an HTTP request.
+func EndpointGetCurrentUserApplicationRoleConnection(applicationid string) string {
 	return EndpointBaseURL + users + slash + me + slash + applications + slash + applicationid + slash + roleconnection
 }
 
-// EndpointUpdateUserApplicationRoleConnection builds a query for an HTTP request.
-func EndpointUpdateUserApplicationRoleConnection(applicationid string) string {
+// EndpointUpdateCurrentUserApplicationRoleConnection builds a query for an HTTP request.
+func EndpointUpdateCurrentUserApplicationRoleConnection(applicationid string) string {
 	return EndpointBaseURL + users + slash + me + slash + applications + slash + applicationid + slash + roleconnection
 }
 
@@ -6884,6 +8133,21 @@ func CDNEndpointGuildMemberBanner(guildid, userid, memberbanner string) string {
 	return CDNEndpointBaseURL + guilds + slash + guildid + slash + users + slash + userid + slash + banners + slash + memberbanner
 }
 
+// CDNURLParameterExpire builds a query for an HTTP request.
+func CDNURLParameterExpire() string {
+	return CDNEndpointBaseURL + ex
+}
+
+// CDNURLParameterIssued builds a query for an HTTP request.
+func CDNURLParameterIssued() string {
+	return CDNEndpointBaseURL + is
+}
+
+// CDNURLParameterSignature builds a query for an HTTP request.
+func CDNURLParameterSignature() string {
+	return CDNEndpointBaseURL + hm
+}
+
 var (
 	EndpointModifyChannelGroupDM = EndpointModifyChannel
 	EndpointModifyChannelGuild   = EndpointModifyChannel
@@ -7012,7 +8276,7 @@ func (e ErrorEvent) Error() string {
 
 // Discord Gateway Error Messages
 const (
-	errNoSessionManager = `The client must contain a non-nil SessionManager to connect to the Discord Gateway.
+	errNoSessionManager = `The client must contain a non-nil SessionManager struct to connect to the Discord Gateway.
 
 Set the *Client.SessionManager using one of the following methods.
 
@@ -7020,7 +8284,7 @@ Set the *Client.SessionManager using one of the following methods.
 
 bot := &disgo.Client{
 ...
-Sessions: 	disgo.NewSessionManager()
+Sessions: 	disgo.NewSessionManager(),
 }
 
 --- 2
@@ -7044,7 +8308,8 @@ func (e ErrorSession) Error() string {
 }
 
 const (
-	ErrConnectionSession = "Discord Gateway"
+	ErrConnectionSession      = "Discord Gateway"
+	ErrConnectionSessionVoice = "Discord Voice"
 )
 
 // ErrorDisconnect represents a disconnection error that occurs when
@@ -7066,2555 +8331,6 @@ func (e ErrorDisconnect) Error() string {
 		"\treason: %w\n",
 		e.Connection, e.Err, e.Action,
 	).Error() //lint:ignore ST1005 readability
-}
-
-// Handlers represents a bot's event handlers.
-type Handlers struct {
-	Hello                               []func(*Hello)
-	Ready                               []func(*Ready)
-	Resumed                             []func(*Resumed)
-	Reconnect                           []func(*Reconnect)
-	InvalidSession                      []func(*InvalidSession)
-	ApplicationCommandPermissionsUpdate []func(*ApplicationCommandPermissionsUpdate)
-	AutoModerationRuleCreate            []func(*AutoModerationRuleCreate)
-	AutoModerationRuleUpdate            []func(*AutoModerationRuleUpdate)
-	AutoModerationRuleDelete            []func(*AutoModerationRuleDelete)
-	AutoModerationActionExecution       []func(*AutoModerationActionExecution)
-	InteractionCreate                   []func(*InteractionCreate)
-	VoiceServerUpdate                   []func(*VoiceServerUpdate)
-	GuildMembersChunk                   []func(*GuildMembersChunk)
-	UserUpdate                          []func(*UserUpdate)
-	ChannelCreate                       []func(*ChannelCreate)
-	ChannelUpdate                       []func(*ChannelUpdate)
-	ChannelDelete                       []func(*ChannelDelete)
-	ChannelPinsUpdate                   []func(*ChannelPinsUpdate)
-	ThreadCreate                        []func(*ThreadCreate)
-	ThreadUpdate                        []func(*ThreadUpdate)
-	ThreadDelete                        []func(*ThreadDelete)
-	ThreadListSync                      []func(*ThreadListSync)
-	ThreadMemberUpdate                  []func(*ThreadMemberUpdate)
-	ThreadMembersUpdate                 []func(*ThreadMembersUpdate)
-	GuildCreate                         []func(*GuildCreate)
-	GuildUpdate                         []func(*GuildUpdate)
-	GuildDelete                         []func(*GuildDelete)
-	GuildAuditLogEntryCreate            []func(*GuildAuditLogEntryCreate)
-	GuildBanAdd                         []func(*GuildBanAdd)
-	GuildBanRemove                      []func(*GuildBanRemove)
-	GuildEmojisUpdate                   []func(*GuildEmojisUpdate)
-	GuildStickersUpdate                 []func(*GuildStickersUpdate)
-	GuildIntegrationsUpdate             []func(*GuildIntegrationsUpdate)
-	GuildMemberAdd                      []func(*GuildMemberAdd)
-	GuildMemberRemove                   []func(*GuildMemberRemove)
-	GuildMemberUpdate                   []func(*GuildMemberUpdate)
-	GuildRoleCreate                     []func(*GuildRoleCreate)
-	GuildRoleUpdate                     []func(*GuildRoleUpdate)
-	GuildRoleDelete                     []func(*GuildRoleDelete)
-	GuildScheduledEventCreate           []func(*GuildScheduledEventCreate)
-	GuildScheduledEventUpdate           []func(*GuildScheduledEventUpdate)
-	GuildScheduledEventDelete           []func(*GuildScheduledEventDelete)
-	GuildScheduledEventUserAdd          []func(*GuildScheduledEventUserAdd)
-	GuildScheduledEventUserRemove       []func(*GuildScheduledEventUserRemove)
-	IntegrationCreate                   []func(*IntegrationCreate)
-	IntegrationUpdate                   []func(*IntegrationUpdate)
-	IntegrationDelete                   []func(*IntegrationDelete)
-	InviteCreate                        []func(*InviteCreate)
-	InviteDelete                        []func(*InviteDelete)
-	MessageCreate                       []func(*MessageCreate)
-	MessageUpdate                       []func(*MessageUpdate)
-	MessageDelete                       []func(*MessageDelete)
-	MessageDeleteBulk                   []func(*MessageDeleteBulk)
-	MessageReactionAdd                  []func(*MessageReactionAdd)
-	MessageReactionRemove               []func(*MessageReactionRemove)
-	MessageReactionRemoveAll            []func(*MessageReactionRemoveAll)
-	MessageReactionRemoveEmoji          []func(*MessageReactionRemoveEmoji)
-	PresenceUpdate                      []func(*PresenceUpdate)
-	StageInstanceCreate                 []func(*StageInstanceCreate)
-	StageInstanceDelete                 []func(*StageInstanceDelete)
-	StageInstanceUpdate                 []func(*StageInstanceUpdate)
-	TypingStart                         []func(*TypingStart)
-	VoiceStateUpdate                    []func(*VoiceStateUpdate)
-	WebhooksUpdate                      []func(*WebhooksUpdate)
-	mu                                  sync.RWMutex
-}
-
-// Handle adds an event handler for the given event to the bot.
-func (bot *Client) Handle(eventname string, function interface{}) error {
-	bot.Handlers.mu.Lock()
-	defer bot.Handlers.mu.Unlock()
-
-	switch eventname {
-	case FlagGatewayEventNameHello:
-		if f, ok := function.(func(*Hello)); ok {
-			bot.Handlers.Hello = append(bot.Handlers.Hello, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameReady:
-		if f, ok := function.(func(*Ready)); ok {
-			bot.Handlers.Ready = append(bot.Handlers.Ready, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameResumed:
-		if f, ok := function.(func(*Resumed)); ok {
-			bot.Handlers.Resumed = append(bot.Handlers.Resumed, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameReconnect:
-		if f, ok := function.(func(*Reconnect)); ok {
-			bot.Handlers.Reconnect = append(bot.Handlers.Reconnect, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameInvalidSession:
-		if f, ok := function.(func(*InvalidSession)); ok {
-			bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
-		if f, ok := function.(func(*ApplicationCommandPermissionsUpdate)); ok {
-			bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameAutoModerationRuleCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
-			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
-			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
-		}
-
-		if f, ok := function.(func(*AutoModerationRuleCreate)); ok {
-			bot.Handlers.AutoModerationRuleCreate = append(bot.Handlers.AutoModerationRuleCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameAutoModerationRuleUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
-			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
-			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
-		}
-
-		if f, ok := function.(func(*AutoModerationRuleUpdate)); ok {
-			bot.Handlers.AutoModerationRuleUpdate = append(bot.Handlers.AutoModerationRuleUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameAutoModerationRuleDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
-			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
-			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
-		}
-
-		if f, ok := function.(func(*AutoModerationRuleDelete)); ok {
-			bot.Handlers.AutoModerationRuleDelete = append(bot.Handlers.AutoModerationRuleDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameAutoModerationActionExecution:
-		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] {
-			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] = true
-			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_EXECUTION
-		}
-
-		if f, ok := function.(func(*AutoModerationActionExecution)); ok {
-			bot.Handlers.AutoModerationActionExecution = append(bot.Handlers.AutoModerationActionExecution, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameInteractionCreate:
-		if f, ok := function.(func(*InteractionCreate)); ok {
-			bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameVoiceServerUpdate:
-		if f, ok := function.(func(*VoiceServerUpdate)); ok {
-			bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildMembersChunk:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_PRESENCES
-		}
-
-		if f, ok := function.(func(*GuildMembersChunk)); ok {
-			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameUserUpdate:
-		if f, ok := function.(func(*UserUpdate)); ok {
-			bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameChannelCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*ChannelCreate)); ok {
-			bot.Handlers.ChannelCreate = append(bot.Handlers.ChannelCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameChannelUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*ChannelUpdate)); ok {
-			bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameChannelDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*ChannelDelete)); ok {
-			bot.Handlers.ChannelDelete = append(bot.Handlers.ChannelDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameChannelPinsUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] {
-			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGES
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*ChannelPinsUpdate)); ok {
-			bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*ThreadCreate)); ok {
-			bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*ThreadUpdate)); ok {
-			bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*ThreadDelete)); ok {
-			bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadListSync:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*ThreadListSync)); ok {
-			bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadMemberUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*ThreadMemberUpdate)); ok {
-			bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameThreadMembersUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
-		}
-
-		if f, ok := function.(func(*ThreadMembersUpdate)); ok {
-			bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildCreate)); ok {
-			bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildUpdate)); ok {
-			bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildDelete)); ok {
-			bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildAuditLogEntryCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
-		}
-
-		if f, ok := function.(func(*GuildAuditLogEntryCreate)); ok {
-			bot.Handlers.GuildAuditLogEntryCreate = append(bot.Handlers.GuildAuditLogEntryCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildBanAdd:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
-		}
-
-		if f, ok := function.(func(*GuildBanAdd)); ok {
-			bot.Handlers.GuildBanAdd = append(bot.Handlers.GuildBanAdd, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildBanRemove:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
-		}
-
-		if f, ok := function.(func(*GuildBanRemove)); ok {
-			bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildEmojisUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
-		}
-
-		if f, ok := function.(func(*GuildEmojisUpdate)); ok {
-			bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildStickersUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
-		}
-
-		if f, ok := function.(func(*GuildStickersUpdate)); ok {
-			bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildIntegrationsUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
-		}
-
-		if f, ok := function.(func(*GuildIntegrationsUpdate)); ok {
-			bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildMemberAdd:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
-		}
-
-		if f, ok := function.(func(*GuildMemberAdd)); ok {
-			bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildMemberRemove:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
-		}
-
-		if f, ok := function.(func(*GuildMemberRemove)); ok {
-			bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildMemberUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
-		}
-
-		if f, ok := function.(func(*GuildMemberUpdate)); ok {
-			bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildRoleCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildRoleCreate)); ok {
-			bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildRoleUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildRoleUpdate)); ok {
-			bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildRoleDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*GuildRoleDelete)); ok {
-			bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventCreate)); ok {
-			bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventUpdate)); ok {
-			bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventDelete)); ok {
-			bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventUserAdd:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventUserAdd)); ok {
-			bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventUserRemove:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
-		}
-
-		if f, ok := function.(func(*GuildScheduledEventUserRemove)); ok {
-			bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameIntegrationCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
-		}
-
-		if f, ok := function.(func(*IntegrationCreate)); ok {
-			bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameIntegrationUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
-		}
-
-		if f, ok := function.(func(*IntegrationUpdate)); ok {
-			bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameIntegrationDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
-		}
-
-		if f, ok := function.(func(*IntegrationDelete)); ok {
-			bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameInviteCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_INVITES
-		}
-
-		if f, ok := function.(func(*InviteCreate)); ok {
-			bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameInviteDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_INVITES
-		}
-
-		if f, ok := function.(func(*InviteDelete)); ok {
-			bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] {
-			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGES
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES
-		}
-
-		if f, ok := function.(func(*MessageCreate)); ok {
-			bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] {
-			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGES
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES
-		}
-
-		if f, ok := function.(func(*MessageUpdate)); ok {
-			bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] {
-			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] = true
-			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGES
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES
-		}
-
-		if f, ok := function.(func(*MessageDelete)); ok {
-			bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageDeleteBulk:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES
-		}
-
-		if f, ok := function.(func(*MessageDeleteBulk)); ok {
-			bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageReactionAdd:
-		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_REACTIONS
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
-		}
-
-		if f, ok := function.(func(*MessageReactionAdd)); ok {
-			bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageReactionRemove:
-		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_REACTIONS
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
-		}
-
-		if f, ok := function.(func(*MessageReactionRemove)); ok {
-			bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageReactionRemoveAll:
-		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_REACTIONS
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
-		}
-
-		if f, ok := function.(func(*MessageReactionRemoveAll)); ok {
-			bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameMessageReactionRemoveEmoji:
-		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_REACTIONS
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
-		}
-
-		if f, ok := function.(func(*MessageReactionRemoveEmoji)); ok {
-			bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNamePresenceUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_PRESENCES
-		}
-
-		if f, ok := function.(func(*PresenceUpdate)); ok {
-			bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameStageInstanceCreate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*StageInstanceCreate)); ok {
-			bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameStageInstanceDelete:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*StageInstanceDelete)); ok {
-			bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameStageInstanceUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILDS
-		}
-
-		if f, ok := function.(func(*StageInstanceUpdate)); ok {
-			bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameTypingStart:
-		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_TYPING] {
-			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_TYPING] = true
-			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_TYPING
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
-		}
-
-		if f, ok := function.(func(*TypingStart)); ok {
-			bot.Handlers.TypingStart = append(bot.Handlers.TypingStart, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameVoiceStateUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_VOICE_STATES
-		}
-
-		if f, ok := function.(func(*VoiceStateUpdate)); ok {
-			bot.Handlers.VoiceStateUpdate = append(bot.Handlers.VoiceStateUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameWebhooksUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_WEBHOOKS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_WEBHOOKS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_WEBHOOKS
-		}
-
-		if f, ok := function.(func(*WebhooksUpdate)); ok {
-			bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-	}
-
-	err := ErrorEventHandler{
-		ClientID: bot.ApplicationID,
-		Event:    eventname,
-		Err:      fmt.Errorf("%s", errHandleNotRemoved),
-	}
-	LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-
-	return err
-}
-
-// Remove removes the event handler at the given index from the bot.
-// This function does NOT remove intents automatically.
-func (bot *Client) Remove(eventname string, index int) error {
-	bot.Handlers.mu.Lock()
-	defer bot.Handlers.mu.Unlock()
-
-	switch eventname {
-	case FlagGatewayEventNameHello:
-		if len(bot.Handlers.Hello) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.Hello = append(bot.Handlers.Hello[:index], bot.Handlers.Hello[index+1:]...)
-
-	case FlagGatewayEventNameReady:
-		if len(bot.Handlers.Ready) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.Ready = append(bot.Handlers.Ready[:index], bot.Handlers.Ready[index+1:]...)
-
-	case FlagGatewayEventNameResumed:
-		if len(bot.Handlers.Resumed) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.Resumed = append(bot.Handlers.Resumed[:index], bot.Handlers.Resumed[index+1:]...)
-
-	case FlagGatewayEventNameReconnect:
-		if len(bot.Handlers.Reconnect) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.Reconnect = append(bot.Handlers.Reconnect[:index], bot.Handlers.Reconnect[index+1:]...)
-
-	case FlagGatewayEventNameInvalidSession:
-		if len(bot.Handlers.InvalidSession) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession[:index], bot.Handlers.InvalidSession[index+1:]...)
-
-	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
-		if len(bot.Handlers.ApplicationCommandPermissionsUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate[:index], bot.Handlers.ApplicationCommandPermissionsUpdate[index+1:]...)
-
-	case FlagGatewayEventNameAutoModerationRuleCreate:
-		if len(bot.Handlers.AutoModerationRuleCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.AutoModerationRuleCreate = append(bot.Handlers.AutoModerationRuleCreate[:index], bot.Handlers.AutoModerationRuleCreate[index+1:]...)
-
-	case FlagGatewayEventNameAutoModerationRuleUpdate:
-		if len(bot.Handlers.AutoModerationRuleUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.AutoModerationRuleUpdate = append(bot.Handlers.AutoModerationRuleUpdate[:index], bot.Handlers.AutoModerationRuleUpdate[index+1:]...)
-
-	case FlagGatewayEventNameAutoModerationRuleDelete:
-		if len(bot.Handlers.AutoModerationRuleDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.AutoModerationRuleDelete = append(bot.Handlers.AutoModerationRuleDelete[:index], bot.Handlers.AutoModerationRuleDelete[index+1:]...)
-
-	case FlagGatewayEventNameAutoModerationActionExecution:
-		if len(bot.Handlers.AutoModerationActionExecution) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.AutoModerationActionExecution = append(bot.Handlers.AutoModerationActionExecution[:index], bot.Handlers.AutoModerationActionExecution[index+1:]...)
-
-	case FlagGatewayEventNameInteractionCreate:
-		if len(bot.Handlers.InteractionCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate[:index], bot.Handlers.InteractionCreate[index+1:]...)
-
-	case FlagGatewayEventNameVoiceServerUpdate:
-		if len(bot.Handlers.VoiceServerUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate[:index], bot.Handlers.VoiceServerUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildMembersChunk:
-		if len(bot.Handlers.GuildMembersChunk) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk[:index], bot.Handlers.GuildMembersChunk[index+1:]...)
-
-	case FlagGatewayEventNameUserUpdate:
-		if len(bot.Handlers.UserUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate[:index], bot.Handlers.UserUpdate[index+1:]...)
-
-	case FlagGatewayEventNameChannelCreate:
-		if len(bot.Handlers.ChannelCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ChannelCreate = append(bot.Handlers.ChannelCreate[:index], bot.Handlers.ChannelCreate[index+1:]...)
-
-	case FlagGatewayEventNameChannelUpdate:
-		if len(bot.Handlers.ChannelUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate[:index], bot.Handlers.ChannelUpdate[index+1:]...)
-
-	case FlagGatewayEventNameChannelDelete:
-		if len(bot.Handlers.ChannelDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ChannelDelete = append(bot.Handlers.ChannelDelete[:index], bot.Handlers.ChannelDelete[index+1:]...)
-
-	case FlagGatewayEventNameChannelPinsUpdate:
-		if len(bot.Handlers.ChannelPinsUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate[:index], bot.Handlers.ChannelPinsUpdate[index+1:]...)
-
-	case FlagGatewayEventNameThreadCreate:
-		if len(bot.Handlers.ThreadCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate[:index], bot.Handlers.ThreadCreate[index+1:]...)
-
-	case FlagGatewayEventNameThreadUpdate:
-		if len(bot.Handlers.ThreadUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate[:index], bot.Handlers.ThreadUpdate[index+1:]...)
-
-	case FlagGatewayEventNameThreadDelete:
-		if len(bot.Handlers.ThreadDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete[:index], bot.Handlers.ThreadDelete[index+1:]...)
-
-	case FlagGatewayEventNameThreadListSync:
-		if len(bot.Handlers.ThreadListSync) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync[:index], bot.Handlers.ThreadListSync[index+1:]...)
-
-	case FlagGatewayEventNameThreadMemberUpdate:
-		if len(bot.Handlers.ThreadMemberUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate[:index], bot.Handlers.ThreadMemberUpdate[index+1:]...)
-
-	case FlagGatewayEventNameThreadMembersUpdate:
-		if len(bot.Handlers.ThreadMembersUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate[:index], bot.Handlers.ThreadMembersUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildCreate:
-		if len(bot.Handlers.GuildCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate[:index], bot.Handlers.GuildCreate[index+1:]...)
-
-	case FlagGatewayEventNameGuildUpdate:
-		if len(bot.Handlers.GuildUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate[:index], bot.Handlers.GuildUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildDelete:
-		if len(bot.Handlers.GuildDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete[:index], bot.Handlers.GuildDelete[index+1:]...)
-
-	case FlagGatewayEventNameGuildAuditLogEntryCreate:
-		if len(bot.Handlers.GuildAuditLogEntryCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildAuditLogEntryCreate = append(bot.Handlers.GuildAuditLogEntryCreate[:index], bot.Handlers.GuildAuditLogEntryCreate[index+1:]...)
-
-	case FlagGatewayEventNameGuildBanAdd:
-		if len(bot.Handlers.GuildBanAdd) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildBanAdd = append(bot.Handlers.GuildBanAdd[:index], bot.Handlers.GuildBanAdd[index+1:]...)
-
-	case FlagGatewayEventNameGuildBanRemove:
-		if len(bot.Handlers.GuildBanRemove) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove[:index], bot.Handlers.GuildBanRemove[index+1:]...)
-
-	case FlagGatewayEventNameGuildEmojisUpdate:
-		if len(bot.Handlers.GuildEmojisUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate[:index], bot.Handlers.GuildEmojisUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildStickersUpdate:
-		if len(bot.Handlers.GuildStickersUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate[:index], bot.Handlers.GuildStickersUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildIntegrationsUpdate:
-		if len(bot.Handlers.GuildIntegrationsUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate[:index], bot.Handlers.GuildIntegrationsUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildMemberAdd:
-		if len(bot.Handlers.GuildMemberAdd) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd[:index], bot.Handlers.GuildMemberAdd[index+1:]...)
-
-	case FlagGatewayEventNameGuildMemberRemove:
-		if len(bot.Handlers.GuildMemberRemove) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove[:index], bot.Handlers.GuildMemberRemove[index+1:]...)
-
-	case FlagGatewayEventNameGuildMemberUpdate:
-		if len(bot.Handlers.GuildMemberUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate[:index], bot.Handlers.GuildMemberUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildRoleCreate:
-		if len(bot.Handlers.GuildRoleCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate[:index], bot.Handlers.GuildRoleCreate[index+1:]...)
-
-	case FlagGatewayEventNameGuildRoleUpdate:
-		if len(bot.Handlers.GuildRoleUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate[:index], bot.Handlers.GuildRoleUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildRoleDelete:
-		if len(bot.Handlers.GuildRoleDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete[:index], bot.Handlers.GuildRoleDelete[index+1:]...)
-
-	case FlagGatewayEventNameGuildScheduledEventCreate:
-		if len(bot.Handlers.GuildScheduledEventCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate[:index], bot.Handlers.GuildScheduledEventCreate[index+1:]...)
-
-	case FlagGatewayEventNameGuildScheduledEventUpdate:
-		if len(bot.Handlers.GuildScheduledEventUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate[:index], bot.Handlers.GuildScheduledEventUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildScheduledEventDelete:
-		if len(bot.Handlers.GuildScheduledEventDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete[:index], bot.Handlers.GuildScheduledEventDelete[index+1:]...)
-
-	case FlagGatewayEventNameGuildScheduledEventUserAdd:
-		if len(bot.Handlers.GuildScheduledEventUserAdd) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd[:index], bot.Handlers.GuildScheduledEventUserAdd[index+1:]...)
-
-	case FlagGatewayEventNameGuildScheduledEventUserRemove:
-		if len(bot.Handlers.GuildScheduledEventUserRemove) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove[:index], bot.Handlers.GuildScheduledEventUserRemove[index+1:]...)
-
-	case FlagGatewayEventNameIntegrationCreate:
-		if len(bot.Handlers.IntegrationCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate[:index], bot.Handlers.IntegrationCreate[index+1:]...)
-
-	case FlagGatewayEventNameIntegrationUpdate:
-		if len(bot.Handlers.IntegrationUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate[:index], bot.Handlers.IntegrationUpdate[index+1:]...)
-
-	case FlagGatewayEventNameIntegrationDelete:
-		if len(bot.Handlers.IntegrationDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete[:index], bot.Handlers.IntegrationDelete[index+1:]...)
-
-	case FlagGatewayEventNameInviteCreate:
-		if len(bot.Handlers.InviteCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate[:index], bot.Handlers.InviteCreate[index+1:]...)
-
-	case FlagGatewayEventNameInviteDelete:
-		if len(bot.Handlers.InviteDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete[:index], bot.Handlers.InviteDelete[index+1:]...)
-
-	case FlagGatewayEventNameMessageCreate:
-		if len(bot.Handlers.MessageCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate[:index], bot.Handlers.MessageCreate[index+1:]...)
-
-	case FlagGatewayEventNameMessageUpdate:
-		if len(bot.Handlers.MessageUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate[:index], bot.Handlers.MessageUpdate[index+1:]...)
-
-	case FlagGatewayEventNameMessageDelete:
-		if len(bot.Handlers.MessageDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete[:index], bot.Handlers.MessageDelete[index+1:]...)
-
-	case FlagGatewayEventNameMessageDeleteBulk:
-		if len(bot.Handlers.MessageDeleteBulk) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk[:index], bot.Handlers.MessageDeleteBulk[index+1:]...)
-
-	case FlagGatewayEventNameMessageReactionAdd:
-		if len(bot.Handlers.MessageReactionAdd) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd[:index], bot.Handlers.MessageReactionAdd[index+1:]...)
-
-	case FlagGatewayEventNameMessageReactionRemove:
-		if len(bot.Handlers.MessageReactionRemove) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove[:index], bot.Handlers.MessageReactionRemove[index+1:]...)
-
-	case FlagGatewayEventNameMessageReactionRemoveAll:
-		if len(bot.Handlers.MessageReactionRemoveAll) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll[:index], bot.Handlers.MessageReactionRemoveAll[index+1:]...)
-
-	case FlagGatewayEventNameMessageReactionRemoveEmoji:
-		if len(bot.Handlers.MessageReactionRemoveEmoji) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji[:index], bot.Handlers.MessageReactionRemoveEmoji[index+1:]...)
-
-	case FlagGatewayEventNamePresenceUpdate:
-		if len(bot.Handlers.PresenceUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate[:index], bot.Handlers.PresenceUpdate[index+1:]...)
-
-	case FlagGatewayEventNameStageInstanceCreate:
-		if len(bot.Handlers.StageInstanceCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate[:index], bot.Handlers.StageInstanceCreate[index+1:]...)
-
-	case FlagGatewayEventNameStageInstanceDelete:
-		if len(bot.Handlers.StageInstanceDelete) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete[:index], bot.Handlers.StageInstanceDelete[index+1:]...)
-
-	case FlagGatewayEventNameStageInstanceUpdate:
-		if len(bot.Handlers.StageInstanceUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate[:index], bot.Handlers.StageInstanceUpdate[index+1:]...)
-
-	case FlagGatewayEventNameTypingStart:
-		if len(bot.Handlers.TypingStart) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.TypingStart = append(bot.Handlers.TypingStart[:index], bot.Handlers.TypingStart[index+1:]...)
-
-	case FlagGatewayEventNameVoiceStateUpdate:
-		if len(bot.Handlers.VoiceStateUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.VoiceStateUpdate = append(bot.Handlers.VoiceStateUpdate[:index], bot.Handlers.VoiceStateUpdate[index+1:]...)
-
-	case FlagGatewayEventNameWebhooksUpdate:
-		if len(bot.Handlers.WebhooksUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate[:index], bot.Handlers.WebhooksUpdate[index+1:]...)
-	}
-
-	LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("removed event handler")
-
-	return nil
-}
-
-// handle handles an event using its name and data.
-func (bot *Client) handle(eventname string, data json.RawMessage) {
-	bot.Handlers.mu.RLock()
-	defer bot.Handlers.mu.RUnlock()
-
-	switch eventname {
-	case FlagGatewayEventNameHello:
-		if len(bot.Handlers.Hello) != 0 {
-			event := new(Hello)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.Hello {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameReady:
-		if len(bot.Handlers.Ready) != 0 {
-			event := new(Ready)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.Ready {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameResumed:
-		if len(bot.Handlers.Resumed) != 0 {
-			event := new(Resumed)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.Resumed {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameReconnect:
-		if len(bot.Handlers.Reconnect) != 0 {
-			event := new(Reconnect)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.Reconnect {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameInvalidSession:
-		if len(bot.Handlers.InvalidSession) != 0 {
-			event := new(InvalidSession)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInvalidSession, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.InvalidSession {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
-		if len(bot.Handlers.ApplicationCommandPermissionsUpdate) != 0 {
-			event := new(ApplicationCommandPermissionsUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameApplicationCommandPermissionsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ApplicationCommandPermissionsUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameAutoModerationRuleCreate:
-		if len(bot.Handlers.AutoModerationRuleCreate) != 0 {
-			event := new(AutoModerationRuleCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.AutoModerationRuleCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameAutoModerationRuleUpdate:
-		if len(bot.Handlers.AutoModerationRuleUpdate) != 0 {
-			event := new(AutoModerationRuleUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.AutoModerationRuleUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameAutoModerationRuleDelete:
-		if len(bot.Handlers.AutoModerationRuleDelete) != 0 {
-			event := new(AutoModerationRuleDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.AutoModerationRuleDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameAutoModerationActionExecution:
-		if len(bot.Handlers.AutoModerationActionExecution) != 0 {
-			event := new(AutoModerationActionExecution)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationActionExecution, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.AutoModerationActionExecution {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameInteractionCreate:
-		if len(bot.Handlers.InteractionCreate) != 0 {
-			event := new(InteractionCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.InteractionCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameVoiceServerUpdate:
-		if len(bot.Handlers.VoiceServerUpdate) != 0 {
-			event := new(VoiceServerUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.VoiceServerUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildMembersChunk:
-		if len(bot.Handlers.GuildMembersChunk) != 0 {
-			event := new(GuildMembersChunk)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildMembersChunk {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameUserUpdate:
-		if len(bot.Handlers.UserUpdate) != 0 {
-			event := new(UserUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.UserUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameChannelCreate:
-		if len(bot.Handlers.ChannelCreate) != 0 {
-			event := new(ChannelCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ChannelCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameChannelUpdate:
-		if len(bot.Handlers.ChannelUpdate) != 0 {
-			event := new(ChannelUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ChannelUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameChannelDelete:
-		if len(bot.Handlers.ChannelDelete) != 0 {
-			event := new(ChannelDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ChannelDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameChannelPinsUpdate:
-		if len(bot.Handlers.ChannelPinsUpdate) != 0 {
-			event := new(ChannelPinsUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelPinsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ChannelPinsUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameThreadCreate:
-		if len(bot.Handlers.ThreadCreate) != 0 {
-			event := new(ThreadCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ThreadCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameThreadUpdate:
-		if len(bot.Handlers.ThreadUpdate) != 0 {
-			event := new(ThreadUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ThreadUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameThreadDelete:
-		if len(bot.Handlers.ThreadDelete) != 0 {
-			event := new(ThreadDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ThreadDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameThreadListSync:
-		if len(bot.Handlers.ThreadListSync) != 0 {
-			event := new(ThreadListSync)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadListSync, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ThreadListSync {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameThreadMemberUpdate:
-		if len(bot.Handlers.ThreadMemberUpdate) != 0 {
-			event := new(ThreadMemberUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ThreadMemberUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameThreadMembersUpdate:
-		if len(bot.Handlers.ThreadMembersUpdate) != 0 {
-			event := new(ThreadMembersUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMembersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.ThreadMembersUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildCreate:
-		if len(bot.Handlers.GuildCreate) != 0 {
-			event := new(GuildCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildUpdate:
-		if len(bot.Handlers.GuildUpdate) != 0 {
-			event := new(GuildUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildDelete:
-		if len(bot.Handlers.GuildDelete) != 0 {
-			event := new(GuildDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildAuditLogEntryCreate:
-		if len(bot.Handlers.GuildAuditLogEntryCreate) != 0 {
-			event := new(GuildAuditLogEntryCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildAuditLogEntryCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildAuditLogEntryCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildBanAdd:
-		if len(bot.Handlers.GuildBanAdd) != 0 {
-			event := new(GuildBanAdd)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildBanAdd {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildBanRemove:
-		if len(bot.Handlers.GuildBanRemove) != 0 {
-			event := new(GuildBanRemove)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildBanRemove {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildEmojisUpdate:
-		if len(bot.Handlers.GuildEmojisUpdate) != 0 {
-			event := new(GuildEmojisUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildEmojisUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildEmojisUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildStickersUpdate:
-		if len(bot.Handlers.GuildStickersUpdate) != 0 {
-			event := new(GuildStickersUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildStickersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildStickersUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildIntegrationsUpdate:
-		if len(bot.Handlers.GuildIntegrationsUpdate) != 0 {
-			event := new(GuildIntegrationsUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildIntegrationsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildIntegrationsUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildMemberAdd:
-		if len(bot.Handlers.GuildMemberAdd) != 0 {
-			event := new(GuildMemberAdd)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildMemberAdd {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildMemberRemove:
-		if len(bot.Handlers.GuildMemberRemove) != 0 {
-			event := new(GuildMemberRemove)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildMemberRemove {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildMemberUpdate:
-		if len(bot.Handlers.GuildMemberUpdate) != 0 {
-			event := new(GuildMemberUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildMemberUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildRoleCreate:
-		if len(bot.Handlers.GuildRoleCreate) != 0 {
-			event := new(GuildRoleCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildRoleCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildRoleUpdate:
-		if len(bot.Handlers.GuildRoleUpdate) != 0 {
-			event := new(GuildRoleUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildRoleUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildRoleDelete:
-		if len(bot.Handlers.GuildRoleDelete) != 0 {
-			event := new(GuildRoleDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildRoleDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventCreate:
-		if len(bot.Handlers.GuildScheduledEventCreate) != 0 {
-			event := new(GuildScheduledEventCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildScheduledEventCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventUpdate:
-		if len(bot.Handlers.GuildScheduledEventUpdate) != 0 {
-			event := new(GuildScheduledEventUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildScheduledEventUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventDelete:
-		if len(bot.Handlers.GuildScheduledEventDelete) != 0 {
-			event := new(GuildScheduledEventDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildScheduledEventDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventUserAdd:
-		if len(bot.Handlers.GuildScheduledEventUserAdd) != 0 {
-			event := new(GuildScheduledEventUserAdd)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildScheduledEventUserAdd {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildScheduledEventUserRemove:
-		if len(bot.Handlers.GuildScheduledEventUserRemove) != 0 {
-			event := new(GuildScheduledEventUserRemove)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildScheduledEventUserRemove {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameIntegrationCreate:
-		if len(bot.Handlers.IntegrationCreate) != 0 {
-			event := new(IntegrationCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.IntegrationCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameIntegrationUpdate:
-		if len(bot.Handlers.IntegrationUpdate) != 0 {
-			event := new(IntegrationUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.IntegrationUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameIntegrationDelete:
-		if len(bot.Handlers.IntegrationDelete) != 0 {
-			event := new(IntegrationDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.IntegrationDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameInviteCreate:
-		if len(bot.Handlers.InviteCreate) != 0 {
-			event := new(InviteCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.InviteCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameInviteDelete:
-		if len(bot.Handlers.InviteDelete) != 0 {
-			event := new(InviteDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.InviteDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameMessageCreate:
-		if len(bot.Handlers.MessageCreate) != 0 {
-			event := new(MessageCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.MessageCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameMessageUpdate:
-		if len(bot.Handlers.MessageUpdate) != 0 {
-			event := new(MessageUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.MessageUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameMessageDelete:
-		if len(bot.Handlers.MessageDelete) != 0 {
-			event := new(MessageDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.MessageDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameMessageDeleteBulk:
-		if len(bot.Handlers.MessageDeleteBulk) != 0 {
-			event := new(MessageDeleteBulk)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDeleteBulk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.MessageDeleteBulk {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameMessageReactionAdd:
-		if len(bot.Handlers.MessageReactionAdd) != 0 {
-			event := new(MessageReactionAdd)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.MessageReactionAdd {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameMessageReactionRemove:
-		if len(bot.Handlers.MessageReactionRemove) != 0 {
-			event := new(MessageReactionRemove)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.MessageReactionRemove {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameMessageReactionRemoveAll:
-		if len(bot.Handlers.MessageReactionRemoveAll) != 0 {
-			event := new(MessageReactionRemoveAll)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveAll, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.MessageReactionRemoveAll {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameMessageReactionRemoveEmoji:
-		if len(bot.Handlers.MessageReactionRemoveEmoji) != 0 {
-			event := new(MessageReactionRemoveEmoji)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveEmoji, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.MessageReactionRemoveEmoji {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNamePresenceUpdate:
-		if len(bot.Handlers.PresenceUpdate) != 0 {
-			event := new(PresenceUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNamePresenceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.PresenceUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameStageInstanceCreate:
-		if len(bot.Handlers.StageInstanceCreate) != 0 {
-			event := new(StageInstanceCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.StageInstanceCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameStageInstanceDelete:
-		if len(bot.Handlers.StageInstanceDelete) != 0 {
-			event := new(StageInstanceDelete)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.StageInstanceDelete {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameStageInstanceUpdate:
-		if len(bot.Handlers.StageInstanceUpdate) != 0 {
-			event := new(StageInstanceUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.StageInstanceUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameTypingStart:
-		if len(bot.Handlers.TypingStart) != 0 {
-			event := new(TypingStart)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameTypingStart, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.TypingStart {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameVoiceStateUpdate:
-		if len(bot.Handlers.VoiceStateUpdate) != 0 {
-			event := new(VoiceStateUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceStateUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.VoiceStateUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameWebhooksUpdate:
-		if len(bot.Handlers.WebhooksUpdate) != 0 {
-			event := new(WebhooksUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameWebhooksUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.WebhooksUpdate {
-				go handler(event)
-			}
-		}
-	}
 }
 
 /**json_convert.go contains type conversion functions for JSON data functionality.
@@ -9671,23 +8387,154 @@ func (r *ModifyGuildRolePositions) MarshalJSON() ([]byte, error) {
 	return json.Marshal(r.Parameters) //nolint:wrapcheck
 }
 
-/**unmarshal.go contains custom UnmarshalJSON() functions.
+/**json_unmarshal_convert.go contains type conversion functions for interfaces that JSON data is unmarshalled into.
 
-This lets json.Unmarshal() unmarshal JSON data into types that contain interface fields.
-
-In addition, structs that contain an embedded field - that implements UnmarshalJSON() - will
-use the embedded field's implementation of UnmarshalJSON(). As a result, these structs must
-also implement UnmarshalJSON() to prevent null pointer dereferences.
+This lets users (developers) easily type convert interfaces.
 
 */
 
-/** Unused: Command, Event */
+/* Nonce */
 
-/** Nonce
+func (n Nonce) String() string {
+	return string(n)
+}
 
-Includes: CreateMessage, Message
+func (n Nonce) Int64() (int64, error) {
+	return strconv.ParseInt(string(n), base10, bit64) //nolint:wrapcheck
+}
 
-**/
+/* Value */
+
+func (n Value) String() string {
+	return string(n)
+}
+
+func (n Value) Float64() (float64, error) {
+	return strconv.ParseFloat(string(n), bit64) //nolint:wrapcheck
+}
+
+func (n Value) Int64() (int64, error) {
+	return strconv.ParseInt(string(n), base10, bit64) //nolint:wrapcheck
+}
+
+func (n Value) Bool() (bool, error) {
+	return strconv.ParseBool(string(n)) //nolint:wrapcheck
+}
+
+/* InteractionData */
+const (
+	errTypeConvert = "attempted to type convert InteractionData of type %v to type %s"
+)
+
+// ApplicationCommand type converts an InteractionData field into an ApplicationCommandData struct.
+func (i *Interaction) ApplicationCommand() *ApplicationCommandData {
+	switch i.Data.InteractionDataType() {
+	case FlagInteractionTypeAPPLICATION_COMMAND,
+		FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE:
+		return i.Data.(*ApplicationCommandData) //nolint:forcetypeassert
+
+	case FlagInteractionTypePING:
+		panic(fmt.Sprintf(errTypeConvert, "Ping", "ApplicationCommandData"))
+
+	case FlagInteractionTypeMESSAGE_COMPONENT:
+		panic(fmt.Sprintf(errTypeConvert, "MessageComponentData", "ApplicationCommandData"))
+
+	case FlagInteractionTypeMODAL_SUBMIT:
+		panic(fmt.Sprintf(errTypeConvert, "ModalSubmitData", "ApplicationCommandData"))
+	}
+
+	panic(fmt.Sprintf(errTypeConvert, i.Data.InteractionDataType(), "ApplicationCommandData"))
+}
+
+// MessageComponent type converts an InteractionData field into a MessageComponentData struct.
+func (i *Interaction) MessageComponent() *MessageComponentData {
+	switch i.Data.InteractionDataType() {
+	case FlagInteractionTypeMESSAGE_COMPONENT:
+		return i.Data.(*MessageComponentData) //nolint:forcetypeassert
+
+	case FlagInteractionTypePING:
+		panic(fmt.Sprintf(errTypeConvert, "Ping", "MessageComponentData"))
+
+	case FlagInteractionTypeAPPLICATION_COMMAND,
+		FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE:
+		panic(fmt.Sprintf(errTypeConvert, "ApplicationCommandData", "MessageComponentData"))
+
+	case FlagInteractionTypeMODAL_SUBMIT:
+		panic(fmt.Sprintf(errTypeConvert, "ModalSubmitData", "MessageComponentData"))
+	}
+
+	panic(fmt.Sprintf(errTypeConvert, i.Data.InteractionDataType(), "MessageComponentData"))
+}
+
+// ModalSubmit type converts an InteractionData field into a ModalSubmitData struct.
+func (i *Interaction) ModalSubmit() *ModalSubmitData {
+	switch i.Data.InteractionDataType() {
+	case FlagInteractionTypeMODAL_SUBMIT:
+		return i.Data.(*ModalSubmitData) //nolint:forcetypeassert
+
+	case FlagInteractionTypePING:
+		panic(fmt.Sprintf(errTypeConvert, "Ping", "ModalSubmitData"))
+
+	case FlagInteractionTypeAPPLICATION_COMMAND,
+		FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE:
+		panic(fmt.Sprintf(errTypeConvert, "ApplicationCommandData", "ModalSubmitData"))
+
+	case FlagInteractionTypeMESSAGE_COMPONENT:
+		panic(fmt.Sprintf(errTypeConvert, "MessageComponentData", "ModalSubmitData"))
+	}
+
+	panic(fmt.Sprintf(errTypeConvert, i.Data.InteractionDataType(), "ModalSubmitData"))
+}
+
+/**unmarshal_embed.go contains custom UnmarshalJSON() functions.
+
+Structs that contain an embedded field - which implements UnmarshalJSON() - will
+use the embedded field's implementation of UnmarshalJSON(). These structs must
+also implement UnmarshalJSON() to prevent null pointer dereferences.
+
+--------------------------------------------------------------------------------------*/
+
+func (e *MessageCreate) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &e.Message); err != nil {
+		return fmt.Errorf(errUnmarshal, e, err)
+	}
+
+	return nil
+}
+
+func (e *MessageUpdate) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &e.Message); err != nil {
+		return fmt.Errorf(errUnmarshal, e, err)
+	}
+
+	return nil
+}
+
+func (e *InteractionCreate) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &e.Interaction); err != nil {
+		return fmt.Errorf(errUnmarshal, e, err)
+	}
+
+	return nil
+}
+
+func (e *CreateInteractionResponse) UnmarshalJSON(b []byte) error {
+	if err := json.Unmarshal(b, &e.InteractionResponse); err != nil {
+		return fmt.Errorf(errUnmarshal, e, err)
+	}
+
+	return nil
+}
+
+/**unmarshal_interface.go contains custom UnmarshalJSON() functions.
+
+This lets json.Unmarshal() unmarshal JSON data into types that contain interface fields.
+
+--------------------------------------------------------------------------------------*/
+
+/** Unused: Command, Event **/
+
+/** Nonce: CreateMessage, Message **/
 
 func (v *Nonce) UnmarshalJSON(b []byte) error {
 	var x interface{}
@@ -9710,11 +8557,7 @@ func (v *Nonce) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-/** Value
-
-Includes: ApplicationCommandOptionChoice, ApplicationCommandInteractionDataOption
-
-**/
+/** Value: ApplicationCommandOptionChoice, ApplicationCommandInteractionDataOption **/
 
 func (v *Value) UnmarshalJSON(b []byte) error {
 	var x interface{}
@@ -9910,8 +8753,8 @@ func (r *EditMessage) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (r *ForumThreadMessageParams) UnmarshalJSON(b []byte) error {
-	type alias ForumThreadMessageParams
+func (r *ForumAndMediaThreadMessageParams) UnmarshalJSON(b []byte) error {
+	type alias ForumAndMediaThreadMessageParams
 
 	var unmarshalled struct {
 		alias
@@ -9928,10 +8771,10 @@ func (r *ForumThreadMessageParams) UnmarshalJSON(b []byte) error {
 	}
 
 	if r == nil {
-		r = new(ForumThreadMessageParams)
+		r = new(ForumAndMediaThreadMessageParams)
 	}
 
-	*r = ForumThreadMessageParams(unmarshalled.alias)
+	*r = ForumAndMediaThreadMessageParams(unmarshalled.alias)
 
 	return nil
 }
@@ -10263,139 +9106,6 @@ func (r *InteractionResponse) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-/** Structs that contain embedded fields that implement UnmarshalJSON() **/
-
-func (e *MessageCreate) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &e.Message); err != nil {
-		return fmt.Errorf(errUnmarshal, e, err)
-	}
-
-	return nil
-}
-
-func (e *MessageUpdate) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &e.Message); err != nil {
-		return fmt.Errorf(errUnmarshal, e, err)
-	}
-
-	return nil
-}
-
-func (e *InteractionCreate) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &e.Interaction); err != nil {
-		return fmt.Errorf(errUnmarshal, e, err)
-	}
-
-	return nil
-}
-
-func (e *CreateInteractionResponse) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &e.InteractionResponse); err != nil {
-		return fmt.Errorf(errUnmarshal, e, err)
-	}
-
-	return nil
-}
-
-/**json_unmarshal_convert.go contains type conversion functions for interfaces that JSON data is unmarshalled into.
-
-This lets users (developers) easily type convert interfaces.
-
-*/
-
-/* Nonce */
-
-func (n Nonce) String() string {
-	return string(n)
-}
-
-func (n Nonce) Int64() (int64, error) {
-	return strconv.ParseInt(string(n), base10, bit64) //nolint:wrapcheck
-}
-
-/* Value */
-
-func (n Value) String() string {
-	return string(n)
-}
-
-func (n Value) Float64() (float64, error) {
-	return strconv.ParseFloat(string(n), bit64) //nolint:wrapcheck
-}
-
-func (n Value) Int64() (int64, error) {
-	return strconv.ParseInt(string(n), base10, bit64) //nolint:wrapcheck
-}
-
-func (n Value) Bool() (bool, error) {
-	return strconv.ParseBool(string(n)) //nolint:wrapcheck
-}
-
-/* InteractionData */
-const (
-	errTypeConvert = "attempted to type convert InteractionData of type %v to type %s"
-)
-
-// ApplicationCommand type converts an InteractionData field into an ApplicationCommandData struct.
-func (i *Interaction) ApplicationCommand() *ApplicationCommandData {
-	switch i.Data.InteractionDataType() {
-	case FlagInteractionTypeAPPLICATION_COMMAND,
-		FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE:
-		return i.Data.(*ApplicationCommandData) //nolint:forcetypeassert
-
-	case FlagInteractionTypePING:
-		panic(fmt.Sprintf(errTypeConvert, "Ping", "ApplicationCommandData"))
-
-	case FlagInteractionTypeMESSAGE_COMPONENT:
-		panic(fmt.Sprintf(errTypeConvert, "MessageComponentData", "ApplicationCommandData"))
-
-	case FlagInteractionTypeMODAL_SUBMIT:
-		panic(fmt.Sprintf(errTypeConvert, "ModalSubmitData", "ApplicationCommandData"))
-	}
-
-	panic(fmt.Sprintf(errTypeConvert, i.Data.InteractionDataType(), "ApplicationCommandData"))
-}
-
-// MessageComponent type converts an InteractionData field into a MessageComponentData struct.
-func (i *Interaction) MessageComponent() *MessageComponentData {
-	switch i.Data.InteractionDataType() {
-	case FlagInteractionTypeMESSAGE_COMPONENT:
-		return i.Data.(*MessageComponentData) //nolint:forcetypeassert
-
-	case FlagInteractionTypePING:
-		panic(fmt.Sprintf(errTypeConvert, "Ping", "MessageComponentData"))
-
-	case FlagInteractionTypeAPPLICATION_COMMAND,
-		FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE:
-		panic(fmt.Sprintf(errTypeConvert, "ApplicationCommandData", "MessageComponentData"))
-
-	case FlagInteractionTypeMODAL_SUBMIT:
-		panic(fmt.Sprintf(errTypeConvert, "ModalSubmitData", "MessageComponentData"))
-	}
-
-	panic(fmt.Sprintf(errTypeConvert, i.Data.InteractionDataType(), "MessageComponentData"))
-}
-
-// ModalSubmit type converts an InteractionData field into a ModalSubmitData struct.
-func (i *Interaction) ModalSubmit() *ModalSubmitData {
-	switch i.Data.InteractionDataType() {
-	case FlagInteractionTypeMODAL_SUBMIT:
-		return i.Data.(*ModalSubmitData) //nolint:forcetypeassert
-
-	case FlagInteractionTypePING:
-		panic(fmt.Sprintf(errTypeConvert, "Ping", "ModalSubmitData"))
-
-	case FlagInteractionTypeAPPLICATION_COMMAND,
-		FlagInteractionTypeAPPLICATION_COMMAND_AUTOCOMPLETE:
-		panic(fmt.Sprintf(errTypeConvert, "ApplicationCommandData", "ModalSubmitData"))
-
-	case FlagInteractionTypeMESSAGE_COMPONENT:
-		panic(fmt.Sprintf(errTypeConvert, "MessageComponentData", "ModalSubmitData"))
-	}
-
-	panic(fmt.Sprintf(errTypeConvert, i.Data.InteractionDataType(), "ModalSubmitData"))
-}
-
 // init is called at the start of the application.
 func init() {
 	zerolog.TimeFieldFormat = time.RFC3339Nano
@@ -10530,6 +9240,15 @@ func LogPayload(log *zerolog.Event, op int, data json.RawMessage) *zerolog.Event
 // LogCommand logs a Gateway Command (typically using a LogSession).
 func LogCommand(log *zerolog.Event, clientid string, op int, command string) *zerolog.Event {
 	return log.Str(LogCtxClient, clientid).
+		Dict(LogCtxCommand, zerolog.Dict().
+			Int(LogCtxCommandOpcode, op).
+			Str(LogCtxCommandName, command),
+		)
+}
+
+// LogCommandVoice logs a Voice Command.
+func LogCommandVoice(log *zerolog.Event, op int, command string) *zerolog.Event {
+	return log.Timestamp().
 		Dict(LogCtxCommand, zerolog.Dict().
 			Int(LogCtxCommandOpcode, op).
 			Str(LogCtxCommandName, command),
@@ -11007,6 +9726,55 @@ func putPayload(g *GatewayPayload) {
 	gpool.Put(g)
 }
 
+// vspool represents a synchronized Voice Session pool.
+var vspool sync.Pool
+
+// newVoiceSession gets a Voice Session from a pool.
+func newVoiceSession() *VoiceSession {
+	if vs := vspool.Get(); vs != nil {
+		return vs.(*VoiceSession) //nolint:forcetypeassert
+	}
+
+	return new(VoiceSession)
+}
+
+// putVoiceSession puts a Voice Session into the pool.
+func putVoiceSession(vs *VoiceSession) {
+	vs.Lock()
+	defer vs.Unlock()
+
+	// reset the Session.
+	vs.ID = ""
+	vs.Nonce = 0
+	vs.Context = nil
+	vs.Conn = nil
+	vs.heartbeat = nil
+	vs.manager = nil
+
+	vspool.Put(vs)
+}
+
+// vpool represents a synchronized Voice Payload pool.
+var vpool sync.Pool
+
+// getVoicePayload gets a Voice Payload from the pool.
+func getVoicePayload() *VoicePayload {
+	if v := vpool.Get(); v != nil {
+		return v.(*VoicePayload) //nolint:forcetypeassert
+	}
+
+	return new(VoicePayload)
+}
+
+// putVoicePayload puts a Voice Payload into the pool.
+func putVoicePayload(v *VoicePayload) {
+	// reset the Voice Payload.
+	v.Op = 0
+	v.Data = nil
+
+	vpool.Put(v)
+}
+
 const (
 	nilRouteBucket = "NIL"
 )
@@ -11221,9 +9989,8 @@ var (
 var (
 	// RateLimitHashFuncs represents a map of routes to respective rate limit algorithms.
 	//
-	// used to determine the hashing function for routes during runtime (map[routeID]algorithm).
+	// Used to determine the hashing function for routes during runtime (map[routeID]algorithm).
 	RateLimitHashFuncs = map[uint8]hash{
-		RouteIDs["OAuth"]:                                          HashPerRoute,
 		RouteIDs["GetGlobalApplicationCommands"]:                   HashPerRoute,
 		RouteIDs["CreateGlobalApplicationCommand"]:                 HashPerRoute,
 		RouteIDs["GetGlobalApplicationCommand"]:                    HashPerRoute,
@@ -11249,6 +10016,8 @@ var (
 		RouteIDs["EditFollowupMessage"]:                            HashPerRoute,
 		RouteIDs["DeleteFollowupMessage"]:                          HashPerRoute,
 		RouteIDs["GetCurrentApplication"]:                          HashPerRoute,
+		RouteIDs["EditCurrentApplication"]:                         HashPerRoute,
+		RouteIDs["GetApplicationActivityInstance"]:                 HashPerRoute,
 		RouteIDs["GetApplicationRoleConnectionMetadataRecords"]:    HashPerRoute,
 		RouteIDs["UpdateApplicationRoleConnectionMetadataRecords"]: HashPerRoute,
 		RouteIDs["GetGuildAuditLog"]:                               HashPerRoute,
@@ -11263,19 +10032,6 @@ var (
 		RouteIDs["ModifyChannelGuild"]:                             HashPerRoute,
 		RouteIDs["ModifyChannelThread"]:                            HashPerRoute,
 		RouteIDs["DeleteCloseChannel"]:                             HashPerRoute,
-		RouteIDs["GetChannelMessages"]:                             HashPerRoute,
-		RouteIDs["GetChannelMessage"]:                              HashPerRoute,
-		RouteIDs["CreateMessage"]:                                  HashPerRoute,
-		RouteIDs["CrosspostMessage"]:                               HashPerRoute,
-		RouteIDs["CreateReaction"]:                                 HashPerRoute,
-		RouteIDs["DeleteOwnReaction"]:                              HashPerRoute,
-		RouteIDs["DeleteUserReaction"]:                             HashPerRoute,
-		RouteIDs["GetReactions"]:                                   HashPerRoute,
-		RouteIDs["DeleteAllReactions"]:                             HashPerRoute,
-		RouteIDs["DeleteAllReactionsforEmoji"]:                     HashPerRoute,
-		RouteIDs["EditMessage"]:                                    HashPerRoute,
-		RouteIDs["DeleteMessage"]:                                  HashPerRoute,
-		RouteIDs["BulkDeleteMessages"]:                             HashPerRoute,
 		RouteIDs["EditChannelPermissions"]:                         HashPerRoute,
 		RouteIDs["GetChannelInvites"]:                              HashPerRoute,
 		RouteIDs["CreateChannelInvite"]:                            HashPerRoute,
@@ -11304,6 +10060,16 @@ var (
 		RouteIDs["CreateGuildEmoji"]:                               HashPerRoute,
 		RouteIDs["ModifyGuildEmoji"]:                               HashPerRoute,
 		RouteIDs["DeleteGuildEmoji"]:                               HashPerRoute,
+		RouteIDs["ListApplicationEmojis"]:                          HashPerRoute,
+		RouteIDs["GetApplicationEmoji"]:                            HashPerRoute,
+		RouteIDs["CreateApplicationEmoji"]:                         HashPerRoute,
+		RouteIDs["ModifyApplicationEmoji"]:                         HashPerRoute,
+		RouteIDs["DeleteApplicationEmoji"]:                         HashPerRoute,
+		RouteIDs["ListEntitlements"]:                               HashPerRoute,
+		RouteIDs["GetEntitlement"]:                                 HashPerRoute,
+		RouteIDs["ConsumeEntitlement"]:                             HashPerRoute,
+		RouteIDs["CreateTestEntitlement"]:                          HashPerRoute,
+		RouteIDs["DeleteTestEntitlement"]:                          HashPerRoute,
 		RouteIDs["CreateGuild"]:                                    HashPerRoute,
 		RouteIDs["GetGuild"]:                                       HashPerRoute,
 		RouteIDs["GetGuildPreview"]:                                HashPerRoute,
@@ -11347,8 +10113,6 @@ var (
 		RouteIDs["ModifyGuildWelcomeScreen"]:                       HashPerRoute,
 		RouteIDs["GetGuildOnboarding"]:                             HashPerRoute,
 		RouteIDs["ModifyGuildOnboarding"]:                          HashPerRoute,
-		RouteIDs["ModifyCurrentUserVoiceState"]:                    HashPerRoute,
-		RouteIDs["ModifyUserVoiceState"]:                           HashPerRoute,
 		RouteIDs["ListScheduledEventsforGuild"]:                    HashPerRoute,
 		RouteIDs["CreateGuildScheduledEvent"]:                      HashPerRoute,
 		RouteIDs["GetGuildScheduledEvent"]:                         HashPerRoute,
@@ -11356,25 +10120,52 @@ var (
 		RouteIDs["DeleteGuildScheduledEvent"]:                      HashPerRoute,
 		RouteIDs["GetGuildScheduledEventUsers"]:                    HashPerRoute,
 		RouteIDs["GetGuildTemplate"]:                               HashPerRoute,
+		RouteIDs["GetInvite"]:                                      HashPerRoute,
+		RouteIDs["DeleteInvite"]:                                   HashPerRoute,
 		RouteIDs["CreateGuildfromGuildTemplate"]:                   HashPerRoute,
 		RouteIDs["GetGuildTemplates"]:                              HashPerRoute,
 		RouteIDs["CreateGuildTemplate"]:                            HashPerRoute,
 		RouteIDs["SyncGuildTemplate"]:                              HashPerRoute,
 		RouteIDs["ModifyGuildTemplate"]:                            HashPerRoute,
 		RouteIDs["DeleteGuildTemplate"]:                            HashPerRoute,
-		RouteIDs["GetInvite"]:                                      HashPerRoute,
-		RouteIDs["DeleteInvite"]:                                   HashPerRoute,
+		RouteIDs["GetChannelMessages"]:                             HashPerRoute,
+		RouteIDs["GetChannelMessage"]:                              HashPerRoute,
+		RouteIDs["CreateMessage"]:                                  HashPerRoute,
+		RouteIDs["CrosspostMessage"]:                               HashPerRoute,
+		RouteIDs["CreateReaction"]:                                 HashPerRoute,
+		RouteIDs["DeleteOwnReaction"]:                              HashPerRoute,
+		RouteIDs["DeleteUserReaction"]:                             HashPerRoute,
+		RouteIDs["GetReactions"]:                                   HashPerRoute,
+		RouteIDs["DeleteAllReactions"]:                             HashPerRoute,
+		RouteIDs["DeleteAllReactionsforEmoji"]:                     HashPerRoute,
+		RouteIDs["EditMessage"]:                                    HashPerRoute,
+		RouteIDs["DeleteMessage"]:                                  HashPerRoute,
+		RouteIDs["BulkDeleteMessages"]:                             HashPerRoute,
+		RouteIDs["GetAnswerVoters"]:                                HashPerRoute,
+		RouteIDs["EndPoll"]:                                        HashPerRoute,
+		RouteIDs["ListSKUs"]:                                       HashPerRoute,
+		RouteIDs["SendSoundboardSound"]:                            HashPerRoute,
+		RouteIDs["ListDefaultSoundboardSounds"]:                    HashPerRoute,
+		RouteIDs["ListGuildSoundboardSounds"]:                      HashPerRoute,
+		RouteIDs["GetGuildSoundboardSound"]:                        HashPerRoute,
+		RouteIDs["CreateGuildSoundboardSound"]:                     HashPerRoute,
+		RouteIDs["ModifyGuildSoundboardSound"]:                     HashPerRoute,
+		RouteIDs["DeleteGuildSoundboardSound"]:                     HashPerRoute,
 		RouteIDs["CreateStageInstance"]:                            HashPerRoute,
 		RouteIDs["GetStageInstance"]:                               HashPerRoute,
 		RouteIDs["ModifyStageInstance"]:                            HashPerRoute,
 		RouteIDs["DeleteStageInstance"]:                            HashPerRoute,
 		RouteIDs["GetSticker"]:                                     HashPerRoute,
-		RouteIDs["ListNitroStickerPacks"]:                          HashPerRoute,
+		RouteIDs["ListStickerPacks"]:                               HashPerRoute,
 		RouteIDs["ListGuildStickers"]:                              HashPerRoute,
 		RouteIDs["GetGuildSticker"]:                                HashPerRoute,
 		RouteIDs["CreateGuildSticker"]:                             HashPerRoute,
 		RouteIDs["ModifyGuildSticker"]:                             HashPerRoute,
 		RouteIDs["DeleteGuildSticker"]:                             HashPerRoute,
+		RouteIDs["ListSKUSubscriptions"]:                           HashPerRoute,
+		RouteIDs["GetSKUSubscription"]:                             HashPerRoute,
+		RouteIDs["ModifyCurrentUserVoiceState"]:                    HashPerRoute,
+		RouteIDs["ModifyUserVoiceState"]:                           HashPerRoute,
 		RouteIDs["GetCurrentUser"]:                                 HashPerRoute,
 		RouteIDs["GetUser"]:                                        HashPerRoute,
 		RouteIDs["ModifyCurrentUser"]:                              HashPerRoute,
@@ -11383,9 +10174,9 @@ var (
 		RouteIDs["LeaveGuild"]:                                     HashPerRoute,
 		RouteIDs["CreateDM"]:                                       HashPerRoute,
 		RouteIDs["CreateGroupDM"]:                                  HashPerRoute,
-		RouteIDs["GetUserConnections"]:                             HashPerRoute,
-		RouteIDs["GetUserApplicationRoleConnection"]:               HashPerRoute,
-		RouteIDs["UpdateUserApplicationRoleConnection"]:            HashPerRoute,
+		RouteIDs["GetCurrentUserConnections"]:                      HashPerRoute,
+		RouteIDs["GetCurrentUserApplicationRoleConnection"]:        HashPerRoute,
+		RouteIDs["UpdateCurrentUserApplicationRoleConnection"]:     HashPerRoute,
 		RouteIDs["ListVoiceRegions"]:                               HashPerRoute,
 		RouteIDs["CreateWebhook"]:                                  HashPerRoute,
 		RouteIDs["GetChannelWebhooks"]:                             HashPerRoute,
@@ -12140,163 +10931,187 @@ var (
 		"EditFollowupMessage":                            24,
 		"DeleteFollowupMessage":                          25,
 		"GetCurrentApplication":                          26,
-		"GetApplicationRoleConnectionMetadataRecords":    27,
-		"UpdateApplicationRoleConnectionMetadataRecords": 28,
-		"GetGuildAuditLog":                               29,
-		"ListAutoModerationRulesForGuild":                30,
-		"GetAutoModerationRule":                          31,
-		"CreateAutoModerationRule":                       32,
-		"ModifyAutoModerationRule":                       33,
-		"DeleteAutoModerationRule":                       34,
-		"GetChannel":                                     35,
-		"ModifyChannel":                                  36,
-		"ModifyChannelGroupDM":                           37,
-		"ModifyChannelGuild":                             38,
-		"ModifyChannelThread":                            39,
-		"DeleteCloseChannel":                             40,
-		"GetChannelMessages":                             41,
-		"GetChannelMessage":                              42,
-		"CreateMessage":                                  43,
-		"CrosspostMessage":                               44,
-		"CreateReaction":                                 45,
-		"DeleteOwnReaction":                              46,
-		"DeleteUserReaction":                             47,
-		"GetReactions":                                   48,
-		"DeleteAllReactions":                             49,
-		"DeleteAllReactionsforEmoji":                     50,
-		"EditMessage":                                    51,
-		"DeleteMessage":                                  52,
-		"BulkDeleteMessages":                             53,
-		"EditChannelPermissions":                         54,
-		"GetChannelInvites":                              55,
-		"CreateChannelInvite":                            56,
-		"DeleteChannelPermission":                        57,
-		"FollowAnnouncementChannel":                      58,
-		"TriggerTypingIndicator":                         59,
-		"GetPinnedMessages":                              60,
-		"PinMessage":                                     61,
-		"UnpinMessage":                                   62,
-		"GroupDMAddRecipient":                            63,
-		"GroupDMRemoveRecipient":                         64,
-		"StartThreadfromMessage":                         65,
-		"StartThreadwithoutMessage":                      66,
-		"StartThreadinForumChannel":                      67,
-		"JoinThread":                                     68,
-		"AddThreadMember":                                69,
-		"LeaveThread":                                    70,
-		"RemoveThreadMember":                             71,
-		"GetThreadMember":                                72,
-		"ListThreadMembers":                              73,
-		"ListPublicArchivedThreads":                      74,
-		"ListPrivateArchivedThreads":                     75,
-		"ListJoinedPrivateArchivedThreads":               76,
-		"ListGuildEmojis":                                77,
-		"GetGuildEmoji":                                  78,
-		"CreateGuildEmoji":                               79,
-		"ModifyGuildEmoji":                               80,
-		"DeleteGuildEmoji":                               81,
-		"CreateGuild":                                    82,
-		"GetGuild":                                       83,
-		"GetGuildPreview":                                84,
-		"ModifyGuild":                                    85,
-		"DeleteGuild":                                    86,
-		"GetGuildChannels":                               87,
-		"CreateGuildChannel":                             88,
-		"ModifyGuildChannelPositions":                    89,
-		"ListActiveGuildThreads":                         90,
-		"GetGuildMember":                                 91,
-		"ListGuildMembers":                               92,
-		"SearchGuildMembers":                             93,
-		"AddGuildMember":                                 94,
-		"ModifyGuildMember":                              95,
-		"ModifyCurrentMember":                            96,
-		"AddGuildMemberRole":                             97,
-		"RemoveGuildMemberRole":                          98,
-		"RemoveGuildMember":                              99,
-		"GetGuildBans":                                   100,
-		"GetGuildBan":                                    101,
-		"CreateGuildBan":                                 102,
-		"RemoveGuildBan":                                 103,
-		"GetGuildRoles":                                  104,
-		"CreateGuildRole":                                105,
-		"ModifyGuildRolePositions":                       106,
-		"ModifyGuildRole":                                107,
-		"DeleteGuildRole":                                108,
-		"ModifyGuildMFALevel":                            109,
-		"GetGuildPruneCount":                             110,
-		"BeginGuildPrune":                                111,
-		"GetGuildVoiceRegions":                           112,
-		"GetGuildInvites":                                113,
-		"GetGuildIntegrations":                           114,
-		"DeleteGuildIntegration":                         115,
-		"GetGuildWidgetSettings":                         116,
-		"ModifyGuildWidget":                              117,
-		"GetGuildWidget":                                 118,
-		"GetGuildVanityURL":                              119,
-		"GetGuildWidgetImage":                            120,
-		"GetGuildWelcomeScreen":                          121,
-		"ModifyGuildWelcomeScreen":                       122,
-		"GetGuildOnboarding":                             123,
-		"ModifyGuildOnboarding":                          124,
-		"ModifyCurrentUserVoiceState":                    125,
-		"ModifyUserVoiceState":                           126,
-		"ListScheduledEventsforGuild":                    127,
-		"CreateGuildScheduledEvent":                      128,
-		"GetGuildScheduledEvent":                         129,
-		"ModifyGuildScheduledEvent":                      130,
-		"DeleteGuildScheduledEvent":                      131,
-		"GetGuildScheduledEventUsers":                    132,
-		"GetGuildTemplate":                               133,
-		"CreateGuildfromGuildTemplate":                   134,
-		"GetGuildTemplates":                              135,
-		"CreateGuildTemplate":                            136,
-		"SyncGuildTemplate":                              137,
-		"ModifyGuildTemplate":                            138,
-		"DeleteGuildTemplate":                            139,
-		"GetInvite":                                      140,
-		"DeleteInvite":                                   141,
-		"CreateStageInstance":                            142,
-		"GetStageInstance":                               143,
-		"ModifyStageInstance":                            144,
-		"DeleteStageInstance":                            145,
-		"GetSticker":                                     146,
-		"ListNitroStickerPacks":                          147,
-		"ListGuildStickers":                              148,
-		"GetGuildSticker":                                149,
-		"CreateGuildSticker":                             150,
-		"ModifyGuildSticker":                             151,
-		"DeleteGuildSticker":                             152,
-		"GetCurrentUser":                                 153,
-		"GetUser":                                        154,
-		"ModifyCurrentUser":                              155,
-		"GetCurrentUserGuilds":                           156,
-		"GetCurrentUserGuildMember":                      157,
-		"LeaveGuild":                                     158,
-		"CreateDM":                                       159,
-		"CreateGroupDM":                                  160,
-		"GetUserConnections":                             161,
-		"GetUserApplicationRoleConnection":               162,
-		"UpdateUserApplicationRoleConnection":            163,
-		"ListVoiceRegions":                               164,
-		"CreateWebhook":                                  165,
-		"GetChannelWebhooks":                             166,
-		"GetGuildWebhooks":                               167,
-		"GetWebhook":                                     168,
-		"GetWebhookwithToken":                            169,
-		"ModifyWebhook":                                  170,
-		"ModifyWebhookwithToken":                         171,
-		"DeleteWebhook":                                  172,
-		"DeleteWebhookwithToken":                         173,
-		"ExecuteWebhook":                                 174,
-		"ExecuteSlackCompatibleWebhook":                  175,
-		"ExecuteGitHubCompatibleWebhook":                 176,
-		"GetWebhookMessage":                              177,
-		"EditWebhookMessage":                             178,
-		"DeleteWebhookMessage":                           179,
-		"GetGateway":                                     180,
-		"GetGatewayBot":                                  181,
-		"GetCurrentBotApplicationInformation":            182,
-		"GetCurrentAuthorizationInformation":             183,
+		"EditCurrentApplication":                         27,
+		"GetApplicationActivityInstance":                 28,
+		"GetApplicationRoleConnectionMetadataRecords":    29,
+		"UpdateApplicationRoleConnectionMetadataRecords": 30,
+		"GetGuildAuditLog":                               31,
+		"ListAutoModerationRulesForGuild":                32,
+		"GetAutoModerationRule":                          33,
+		"CreateAutoModerationRule":                       34,
+		"ModifyAutoModerationRule":                       35,
+		"DeleteAutoModerationRule":                       36,
+		"GetChannel":                                     37,
+		"ModifyChannel":                                  38,
+		"ModifyChannelGroupDM":                           39,
+		"ModifyChannelGuild":                             40,
+		"ModifyChannelThread":                            41,
+		"DeleteCloseChannel":                             42,
+		"EditChannelPermissions":                         43,
+		"GetChannelInvites":                              44,
+		"CreateChannelInvite":                            45,
+		"DeleteChannelPermission":                        46,
+		"FollowAnnouncementChannel":                      47,
+		"TriggerTypingIndicator":                         48,
+		"GetPinnedMessages":                              49,
+		"PinMessage":                                     50,
+		"UnpinMessage":                                   51,
+		"GroupDMAddRecipient":                            52,
+		"GroupDMRemoveRecipient":                         53,
+		"StartThreadfromMessage":                         54,
+		"StartThreadwithoutMessage":                      55,
+		"StartThreadinForumChannel":                      56,
+		"JoinThread":                                     57,
+		"AddThreadMember":                                58,
+		"LeaveThread":                                    59,
+		"RemoveThreadMember":                             60,
+		"GetThreadMember":                                61,
+		"ListThreadMembers":                              62,
+		"ListPublicArchivedThreads":                      63,
+		"ListPrivateArchivedThreads":                     64,
+		"ListJoinedPrivateArchivedThreads":               65,
+		"ListGuildEmojis":                                66,
+		"GetGuildEmoji":                                  67,
+		"CreateGuildEmoji":                               68,
+		"ModifyGuildEmoji":                               69,
+		"DeleteGuildEmoji":                               70,
+		"ListApplicationEmojis":                          71,
+		"GetApplicationEmoji":                            72,
+		"CreateApplicationEmoji":                         73,
+		"ModifyApplicationEmoji":                         74,
+		"DeleteApplicationEmoji":                         75,
+		"ListEntitlements":                               76,
+		"GetEntitlement":                                 77,
+		"ConsumeEntitlement":                             78,
+		"CreateTestEntitlement":                          79,
+		"DeleteTestEntitlement":                          80,
+		"CreateGuild":                                    81,
+		"GetGuild":                                       82,
+		"GetGuildPreview":                                83,
+		"ModifyGuild":                                    84,
+		"DeleteGuild":                                    85,
+		"GetGuildChannels":                               86,
+		"CreateGuildChannel":                             87,
+		"ModifyGuildChannelPositions":                    88,
+		"ListActiveGuildThreads":                         89,
+		"GetGuildMember":                                 90,
+		"ListGuildMembers":                               91,
+		"SearchGuildMembers":                             92,
+		"AddGuildMember":                                 93,
+		"ModifyGuildMember":                              94,
+		"ModifyCurrentMember":                            95,
+		"AddGuildMemberRole":                             96,
+		"RemoveGuildMemberRole":                          97,
+		"RemoveGuildMember":                              98,
+		"GetGuildBans":                                   99,
+		"GetGuildBan":                                    100,
+		"CreateGuildBan":                                 101,
+		"RemoveGuildBan":                                 102,
+		"GetGuildRoles":                                  103,
+		"CreateGuildRole":                                104,
+		"ModifyGuildRolePositions":                       105,
+		"ModifyGuildRole":                                106,
+		"DeleteGuildRole":                                107,
+		"ModifyGuildMFALevel":                            108,
+		"GetGuildPruneCount":                             109,
+		"BeginGuildPrune":                                110,
+		"GetGuildVoiceRegions":                           111,
+		"GetGuildInvites":                                112,
+		"GetGuildIntegrations":                           113,
+		"DeleteGuildIntegration":                         114,
+		"GetGuildWidgetSettings":                         115,
+		"ModifyGuildWidget":                              116,
+		"GetGuildWidget":                                 117,
+		"GetGuildVanityURL":                              118,
+		"GetGuildWidgetImage":                            119,
+		"GetGuildWelcomeScreen":                          120,
+		"ModifyGuildWelcomeScreen":                       121,
+		"GetGuildOnboarding":                             122,
+		"ModifyGuildOnboarding":                          123,
+		"ListScheduledEventsforGuild":                    124,
+		"CreateGuildScheduledEvent":                      125,
+		"GetGuildScheduledEvent":                         126,
+		"ModifyGuildScheduledEvent":                      127,
+		"DeleteGuildScheduledEvent":                      128,
+		"GetGuildScheduledEventUsers":                    129,
+		"GetGuildTemplate":                               130,
+		"GetInvite":                                      131,
+		"DeleteInvite":                                   132,
+		"CreateGuildfromGuildTemplate":                   133,
+		"GetGuildTemplates":                              134,
+		"CreateGuildTemplate":                            135,
+		"SyncGuildTemplate":                              136,
+		"ModifyGuildTemplate":                            137,
+		"DeleteGuildTemplate":                            138,
+		"GetChannelMessages":                             139,
+		"GetChannelMessage":                              140,
+		"CreateMessage":                                  141,
+		"CrosspostMessage":                               142,
+		"CreateReaction":                                 143,
+		"DeleteOwnReaction":                              144,
+		"DeleteUserReaction":                             145,
+		"GetReactions":                                   146,
+		"DeleteAllReactions":                             147,
+		"DeleteAllReactionsforEmoji":                     148,
+		"EditMessage":                                    149,
+		"DeleteMessage":                                  150,
+		"BulkDeleteMessages":                             151,
+		"GetAnswerVoters":                                152,
+		"EndPoll":                                        153,
+		"ListSKUs":                                       154,
+		"SendSoundboardSound":                            155,
+		"ListDefaultSoundboardSounds":                    156,
+		"ListGuildSoundboardSounds":                      157,
+		"GetGuildSoundboardSound":                        158,
+		"CreateGuildSoundboardSound":                     159,
+		"ModifyGuildSoundboardSound":                     160,
+		"DeleteGuildSoundboardSound":                     161,
+		"CreateStageInstance":                            162,
+		"GetStageInstance":                               163,
+		"ModifyStageInstance":                            164,
+		"DeleteStageInstance":                            165,
+		"GetSticker":                                     166,
+		"ListStickerPacks":                               167,
+		"ListGuildStickers":                              168,
+		"GetGuildSticker":                                169,
+		"CreateGuildSticker":                             170,
+		"ModifyGuildSticker":                             171,
+		"DeleteGuildSticker":                             172,
+		"ListSKUSubscriptions":                           173,
+		"GetSKUSubscription":                             174,
+		"ModifyCurrentUserVoiceState":                    175,
+		"ModifyUserVoiceState":                           176,
+		"GetCurrentUser":                                 177,
+		"GetUser":                                        178,
+		"ModifyCurrentUser":                              179,
+		"GetCurrentUserGuilds":                           180,
+		"GetCurrentUserGuildMember":                      181,
+		"LeaveGuild":                                     182,
+		"CreateDM":                                       183,
+		"CreateGroupDM":                                  184,
+		"GetCurrentUserConnections":                      185,
+		"GetCurrentUserApplicationRoleConnection":        186,
+		"UpdateCurrentUserApplicationRoleConnection":     187,
+		"ListVoiceRegions":                               188,
+		"CreateWebhook":                                  189,
+		"GetChannelWebhooks":                             190,
+		"GetGuildWebhooks":                               191,
+		"GetWebhook":                                     192,
+		"GetWebhookwithToken":                            193,
+		"ModifyWebhook":                                  194,
+		"ModifyWebhookwithToken":                         195,
+		"DeleteWebhook":                                  196,
+		"DeleteWebhookwithToken":                         197,
+		"ExecuteWebhook":                                 198,
+		"ExecuteSlackCompatibleWebhook":                  199,
+		"ExecuteGitHubCompatibleWebhook":                 200,
+		"GetWebhookMessage":                              201,
+		"EditWebhookMessage":                             202,
+		"DeleteWebhookMessage":                           203,
+		"GetGateway":                                     204,
+		"GetGatewayBot":                                  205,
+		"GetCurrentBotApplicationInformation":            206,
+		"GetCurrentAuthorizationInformation":             207,
 	}
 )
 
@@ -13123,11 +11938,69 @@ func (r *GetCurrentApplication) Send(bot *Client) (*Application, error) {
 	return result, nil
 }
 
+// Send sends a EditCurrentApplication request to Discord and returns a Application.
+func (r *EditCurrentApplication) Send(bot *Client) (*Application, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[27]("27")
+	endpoint := EndpointEditCurrentApplication()
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Application)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetApplicationActivityInstance request to Discord and returns a ActivityInstance.
+func (r *GetApplicationActivityInstance) Send(bot *Client) (*ActivityInstance, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[28]("28", "22f488ff"+r.InstanceID)
+	endpoint := EndpointGetApplicationActivityInstance(bot.ApplicationID, r.InstanceID)
+
+	result := new(ActivityInstance)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
 // Send sends a GetApplicationRoleConnectionMetadataRecords request to Discord and returns a []*ApplicationRoleConnectionMetadata.
 func (r *GetApplicationRoleConnectionMetadataRecords) Send(bot *Client) ([]*ApplicationRoleConnectionMetadata, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[27]("27")
+	routeid, resourceid := RateLimitHashFuncs[29]("29")
 	endpoint := EndpointGetApplicationRoleConnectionMetadataRecords(bot.ApplicationID)
 
 	result := make([]*ApplicationRoleConnectionMetadata, 0)
@@ -13150,7 +12023,7 @@ func (r *GetApplicationRoleConnectionMetadataRecords) Send(bot *Client) ([]*Appl
 func (r *UpdateApplicationRoleConnectionMetadataRecords) Send(bot *Client) ([]*ApplicationRoleConnectionMetadata, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[28]("28")
+	routeid, resourceid := RateLimitHashFuncs[30]("30")
 	endpoint := EndpointUpdateApplicationRoleConnectionMetadataRecords(bot.ApplicationID)
 
 	result := make([]*ApplicationRoleConnectionMetadata, 0)
@@ -13173,7 +12046,7 @@ func (r *UpdateApplicationRoleConnectionMetadataRecords) Send(bot *Client) ([]*A
 func (r *GetGuildAuditLog) Send(bot *Client) (*AuditLog, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[29]("29", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[31]("31", "45892a5d"+r.GuildID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -13207,7 +12080,7 @@ func (r *GetGuildAuditLog) Send(bot *Client) (*AuditLog, error) {
 func (r *ListAutoModerationRulesForGuild) Send(bot *Client) ([]*AutoModerationAction, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[30]("30", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[32]("32", "45892a5d"+r.GuildID)
 	endpoint := EndpointListAutoModerationRulesForGuild(r.GuildID)
 
 	result := make([]*AutoModerationAction, 0)
@@ -13230,7 +12103,7 @@ func (r *ListAutoModerationRulesForGuild) Send(bot *Client) ([]*AutoModerationAc
 func (r *GetAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[31]("31", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
+	routeid, resourceid := RateLimitHashFuncs[33]("33", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
 	endpoint := EndpointGetAutoModerationRule(r.GuildID, r.AutoModerationRuleID)
 
 	result := new(AutoModerationRule)
@@ -13253,7 +12126,7 @@ func (r *GetAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error) {
 func (r *CreateAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[32]("32", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[34]("34", "45892a5d"+r.GuildID)
 	endpoint := EndpointCreateAutoModerationRule(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -13288,7 +12161,7 @@ func (r *CreateAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error
 func (r *ModifyAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[33]("33", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
+	routeid, resourceid := RateLimitHashFuncs[35]("35", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
 	endpoint := EndpointModifyAutoModerationRule(r.GuildID, r.AutoModerationRuleID)
 
 	body, err := json.Marshal(r)
@@ -13323,7 +12196,7 @@ func (r *ModifyAutoModerationRule) Send(bot *Client) (*AutoModerationRule, error
 func (r *DeleteAutoModerationRule) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[34]("34", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
+	routeid, resourceid := RateLimitHashFuncs[36]("36", "45892a5d"+r.GuildID, "1b7efe5d"+r.AutoModerationRuleID)
 	endpoint := EndpointDeleteAutoModerationRule(r.GuildID, r.AutoModerationRuleID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -13345,7 +12218,7 @@ func (r *DeleteAutoModerationRule) Send(bot *Client) error {
 func (r *GetChannel) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[35]("35", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[37]("37", "e5416649"+r.ChannelID)
 	endpoint := EndpointGetChannel(r.ChannelID)
 
 	result := new(Channel)
@@ -13368,7 +12241,7 @@ func (r *GetChannel) Send(bot *Client) (*Channel, error) {
 func (r *ModifyChannel) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[36]("36", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[38]("38", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyChannel(r.ChannelID)
 
 	result := new(Channel)
@@ -13391,7 +12264,7 @@ func (r *ModifyChannel) Send(bot *Client) (*Channel, error) {
 func (r *ModifyChannelGroupDM) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[37]("37", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[39]("39", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyChannelGroupDM(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -13426,7 +12299,7 @@ func (r *ModifyChannelGroupDM) Send(bot *Client) (*Channel, error) {
 func (r *ModifyChannelGuild) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[38]("38", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[40]("40", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyChannelGuild(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -13461,7 +12334,7 @@ func (r *ModifyChannelGuild) Send(bot *Client) (*Channel, error) {
 func (r *ModifyChannelThread) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[39]("39", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[41]("41", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyChannelThread(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -13496,10 +12369,2779 @@ func (r *ModifyChannelThread) Send(bot *Client) (*Channel, error) {
 func (r *DeleteCloseChannel) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[40]("40", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[42]("42", "e5416649"+r.ChannelID)
 	endpoint := EndpointDeleteCloseChannel(r.ChannelID)
 
 	result := new(Channel)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a EditChannelPermissions request to Discord and returns a error.
+func (r *EditChannelPermissions) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[43]("43", "e5416649"+r.ChannelID, "9167175f"+r.OverwriteID)
+	endpoint := EndpointEditChannelPermissions(r.ChannelID, r.OverwriteID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GetChannelInvites request to Discord and returns a []*Invite.
+func (r *GetChannelInvites) Send(bot *Client) ([]*Invite, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[44]("44", "e5416649"+r.ChannelID)
+	endpoint := EndpointGetChannelInvites(r.ChannelID)
+
+	result := make([]*Invite, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a CreateChannelInvite request to Discord and returns a Invite.
+func (r *CreateChannelInvite) Send(bot *Client) (*Invite, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[45]("45", "e5416649"+r.ChannelID)
+	endpoint := EndpointCreateChannelInvite(r.ChannelID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Invite)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteChannelPermission request to Discord and returns a error.
+func (r *DeleteChannelPermission) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[46]("46", "e5416649"+r.ChannelID, "9167175f"+r.OverwriteID)
+	endpoint := EndpointDeleteChannelPermission(r.ChannelID, r.OverwriteID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a FollowAnnouncementChannel request to Discord and returns a FollowedChannel.
+func (r *FollowAnnouncementChannel) Send(bot *Client) (*FollowedChannel, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[47]("47", "e5416649"+r.ChannelID)
+	endpoint := EndpointFollowAnnouncementChannel(r.ChannelID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(FollowedChannel)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a TriggerTypingIndicator request to Discord and returns a error.
+func (r *TriggerTypingIndicator) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[48]("48", "e5416649"+r.ChannelID)
+	endpoint := EndpointTriggerTypingIndicator(r.ChannelID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GetPinnedMessages request to Discord and returns a []*Message.
+func (r *GetPinnedMessages) Send(bot *Client) ([]*Message, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[49]("49", "e5416649"+r.ChannelID)
+	endpoint := EndpointGetPinnedMessages(r.ChannelID)
+
+	result := make([]*Message, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a PinMessage request to Discord and returns a error.
+func (r *PinMessage) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[50]("50", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	endpoint := EndpointPinMessage(r.ChannelID, r.MessageID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a UnpinMessage request to Discord and returns a error.
+func (r *UnpinMessage) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[51]("51", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	endpoint := EndpointUnpinMessage(r.ChannelID, r.MessageID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GroupDMAddRecipient request to Discord and returns a error.
+func (r *GroupDMAddRecipient) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[52]("52", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	endpoint := EndpointGroupDMAddRecipient(r.ChannelID, r.UserID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GroupDMRemoveRecipient request to Discord and returns a error.
+func (r *GroupDMRemoveRecipient) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[53]("53", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	endpoint := EndpointGroupDMRemoveRecipient(r.ChannelID, r.UserID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a StartThreadfromMessage request to Discord and returns a Channel.
+func (r *StartThreadfromMessage) Send(bot *Client) (*Channel, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[54]("54", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	endpoint := EndpointStartThreadfromMessage(r.ChannelID, r.MessageID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Channel)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a StartThreadwithoutMessage request to Discord and returns a Channel.
+func (r *StartThreadwithoutMessage) Send(bot *Client) (*Channel, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[55]("55", "e5416649"+r.ChannelID)
+	endpoint := EndpointStartThreadwithoutMessage(r.ChannelID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Channel)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a StartThreadinForumChannel request to Discord and returns a Channel.
+func (r *StartThreadinForumChannel) Send(bot *Client) (*Channel, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[56]("56", "e5416649"+r.ChannelID)
+	endpoint := EndpointStartThreadinForumChannel(r.ChannelID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	contentType := ContentTypeJSON
+	if len(r.Files) != 0 {
+		var multipartErr error
+		if contentType, body, multipartErr = createMultipartForm(body, r.Files...); multipartErr != nil {
+			return nil, ErrorRequest{
+				ClientID:      bot.ApplicationID,
+				CorrelationID: xid,
+				RouteID:       routeid,
+				ResourceID:    resourceid,
+				Endpoint:      "",
+				Err:           err,
+			}
+		}
+	}
+
+	result := new(Channel)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, contentType, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a JoinThread request to Discord and returns a error.
+func (r *JoinThread) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[57]("57", "e5416649"+r.ChannelID)
+	endpoint := EndpointJoinThread(r.ChannelID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a AddThreadMember request to Discord and returns a error.
+func (r *AddThreadMember) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[58]("58", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	endpoint := EndpointAddThreadMember(r.ChannelID, r.UserID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a LeaveThread request to Discord and returns a error.
+func (r *LeaveThread) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[59]("59", "e5416649"+r.ChannelID)
+	endpoint := EndpointLeaveThread(r.ChannelID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a RemoveThreadMember request to Discord and returns a error.
+func (r *RemoveThreadMember) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[60]("60", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	endpoint := EndpointRemoveThreadMember(r.ChannelID, r.UserID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GetThreadMember request to Discord and returns a ThreadMember.
+func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[61]("61", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointGetThreadMember(r.ChannelID, r.UserID) + "?" + query
+
+	result := new(ThreadMember)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ListThreadMembers request to Discord and returns a []*ThreadMember.
+func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[62]("62", "e5416649"+r.ChannelID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointListThreadMembers(r.ChannelID) + "?" + query
+
+	result := make([]*ThreadMember, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ListPublicArchivedThreads request to Discord and returns a ListPublicArchivedThreadsResponse.
+func (r *ListPublicArchivedThreads) Send(bot *Client) (*ListPublicArchivedThreadsResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[63]("63", "e5416649"+r.ChannelID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointListPublicArchivedThreads(r.ChannelID) + "?" + query
+
+	result := new(ListPublicArchivedThreadsResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ListPrivateArchivedThreads request to Discord and returns a ListPrivateArchivedThreadsResponse.
+func (r *ListPrivateArchivedThreads) Send(bot *Client) (*ListPrivateArchivedThreadsResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[64]("64", "e5416649"+r.ChannelID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointListPrivateArchivedThreads(r.ChannelID) + "?" + query
+
+	result := new(ListPrivateArchivedThreadsResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ListJoinedPrivateArchivedThreads request to Discord and returns a ListJoinedPrivateArchivedThreadsResponse.
+func (r *ListJoinedPrivateArchivedThreads) Send(bot *Client) (*ListJoinedPrivateArchivedThreadsResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[65]("65", "e5416649"+r.ChannelID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointListJoinedPrivateArchivedThreads(r.ChannelID) + "?" + query
+
+	result := new(ListJoinedPrivateArchivedThreadsResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ListGuildEmojis request to Discord and returns a []*Emoji.
+func (r *ListGuildEmojis) Send(bot *Client) ([]*Emoji, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[66]("66", "45892a5d"+r.GuildID)
+	endpoint := EndpointListGuildEmojis(r.GuildID)
+
+	result := make([]*Emoji, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildEmoji request to Discord and returns a Emoji.
+func (r *GetGuildEmoji) Send(bot *Client) (*Emoji, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[67]("67", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
+	endpoint := EndpointGetGuildEmoji(r.GuildID, r.EmojiID)
+
+	result := new(Emoji)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a CreateGuildEmoji request to Discord and returns a Emoji.
+func (r *CreateGuildEmoji) Send(bot *Client) (*Emoji, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[68]("68", "45892a5d"+r.GuildID)
+	endpoint := EndpointCreateGuildEmoji(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Emoji)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildEmoji request to Discord and returns a Emoji.
+func (r *ModifyGuildEmoji) Send(bot *Client) (*Emoji, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[69]("69", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
+	endpoint := EndpointModifyGuildEmoji(r.GuildID, r.EmojiID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Emoji)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteGuildEmoji request to Discord and returns a error.
+func (r *DeleteGuildEmoji) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[70]("70", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
+	endpoint := EndpointDeleteGuildEmoji(r.GuildID, r.EmojiID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a ListApplicationEmojis request to Discord and returns a ListApplicationEmojisResponse.
+func (r *ListApplicationEmojis) Send(bot *Client) (*ListApplicationEmojisResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[71]("71")
+	endpoint := EndpointListApplicationEmojis(bot.ApplicationID)
+
+	result := new(ListApplicationEmojisResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetApplicationEmoji request to Discord and returns a Emoji.
+func (r *GetApplicationEmoji) Send(bot *Client) (*Emoji, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[72]("72", "67c175a8"+r.EmojiID)
+	endpoint := EndpointGetApplicationEmoji(bot.ApplicationID, r.EmojiID)
+
+	result := new(Emoji)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a CreateApplicationEmoji request to Discord and returns a Emoji.
+func (r *CreateApplicationEmoji) Send(bot *Client) (*Emoji, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[73]("73")
+	endpoint := EndpointCreateApplicationEmoji(bot.ApplicationID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Emoji)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyApplicationEmoji request to Discord and returns a Emoji.
+func (r *ModifyApplicationEmoji) Send(bot *Client) (*Emoji, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[74]("74", "67c175a8"+r.EmojiID)
+	endpoint := EndpointModifyApplicationEmoji(bot.ApplicationID, r.EmojiID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Emoji)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteApplicationEmoji request to Discord and returns a error.
+func (r *DeleteApplicationEmoji) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[75]("75", "67c175a8"+r.EmojiID)
+	endpoint := EndpointDeleteApplicationEmoji(bot.ApplicationID, r.EmojiID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a ListEntitlements request to Discord and returns a []*Entitlement.
+func (r *ListEntitlements) Send(bot *Client) ([]*Entitlement, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[76]("76")
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointListEntitlements(bot.ApplicationID) + "?" + query
+
+	result := make([]*Entitlement, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetEntitlement request to Discord and returns a Entitlement.
+func (r *GetEntitlement) Send(bot *Client) (*Entitlement, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[77]("77", "1862909d"+r.EntitlementID)
+	endpoint := EndpointGetEntitlement(bot.ApplicationID, r.EntitlementID)
+
+	result := new(Entitlement)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ConsumeEntitlement request to Discord and returns a error.
+func (r *ConsumeEntitlement) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[78]("78", "1862909d"+r.EntitlementID)
+	endpoint := EndpointConsumeEntitlement(bot.ApplicationID, r.EntitlementID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a CreateTestEntitlement request to Discord and returns a Entitlement.
+func (r *CreateTestEntitlement) Send(bot *Client) (*Entitlement, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[79]("79")
+	endpoint := EndpointCreateTestEntitlement(bot.ApplicationID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Entitlement)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteTestEntitlement request to Discord and returns a error.
+func (r *DeleteTestEntitlement) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[80]("80", "1862909d"+r.EntitlementID)
+	endpoint := EndpointDeleteTestEntitlement(bot.ApplicationID, r.EntitlementID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a CreateGuild request to Discord and returns a Guild.
+func (r *CreateGuild) Send(bot *Client) (*Guild, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[81]("81")
+	endpoint := EndpointCreateGuild()
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Guild)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuild request to Discord and returns a Guild.
+func (r *GetGuild) Send(bot *Client) (*Guild, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[82]("82", "45892a5d"+r.GuildID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointGetGuild(r.GuildID) + "?" + query
+
+	result := new(Guild)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildPreview request to Discord and returns a GuildPreview.
+func (r *GetGuildPreview) Send(bot *Client) (*GuildPreview, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[83]("83", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildPreview(r.GuildID)
+
+	result := new(GuildPreview)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuild request to Discord and returns a Guild.
+func (r *ModifyGuild) Send(bot *Client) (*Guild, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[84]("84", "45892a5d"+r.GuildID)
+	endpoint := EndpointModifyGuild(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Guild)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteGuild request to Discord and returns a error.
+func (r *DeleteGuild) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[85]("85", "45892a5d"+r.GuildID)
+	endpoint := EndpointDeleteGuild(r.GuildID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GetGuildChannels request to Discord and returns a []*Channel.
+func (r *GetGuildChannels) Send(bot *Client) ([]*Channel, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[86]("86", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildChannels(r.GuildID)
+
+	result := make([]*Channel, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a CreateGuildChannel request to Discord and returns a Channel.
+func (r *CreateGuildChannel) Send(bot *Client) (*Channel, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[87]("87", "45892a5d"+r.GuildID)
+	endpoint := EndpointCreateGuildChannel(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Channel)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildChannelPositions request to Discord and returns a error.
+func (r *ModifyGuildChannelPositions) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[88]("88", "45892a5d"+r.GuildID)
+	endpoint := EndpointModifyGuildChannelPositions(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a ListActiveGuildThreads request to Discord and returns a ListActiveGuildThreadsResponse.
+func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[89]("89", "45892a5d"+r.GuildID)
+	endpoint := EndpointListActiveGuildThreads(r.GuildID)
+
+	result := new(ListActiveGuildThreadsResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildMember request to Discord and returns a GuildMember.
+func (r *GetGuildMember) Send(bot *Client) (*GuildMember, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[90]("90", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	endpoint := EndpointGetGuildMember(r.GuildID, r.UserID)
+
+	result := new(GuildMember)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ListGuildMembers request to Discord and returns a []*GuildMember.
+func (r *ListGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[91]("91", "45892a5d"+r.GuildID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointListGuildMembers(r.GuildID) + "?" + query
+
+	result := make([]*GuildMember, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a SearchGuildMembers request to Discord and returns a []*GuildMember.
+func (r *SearchGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[92]("92", "45892a5d"+r.GuildID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointSearchGuildMembers(r.GuildID) + "?" + query
+
+	result := make([]*GuildMember, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a AddGuildMember request to Discord and returns a GuildMember.
+func (r *AddGuildMember) Send(bot *Client) (*GuildMember, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[93]("93", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	endpoint := EndpointAddGuildMember(r.GuildID, r.UserID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(GuildMember)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildMember request to Discord and returns a GuildMember.
+func (r *ModifyGuildMember) Send(bot *Client) (*GuildMember, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[94]("94", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	endpoint := EndpointModifyGuildMember(r.GuildID, r.UserID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(GuildMember)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyCurrentMember request to Discord and returns a GuildMember.
+func (r *ModifyCurrentMember) Send(bot *Client) (*GuildMember, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[95]("95", "45892a5d"+r.GuildID)
+	endpoint := EndpointModifyCurrentMember(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(GuildMember)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a AddGuildMemberRole request to Discord and returns a error.
+func (r *AddGuildMemberRole) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[96]("96", "45892a5d"+r.GuildID, "209c92df"+r.UserID, "3cf7dd7c"+r.RoleID)
+	endpoint := EndpointAddGuildMemberRole(r.GuildID, r.UserID, r.RoleID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a RemoveGuildMemberRole request to Discord and returns a error.
+func (r *RemoveGuildMemberRole) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[97]("97", "45892a5d"+r.GuildID, "209c92df"+r.UserID, "3cf7dd7c"+r.RoleID)
+	endpoint := EndpointRemoveGuildMemberRole(r.GuildID, r.UserID, r.RoleID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a RemoveGuildMember request to Discord and returns a error.
+func (r *RemoveGuildMember) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[98]("98", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	endpoint := EndpointRemoveGuildMember(r.GuildID, r.UserID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GetGuildBans request to Discord and returns a []*Ban.
+func (r *GetGuildBans) Send(bot *Client) ([]*Ban, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[99]("99", "45892a5d"+r.GuildID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointGetGuildBans(r.GuildID) + "?" + query
+
+	result := make([]*Ban, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildBan request to Discord and returns a Ban.
+func (r *GetGuildBan) Send(bot *Client) (*Ban, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[100]("100", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	endpoint := EndpointGetGuildBan(r.GuildID, r.UserID)
+
+	result := new(Ban)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a CreateGuildBan request to Discord and returns a error.
+func (r *CreateGuildBan) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[101]("101", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	endpoint := EndpointCreateGuildBan(r.GuildID, r.UserID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a RemoveGuildBan request to Discord and returns a error.
+func (r *RemoveGuildBan) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[102]("102", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	endpoint := EndpointRemoveGuildBan(r.GuildID, r.UserID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GetGuildRoles request to Discord and returns a []*Role.
+func (r *GetGuildRoles) Send(bot *Client) ([]*Role, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[103]("103", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildRoles(r.GuildID)
+
+	result := make([]*Role, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a CreateGuildRole request to Discord and returns a Role.
+func (r *CreateGuildRole) Send(bot *Client) (*Role, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[104]("104", "45892a5d"+r.GuildID)
+	endpoint := EndpointCreateGuildRole(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Role)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildRolePositions request to Discord and returns a []*Role.
+func (r *ModifyGuildRolePositions) Send(bot *Client) ([]*Role, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[105]("105", "45892a5d"+r.GuildID)
+	endpoint := EndpointModifyGuildRolePositions(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := make([]*Role, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildRole request to Discord and returns a Role.
+func (r *ModifyGuildRole) Send(bot *Client) (*Role, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[106]("106", "45892a5d"+r.GuildID, "3cf7dd7c"+r.RoleID)
+	endpoint := EndpointModifyGuildRole(r.GuildID, r.RoleID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Role)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteGuildRole request to Discord and returns a error.
+func (r *DeleteGuildRole) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[107]("107", "45892a5d"+r.GuildID, "3cf7dd7c"+r.RoleID)
+	endpoint := EndpointDeleteGuildRole(r.GuildID, r.RoleID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a ModifyGuildMFALevel request to Discord and returns a ModifyGuildMFALevelResponse.
+func (r *ModifyGuildMFALevel) Send(bot *Client) (*ModifyGuildMFALevelResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[108]("108", "45892a5d"+r.GuildID)
+	endpoint := EndpointModifyGuildMFALevel(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(ModifyGuildMFALevelResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildPruneCount request to Discord and returns a GetGuildPruneCountResponse.
+func (r *GetGuildPruneCount) Send(bot *Client) (*GetGuildPruneCountResponse, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[109]("109", "45892a5d"+r.GuildID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointGetGuildPruneCount(r.GuildID) + "?" + query
+
+	result := new(GetGuildPruneCountResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a BeginGuildPrune request to Discord and returns a error.
+func (r *BeginGuildPrune) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[110]("110", "45892a5d"+r.GuildID)
+	endpoint := EndpointBeginGuildPrune(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GetGuildVoiceRegions request to Discord and returns a []*VoiceRegion.
+func (r *GetGuildVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[111]("111", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildVoiceRegions(r.GuildID)
+
+	result := make([]*VoiceRegion, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildInvites request to Discord and returns a []*Invite.
+func (r *GetGuildInvites) Send(bot *Client) ([]*Invite, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[112]("112", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildInvites(r.GuildID)
+
+	result := make([]*Invite, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildIntegrations request to Discord and returns a []*Integration.
+func (r *GetGuildIntegrations) Send(bot *Client) ([]*Integration, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[113]("113", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildIntegrations(r.GuildID)
+
+	result := make([]*Integration, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteGuildIntegration request to Discord and returns a error.
+func (r *DeleteGuildIntegration) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[114]("114", "45892a5d"+r.GuildID, "cb4479f8"+r.IntegrationID)
+	endpoint := EndpointDeleteGuildIntegration(r.GuildID, r.IntegrationID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GetGuildWidgetSettings request to Discord and returns a GuildWidget.
+func (r *GetGuildWidgetSettings) Send(bot *Client) (*GuildWidget, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[115]("115", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildWidgetSettings(r.GuildID)
+
+	result := new(GuildWidget)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildWidget request to Discord and returns a GuildWidget.
+func (r *ModifyGuildWidget) Send(bot *Client) (*GuildWidget, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[116]("116", "45892a5d"+r.GuildID)
+	endpoint := EndpointModifyGuildWidget(r.GuildID)
+
+	result := new(GuildWidget)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildWidget request to Discord and returns a GuildWidget.
+func (r *GetGuildWidget) Send(bot *Client) (*GuildWidget, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[117]("117", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildWidget(r.GuildID)
+
+	result := new(GuildWidget)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildVanityURL request to Discord and returns a Invite.
+func (r *GetGuildVanityURL) Send(bot *Client) (*Invite, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[118]("118", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildVanityURL(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(Invite)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildWidgetImage request to Discord and returns a EmbedImage.
+func (r *GetGuildWidgetImage) Send(bot *Client) (*EmbedImage, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[119]("119", "45892a5d"+r.GuildID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointGetGuildWidgetImage(r.GuildID) + "?" + query
+
+	result := new(EmbedImage)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildWelcomeScreen request to Discord and returns a WelcomeScreen.
+func (r *GetGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[120]("120", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildWelcomeScreen(r.GuildID)
+
+	result := new(WelcomeScreen)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildWelcomeScreen request to Discord and returns a WelcomeScreen.
+func (r *ModifyGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[121]("121", "45892a5d"+r.GuildID)
+	endpoint := EndpointModifyGuildWelcomeScreen(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(WelcomeScreen)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildOnboarding request to Discord and returns a GuildOnboarding.
+func (r *GetGuildOnboarding) Send(bot *Client) (*GuildOnboarding, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[122]("122", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildOnboarding(r.GuildID)
+
+	result := new(GuildOnboarding)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildOnboarding request to Discord and returns a GuildOnboarding.
+func (r *ModifyGuildOnboarding) Send(bot *Client) (*GuildOnboarding, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[123]("123", "45892a5d"+r.GuildID)
+	endpoint := EndpointModifyGuildOnboarding(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(GuildOnboarding)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ListScheduledEventsforGuild request to Discord and returns a []*GuildScheduledEvent.
+func (r *ListScheduledEventsforGuild) Send(bot *Client) ([]*GuildScheduledEvent, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[124]("124", "45892a5d"+r.GuildID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointListScheduledEventsforGuild(r.GuildID) + "?" + query
+
+	result := make([]*GuildScheduledEvent, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a CreateGuildScheduledEvent request to Discord and returns a GuildScheduledEvent.
+func (r *CreateGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[125]("125", "45892a5d"+r.GuildID)
+	endpoint := EndpointCreateGuildScheduledEvent(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(GuildScheduledEvent)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildScheduledEvent request to Discord and returns a GuildScheduledEvent.
+func (r *GetGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[126]("126", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointGetGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID) + "?" + query
+
+	result := new(GuildScheduledEvent)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildScheduledEvent request to Discord and returns a GuildScheduledEvent.
+func (r *ModifyGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[127]("127", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
+	endpoint := EndpointModifyGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(GuildScheduledEvent)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteGuildScheduledEvent request to Discord and returns a error.
+func (r *DeleteGuildScheduledEvent) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[128]("128", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
+	endpoint := EndpointDeleteGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID)
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a GetGuildScheduledEventUsers request to Discord and returns a []*GuildScheduledEventUser.
+func (r *GetGuildScheduledEventUsers) Send(bot *Client) ([]*GuildScheduledEventUser, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[129]("129", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointGetGuildScheduledEventUsers(r.GuildID, r.GuildScheduledEventID) + "?" + query
+
+	result := make([]*GuildScheduledEventUser, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildTemplate request to Discord and returns a GuildTemplate.
+func (r *GetGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[130]("130", "61437152"+r.TemplateCode)
+	endpoint := EndpointGetGuildTemplate(r.TemplateCode)
+
+	result := new(GuildTemplate)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetInvite request to Discord and returns a Invite.
+func (r *GetInvite) Send(bot *Client) (*Invite, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[131]("131", "781d4865"+r.InviteCode)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointGetInvite(r.InviteCode) + "?" + query
+
+	result := new(Invite)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteInvite request to Discord and returns a Invite.
+func (r *DeleteInvite) Send(bot *Client) (*Invite, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[132]("132", "781d4865"+r.InviteCode)
+	endpoint := EndpointDeleteInvite(r.InviteCode)
+
+	result := new(Invite)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a CreateGuildfromGuildTemplate request to Discord and returns a []*GuildTemplate.
+func (r *CreateGuildfromGuildTemplate) Send(bot *Client) ([]*GuildTemplate, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[133]("133", "61437152"+r.TemplateCode)
+	endpoint := EndpointCreateGuildfromGuildTemplate(r.TemplateCode)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := make([]*GuildTemplate, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetGuildTemplates request to Discord and returns a []*GuildTemplate.
+func (r *GetGuildTemplates) Send(bot *Client) ([]*GuildTemplate, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[134]("134", "45892a5d"+r.GuildID)
+	endpoint := EndpointGetGuildTemplates(r.GuildID)
+
+	result := make([]*GuildTemplate, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a CreateGuildTemplate request to Discord and returns a GuildTemplate.
+func (r *CreateGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[135]("135", "45892a5d"+r.GuildID)
+	endpoint := EndpointCreateGuildTemplate(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(GuildTemplate)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a SyncGuildTemplate request to Discord and returns a GuildTemplate.
+func (r *SyncGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[136]("136", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
+	endpoint := EndpointSyncGuildTemplate(r.GuildID, r.TemplateCode)
+
+	result := new(GuildTemplate)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyGuildTemplate request to Discord and returns a GuildTemplate.
+func (r *ModifyGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[137]("137", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
+	endpoint := EndpointModifyGuildTemplate(r.GuildID, r.TemplateCode)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	result := new(GuildTemplate)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a DeleteGuildTemplate request to Discord and returns a GuildTemplate.
+func (r *DeleteGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[138]("138", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
+	endpoint := EndpointDeleteGuildTemplate(r.GuildID, r.TemplateCode)
+
+	result := new(GuildTemplate)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, result)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -13519,7 +15161,7 @@ func (r *DeleteCloseChannel) Send(bot *Client) (*Channel, error) {
 func (r *GetChannelMessages) Send(bot *Client) ([]*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[41]("41", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[139]("139", "e5416649"+r.ChannelID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -13553,7 +15195,7 @@ func (r *GetChannelMessages) Send(bot *Client) ([]*Message, error) {
 func (r *GetChannelMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[42]("42", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[140]("140", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointGetChannelMessage(r.ChannelID, r.MessageID)
 
 	result := new(Message)
@@ -13576,7 +15218,7 @@ func (r *GetChannelMessage) Send(bot *Client) (*Message, error) {
 func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[43]("43", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[141]("141", "e5416649"+r.ChannelID)
 	endpoint := EndpointCreateMessage(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -13626,7 +15268,7 @@ func (r *CreateMessage) Send(bot *Client) (*Message, error) {
 func (r *CrosspostMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[44]("44", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[142]("142", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointCrosspostMessage(r.ChannelID, r.MessageID)
 
 	result := new(Message)
@@ -13649,7 +15291,7 @@ func (r *CrosspostMessage) Send(bot *Client) (*Message, error) {
 func (r *CreateReaction) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[45]("45", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
+	routeid, resourceid := RateLimitHashFuncs[143]("143", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
 	endpoint := EndpointCreateReaction(r.ChannelID, r.MessageID, r.Emoji)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
@@ -13671,7 +15313,7 @@ func (r *CreateReaction) Send(bot *Client) error {
 func (r *DeleteOwnReaction) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[46]("46", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
+	routeid, resourceid := RateLimitHashFuncs[144]("144", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
 	endpoint := EndpointDeleteOwnReaction(r.ChannelID, r.MessageID, r.Emoji)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -13693,7 +15335,7 @@ func (r *DeleteOwnReaction) Send(bot *Client) error {
 func (r *DeleteUserReaction) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[47]("47", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji, "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[145]("145", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji, "209c92df"+r.UserID)
 	endpoint := EndpointDeleteUserReaction(r.ChannelID, r.MessageID, r.Emoji, r.UserID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -13715,7 +15357,7 @@ func (r *DeleteUserReaction) Send(bot *Client) error {
 func (r *GetReactions) Send(bot *Client) ([]*User, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[48]("48", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
+	routeid, resourceid := RateLimitHashFuncs[146]("146", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -13749,7 +15391,7 @@ func (r *GetReactions) Send(bot *Client) ([]*User, error) {
 func (r *DeleteAllReactions) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[49]("49", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[147]("147", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointDeleteAllReactions(r.ChannelID, r.MessageID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -13771,7 +15413,7 @@ func (r *DeleteAllReactions) Send(bot *Client) error {
 func (r *DeleteAllReactionsforEmoji) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[50]("50", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
+	routeid, resourceid := RateLimitHashFuncs[148]("148", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "033ebcdd"+r.Emoji)
 	endpoint := EndpointDeleteAllReactionsforEmoji(r.ChannelID, r.MessageID, r.Emoji)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -13793,7 +15435,7 @@ func (r *DeleteAllReactionsforEmoji) Send(bot *Client) error {
 func (r *EditMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[51]("51", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[149]("149", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointEditMessage(r.ChannelID, r.MessageID)
 
 	body, err := json.Marshal(r)
@@ -13843,7 +15485,7 @@ func (r *EditMessage) Send(bot *Client) (*Message, error) {
 func (r *DeleteMessage) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[52]("52", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[150]("150", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
 	endpoint := EndpointDeleteMessage(r.ChannelID, r.MessageID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -13865,7 +15507,7 @@ func (r *DeleteMessage) Send(bot *Client) error {
 func (r *BulkDeleteMessages) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[53]("53", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[151]("151", "e5416649"+r.ChannelID)
 	endpoint := EndpointBulkDeleteMessages(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -13895,28 +15537,28 @@ func (r *BulkDeleteMessages) Send(bot *Client) error {
 	return nil
 }
 
-// Send sends a EditChannelPermissions request to Discord and returns a error.
-func (r *EditChannelPermissions) Send(bot *Client) error {
+// Send sends a GetAnswerVoters request to Discord and returns a GetAnswerVotersResponse.
+func (r *GetAnswerVoters) Send(bot *Client) (*GetAnswerVotersResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[54]("54", "e5416649"+r.ChannelID, "9167175f"+r.OverwriteID)
-	endpoint := EndpointEditChannelPermissions(r.ChannelID, r.OverwriteID)
-
-	body, err := json.Marshal(r)
+	routeid, resourceid := RateLimitHashFuncs[152]("152", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID, "434311b2"+r.AnswerID)
+	query, err := EndpointQueryString(r)
 	if err != nil {
-		return ErrorRequest{
+		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
 			CorrelationID: xid,
 			RouteID:       routeid,
 			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
+			Endpoint:      "",
+			Err:           err,
 		}
 	}
+	endpoint := EndpointGetAnswerVoters(r.ChannelID, r.MessageID, r.AnswerID) + "?" + query
 
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, nil)
+	result := new(GetAnswerVotersResponse)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
 	if err != nil {
-		return ErrorRequest{
+		return nil, ErrorRequest{
 			ClientID:      bot.ApplicationID,
 			CorrelationID: xid,
 			RouteID:       routeid,
@@ -13926,17 +15568,40 @@ func (r *EditChannelPermissions) Send(bot *Client) error {
 		}
 	}
 
-	return nil
+	return result, nil
 }
 
-// Send sends a GetChannelInvites request to Discord and returns a []*Invite.
-func (r *GetChannelInvites) Send(bot *Client) ([]*Invite, error) {
+// Send sends a EndPoll request to Discord and returns a Message.
+func (r *EndPoll) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[55]("55", "e5416649"+r.ChannelID)
-	endpoint := EndpointGetChannelInvites(r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[153]("153", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
+	endpoint := EndpointEndPoll(r.ChannelID, r.MessageID)
 
-	result := make([]*Invite, 0)
+	result := new(Message)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ListSKUs request to Discord and returns a []*SKU.
+func (r *ListSKUs) Send(bot *Client) ([]*SKU, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[154]("154")
+	endpoint := EndpointListSKUs(bot.ApplicationID)
+
+	result := make([]*SKU, 0)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -13952,1608 +15617,12 @@ func (r *GetChannelInvites) Send(bot *Client) ([]*Invite, error) {
 	return result, nil
 }
 
-// Send sends a CreateChannelInvite request to Discord and returns a Invite.
-func (r *CreateChannelInvite) Send(bot *Client) (*Invite, error) {
+// Send sends a SendSoundboardSound request to Discord and returns a error.
+func (r *SendSoundboardSound) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[56]("56", "e5416649"+r.ChannelID)
-	endpoint := EndpointCreateChannelInvite(r.ChannelID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Invite)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a DeleteChannelPermission request to Discord and returns a error.
-func (r *DeleteChannelPermission) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[57]("57", "e5416649"+r.ChannelID, "9167175f"+r.OverwriteID)
-	endpoint := EndpointDeleteChannelPermission(r.ChannelID, r.OverwriteID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a FollowAnnouncementChannel request to Discord and returns a FollowedChannel.
-func (r *FollowAnnouncementChannel) Send(bot *Client) (*FollowedChannel, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[58]("58", "e5416649"+r.ChannelID)
-	endpoint := EndpointFollowAnnouncementChannel(r.ChannelID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(FollowedChannel)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a TriggerTypingIndicator request to Discord and returns a error.
-func (r *TriggerTypingIndicator) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[59]("59", "e5416649"+r.ChannelID)
-	endpoint := EndpointTriggerTypingIndicator(r.ChannelID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a GetPinnedMessages request to Discord and returns a []*Message.
-func (r *GetPinnedMessages) Send(bot *Client) ([]*Message, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[60]("60", "e5416649"+r.ChannelID)
-	endpoint := EndpointGetPinnedMessages(r.ChannelID)
-
-	result := make([]*Message, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a PinMessage request to Discord and returns a error.
-func (r *PinMessage) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[61]("61", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
-	endpoint := EndpointPinMessage(r.ChannelID, r.MessageID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a UnpinMessage request to Discord and returns a error.
-func (r *UnpinMessage) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[62]("62", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
-	endpoint := EndpointUnpinMessage(r.ChannelID, r.MessageID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a GroupDMAddRecipient request to Discord and returns a error.
-func (r *GroupDMAddRecipient) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[63]("63", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
-	endpoint := EndpointGroupDMAddRecipient(r.ChannelID, r.UserID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a GroupDMRemoveRecipient request to Discord and returns a error.
-func (r *GroupDMRemoveRecipient) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[64]("64", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
-	endpoint := EndpointGroupDMRemoveRecipient(r.ChannelID, r.UserID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a StartThreadfromMessage request to Discord and returns a Channel.
-func (r *StartThreadfromMessage) Send(bot *Client) (*Channel, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[65]("65", "e5416649"+r.ChannelID, "d57d6589"+r.MessageID)
-	endpoint := EndpointStartThreadfromMessage(r.ChannelID, r.MessageID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Channel)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a StartThreadwithoutMessage request to Discord and returns a Channel.
-func (r *StartThreadwithoutMessage) Send(bot *Client) (*Channel, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[66]("66", "e5416649"+r.ChannelID)
-	endpoint := EndpointStartThreadwithoutMessage(r.ChannelID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Channel)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a StartThreadinForumChannel request to Discord and returns a Channel.
-func (r *StartThreadinForumChannel) Send(bot *Client) (*Channel, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[67]("67", "e5416649"+r.ChannelID)
-	endpoint := EndpointStartThreadinForumChannel(r.ChannelID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Channel)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a JoinThread request to Discord and returns a error.
-func (r *JoinThread) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[68]("68", "e5416649"+r.ChannelID)
-	endpoint := EndpointJoinThread(r.ChannelID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a AddThreadMember request to Discord and returns a error.
-func (r *AddThreadMember) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[69]("69", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
-	endpoint := EndpointAddThreadMember(r.ChannelID, r.UserID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a LeaveThread request to Discord and returns a error.
-func (r *LeaveThread) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[70]("70", "e5416649"+r.ChannelID)
-	endpoint := EndpointLeaveThread(r.ChannelID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a RemoveThreadMember request to Discord and returns a error.
-func (r *RemoveThreadMember) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[71]("71", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
-	endpoint := EndpointRemoveThreadMember(r.ChannelID, r.UserID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a GetThreadMember request to Discord and returns a ThreadMember.
-func (r *GetThreadMember) Send(bot *Client) (*ThreadMember, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[72]("72", "e5416649"+r.ChannelID, "209c92df"+r.UserID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointGetThreadMember(r.ChannelID, r.UserID) + "?" + query
-
-	result := new(ThreadMember)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ListThreadMembers request to Discord and returns a []*ThreadMember.
-func (r *ListThreadMembers) Send(bot *Client) ([]*ThreadMember, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[73]("73", "e5416649"+r.ChannelID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointListThreadMembers(r.ChannelID) + "?" + query
-
-	result := make([]*ThreadMember, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ListPublicArchivedThreads request to Discord and returns a ListPublicArchivedThreadsResponse.
-func (r *ListPublicArchivedThreads) Send(bot *Client) (*ListPublicArchivedThreadsResponse, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[74]("74", "e5416649"+r.ChannelID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointListPublicArchivedThreads(r.ChannelID) + "?" + query
-
-	result := new(ListPublicArchivedThreadsResponse)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ListPrivateArchivedThreads request to Discord and returns a ListPrivateArchivedThreadsResponse.
-func (r *ListPrivateArchivedThreads) Send(bot *Client) (*ListPrivateArchivedThreadsResponse, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[75]("75", "e5416649"+r.ChannelID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointListPrivateArchivedThreads(r.ChannelID) + "?" + query
-
-	result := new(ListPrivateArchivedThreadsResponse)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ListJoinedPrivateArchivedThreads request to Discord and returns a ListJoinedPrivateArchivedThreadsResponse.
-func (r *ListJoinedPrivateArchivedThreads) Send(bot *Client) (*ListJoinedPrivateArchivedThreadsResponse, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[76]("76", "e5416649"+r.ChannelID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointListJoinedPrivateArchivedThreads(r.ChannelID) + "?" + query
-
-	result := new(ListJoinedPrivateArchivedThreadsResponse)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ListGuildEmojis request to Discord and returns a []*Emoji.
-func (r *ListGuildEmojis) Send(bot *Client) ([]*Emoji, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[77]("77", "45892a5d"+r.GuildID)
-	endpoint := EndpointListGuildEmojis(r.GuildID)
-
-	result := make([]*Emoji, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildEmoji request to Discord and returns a Emoji.
-func (r *GetGuildEmoji) Send(bot *Client) (*Emoji, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[78]("78", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
-	endpoint := EndpointGetGuildEmoji(r.GuildID, r.EmojiID)
-
-	result := new(Emoji)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a CreateGuildEmoji request to Discord and returns a Emoji.
-func (r *CreateGuildEmoji) Send(bot *Client) (*Emoji, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[79]("79", "45892a5d"+r.GuildID)
-	endpoint := EndpointCreateGuildEmoji(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Emoji)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuildEmoji request to Discord and returns a Emoji.
-func (r *ModifyGuildEmoji) Send(bot *Client) (*Emoji, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[80]("80", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
-	endpoint := EndpointModifyGuildEmoji(r.GuildID, r.EmojiID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Emoji)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a DeleteGuildEmoji request to Discord and returns a error.
-func (r *DeleteGuildEmoji) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[81]("81", "45892a5d"+r.GuildID, "67c175a8"+r.EmojiID)
-	endpoint := EndpointDeleteGuildEmoji(r.GuildID, r.EmojiID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a CreateGuild request to Discord and returns a Guild.
-func (r *CreateGuild) Send(bot *Client) (*Guild, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[82]("82")
-	endpoint := EndpointCreateGuild()
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Guild)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuild request to Discord and returns a Guild.
-func (r *GetGuild) Send(bot *Client) (*Guild, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[83]("83", "45892a5d"+r.GuildID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointGetGuild(r.GuildID) + "?" + query
-
-	result := new(Guild)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildPreview request to Discord and returns a GuildPreview.
-func (r *GetGuildPreview) Send(bot *Client) (*GuildPreview, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[84]("84", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildPreview(r.GuildID)
-
-	result := new(GuildPreview)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuild request to Discord and returns a Guild.
-func (r *ModifyGuild) Send(bot *Client) (*Guild, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[85]("85", "45892a5d"+r.GuildID)
-	endpoint := EndpointModifyGuild(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Guild)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a DeleteGuild request to Discord and returns a error.
-func (r *DeleteGuild) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[86]("86", "45892a5d"+r.GuildID)
-	endpoint := EndpointDeleteGuild(r.GuildID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a GetGuildChannels request to Discord and returns a []*Channel.
-func (r *GetGuildChannels) Send(bot *Client) ([]*Channel, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[87]("87", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildChannels(r.GuildID)
-
-	result := make([]*Channel, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a CreateGuildChannel request to Discord and returns a Channel.
-func (r *CreateGuildChannel) Send(bot *Client) (*Channel, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[88]("88", "45892a5d"+r.GuildID)
-	endpoint := EndpointCreateGuildChannel(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Channel)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuildChannelPositions request to Discord and returns a error.
-func (r *ModifyGuildChannelPositions) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[89]("89", "45892a5d"+r.GuildID)
-	endpoint := EndpointModifyGuildChannelPositions(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a ListActiveGuildThreads request to Discord and returns a ListActiveGuildThreadsResponse.
-func (r *ListActiveGuildThreads) Send(bot *Client) (*ListActiveGuildThreadsResponse, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[90]("90", "45892a5d"+r.GuildID)
-	endpoint := EndpointListActiveGuildThreads(r.GuildID)
-
-	result := new(ListActiveGuildThreadsResponse)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildMember request to Discord and returns a GuildMember.
-func (r *GetGuildMember) Send(bot *Client) (*GuildMember, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[91]("91", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
-	endpoint := EndpointGetGuildMember(r.GuildID, r.UserID)
-
-	result := new(GuildMember)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ListGuildMembers request to Discord and returns a []*GuildMember.
-func (r *ListGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[92]("92", "45892a5d"+r.GuildID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointListGuildMembers(r.GuildID) + "?" + query
-
-	result := make([]*GuildMember, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a SearchGuildMembers request to Discord and returns a []*GuildMember.
-func (r *SearchGuildMembers) Send(bot *Client) ([]*GuildMember, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[93]("93", "45892a5d"+r.GuildID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointSearchGuildMembers(r.GuildID) + "?" + query
-
-	result := make([]*GuildMember, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a AddGuildMember request to Discord and returns a GuildMember.
-func (r *AddGuildMember) Send(bot *Client) (*GuildMember, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[94]("94", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
-	endpoint := EndpointAddGuildMember(r.GuildID, r.UserID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(GuildMember)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuildMember request to Discord and returns a GuildMember.
-func (r *ModifyGuildMember) Send(bot *Client) (*GuildMember, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[95]("95", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
-	endpoint := EndpointModifyGuildMember(r.GuildID, r.UserID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(GuildMember)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyCurrentMember request to Discord and returns a GuildMember.
-func (r *ModifyCurrentMember) Send(bot *Client) (*GuildMember, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[96]("96", "45892a5d"+r.GuildID)
-	endpoint := EndpointModifyCurrentMember(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(GuildMember)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a AddGuildMemberRole request to Discord and returns a error.
-func (r *AddGuildMemberRole) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[97]("97", "45892a5d"+r.GuildID, "209c92df"+r.UserID, "3cf7dd7c"+r.RoleID)
-	endpoint := EndpointAddGuildMemberRole(r.GuildID, r.UserID, r.RoleID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a RemoveGuildMemberRole request to Discord and returns a error.
-func (r *RemoveGuildMemberRole) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[98]("98", "45892a5d"+r.GuildID, "209c92df"+r.UserID, "3cf7dd7c"+r.RoleID)
-	endpoint := EndpointRemoveGuildMemberRole(r.GuildID, r.UserID, r.RoleID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a RemoveGuildMember request to Discord and returns a error.
-func (r *RemoveGuildMember) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[99]("99", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
-	endpoint := EndpointRemoveGuildMember(r.GuildID, r.UserID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a GetGuildBans request to Discord and returns a []*Ban.
-func (r *GetGuildBans) Send(bot *Client) ([]*Ban, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[100]("100", "45892a5d"+r.GuildID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointGetGuildBans(r.GuildID) + "?" + query
-
-	result := make([]*Ban, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildBan request to Discord and returns a Ban.
-func (r *GetGuildBan) Send(bot *Client) (*Ban, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[101]("101", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
-	endpoint := EndpointGetGuildBan(r.GuildID, r.UserID)
-
-	result := new(Ban)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a CreateGuildBan request to Discord and returns a error.
-func (r *CreateGuildBan) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[102]("102", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
-	endpoint := EndpointCreateGuildBan(r.GuildID, r.UserID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a RemoveGuildBan request to Discord and returns a error.
-func (r *RemoveGuildBan) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[103]("103", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
-	endpoint := EndpointRemoveGuildBan(r.GuildID, r.UserID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a GetGuildRoles request to Discord and returns a []*Role.
-func (r *GetGuildRoles) Send(bot *Client) ([]*Role, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[104]("104", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildRoles(r.GuildID)
-
-	result := make([]*Role, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a CreateGuildRole request to Discord and returns a Role.
-func (r *CreateGuildRole) Send(bot *Client) (*Role, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[105]("105", "45892a5d"+r.GuildID)
-	endpoint := EndpointCreateGuildRole(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Role)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuildRolePositions request to Discord and returns a []*Role.
-func (r *ModifyGuildRolePositions) Send(bot *Client) ([]*Role, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[106]("106", "45892a5d"+r.GuildID)
-	endpoint := EndpointModifyGuildRolePositions(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := make([]*Role, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuildRole request to Discord and returns a Role.
-func (r *ModifyGuildRole) Send(bot *Client) (*Role, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[107]("107", "45892a5d"+r.GuildID, "3cf7dd7c"+r.RoleID)
-	endpoint := EndpointModifyGuildRole(r.GuildID, r.RoleID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(Role)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a DeleteGuildRole request to Discord and returns a error.
-func (r *DeleteGuildRole) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[108]("108", "45892a5d"+r.GuildID, "3cf7dd7c"+r.RoleID)
-	endpoint := EndpointDeleteGuildRole(r.GuildID, r.RoleID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a ModifyGuildMFALevel request to Discord and returns a ModifyGuildMFALevelResponse.
-func (r *ModifyGuildMFALevel) Send(bot *Client) (*ModifyGuildMFALevelResponse, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[109]("109", "45892a5d"+r.GuildID)
-	endpoint := EndpointModifyGuildMFALevel(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(ModifyGuildMFALevelResponse)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildPruneCount request to Discord and returns a GetGuildPruneCountResponse.
-func (r *GetGuildPruneCount) Send(bot *Client) (*GetGuildPruneCountResponse, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[110]("110", "45892a5d"+r.GuildID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointGetGuildPruneCount(r.GuildID) + "?" + query
-
-	result := new(GetGuildPruneCountResponse)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a BeginGuildPrune request to Discord and returns a error.
-func (r *BeginGuildPrune) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[111]("111", "45892a5d"+r.GuildID)
-	endpoint := EndpointBeginGuildPrune(r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[155]("155", "e5416649"+r.ChannelID)
+	endpoint := EndpointSendSoundboardSound(r.ChannelID)
 
 	body, err := json.Marshal(r)
 	if err != nil {
@@ -15582,14 +15651,14 @@ func (r *BeginGuildPrune) Send(bot *Client) error {
 	return nil
 }
 
-// Send sends a GetGuildVoiceRegions request to Discord and returns a []*VoiceRegion.
-func (r *GetGuildVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
+// Send sends a ListDefaultSoundboardSounds request to Discord and returns a []*SoundboardSound.
+func (r *ListDefaultSoundboardSounds) Send(bot *Client) ([]*SoundboardSound, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[112]("112", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildVoiceRegions(r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[156]("156")
+	endpoint := EndpointListDefaultSoundboardSounds()
 
-	result := make([]*VoiceRegion, 0)
+	result := make([]*SoundboardSound, 0)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -15605,82 +15674,14 @@ func (r *GetGuildVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 	return result, nil
 }
 
-// Send sends a GetGuildInvites request to Discord and returns a []*Invite.
-func (r *GetGuildInvites) Send(bot *Client) ([]*Invite, error) {
+// Send sends a ListGuildSoundboardSounds request to Discord and returns a SoundboardSound.
+func (r *ListGuildSoundboardSounds) Send(bot *Client) (*SoundboardSound, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[113]("113", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildInvites(r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[157]("157", "45892a5d"+r.GuildID)
+	endpoint := EndpointListGuildSoundboardSounds(r.GuildID)
 
-	result := make([]*Invite, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildIntegrations request to Discord and returns a []*Integration.
-func (r *GetGuildIntegrations) Send(bot *Client) ([]*Integration, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[114]("114", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildIntegrations(r.GuildID)
-
-	result := make([]*Integration, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a DeleteGuildIntegration request to Discord and returns a error.
-func (r *DeleteGuildIntegration) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[115]("115", "45892a5d"+r.GuildID, "cb4479f8"+r.IntegrationID)
-	endpoint := EndpointDeleteGuildIntegration(r.GuildID, r.IntegrationID)
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a GetGuildWidgetSettings request to Discord and returns a GuildWidget.
-func (r *GetGuildWidgetSettings) Send(bot *Client) (*GuildWidget, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[116]("116", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildWidgetSettings(r.GuildID)
-
-	result := new(GuildWidget)
+	result := new(SoundboardSound)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -15696,37 +15697,14 @@ func (r *GetGuildWidgetSettings) Send(bot *Client) (*GuildWidget, error) {
 	return result, nil
 }
 
-// Send sends a ModifyGuildWidget request to Discord and returns a GuildWidget.
-func (r *ModifyGuildWidget) Send(bot *Client) (*GuildWidget, error) {
+// Send sends a GetGuildSoundboardSound request to Discord and returns a SoundboardSound.
+func (r *GetGuildSoundboardSound) Send(bot *Client) (*SoundboardSound, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[117]("117", "45892a5d"+r.GuildID)
-	endpoint := EndpointModifyGuildWidget(r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[158]("158", "45892a5d"+r.GuildID, "cab28439"+r.SoundID)
+	endpoint := EndpointGetGuildSoundboardSound(r.GuildID, r.SoundID)
 
-	result := new(GuildWidget)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildWidget request to Discord and returns a GuildWidget.
-func (r *GetGuildWidget) Send(bot *Client) (*GuildWidget, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[118]("118", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildWidget(r.GuildID)
-
-	result := new(GuildWidget)
+	result := new(SoundboardSound)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -15742,12 +15720,12 @@ func (r *GetGuildWidget) Send(bot *Client) (*GuildWidget, error) {
 	return result, nil
 }
 
-// Send sends a GetGuildVanityURL request to Discord and returns a Invite.
-func (r *GetGuildVanityURL) Send(bot *Client) (*Invite, error) {
+// Send sends a CreateGuildSoundboardSound request to Discord and returns a SoundboardSound.
+func (r *CreateGuildSoundboardSound) Send(bot *Client) (*SoundboardSound, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[119]("119", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildVanityURL(r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[159]("159", "45892a5d"+r.GuildID)
+	endpoint := EndpointCreateGuildSoundboardSound(r.GuildID)
 
 	body, err := json.Marshal(r)
 	if err != nil {
@@ -15761,294 +15739,7 @@ func (r *GetGuildVanityURL) Send(bot *Client) (*Invite, error) {
 		}
 	}
 
-	result := new(Invite)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildWidgetImage request to Discord and returns a EmbedImage.
-func (r *GetGuildWidgetImage) Send(bot *Client) (*EmbedImage, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[120]("120", "45892a5d"+r.GuildID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointGetGuildWidgetImage(r.GuildID) + "?" + query
-
-	result := new(EmbedImage)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildWelcomeScreen request to Discord and returns a WelcomeScreen.
-func (r *GetGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[121]("121", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildWelcomeScreen(r.GuildID)
-
-	result := new(WelcomeScreen)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuildWelcomeScreen request to Discord and returns a WelcomeScreen.
-func (r *ModifyGuildWelcomeScreen) Send(bot *Client) (*WelcomeScreen, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[122]("122", "45892a5d"+r.GuildID)
-	endpoint := EndpointModifyGuildWelcomeScreen(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(WelcomeScreen)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildOnboarding request to Discord and returns a GuildOnboarding.
-func (r *GetGuildOnboarding) Send(bot *Client) (*GuildOnboarding, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[123]("123", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildOnboarding(r.GuildID)
-
-	result := new(GuildOnboarding)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuildOnboarding request to Discord and returns a GuildOnboarding.
-func (r *ModifyGuildOnboarding) Send(bot *Client) (*GuildOnboarding, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[124]("124", "45892a5d"+r.GuildID)
-	endpoint := EndpointModifyGuildOnboarding(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(GuildOnboarding)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyCurrentUserVoiceState request to Discord and returns a error.
-func (r *ModifyCurrentUserVoiceState) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[125]("125", "45892a5d"+r.GuildID)
-	endpoint := EndpointModifyCurrentUserVoiceState(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a ModifyUserVoiceState request to Discord and returns a error.
-func (r *ModifyUserVoiceState) Send(bot *Client) error {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[126]("126", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
-	endpoint := EndpointModifyUserVoiceState(r.GuildID, r.UserID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, nil)
-	if err != nil {
-		return ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return nil
-}
-
-// Send sends a ListScheduledEventsforGuild request to Discord and returns a []*GuildScheduledEvent.
-func (r *ListScheduledEventsforGuild) Send(bot *Client) ([]*GuildScheduledEvent, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[127]("127", "45892a5d"+r.GuildID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointListScheduledEventsforGuild(r.GuildID) + "?" + query
-
-	result := make([]*GuildScheduledEvent, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a CreateGuildScheduledEvent request to Discord and returns a GuildScheduledEvent.
-func (r *CreateGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[128]("128", "45892a5d"+r.GuildID)
-	endpoint := EndpointCreateGuildScheduledEvent(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(GuildScheduledEvent)
+	result := new(SoundboardSound)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -16064,46 +15755,12 @@ func (r *CreateGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 	return result, nil
 }
 
-// Send sends a GetGuildScheduledEvent request to Discord and returns a GuildScheduledEvent.
-func (r *GetGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error) {
+// Send sends a ModifyGuildSoundboardSound request to Discord and returns a SoundboardSound.
+func (r *ModifyGuildSoundboardSound) Send(bot *Client) (*SoundboardSound, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[129]("129", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointGetGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID) + "?" + query
-
-	result := new(GuildScheduledEvent)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuildScheduledEvent request to Discord and returns a GuildScheduledEvent.
-func (r *ModifyGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[130]("130", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
-	endpoint := EndpointModifyGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID)
+	routeid, resourceid := RateLimitHashFuncs[160]("160", "45892a5d"+r.GuildID, "cab28439"+r.SoundID)
+	endpoint := EndpointModifyGuildSoundboardSound(r.GuildID, r.SoundID)
 
 	body, err := json.Marshal(r)
 	if err != nil {
@@ -16117,7 +15774,7 @@ func (r *ModifyGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 		}
 	}
 
-	result := new(GuildScheduledEvent)
+	result := new(SoundboardSound)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -16133,12 +15790,12 @@ func (r *ModifyGuildScheduledEvent) Send(bot *Client) (*GuildScheduledEvent, err
 	return result, nil
 }
 
-// Send sends a DeleteGuildScheduledEvent request to Discord and returns a error.
-func (r *DeleteGuildScheduledEvent) Send(bot *Client) error {
+// Send sends a DeleteGuildSoundboardSound request to Discord and returns a error.
+func (r *DeleteGuildSoundboardSound) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[131]("131", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
-	endpoint := EndpointDeleteGuildScheduledEvent(r.GuildID, r.GuildScheduledEventID)
+	routeid, resourceid := RateLimitHashFuncs[161]("161", "45892a5d"+r.GuildID, "cab28439"+r.SoundID)
+	endpoint := EndpointDeleteGuildSoundboardSound(r.GuildID, r.SoundID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
 	if err != nil {
@@ -16153,301 +15810,13 @@ func (r *DeleteGuildScheduledEvent) Send(bot *Client) error {
 	}
 
 	return nil
-}
-
-// Send sends a GetGuildScheduledEventUsers request to Discord and returns a []*GuildScheduledEventUser.
-func (r *GetGuildScheduledEventUsers) Send(bot *Client) ([]*GuildScheduledEventUser, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[132]("132", "45892a5d"+r.GuildID, "522412fc"+r.GuildScheduledEventID)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointGetGuildScheduledEventUsers(r.GuildID, r.GuildScheduledEventID) + "?" + query
-
-	result := make([]*GuildScheduledEventUser, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildTemplate request to Discord and returns a GuildTemplate.
-func (r *GetGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[133]("133", "61437152"+r.TemplateCode)
-	endpoint := EndpointGetGuildTemplate(r.TemplateCode)
-
-	result := new(GuildTemplate)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a CreateGuildfromGuildTemplate request to Discord and returns a []*GuildTemplate.
-func (r *CreateGuildfromGuildTemplate) Send(bot *Client) ([]*GuildTemplate, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[134]("134", "61437152"+r.TemplateCode)
-	endpoint := EndpointCreateGuildfromGuildTemplate(r.TemplateCode)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := make([]*GuildTemplate, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetGuildTemplates request to Discord and returns a []*GuildTemplate.
-func (r *GetGuildTemplates) Send(bot *Client) ([]*GuildTemplate, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[135]("135", "45892a5d"+r.GuildID)
-	endpoint := EndpointGetGuildTemplates(r.GuildID)
-
-	result := make([]*GuildTemplate, 0)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a CreateGuildTemplate request to Discord and returns a GuildTemplate.
-func (r *CreateGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[136]("136", "45892a5d"+r.GuildID)
-	endpoint := EndpointCreateGuildTemplate(r.GuildID)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(GuildTemplate)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPost, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a SyncGuildTemplate request to Discord and returns a GuildTemplate.
-func (r *SyncGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[137]("137", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
-	endpoint := EndpointSyncGuildTemplate(r.GuildID, r.TemplateCode)
-
-	result := new(GuildTemplate)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPut, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a ModifyGuildTemplate request to Discord and returns a GuildTemplate.
-func (r *ModifyGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[138]("138", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
-	endpoint := EndpointModifyGuildTemplate(r.GuildID, r.TemplateCode)
-
-	body, err := json.Marshal(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           fmt.Errorf(errSendMarshal, err),
-		}
-	}
-
-	result := new(GuildTemplate)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a DeleteGuildTemplate request to Discord and returns a GuildTemplate.
-func (r *DeleteGuildTemplate) Send(bot *Client) (*GuildTemplate, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[139]("139", "45892a5d"+r.GuildID, "61437152"+r.TemplateCode)
-	endpoint := EndpointDeleteGuildTemplate(r.GuildID, r.TemplateCode)
-
-	result := new(GuildTemplate)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a GetInvite request to Discord and returns a Invite.
-func (r *GetInvite) Send(bot *Client) (*Invite, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[140]("140", "781d4865"+r.InviteCode)
-	query, err := EndpointQueryString(r)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      "",
-			Err:           err,
-		}
-	}
-	endpoint := EndpointGetInvite(r.InviteCode) + "?" + query
-
-	result := new(Invite)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
-}
-
-// Send sends a DeleteInvite request to Discord and returns a Invite.
-func (r *DeleteInvite) Send(bot *Client) (*Invite, error) {
-	var err error
-	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[141]("141", "781d4865"+r.InviteCode)
-	endpoint := EndpointDeleteInvite(r.InviteCode)
-
-	result := new(Invite)
-	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, result)
-	if err != nil {
-		return nil, ErrorRequest{
-			ClientID:      bot.ApplicationID,
-			CorrelationID: xid,
-			RouteID:       routeid,
-			ResourceID:    resourceid,
-			Endpoint:      endpoint,
-			Err:           err,
-		}
-	}
-
-	return result, nil
 }
 
 // Send sends a CreateStageInstance request to Discord and returns a StageInstance.
 func (r *CreateStageInstance) Send(bot *Client) (*StageInstance, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[142]("142")
+	routeid, resourceid := RateLimitHashFuncs[162]("162")
 	endpoint := EndpointCreateStageInstance()
 
 	body, err := json.Marshal(r)
@@ -16482,7 +15851,7 @@ func (r *CreateStageInstance) Send(bot *Client) (*StageInstance, error) {
 func (r *GetStageInstance) Send(bot *Client) (*StageInstance, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[143]("143", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[163]("163", "e5416649"+r.ChannelID)
 	endpoint := EndpointGetStageInstance(r.ChannelID)
 
 	result := new(StageInstance)
@@ -16505,7 +15874,7 @@ func (r *GetStageInstance) Send(bot *Client) (*StageInstance, error) {
 func (r *ModifyStageInstance) Send(bot *Client) (*StageInstance, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[144]("144", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[164]("164", "e5416649"+r.ChannelID)
 	endpoint := EndpointModifyStageInstance(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -16540,7 +15909,7 @@ func (r *ModifyStageInstance) Send(bot *Client) (*StageInstance, error) {
 func (r *DeleteStageInstance) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[145]("145", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[165]("165", "e5416649"+r.ChannelID)
 	endpoint := EndpointDeleteStageInstance(r.ChannelID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -16562,7 +15931,7 @@ func (r *DeleteStageInstance) Send(bot *Client) error {
 func (r *GetSticker) Send(bot *Client) (*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[146]("146", "6eeeabf1"+r.StickerID)
+	routeid, resourceid := RateLimitHashFuncs[166]("166", "6eeeabf1"+r.StickerID)
 	endpoint := EndpointGetSticker(r.StickerID)
 
 	result := new(Sticker)
@@ -16581,14 +15950,14 @@ func (r *GetSticker) Send(bot *Client) (*Sticker, error) {
 	return result, nil
 }
 
-// Send sends a ListNitroStickerPacks request to Discord and returns a ListNitroStickerPacksResponse.
-func (r *ListNitroStickerPacks) Send(bot *Client) (*ListNitroStickerPacksResponse, error) {
+// Send sends a ListStickerPacks request to Discord and returns a ListStickerPacksResponse.
+func (r *ListStickerPacks) Send(bot *Client) (*ListStickerPacksResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[147]("147")
-	endpoint := EndpointListNitroStickerPacks()
+	routeid, resourceid := RateLimitHashFuncs[167]("167")
+	endpoint := EndpointListStickerPacks()
 
-	result := new(ListNitroStickerPacksResponse)
+	result := new(ListStickerPacksResponse)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -16608,7 +15977,7 @@ func (r *ListNitroStickerPacks) Send(bot *Client) (*ListNitroStickerPacksRespons
 func (r *ListGuildStickers) Send(bot *Client) ([]*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[148]("148", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[168]("168", "45892a5d"+r.GuildID)
 	endpoint := EndpointListGuildStickers(r.GuildID)
 
 	result := make([]*Sticker, 0)
@@ -16631,7 +16000,7 @@ func (r *ListGuildStickers) Send(bot *Client) ([]*Sticker, error) {
 func (r *GetGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[149]("149", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
+	routeid, resourceid := RateLimitHashFuncs[169]("169", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
 	endpoint := EndpointGetGuildSticker(r.GuildID, r.StickerID)
 
 	result := new(Sticker)
@@ -16654,7 +16023,7 @@ func (r *GetGuildSticker) Send(bot *Client) (*Sticker, error) {
 func (r *CreateGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[150]("150", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[170]("170", "45892a5d"+r.GuildID)
 	endpoint := EndpointCreateGuildSticker(r.GuildID)
 
 	body, err := json.Marshal(r)
@@ -16702,7 +16071,7 @@ func (r *CreateGuildSticker) Send(bot *Client) (*Sticker, error) {
 func (r *ModifyGuildSticker) Send(bot *Client) (*Sticker, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[151]("151", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
+	routeid, resourceid := RateLimitHashFuncs[171]("171", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
 	endpoint := EndpointModifyGuildSticker(r.GuildID, r.StickerID)
 
 	body, err := json.Marshal(r)
@@ -16737,10 +16106,135 @@ func (r *ModifyGuildSticker) Send(bot *Client) (*Sticker, error) {
 func (r *DeleteGuildSticker) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[152]("152", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
+	routeid, resourceid := RateLimitHashFuncs[172]("172", "45892a5d"+r.GuildID, "6eeeabf1"+r.StickerID)
 	endpoint := EndpointDeleteGuildSticker(r.GuildID, r.StickerID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a ListSKUSubscriptions request to Discord and returns a []*Subscription.
+func (r *ListSKUSubscriptions) Send(bot *Client) ([]*Subscription, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[173]("173", "01a04937"+r.SKUID)
+	query, err := EndpointQueryString(r)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      "",
+			Err:           err,
+		}
+	}
+	endpoint := EndpointListSKUSubscriptions(r.SKUID) + "?" + query
+
+	result := make([]*Subscription, 0)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, ContentTypeURLQueryString, nil, &result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a GetSKUSubscription request to Discord and returns a Subscription.
+func (r *GetSKUSubscription) Send(bot *Client) (*Subscription, error) {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[174]("174", "01a04937"+r.SKUID, "d21a88b9"+r.SubscriptionID)
+	endpoint := EndpointGetSKUSubscription(r.SKUID, r.SubscriptionID)
+
+	result := new(Subscription)
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
+	if err != nil {
+		return nil, ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return result, nil
+}
+
+// Send sends a ModifyCurrentUserVoiceState request to Discord and returns a error.
+func (r *ModifyCurrentUserVoiceState) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[175]("175", "45892a5d"+r.GuildID)
+	endpoint := EndpointModifyCurrentUserVoiceState(r.GuildID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, nil)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           err,
+		}
+	}
+
+	return nil
+}
+
+// Send sends a ModifyUserVoiceState request to Discord and returns a error.
+func (r *ModifyUserVoiceState) Send(bot *Client) error {
+	var err error
+	xid := xid.New().String()
+	routeid, resourceid := RateLimitHashFuncs[176]("176", "45892a5d"+r.GuildID, "209c92df"+r.UserID)
+	endpoint := EndpointModifyUserVoiceState(r.GuildID, r.UserID)
+
+	body, err := json.Marshal(r)
+	if err != nil {
+		return ErrorRequest{
+			ClientID:      bot.ApplicationID,
+			CorrelationID: xid,
+			RouteID:       routeid,
+			ResourceID:    resourceid,
+			Endpoint:      endpoint,
+			Err:           fmt.Errorf(errSendMarshal, err),
+		}
+	}
+
+	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodPatch, endpoint, ContentTypeJSON, body, nil)
 	if err != nil {
 		return ErrorRequest{
 			ClientID:      bot.ApplicationID,
@@ -16759,7 +16253,7 @@ func (r *DeleteGuildSticker) Send(bot *Client) error {
 func (r *GetCurrentUser) Send(bot *Client) (*User, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[153]("153")
+	routeid, resourceid := RateLimitHashFuncs[177]("177")
 	endpoint := EndpointGetCurrentUser()
 
 	result := new(User)
@@ -16782,7 +16276,7 @@ func (r *GetCurrentUser) Send(bot *Client) (*User, error) {
 func (r *GetUser) Send(bot *Client) (*User, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[154]("154", "209c92df"+r.UserID)
+	routeid, resourceid := RateLimitHashFuncs[178]("178", "209c92df"+r.UserID)
 	endpoint := EndpointGetUser(r.UserID)
 
 	result := new(User)
@@ -16805,7 +16299,7 @@ func (r *GetUser) Send(bot *Client) (*User, error) {
 func (r *ModifyCurrentUser) Send(bot *Client) (*User, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[155]("155")
+	routeid, resourceid := RateLimitHashFuncs[179]("179")
 	endpoint := EndpointModifyCurrentUser()
 
 	body, err := json.Marshal(r)
@@ -16840,7 +16334,7 @@ func (r *ModifyCurrentUser) Send(bot *Client) (*User, error) {
 func (r *GetCurrentUserGuilds) Send(bot *Client) ([]*Guild, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[156]("156")
+	routeid, resourceid := RateLimitHashFuncs[180]("180")
 	endpoint := EndpointGetCurrentUserGuilds()
 
 	body, err := json.Marshal(r)
@@ -16875,7 +16369,7 @@ func (r *GetCurrentUserGuilds) Send(bot *Client) ([]*Guild, error) {
 func (r *GetCurrentUserGuildMember) Send(bot *Client) (*GuildMember, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[157]("157", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[181]("181", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetCurrentUserGuildMember(r.GuildID)
 
 	result := new(GuildMember)
@@ -16898,7 +16392,7 @@ func (r *GetCurrentUserGuildMember) Send(bot *Client) (*GuildMember, error) {
 func (r *LeaveGuild) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[158]("158", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[182]("182", "45892a5d"+r.GuildID)
 	endpoint := EndpointLeaveGuild(r.GuildID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -16920,7 +16414,7 @@ func (r *LeaveGuild) Send(bot *Client) error {
 func (r *CreateDM) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[159]("159")
+	routeid, resourceid := RateLimitHashFuncs[183]("183")
 	endpoint := EndpointCreateDM()
 
 	body, err := json.Marshal(r)
@@ -16955,7 +16449,7 @@ func (r *CreateDM) Send(bot *Client) (*Channel, error) {
 func (r *CreateGroupDM) Send(bot *Client) (*Channel, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[160]("160")
+	routeid, resourceid := RateLimitHashFuncs[184]("184")
 	endpoint := EndpointCreateGroupDM()
 
 	body, err := json.Marshal(r)
@@ -16986,12 +16480,12 @@ func (r *CreateGroupDM) Send(bot *Client) (*Channel, error) {
 	return result, nil
 }
 
-// Send sends a GetUserConnections request to Discord and returns a []*Connection.
-func (r *GetUserConnections) Send(bot *Client) ([]*Connection, error) {
+// Send sends a GetCurrentUserConnections request to Discord and returns a []*Connection.
+func (r *GetCurrentUserConnections) Send(bot *Client) ([]*Connection, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[161]("161")
-	endpoint := EndpointGetUserConnections()
+	routeid, resourceid := RateLimitHashFuncs[185]("185")
+	endpoint := EndpointGetCurrentUserConnections()
 
 	result := make([]*Connection, 0)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, &result)
@@ -17009,12 +16503,12 @@ func (r *GetUserConnections) Send(bot *Client) ([]*Connection, error) {
 	return result, nil
 }
 
-// Send sends a GetUserApplicationRoleConnection request to Discord and returns a ApplicationRoleConnection.
-func (r *GetUserApplicationRoleConnection) Send(bot *Client) (*ApplicationRoleConnection, error) {
+// Send sends a GetCurrentUserApplicationRoleConnection request to Discord and returns a ApplicationRoleConnection.
+func (r *GetCurrentUserApplicationRoleConnection) Send(bot *Client) (*ApplicationRoleConnection, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[162]("162")
-	endpoint := EndpointGetUserApplicationRoleConnection(bot.ApplicationID)
+	routeid, resourceid := RateLimitHashFuncs[186]("186")
+	endpoint := EndpointGetCurrentUserApplicationRoleConnection(bot.ApplicationID)
 
 	result := new(ApplicationRoleConnection)
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodGet, endpoint, nil, nil, result)
@@ -17032,12 +16526,12 @@ func (r *GetUserApplicationRoleConnection) Send(bot *Client) (*ApplicationRoleCo
 	return result, nil
 }
 
-// Send sends a UpdateUserApplicationRoleConnection request to Discord and returns a ApplicationRoleConnection.
-func (r *UpdateUserApplicationRoleConnection) Send(bot *Client) (*ApplicationRoleConnection, error) {
+// Send sends a UpdateCurrentUserApplicationRoleConnection request to Discord and returns a ApplicationRoleConnection.
+func (r *UpdateCurrentUserApplicationRoleConnection) Send(bot *Client) (*ApplicationRoleConnection, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[163]("163")
-	endpoint := EndpointUpdateUserApplicationRoleConnection(bot.ApplicationID)
+	routeid, resourceid := RateLimitHashFuncs[187]("187")
+	endpoint := EndpointUpdateCurrentUserApplicationRoleConnection(bot.ApplicationID)
 
 	body, err := json.Marshal(r)
 	if err != nil {
@@ -17071,7 +16565,7 @@ func (r *UpdateUserApplicationRoleConnection) Send(bot *Client) (*ApplicationRol
 func (r *ListVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[164]("164")
+	routeid, resourceid := RateLimitHashFuncs[188]("188")
 	endpoint := EndpointListVoiceRegions()
 
 	result := make([]*VoiceRegion, 0)
@@ -17094,7 +16588,7 @@ func (r *ListVoiceRegions) Send(bot *Client) ([]*VoiceRegion, error) {
 func (r *CreateWebhook) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[165]("165", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[189]("189", "e5416649"+r.ChannelID)
 	endpoint := EndpointCreateWebhook(r.ChannelID)
 
 	body, err := json.Marshal(r)
@@ -17129,7 +16623,7 @@ func (r *CreateWebhook) Send(bot *Client) (*Webhook, error) {
 func (r *GetChannelWebhooks) Send(bot *Client) ([]*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[166]("166", "e5416649"+r.ChannelID)
+	routeid, resourceid := RateLimitHashFuncs[190]("190", "e5416649"+r.ChannelID)
 	endpoint := EndpointGetChannelWebhooks(r.ChannelID)
 
 	result := make([]*Webhook, 0)
@@ -17152,7 +16646,7 @@ func (r *GetChannelWebhooks) Send(bot *Client) ([]*Webhook, error) {
 func (r *GetGuildWebhooks) Send(bot *Client) ([]*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[167]("167", "45892a5d"+r.GuildID)
+	routeid, resourceid := RateLimitHashFuncs[191]("191", "45892a5d"+r.GuildID)
 	endpoint := EndpointGetGuildWebhooks(r.GuildID)
 
 	result := make([]*Webhook, 0)
@@ -17175,7 +16669,7 @@ func (r *GetGuildWebhooks) Send(bot *Client) ([]*Webhook, error) {
 func (r *GetWebhook) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[168]("168", "6d62b21b"+r.WebhookID)
+	routeid, resourceid := RateLimitHashFuncs[192]("192", "6d62b21b"+r.WebhookID)
 	endpoint := EndpointGetWebhook(r.WebhookID)
 
 	result := new(Webhook)
@@ -17198,7 +16692,7 @@ func (r *GetWebhook) Send(bot *Client) (*Webhook, error) {
 func (r *GetWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[169]("169", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[193]("193", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	endpoint := EndpointGetWebhookwithToken(r.WebhookID, r.WebhookToken)
 
 	result := new(Webhook)
@@ -17221,7 +16715,7 @@ func (r *GetWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 func (r *ModifyWebhook) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[170]("170", "6d62b21b"+r.WebhookID)
+	routeid, resourceid := RateLimitHashFuncs[194]("194", "6d62b21b"+r.WebhookID)
 	endpoint := EndpointModifyWebhook(r.WebhookID)
 
 	body, err := json.Marshal(r)
@@ -17256,7 +16750,7 @@ func (r *ModifyWebhook) Send(bot *Client) (*Webhook, error) {
 func (r *ModifyWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[171]("171", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[195]("195", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	endpoint := EndpointModifyWebhookwithToken(r.WebhookID, r.WebhookToken)
 
 	body, err := json.Marshal(r)
@@ -17291,7 +16785,7 @@ func (r *ModifyWebhookwithToken) Send(bot *Client) (*Webhook, error) {
 func (r *DeleteWebhook) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[172]("172", "6d62b21b"+r.WebhookID)
+	routeid, resourceid := RateLimitHashFuncs[196]("196", "6d62b21b"+r.WebhookID)
 	endpoint := EndpointDeleteWebhook(r.WebhookID)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -17313,7 +16807,7 @@ func (r *DeleteWebhook) Send(bot *Client) error {
 func (r *DeleteWebhookwithToken) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[173]("173", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[197]("197", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	endpoint := EndpointDeleteWebhookwithToken(r.WebhookID, r.WebhookToken)
 
 	err = SendRequest(bot, xid, routeid, resourceid, fasthttp.MethodDelete, endpoint, nil, nil, nil)
@@ -17335,7 +16829,7 @@ func (r *DeleteWebhookwithToken) Send(bot *Client) error {
 func (r *ExecuteWebhook) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[174]("174", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[198]("198", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return ErrorRequest{
@@ -17395,7 +16889,7 @@ func (r *ExecuteWebhook) Send(bot *Client) error {
 func (r *ExecuteSlackCompatibleWebhook) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[175]("175", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[199]("199", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return ErrorRequest{
@@ -17428,7 +16922,7 @@ func (r *ExecuteSlackCompatibleWebhook) Send(bot *Client) error {
 func (r *ExecuteGitHubCompatibleWebhook) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[176]("176", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
+	routeid, resourceid := RateLimitHashFuncs[200]("200", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return ErrorRequest{
@@ -17461,7 +16955,7 @@ func (r *ExecuteGitHubCompatibleWebhook) Send(bot *Client) error {
 func (r *GetWebhookMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[177]("177", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[201]("201", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -17495,7 +16989,7 @@ func (r *GetWebhookMessage) Send(bot *Client) (*Message, error) {
 func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[178]("178", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[202]("202", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return nil, ErrorRequest{
@@ -17556,7 +17050,7 @@ func (r *EditWebhookMessage) Send(bot *Client) (*Message, error) {
 func (r *DeleteWebhookMessage) Send(bot *Client) error {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[179]("179", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
+	routeid, resourceid := RateLimitHashFuncs[203]("203", "6d62b21b"+r.WebhookID, "8954ac33"+r.WebhookToken, "d57d6589"+r.MessageID)
 	query, err := EndpointQueryString(r)
 	if err != nil {
 		return ErrorRequest{
@@ -17589,7 +17083,7 @@ func (r *DeleteWebhookMessage) Send(bot *Client) error {
 func (r *GetGateway) Send(bot *Client) (*GetGatewayBotResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[180]("180")
+	routeid, resourceid := RateLimitHashFuncs[204]("204")
 	endpoint := EndpointGetGateway()
 
 	result := new(GetGatewayBotResponse)
@@ -17612,7 +17106,7 @@ func (r *GetGateway) Send(bot *Client) (*GetGatewayBotResponse, error) {
 func (r *GetGatewayBot) Send(bot *Client) (*GetGatewayBotResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[181]("181")
+	routeid, resourceid := RateLimitHashFuncs[205]("205")
 	endpoint := EndpointGetGatewayBot()
 
 	result := new(GetGatewayBotResponse)
@@ -17635,7 +17129,7 @@ func (r *GetGatewayBot) Send(bot *Client) (*GetGatewayBotResponse, error) {
 func (r *GetCurrentBotApplicationInformation) Send(bot *Client) (*Application, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[182]("182")
+	routeid, resourceid := RateLimitHashFuncs[206]("206")
 	endpoint := EndpointGetCurrentBotApplicationInformation()
 
 	result := new(Application)
@@ -17658,7 +17152,7 @@ func (r *GetCurrentBotApplicationInformation) Send(bot *Client) (*Application, e
 func (r *GetCurrentAuthorizationInformation) Send(bot *Client) (*CurrentAuthorizationInformationResponse, error) {
 	var err error
 	xid := xid.New().String()
-	routeid, resourceid := RateLimitHashFuncs[183]("183")
+	routeid, resourceid := RateLimitHashFuncs[207]("207")
 	endpoint := EndpointGetCurrentAuthorizationInformation()
 
 	result := new(CurrentAuthorizationInformationResponse)
@@ -17685,44 +17179,16 @@ const (
 
 // Session represents a Discord Gateway WebSocket Session.
 type Session struct {
-	// Context carries request-scoped data for the Discord Gateway Connection.
-	//
-	// Context is also used as a signal for the Session's goroutines.
-	Context context.Context
-
-	// RateLimiter represents an object that provides rate limit functionality.
-	RateLimiter RateLimiter
-
-	// Shard represents the [shard_id, num_shards] for this session.
-	//
-	// https://discord.com/developers/docs/topics/gateway#sharding
-	Shard *[2]int
-
-	// Conn represents a connection to the Discord Gateway.
-	Conn *websocket.Conn
-
-	// heartbeat contains the fields required to implement the heartbeat mechanism.
-	heartbeat *heartbeat
-
-	// manager represents a manager of a Session's goroutines.
-	manager *manager
-
-	// client_manager represents the *Client Session Manager of the Session.
+	Context        context.Context
+	RateLimiter    RateLimiter
+	Shard          *[2]int
+	Conn           *websocket.Conn
+	heartbeat      *heartbeat
+	manager        *manager
 	client_manager *SessionManager
-
-	// ID represents the session ID of the Session.
-	ID string
-
-	// Endpoint represents the endpoint that is used to reconnect to the Gateway.
-	Endpoint string
-
-	// Seq represents the last sequence number received by the client.
-	//
-	// https://discord.com/developers/docs/topics/gateway#heartbeat
-	Seq int64
-
-	// RWMutex is used to protect the Session's variables from data races
-	// by providing transactional functionality.
+	ID             string
+	Endpoint       string
+	Seq            int64
 	sync.RWMutex
 }
 
@@ -17758,7 +17224,7 @@ func (s *Session) Connect(bot *Client) error {
 // connect connects a session to a WebSocket Connection.
 func (s *Session) connect(bot *Client) error {
 	if bot.Sessions == nil {
-		return fmt.Errorf(errNoSessionManager) //lint:ignore ST1005 format help message.
+		return fmt.Errorf("%q", errNoSessionManager)
 	}
 
 	s.client_manager = bot.Sessions
@@ -17964,7 +17430,8 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	}
 
 	// handle the incoming Ready, Resumed or Replayed event (or Opcode 9 Invalid Session).
-	payload := new(GatewayPayload)
+	payload := getPayload()
+	defer putPayload(payload)
 	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
 		return fmt.Errorf("error reading initial payload: %w", err)
 	}
@@ -18067,7 +17534,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	return nil
 }
 
-// Disconnect disconnects a session from the Discord Gateway using the given status code.
+// Disconnect disconnects a session from the Discord Gateway.
 func (s *Session) Disconnect() error {
 	s.Lock()
 
@@ -18111,7 +17578,7 @@ func (s *Session) disconnect(code int) error {
 	defer s.manager.cancel()
 
 	// Remove the session from the session manager.
-	s.client_manager.Gateway.Store(s.ID, nil)
+	s.client_manager.RemoveGatewaySession(s.ID)
 
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
 		return fmt.Errorf("%w", err)
@@ -18277,25 +17744,6 @@ SEND:
 	return nil
 }
 
-// SessionManager manages sessions.
-type SessionManager struct {
-	// Gateway represents a map of Discord Gateway (TCP WebSocket Connections) session IDs to Sessions.
-	// map[ID]Session (map[string]*Session)
-	Gateway *sync.Map
-
-	// Voice represents a map of Discord Voice (UDP WebSocket Connection) session IDs to Sessions.
-	// map[ID]Session (map[string]*Session)
-	Voice *sync.Map
-}
-
-// NewSessionManager creates a new SessionManager.
-func NewSessionManager() *SessionManager {
-	return &SessionManager{
-		Gateway: new(sync.Map),
-		Voice:   new(sync.Map),
-	}
-}
-
 // SendEvent sends an Opcode 1 Heartbeat event to the Discord Gateway.
 func (c *Heartbeat) SendEvent(bot *Client, session *Session) error {
 	if err := writeEvent(bot, session, FlagGatewayOpcodeHeartbeat, FlagGatewaySendEventNameHeartbeat, c); err != nil {
@@ -18324,7 +17772,7 @@ func (c *GatewayPresenceUpdate) SendEvent(bot *Client, session *Session) error {
 }
 
 // SendEvent sends an Opcode 4 UpdateVoiceState event to the Discord Gateway.
-func (c *VoiceStateUpdate) SendEvent(bot *Client, session *Session) error {
+func (c *GatewayVoiceStateUpdate) SendEvent(bot *Client, session *Session) error {
 	if err := writeEvent(bot, session, FlagGatewayOpcodeVoiceStateUpdate, FlagGatewaySendEventNameUpdateVoiceState, c); err != nil {
 		return err
 	}
@@ -18348,6 +17796,3085 @@ func (c *RequestGuildMembers) SendEvent(bot *Client, session *Session) error {
 	}
 
 	return nil
+}
+
+// SendEvent sends an Opcode 31 RequestSoundboardSounds event to the Discord Gateway.
+func (c *RequestSoundboardSounds) SendEvent(bot *Client, session *Session) error {
+	if err := writeEvent(bot, session, FlagGatewayOpcodeRequestSoundboardSounds, FlagGatewaySendEventNameRequestSoundboardSounds, c); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Handlers represents a bot's event handlers.
+type Handlers struct {
+	Hello                               []func(*Hello)
+	Ready                               []func(*Ready)
+	Resumed                             []func(*Resumed)
+	Reconnect                           []func(*Reconnect)
+	InvalidSession                      []func(*InvalidSession)
+	ApplicationCommandPermissionsUpdate []func(*ApplicationCommandPermissionsUpdate)
+	AutoModerationRuleCreate            []func(*AutoModerationRuleCreate)
+	AutoModerationRuleUpdate            []func(*AutoModerationRuleUpdate)
+	AutoModerationRuleDelete            []func(*AutoModerationRuleDelete)
+	AutoModerationActionExecution       []func(*AutoModerationActionExecution)
+	ChannelCreate                       []func(*ChannelCreate)
+	ChannelUpdate                       []func(*ChannelUpdate)
+	ChannelDelete                       []func(*ChannelDelete)
+	ChannelPinsUpdate                   []func(*ChannelPinsUpdate)
+	ThreadCreate                        []func(*ThreadCreate)
+	ThreadUpdate                        []func(*ThreadUpdate)
+	ThreadDelete                        []func(*ThreadDelete)
+	ThreadListSync                      []func(*ThreadListSync)
+	ThreadMemberUpdate                  []func(*ThreadMemberUpdate)
+	ThreadMembersUpdate                 []func(*ThreadMembersUpdate)
+	EntitlementCreate                   []func(*EntitlementCreate)
+	EntitlementUpdate                   []func(*EntitlementUpdate)
+	EntitlementDelete                   []func(*EntitlementDelete)
+	GuildCreate                         []func(*GuildCreate)
+	GuildUpdate                         []func(*GuildUpdate)
+	GuildDelete                         []func(*GuildDelete)
+	GuildAuditLogEntryCreate            []func(*GuildAuditLogEntryCreate)
+	GuildBanAdd                         []func(*GuildBanAdd)
+	GuildBanRemove                      []func(*GuildBanRemove)
+	GuildEmojisUpdate                   []func(*GuildEmojisUpdate)
+	GuildStickersUpdate                 []func(*GuildStickersUpdate)
+	GuildIntegrationsUpdate             []func(*GuildIntegrationsUpdate)
+	GuildMemberAdd                      []func(*GuildMemberAdd)
+	GuildMemberRemove                   []func(*GuildMemberRemove)
+	GuildMemberUpdate                   []func(*GuildMemberUpdate)
+	GuildMembersChunk                   []func(*GuildMembersChunk)
+	GuildRoleCreate                     []func(*GuildRoleCreate)
+	GuildRoleUpdate                     []func(*GuildRoleUpdate)
+	GuildRoleDelete                     []func(*GuildRoleDelete)
+	GuildScheduledEventCreate           []func(*GuildScheduledEventCreate)
+	GuildScheduledEventUpdate           []func(*GuildScheduledEventUpdate)
+	GuildScheduledEventDelete           []func(*GuildScheduledEventDelete)
+	GuildScheduledEventUserAdd          []func(*GuildScheduledEventUserAdd)
+	GuildScheduledEventUserRemove       []func(*GuildScheduledEventUserRemove)
+	GuildSoundboardSoundCreate          []func(*GuildSoundboardSoundCreate)
+	GuildSoundboardSoundUpdate          []func(*GuildSoundboardSoundUpdate)
+	GuildSoundboardSoundDelete          []func(*GuildSoundboardSoundDelete)
+	GuildSoundboardSoundsUpdate         []func(*GuildSoundboardSoundsUpdate)
+	SoundboardSounds                    []func(*SoundboardSounds)
+	IntegrationCreate                   []func(*IntegrationCreate)
+	IntegrationUpdate                   []func(*IntegrationUpdate)
+	IntegrationDelete                   []func(*IntegrationDelete)
+	InteractionCreate                   []func(*InteractionCreate)
+	InviteCreate                        []func(*InviteCreate)
+	InviteDelete                        []func(*InviteDelete)
+	MessageCreate                       []func(*MessageCreate)
+	MessageUpdate                       []func(*MessageUpdate)
+	MessageDelete                       []func(*MessageDelete)
+	MessageDeleteBulk                   []func(*MessageDeleteBulk)
+	MessageReactionAdd                  []func(*MessageReactionAdd)
+	MessageReactionRemove               []func(*MessageReactionRemove)
+	MessageReactionRemoveAll            []func(*MessageReactionRemoveAll)
+	MessageReactionRemoveEmoji          []func(*MessageReactionRemoveEmoji)
+	PresenceUpdate                      []func(*PresenceUpdate)
+	StageInstanceCreate                 []func(*StageInstanceCreate)
+	StageInstanceDelete                 []func(*StageInstanceDelete)
+	StageInstanceUpdate                 []func(*StageInstanceUpdate)
+	SubscriptionCreate                  []func(*SubscriptionCreate)
+	SubscriptionUpdate                  []func(*SubscriptionUpdate)
+	SubscriptionDelete                  []func(*SubscriptionDelete)
+	TypingStart                         []func(*TypingStart)
+	UserUpdate                          []func(*UserUpdate)
+	VoiceChannelEffectSend              []func(*VoiceChannelEffectSend)
+	VoiceStateUpdate                    []func(*VoiceStateUpdate)
+	VoiceServerUpdate                   []func(*VoiceServerUpdate)
+	WebhooksUpdate                      []func(*WebhooksUpdate)
+	MessagePollVoteAdd                  []func(*MessagePollVoteAdd)
+	MessagePollVoteRemove               []func(*MessagePollVoteRemove)
+	mu                                  sync.RWMutex
+}
+
+// Handle adds an event handler for the given event to the bot.
+func (bot *Client) Handle(eventname string, function interface{}) error {
+	bot.Handlers.mu.Lock()
+	defer bot.Handlers.mu.Unlock()
+
+	switch eventname {
+	case FlagGatewayEventNameHello:
+		if f, ok := function.(func(*Hello)); ok {
+			bot.Handlers.Hello = append(bot.Handlers.Hello, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameReady:
+		if f, ok := function.(func(*Ready)); ok {
+			bot.Handlers.Ready = append(bot.Handlers.Ready, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameResumed:
+		if f, ok := function.(func(*Resumed)); ok {
+			bot.Handlers.Resumed = append(bot.Handlers.Resumed, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameReconnect:
+		if f, ok := function.(func(*Reconnect)); ok {
+			bot.Handlers.Reconnect = append(bot.Handlers.Reconnect, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameInvalidSession:
+		if f, ok := function.(func(*InvalidSession)); ok {
+			bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
+		if f, ok := function.(func(*ApplicationCommandPermissionsUpdate)); ok {
+			bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
+		}
+
+		if f, ok := function.(func(*AutoModerationRuleCreate)); ok {
+			bot.Handlers.AutoModerationRuleCreate = append(bot.Handlers.AutoModerationRuleCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
+		}
+
+		if f, ok := function.(func(*AutoModerationRuleUpdate)); ok {
+			bot.Handlers.AutoModerationRuleUpdate = append(bot.Handlers.AutoModerationRuleUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_CONFIGURATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_CONFIGURATION
+		}
+
+		if f, ok := function.(func(*AutoModerationRuleDelete)); ok {
+			bot.Handlers.AutoModerationRuleDelete = append(bot.Handlers.AutoModerationRuleDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameAutoModerationActionExecution:
+		if !bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] {
+			bot.Config.Gateway.IntentSet[FlagIntentAUTO_MODERATION_EXECUTION] = true
+			bot.Config.Gateway.Intents |= FlagIntentAUTO_MODERATION_EXECUTION
+		}
+
+		if f, ok := function.(func(*AutoModerationActionExecution)); ok {
+			bot.Handlers.AutoModerationActionExecution = append(bot.Handlers.AutoModerationActionExecution, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameChannelCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ChannelCreate)); ok {
+			bot.Handlers.ChannelCreate = append(bot.Handlers.ChannelCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameChannelUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ChannelUpdate)); ok {
+			bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameChannelDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ChannelDelete)); ok {
+			bot.Handlers.ChannelDelete = append(bot.Handlers.ChannelDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameChannelPinsUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGES
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ChannelPinsUpdate)); ok {
+			bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameThreadCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ThreadCreate)); ok {
+			bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameThreadUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ThreadUpdate)); ok {
+			bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameThreadDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ThreadDelete)); ok {
+			bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameThreadListSync:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ThreadListSync)); ok {
+			bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameThreadMemberUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*ThreadMemberUpdate)); ok {
+			bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameThreadMembersUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if f, ok := function.(func(*ThreadMembersUpdate)); ok {
+			bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameEntitlementCreate:
+		if f, ok := function.(func(*EntitlementCreate)); ok {
+			bot.Handlers.EntitlementCreate = append(bot.Handlers.EntitlementCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameEntitlementUpdate:
+		if f, ok := function.(func(*EntitlementUpdate)); ok {
+			bot.Handlers.EntitlementUpdate = append(bot.Handlers.EntitlementUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameEntitlementDelete:
+		if f, ok := function.(func(*EntitlementDelete)); ok {
+			bot.Handlers.EntitlementDelete = append(bot.Handlers.EntitlementDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildCreate)); ok {
+			bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildUpdate)); ok {
+			bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildDelete)); ok {
+			bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildAuditLogEntryCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
+		}
+
+		if f, ok := function.(func(*GuildAuditLogEntryCreate)); ok {
+			bot.Handlers.GuildAuditLogEntryCreate = append(bot.Handlers.GuildAuditLogEntryCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildBanAdd:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
+		}
+
+		if f, ok := function.(func(*GuildBanAdd)); ok {
+			bot.Handlers.GuildBanAdd = append(bot.Handlers.GuildBanAdd, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildBanRemove:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MODERATION] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MODERATION
+		}
+
+		if f, ok := function.(func(*GuildBanRemove)); ok {
+			bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildEmojisUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildEmojisUpdate)); ok {
+			bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildStickersUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildStickersUpdate)); ok {
+			bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildIntegrationsUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
+		if f, ok := function.(func(*GuildIntegrationsUpdate)); ok {
+			bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildMemberAdd:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if f, ok := function.(func(*GuildMemberAdd)); ok {
+			bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildMemberRemove:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if f, ok := function.(func(*GuildMemberRemove)); ok {
+			bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildMemberUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if f, ok := function.(func(*GuildMemberUpdate)); ok {
+			bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildMembersChunk:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_PRESENCES
+		}
+
+		if f, ok := function.(func(*GuildMembersChunk)); ok {
+			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildRoleCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildRoleCreate)); ok {
+			bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildRoleUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildRoleUpdate)); ok {
+			bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildRoleDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*GuildRoleDelete)); ok {
+			bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventCreate)); ok {
+			bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventUpdate)); ok {
+			bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventDelete)); ok {
+			bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventUserAdd:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventUserAdd)); ok {
+			bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventUserRemove:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_SCHEDULED_EVENTS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_SCHEDULED_EVENTS
+		}
+
+		if f, ok := function.(func(*GuildScheduledEventUserRemove)); ok {
+			bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildSoundboardSoundCreate)); ok {
+			bot.Handlers.GuildSoundboardSoundCreate = append(bot.Handlers.GuildSoundboardSoundCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildSoundboardSoundUpdate)); ok {
+			bot.Handlers.GuildSoundboardSoundUpdate = append(bot.Handlers.GuildSoundboardSoundUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildSoundboardSoundDelete)); ok {
+			bot.Handlers.GuildSoundboardSoundDelete = append(bot.Handlers.GuildSoundboardSoundDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundsUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildSoundboardSoundsUpdate)); ok {
+			bot.Handlers.GuildSoundboardSoundsUpdate = append(bot.Handlers.GuildSoundboardSoundsUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameSoundboardSounds:
+		if f, ok := function.(func(*SoundboardSounds)); ok {
+			bot.Handlers.SoundboardSounds = append(bot.Handlers.SoundboardSounds, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameIntegrationCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
+		if f, ok := function.(func(*IntegrationCreate)); ok {
+			bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameIntegrationUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
+		if f, ok := function.(func(*IntegrationUpdate)); ok {
+			bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameIntegrationDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INTEGRATIONS
+		}
+
+		if f, ok := function.(func(*IntegrationDelete)); ok {
+			bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameInteractionCreate:
+		if f, ok := function.(func(*InteractionCreate)); ok {
+			bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameInviteCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INVITES
+		}
+
+		if f, ok := function.(func(*InviteCreate)); ok {
+			bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameInviteDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INVITES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_INVITES
+		}
+
+		if f, ok := function.(func(*InviteDelete)); ok {
+			bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGES
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES
+		}
+
+		if f, ok := function.(func(*MessageCreate)); ok {
+			bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGES
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES
+		}
+
+		if f, ok := function.(func(*MessageUpdate)); ok {
+			bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGES
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES
+		}
+
+		if f, ok := function.(func(*MessageDelete)); ok {
+			bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageDeleteBulk:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGES
+		}
+
+		if f, ok := function.(func(*MessageDeleteBulk)); ok {
+			bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageReactionAdd:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
+		}
+
+		if f, ok := function.(func(*MessageReactionAdd)); ok {
+			bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageReactionRemove:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
+		}
+
+		if f, ok := function.(func(*MessageReactionRemove)); ok {
+			bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageReactionRemoveAll:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
+		}
+
+		if f, ok := function.(func(*MessageReactionRemoveAll)); ok {
+			bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessageReactionRemoveEmoji:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_REACTIONS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
+		}
+
+		if f, ok := function.(func(*MessageReactionRemoveEmoji)); ok {
+			bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNamePresenceUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_PRESENCES
+		}
+
+		if f, ok := function.(func(*PresenceUpdate)); ok {
+			bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameStageInstanceCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*StageInstanceCreate)); ok {
+			bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameStageInstanceDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*StageInstanceDelete)); ok {
+			bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameStageInstanceUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILDS
+		}
+
+		if f, ok := function.(func(*StageInstanceUpdate)); ok {
+			bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameSubscriptionCreate:
+		if f, ok := function.(func(*SubscriptionCreate)); ok {
+			bot.Handlers.SubscriptionCreate = append(bot.Handlers.SubscriptionCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameSubscriptionUpdate:
+		if f, ok := function.(func(*SubscriptionUpdate)); ok {
+			bot.Handlers.SubscriptionUpdate = append(bot.Handlers.SubscriptionUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameSubscriptionDelete:
+		if f, ok := function.(func(*SubscriptionDelete)); ok {
+			bot.Handlers.SubscriptionDelete = append(bot.Handlers.SubscriptionDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameTypingStart:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_TYPING] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_TYPING] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_TYPING
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_TYPING] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_TYPING] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_TYPING
+		}
+
+		if f, ok := function.(func(*TypingStart)); ok {
+			bot.Handlers.TypingStart = append(bot.Handlers.TypingStart, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameUserUpdate:
+		if f, ok := function.(func(*UserUpdate)); ok {
+			bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameVoiceChannelEffectSend:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_VOICE_STATES
+		}
+
+		if f, ok := function.(func(*VoiceChannelEffectSend)); ok {
+			bot.Handlers.VoiceChannelEffectSend = append(bot.Handlers.VoiceChannelEffectSend, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameVoiceStateUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_VOICE_STATES
+		}
+
+		if f, ok := function.(func(*VoiceStateUpdate)); ok {
+			bot.Handlers.VoiceStateUpdate = append(bot.Handlers.VoiceStateUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameVoiceServerUpdate:
+		if f, ok := function.(func(*VoiceServerUpdate)); ok {
+			bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameWebhooksUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_WEBHOOKS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_WEBHOOKS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_WEBHOOKS
+		}
+
+		if f, ok := function.(func(*WebhooksUpdate)); ok {
+			bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessagePollVoteAdd:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_POLLS] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_POLLS] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_POLLS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_POLLS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_POLLS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_POLLS
+		}
+
+		if f, ok := function.(func(*MessagePollVoteAdd)); ok {
+			bot.Handlers.MessagePollVoteAdd = append(bot.Handlers.MessagePollVoteAdd, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessagePollVoteRemove:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_POLLS] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_POLLS] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_POLLS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_POLLS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_POLLS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_POLLS
+		}
+
+		if f, ok := function.(func(*MessagePollVoteRemove)); ok {
+			bot.Handlers.MessagePollVoteRemove = append(bot.Handlers.MessagePollVoteRemove, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+	}
+
+	err := ErrorEventHandler{
+		ClientID: bot.ApplicationID,
+		Event:    eventname,
+		Err:      fmt.Errorf("%s", errHandleNotRemoved),
+	}
+	LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+
+	return err
+}
+
+// Remove removes the event handler at the given index from the bot.
+// This function does NOT remove intents automatically.
+func (bot *Client) Remove(eventname string, index int) error {
+	bot.Handlers.mu.Lock()
+	defer bot.Handlers.mu.Unlock()
+
+	switch eventname {
+	case FlagGatewayEventNameHello:
+		if len(bot.Handlers.Hello) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.Hello = append(bot.Handlers.Hello[:index], bot.Handlers.Hello[index+1:]...)
+
+	case FlagGatewayEventNameReady:
+		if len(bot.Handlers.Ready) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.Ready = append(bot.Handlers.Ready[:index], bot.Handlers.Ready[index+1:]...)
+
+	case FlagGatewayEventNameResumed:
+		if len(bot.Handlers.Resumed) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.Resumed = append(bot.Handlers.Resumed[:index], bot.Handlers.Resumed[index+1:]...)
+
+	case FlagGatewayEventNameReconnect:
+		if len(bot.Handlers.Reconnect) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.Reconnect = append(bot.Handlers.Reconnect[:index], bot.Handlers.Reconnect[index+1:]...)
+
+	case FlagGatewayEventNameInvalidSession:
+		if len(bot.Handlers.InvalidSession) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.InvalidSession = append(bot.Handlers.InvalidSession[:index], bot.Handlers.InvalidSession[index+1:]...)
+
+	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
+		if len(bot.Handlers.ApplicationCommandPermissionsUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ApplicationCommandPermissionsUpdate = append(bot.Handlers.ApplicationCommandPermissionsUpdate[:index], bot.Handlers.ApplicationCommandPermissionsUpdate[index+1:]...)
+
+	case FlagGatewayEventNameAutoModerationRuleCreate:
+		if len(bot.Handlers.AutoModerationRuleCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.AutoModerationRuleCreate = append(bot.Handlers.AutoModerationRuleCreate[:index], bot.Handlers.AutoModerationRuleCreate[index+1:]...)
+
+	case FlagGatewayEventNameAutoModerationRuleUpdate:
+		if len(bot.Handlers.AutoModerationRuleUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.AutoModerationRuleUpdate = append(bot.Handlers.AutoModerationRuleUpdate[:index], bot.Handlers.AutoModerationRuleUpdate[index+1:]...)
+
+	case FlagGatewayEventNameAutoModerationRuleDelete:
+		if len(bot.Handlers.AutoModerationRuleDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.AutoModerationRuleDelete = append(bot.Handlers.AutoModerationRuleDelete[:index], bot.Handlers.AutoModerationRuleDelete[index+1:]...)
+
+	case FlagGatewayEventNameAutoModerationActionExecution:
+		if len(bot.Handlers.AutoModerationActionExecution) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.AutoModerationActionExecution = append(bot.Handlers.AutoModerationActionExecution[:index], bot.Handlers.AutoModerationActionExecution[index+1:]...)
+
+	case FlagGatewayEventNameChannelCreate:
+		if len(bot.Handlers.ChannelCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ChannelCreate = append(bot.Handlers.ChannelCreate[:index], bot.Handlers.ChannelCreate[index+1:]...)
+
+	case FlagGatewayEventNameChannelUpdate:
+		if len(bot.Handlers.ChannelUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ChannelUpdate = append(bot.Handlers.ChannelUpdate[:index], bot.Handlers.ChannelUpdate[index+1:]...)
+
+	case FlagGatewayEventNameChannelDelete:
+		if len(bot.Handlers.ChannelDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ChannelDelete = append(bot.Handlers.ChannelDelete[:index], bot.Handlers.ChannelDelete[index+1:]...)
+
+	case FlagGatewayEventNameChannelPinsUpdate:
+		if len(bot.Handlers.ChannelPinsUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ChannelPinsUpdate = append(bot.Handlers.ChannelPinsUpdate[:index], bot.Handlers.ChannelPinsUpdate[index+1:]...)
+
+	case FlagGatewayEventNameThreadCreate:
+		if len(bot.Handlers.ThreadCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ThreadCreate = append(bot.Handlers.ThreadCreate[:index], bot.Handlers.ThreadCreate[index+1:]...)
+
+	case FlagGatewayEventNameThreadUpdate:
+		if len(bot.Handlers.ThreadUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ThreadUpdate = append(bot.Handlers.ThreadUpdate[:index], bot.Handlers.ThreadUpdate[index+1:]...)
+
+	case FlagGatewayEventNameThreadDelete:
+		if len(bot.Handlers.ThreadDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ThreadDelete = append(bot.Handlers.ThreadDelete[:index], bot.Handlers.ThreadDelete[index+1:]...)
+
+	case FlagGatewayEventNameThreadListSync:
+		if len(bot.Handlers.ThreadListSync) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ThreadListSync = append(bot.Handlers.ThreadListSync[:index], bot.Handlers.ThreadListSync[index+1:]...)
+
+	case FlagGatewayEventNameThreadMemberUpdate:
+		if len(bot.Handlers.ThreadMemberUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ThreadMemberUpdate = append(bot.Handlers.ThreadMemberUpdate[:index], bot.Handlers.ThreadMemberUpdate[index+1:]...)
+
+	case FlagGatewayEventNameThreadMembersUpdate:
+		if len(bot.Handlers.ThreadMembersUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate[:index], bot.Handlers.ThreadMembersUpdate[index+1:]...)
+
+	case FlagGatewayEventNameEntitlementCreate:
+		if len(bot.Handlers.EntitlementCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.EntitlementCreate = append(bot.Handlers.EntitlementCreate[:index], bot.Handlers.EntitlementCreate[index+1:]...)
+
+	case FlagGatewayEventNameEntitlementUpdate:
+		if len(bot.Handlers.EntitlementUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.EntitlementUpdate = append(bot.Handlers.EntitlementUpdate[:index], bot.Handlers.EntitlementUpdate[index+1:]...)
+
+	case FlagGatewayEventNameEntitlementDelete:
+		if len(bot.Handlers.EntitlementDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.EntitlementDelete = append(bot.Handlers.EntitlementDelete[:index], bot.Handlers.EntitlementDelete[index+1:]...)
+
+	case FlagGatewayEventNameGuildCreate:
+		if len(bot.Handlers.GuildCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildCreate = append(bot.Handlers.GuildCreate[:index], bot.Handlers.GuildCreate[index+1:]...)
+
+	case FlagGatewayEventNameGuildUpdate:
+		if len(bot.Handlers.GuildUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildUpdate = append(bot.Handlers.GuildUpdate[:index], bot.Handlers.GuildUpdate[index+1:]...)
+
+	case FlagGatewayEventNameGuildDelete:
+		if len(bot.Handlers.GuildDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildDelete = append(bot.Handlers.GuildDelete[:index], bot.Handlers.GuildDelete[index+1:]...)
+
+	case FlagGatewayEventNameGuildAuditLogEntryCreate:
+		if len(bot.Handlers.GuildAuditLogEntryCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildAuditLogEntryCreate = append(bot.Handlers.GuildAuditLogEntryCreate[:index], bot.Handlers.GuildAuditLogEntryCreate[index+1:]...)
+
+	case FlagGatewayEventNameGuildBanAdd:
+		if len(bot.Handlers.GuildBanAdd) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildBanAdd = append(bot.Handlers.GuildBanAdd[:index], bot.Handlers.GuildBanAdd[index+1:]...)
+
+	case FlagGatewayEventNameGuildBanRemove:
+		if len(bot.Handlers.GuildBanRemove) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildBanRemove = append(bot.Handlers.GuildBanRemove[:index], bot.Handlers.GuildBanRemove[index+1:]...)
+
+	case FlagGatewayEventNameGuildEmojisUpdate:
+		if len(bot.Handlers.GuildEmojisUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildEmojisUpdate = append(bot.Handlers.GuildEmojisUpdate[:index], bot.Handlers.GuildEmojisUpdate[index+1:]...)
+
+	case FlagGatewayEventNameGuildStickersUpdate:
+		if len(bot.Handlers.GuildStickersUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildStickersUpdate = append(bot.Handlers.GuildStickersUpdate[:index], bot.Handlers.GuildStickersUpdate[index+1:]...)
+
+	case FlagGatewayEventNameGuildIntegrationsUpdate:
+		if len(bot.Handlers.GuildIntegrationsUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildIntegrationsUpdate = append(bot.Handlers.GuildIntegrationsUpdate[:index], bot.Handlers.GuildIntegrationsUpdate[index+1:]...)
+
+	case FlagGatewayEventNameGuildMemberAdd:
+		if len(bot.Handlers.GuildMemberAdd) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildMemberAdd = append(bot.Handlers.GuildMemberAdd[:index], bot.Handlers.GuildMemberAdd[index+1:]...)
+
+	case FlagGatewayEventNameGuildMemberRemove:
+		if len(bot.Handlers.GuildMemberRemove) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildMemberRemove = append(bot.Handlers.GuildMemberRemove[:index], bot.Handlers.GuildMemberRemove[index+1:]...)
+
+	case FlagGatewayEventNameGuildMemberUpdate:
+		if len(bot.Handlers.GuildMemberUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate[:index], bot.Handlers.GuildMemberUpdate[index+1:]...)
+
+	case FlagGatewayEventNameGuildMembersChunk:
+		if len(bot.Handlers.GuildMembersChunk) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk[:index], bot.Handlers.GuildMembersChunk[index+1:]...)
+
+	case FlagGatewayEventNameGuildRoleCreate:
+		if len(bot.Handlers.GuildRoleCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildRoleCreate = append(bot.Handlers.GuildRoleCreate[:index], bot.Handlers.GuildRoleCreate[index+1:]...)
+
+	case FlagGatewayEventNameGuildRoleUpdate:
+		if len(bot.Handlers.GuildRoleUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildRoleUpdate = append(bot.Handlers.GuildRoleUpdate[:index], bot.Handlers.GuildRoleUpdate[index+1:]...)
+
+	case FlagGatewayEventNameGuildRoleDelete:
+		if len(bot.Handlers.GuildRoleDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildRoleDelete = append(bot.Handlers.GuildRoleDelete[:index], bot.Handlers.GuildRoleDelete[index+1:]...)
+
+	case FlagGatewayEventNameGuildScheduledEventCreate:
+		if len(bot.Handlers.GuildScheduledEventCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildScheduledEventCreate = append(bot.Handlers.GuildScheduledEventCreate[:index], bot.Handlers.GuildScheduledEventCreate[index+1:]...)
+
+	case FlagGatewayEventNameGuildScheduledEventUpdate:
+		if len(bot.Handlers.GuildScheduledEventUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildScheduledEventUpdate = append(bot.Handlers.GuildScheduledEventUpdate[:index], bot.Handlers.GuildScheduledEventUpdate[index+1:]...)
+
+	case FlagGatewayEventNameGuildScheduledEventDelete:
+		if len(bot.Handlers.GuildScheduledEventDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildScheduledEventDelete = append(bot.Handlers.GuildScheduledEventDelete[:index], bot.Handlers.GuildScheduledEventDelete[index+1:]...)
+
+	case FlagGatewayEventNameGuildScheduledEventUserAdd:
+		if len(bot.Handlers.GuildScheduledEventUserAdd) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildScheduledEventUserAdd = append(bot.Handlers.GuildScheduledEventUserAdd[:index], bot.Handlers.GuildScheduledEventUserAdd[index+1:]...)
+
+	case FlagGatewayEventNameGuildScheduledEventUserRemove:
+		if len(bot.Handlers.GuildScheduledEventUserRemove) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove[:index], bot.Handlers.GuildScheduledEventUserRemove[index+1:]...)
+
+	case FlagGatewayEventNameGuildSoundboardSoundCreate:
+		if len(bot.Handlers.GuildSoundboardSoundCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildSoundboardSoundCreate = append(bot.Handlers.GuildSoundboardSoundCreate[:index], bot.Handlers.GuildSoundboardSoundCreate[index+1:]...)
+
+	case FlagGatewayEventNameGuildSoundboardSoundUpdate:
+		if len(bot.Handlers.GuildSoundboardSoundUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildSoundboardSoundUpdate = append(bot.Handlers.GuildSoundboardSoundUpdate[:index], bot.Handlers.GuildSoundboardSoundUpdate[index+1:]...)
+
+	case FlagGatewayEventNameGuildSoundboardSoundDelete:
+		if len(bot.Handlers.GuildSoundboardSoundDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildSoundboardSoundDelete = append(bot.Handlers.GuildSoundboardSoundDelete[:index], bot.Handlers.GuildSoundboardSoundDelete[index+1:]...)
+
+	case FlagGatewayEventNameGuildSoundboardSoundsUpdate:
+		if len(bot.Handlers.GuildSoundboardSoundsUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildSoundboardSoundsUpdate = append(bot.Handlers.GuildSoundboardSoundsUpdate[:index], bot.Handlers.GuildSoundboardSoundsUpdate[index+1:]...)
+
+	case FlagGatewayEventNameSoundboardSounds:
+		if len(bot.Handlers.SoundboardSounds) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.SoundboardSounds = append(bot.Handlers.SoundboardSounds[:index], bot.Handlers.SoundboardSounds[index+1:]...)
+
+	case FlagGatewayEventNameIntegrationCreate:
+		if len(bot.Handlers.IntegrationCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.IntegrationCreate = append(bot.Handlers.IntegrationCreate[:index], bot.Handlers.IntegrationCreate[index+1:]...)
+
+	case FlagGatewayEventNameIntegrationUpdate:
+		if len(bot.Handlers.IntegrationUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.IntegrationUpdate = append(bot.Handlers.IntegrationUpdate[:index], bot.Handlers.IntegrationUpdate[index+1:]...)
+
+	case FlagGatewayEventNameIntegrationDelete:
+		if len(bot.Handlers.IntegrationDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete[:index], bot.Handlers.IntegrationDelete[index+1:]...)
+
+	case FlagGatewayEventNameInteractionCreate:
+		if len(bot.Handlers.InteractionCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate[:index], bot.Handlers.InteractionCreate[index+1:]...)
+
+	case FlagGatewayEventNameInviteCreate:
+		if len(bot.Handlers.InviteCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.InviteCreate = append(bot.Handlers.InviteCreate[:index], bot.Handlers.InviteCreate[index+1:]...)
+
+	case FlagGatewayEventNameInviteDelete:
+		if len(bot.Handlers.InviteDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.InviteDelete = append(bot.Handlers.InviteDelete[:index], bot.Handlers.InviteDelete[index+1:]...)
+
+	case FlagGatewayEventNameMessageCreate:
+		if len(bot.Handlers.MessageCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessageCreate = append(bot.Handlers.MessageCreate[:index], bot.Handlers.MessageCreate[index+1:]...)
+
+	case FlagGatewayEventNameMessageUpdate:
+		if len(bot.Handlers.MessageUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessageUpdate = append(bot.Handlers.MessageUpdate[:index], bot.Handlers.MessageUpdate[index+1:]...)
+
+	case FlagGatewayEventNameMessageDelete:
+		if len(bot.Handlers.MessageDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessageDelete = append(bot.Handlers.MessageDelete[:index], bot.Handlers.MessageDelete[index+1:]...)
+
+	case FlagGatewayEventNameMessageDeleteBulk:
+		if len(bot.Handlers.MessageDeleteBulk) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessageDeleteBulk = append(bot.Handlers.MessageDeleteBulk[:index], bot.Handlers.MessageDeleteBulk[index+1:]...)
+
+	case FlagGatewayEventNameMessageReactionAdd:
+		if len(bot.Handlers.MessageReactionAdd) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessageReactionAdd = append(bot.Handlers.MessageReactionAdd[:index], bot.Handlers.MessageReactionAdd[index+1:]...)
+
+	case FlagGatewayEventNameMessageReactionRemove:
+		if len(bot.Handlers.MessageReactionRemove) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessageReactionRemove = append(bot.Handlers.MessageReactionRemove[:index], bot.Handlers.MessageReactionRemove[index+1:]...)
+
+	case FlagGatewayEventNameMessageReactionRemoveAll:
+		if len(bot.Handlers.MessageReactionRemoveAll) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessageReactionRemoveAll = append(bot.Handlers.MessageReactionRemoveAll[:index], bot.Handlers.MessageReactionRemoveAll[index+1:]...)
+
+	case FlagGatewayEventNameMessageReactionRemoveEmoji:
+		if len(bot.Handlers.MessageReactionRemoveEmoji) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessageReactionRemoveEmoji = append(bot.Handlers.MessageReactionRemoveEmoji[:index], bot.Handlers.MessageReactionRemoveEmoji[index+1:]...)
+
+	case FlagGatewayEventNamePresenceUpdate:
+		if len(bot.Handlers.PresenceUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.PresenceUpdate = append(bot.Handlers.PresenceUpdate[:index], bot.Handlers.PresenceUpdate[index+1:]...)
+
+	case FlagGatewayEventNameStageInstanceCreate:
+		if len(bot.Handlers.StageInstanceCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.StageInstanceCreate = append(bot.Handlers.StageInstanceCreate[:index], bot.Handlers.StageInstanceCreate[index+1:]...)
+
+	case FlagGatewayEventNameStageInstanceDelete:
+		if len(bot.Handlers.StageInstanceDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.StageInstanceDelete = append(bot.Handlers.StageInstanceDelete[:index], bot.Handlers.StageInstanceDelete[index+1:]...)
+
+	case FlagGatewayEventNameStageInstanceUpdate:
+		if len(bot.Handlers.StageInstanceUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate[:index], bot.Handlers.StageInstanceUpdate[index+1:]...)
+
+	case FlagGatewayEventNameSubscriptionCreate:
+		if len(bot.Handlers.SubscriptionCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.SubscriptionCreate = append(bot.Handlers.SubscriptionCreate[:index], bot.Handlers.SubscriptionCreate[index+1:]...)
+
+	case FlagGatewayEventNameSubscriptionUpdate:
+		if len(bot.Handlers.SubscriptionUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.SubscriptionUpdate = append(bot.Handlers.SubscriptionUpdate[:index], bot.Handlers.SubscriptionUpdate[index+1:]...)
+
+	case FlagGatewayEventNameSubscriptionDelete:
+		if len(bot.Handlers.SubscriptionDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.SubscriptionDelete = append(bot.Handlers.SubscriptionDelete[:index], bot.Handlers.SubscriptionDelete[index+1:]...)
+
+	case FlagGatewayEventNameTypingStart:
+		if len(bot.Handlers.TypingStart) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.TypingStart = append(bot.Handlers.TypingStart[:index], bot.Handlers.TypingStart[index+1:]...)
+
+	case FlagGatewayEventNameUserUpdate:
+		if len(bot.Handlers.UserUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate[:index], bot.Handlers.UserUpdate[index+1:]...)
+
+	case FlagGatewayEventNameVoiceChannelEffectSend:
+		if len(bot.Handlers.VoiceChannelEffectSend) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.VoiceChannelEffectSend = append(bot.Handlers.VoiceChannelEffectSend[:index], bot.Handlers.VoiceChannelEffectSend[index+1:]...)
+
+	case FlagGatewayEventNameVoiceStateUpdate:
+		if len(bot.Handlers.VoiceStateUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.VoiceStateUpdate = append(bot.Handlers.VoiceStateUpdate[:index], bot.Handlers.VoiceStateUpdate[index+1:]...)
+
+	case FlagGatewayEventNameVoiceServerUpdate:
+		if len(bot.Handlers.VoiceServerUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate[:index], bot.Handlers.VoiceServerUpdate[index+1:]...)
+
+	case FlagGatewayEventNameWebhooksUpdate:
+		if len(bot.Handlers.WebhooksUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate[:index], bot.Handlers.WebhooksUpdate[index+1:]...)
+
+	case FlagGatewayEventNameMessagePollVoteAdd:
+		if len(bot.Handlers.MessagePollVoteAdd) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessagePollVoteAdd = append(bot.Handlers.MessagePollVoteAdd[:index], bot.Handlers.MessagePollVoteAdd[index+1:]...)
+
+	case FlagGatewayEventNameMessagePollVoteRemove:
+		if len(bot.Handlers.MessagePollVoteRemove) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessagePollVoteRemove = append(bot.Handlers.MessagePollVoteRemove[:index], bot.Handlers.MessagePollVoteRemove[index+1:]...)
+	}
+
+	LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("removed event handler")
+
+	return nil
+}
+
+// handle handles an event using its name and data.
+func (bot *Client) handle(eventname string, data json.RawMessage) {
+	bot.Handlers.mu.RLock()
+	defer bot.Handlers.mu.RUnlock()
+
+	switch eventname {
+	case FlagGatewayEventNameHello:
+		if len(bot.Handlers.Hello) != 0 {
+			event := new(Hello)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.Hello {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameReady:
+		if len(bot.Handlers.Ready) != 0 {
+			event := new(Ready)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.Ready {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameResumed:
+		if len(bot.Handlers.Resumed) != 0 {
+			event := new(Resumed)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.Resumed {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameReconnect:
+		if len(bot.Handlers.Reconnect) != 0 {
+			event := new(Reconnect)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameReconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.Reconnect {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameInvalidSession:
+		if len(bot.Handlers.InvalidSession) != 0 {
+			event := new(InvalidSession)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInvalidSession, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.InvalidSession {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameApplicationCommandPermissionsUpdate:
+		if len(bot.Handlers.ApplicationCommandPermissionsUpdate) != 0 {
+			event := new(ApplicationCommandPermissionsUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameApplicationCommandPermissionsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ApplicationCommandPermissionsUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleCreate:
+		if len(bot.Handlers.AutoModerationRuleCreate) != 0 {
+			event := new(AutoModerationRuleCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.AutoModerationRuleCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleUpdate:
+		if len(bot.Handlers.AutoModerationRuleUpdate) != 0 {
+			event := new(AutoModerationRuleUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.AutoModerationRuleUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameAutoModerationRuleDelete:
+		if len(bot.Handlers.AutoModerationRuleDelete) != 0 {
+			event := new(AutoModerationRuleDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationRuleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.AutoModerationRuleDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameAutoModerationActionExecution:
+		if len(bot.Handlers.AutoModerationActionExecution) != 0 {
+			event := new(AutoModerationActionExecution)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameAutoModerationActionExecution, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.AutoModerationActionExecution {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameChannelCreate:
+		if len(bot.Handlers.ChannelCreate) != 0 {
+			event := new(ChannelCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ChannelCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameChannelUpdate:
+		if len(bot.Handlers.ChannelUpdate) != 0 {
+			event := new(ChannelUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ChannelUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameChannelDelete:
+		if len(bot.Handlers.ChannelDelete) != 0 {
+			event := new(ChannelDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ChannelDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameChannelPinsUpdate:
+		if len(bot.Handlers.ChannelPinsUpdate) != 0 {
+			event := new(ChannelPinsUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameChannelPinsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ChannelPinsUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameThreadCreate:
+		if len(bot.Handlers.ThreadCreate) != 0 {
+			event := new(ThreadCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ThreadCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameThreadUpdate:
+		if len(bot.Handlers.ThreadUpdate) != 0 {
+			event := new(ThreadUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ThreadUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameThreadDelete:
+		if len(bot.Handlers.ThreadDelete) != 0 {
+			event := new(ThreadDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ThreadDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameThreadListSync:
+		if len(bot.Handlers.ThreadListSync) != 0 {
+			event := new(ThreadListSync)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadListSync, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ThreadListSync {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameThreadMemberUpdate:
+		if len(bot.Handlers.ThreadMemberUpdate) != 0 {
+			event := new(ThreadMemberUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ThreadMemberUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameThreadMembersUpdate:
+		if len(bot.Handlers.ThreadMembersUpdate) != 0 {
+			event := new(ThreadMembersUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameThreadMembersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.ThreadMembersUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameEntitlementCreate:
+		if len(bot.Handlers.EntitlementCreate) != 0 {
+			event := new(EntitlementCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameEntitlementCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.EntitlementCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameEntitlementUpdate:
+		if len(bot.Handlers.EntitlementUpdate) != 0 {
+			event := new(EntitlementUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameEntitlementUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.EntitlementUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameEntitlementDelete:
+		if len(bot.Handlers.EntitlementDelete) != 0 {
+			event := new(EntitlementDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameEntitlementDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.EntitlementDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildCreate:
+		if len(bot.Handlers.GuildCreate) != 0 {
+			event := new(GuildCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildUpdate:
+		if len(bot.Handlers.GuildUpdate) != 0 {
+			event := new(GuildUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildDelete:
+		if len(bot.Handlers.GuildDelete) != 0 {
+			event := new(GuildDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildAuditLogEntryCreate:
+		if len(bot.Handlers.GuildAuditLogEntryCreate) != 0 {
+			event := new(GuildAuditLogEntryCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildAuditLogEntryCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildAuditLogEntryCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildBanAdd:
+		if len(bot.Handlers.GuildBanAdd) != 0 {
+			event := new(GuildBanAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildBanAdd {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildBanRemove:
+		if len(bot.Handlers.GuildBanRemove) != 0 {
+			event := new(GuildBanRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildBanRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildBanRemove {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildEmojisUpdate:
+		if len(bot.Handlers.GuildEmojisUpdate) != 0 {
+			event := new(GuildEmojisUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildEmojisUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildEmojisUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildStickersUpdate:
+		if len(bot.Handlers.GuildStickersUpdate) != 0 {
+			event := new(GuildStickersUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildStickersUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildStickersUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildIntegrationsUpdate:
+		if len(bot.Handlers.GuildIntegrationsUpdate) != 0 {
+			event := new(GuildIntegrationsUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildIntegrationsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildIntegrationsUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildMemberAdd:
+		if len(bot.Handlers.GuildMemberAdd) != 0 {
+			event := new(GuildMemberAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildMemberAdd {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildMemberRemove:
+		if len(bot.Handlers.GuildMemberRemove) != 0 {
+			event := new(GuildMemberRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildMemberRemove {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildMemberUpdate:
+		if len(bot.Handlers.GuildMemberUpdate) != 0 {
+			event := new(GuildMemberUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMemberUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildMemberUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildMembersChunk:
+		if len(bot.Handlers.GuildMembersChunk) != 0 {
+			event := new(GuildMembersChunk)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildMembersChunk {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildRoleCreate:
+		if len(bot.Handlers.GuildRoleCreate) != 0 {
+			event := new(GuildRoleCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildRoleCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildRoleUpdate:
+		if len(bot.Handlers.GuildRoleUpdate) != 0 {
+			event := new(GuildRoleUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildRoleUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildRoleDelete:
+		if len(bot.Handlers.GuildRoleDelete) != 0 {
+			event := new(GuildRoleDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildRoleDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildRoleDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventCreate:
+		if len(bot.Handlers.GuildScheduledEventCreate) != 0 {
+			event := new(GuildScheduledEventCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildScheduledEventCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventUpdate:
+		if len(bot.Handlers.GuildScheduledEventUpdate) != 0 {
+			event := new(GuildScheduledEventUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildScheduledEventUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventDelete:
+		if len(bot.Handlers.GuildScheduledEventDelete) != 0 {
+			event := new(GuildScheduledEventDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildScheduledEventDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventUserAdd:
+		if len(bot.Handlers.GuildScheduledEventUserAdd) != 0 {
+			event := new(GuildScheduledEventUserAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildScheduledEventUserAdd {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildScheduledEventUserRemove:
+		if len(bot.Handlers.GuildScheduledEventUserRemove) != 0 {
+			event := new(GuildScheduledEventUserRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildScheduledEventUserRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildScheduledEventUserRemove {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundCreate:
+		if len(bot.Handlers.GuildSoundboardSoundCreate) != 0 {
+			event := new(GuildSoundboardSoundCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildSoundboardSoundCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildSoundboardSoundCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundUpdate:
+		if len(bot.Handlers.GuildSoundboardSoundUpdate) != 0 {
+			event := new(GuildSoundboardSoundUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildSoundboardSoundUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildSoundboardSoundUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundDelete:
+		if len(bot.Handlers.GuildSoundboardSoundDelete) != 0 {
+			event := new(GuildSoundboardSoundDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildSoundboardSoundDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildSoundboardSoundDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundsUpdate:
+		if len(bot.Handlers.GuildSoundboardSoundsUpdate) != 0 {
+			event := new(GuildSoundboardSoundsUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildSoundboardSoundsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildSoundboardSoundsUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameSoundboardSounds:
+		if len(bot.Handlers.SoundboardSounds) != 0 {
+			event := new(SoundboardSounds)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameSoundboardSounds, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.SoundboardSounds {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameIntegrationCreate:
+		if len(bot.Handlers.IntegrationCreate) != 0 {
+			event := new(IntegrationCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.IntegrationCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameIntegrationUpdate:
+		if len(bot.Handlers.IntegrationUpdate) != 0 {
+			event := new(IntegrationUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.IntegrationUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameIntegrationDelete:
+		if len(bot.Handlers.IntegrationDelete) != 0 {
+			event := new(IntegrationDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameIntegrationDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.IntegrationDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameInteractionCreate:
+		if len(bot.Handlers.InteractionCreate) != 0 {
+			event := new(InteractionCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.InteractionCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameInviteCreate:
+		if len(bot.Handlers.InviteCreate) != 0 {
+			event := new(InviteCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.InviteCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameInviteDelete:
+		if len(bot.Handlers.InviteDelete) != 0 {
+			event := new(InviteDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInviteDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.InviteDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessageCreate:
+		if len(bot.Handlers.MessageCreate) != 0 {
+			event := new(MessageCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessageCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessageUpdate:
+		if len(bot.Handlers.MessageUpdate) != 0 {
+			event := new(MessageUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessageUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessageDelete:
+		if len(bot.Handlers.MessageDelete) != 0 {
+			event := new(MessageDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessageDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessageDeleteBulk:
+		if len(bot.Handlers.MessageDeleteBulk) != 0 {
+			event := new(MessageDeleteBulk)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageDeleteBulk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessageDeleteBulk {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessageReactionAdd:
+		if len(bot.Handlers.MessageReactionAdd) != 0 {
+			event := new(MessageReactionAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessageReactionAdd {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessageReactionRemove:
+		if len(bot.Handlers.MessageReactionRemove) != 0 {
+			event := new(MessageReactionRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessageReactionRemove {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessageReactionRemoveAll:
+		if len(bot.Handlers.MessageReactionRemoveAll) != 0 {
+			event := new(MessageReactionRemoveAll)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveAll, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessageReactionRemoveAll {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessageReactionRemoveEmoji:
+		if len(bot.Handlers.MessageReactionRemoveEmoji) != 0 {
+			event := new(MessageReactionRemoveEmoji)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessageReactionRemoveEmoji, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessageReactionRemoveEmoji {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNamePresenceUpdate:
+		if len(bot.Handlers.PresenceUpdate) != 0 {
+			event := new(PresenceUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNamePresenceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.PresenceUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameStageInstanceCreate:
+		if len(bot.Handlers.StageInstanceCreate) != 0 {
+			event := new(StageInstanceCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.StageInstanceCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameStageInstanceDelete:
+		if len(bot.Handlers.StageInstanceDelete) != 0 {
+			event := new(StageInstanceDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.StageInstanceDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameStageInstanceUpdate:
+		if len(bot.Handlers.StageInstanceUpdate) != 0 {
+			event := new(StageInstanceUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameStageInstanceUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.StageInstanceUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameSubscriptionCreate:
+		if len(bot.Handlers.SubscriptionCreate) != 0 {
+			event := new(SubscriptionCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameSubscriptionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.SubscriptionCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameSubscriptionUpdate:
+		if len(bot.Handlers.SubscriptionUpdate) != 0 {
+			event := new(SubscriptionUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameSubscriptionUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.SubscriptionUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameSubscriptionDelete:
+		if len(bot.Handlers.SubscriptionDelete) != 0 {
+			event := new(SubscriptionDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameSubscriptionDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.SubscriptionDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameTypingStart:
+		if len(bot.Handlers.TypingStart) != 0 {
+			event := new(TypingStart)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameTypingStart, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.TypingStart {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameUserUpdate:
+		if len(bot.Handlers.UserUpdate) != 0 {
+			event := new(UserUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.UserUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameVoiceChannelEffectSend:
+		if len(bot.Handlers.VoiceChannelEffectSend) != 0 {
+			event := new(VoiceChannelEffectSend)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceChannelEffectSend, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.VoiceChannelEffectSend {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameVoiceStateUpdate:
+		if len(bot.Handlers.VoiceStateUpdate) != 0 {
+			event := new(VoiceStateUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceStateUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.VoiceStateUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameVoiceServerUpdate:
+		if len(bot.Handlers.VoiceServerUpdate) != 0 {
+			event := new(VoiceServerUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.VoiceServerUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameWebhooksUpdate:
+		if len(bot.Handlers.WebhooksUpdate) != 0 {
+			event := new(WebhooksUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameWebhooksUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.WebhooksUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessagePollVoteAdd:
+		if len(bot.Handlers.MessagePollVoteAdd) != 0 {
+			event := new(MessagePollVoteAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessagePollVoteAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessagePollVoteAdd {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessagePollVoteRemove:
+		if len(bot.Handlers.MessagePollVoteRemove) != 0 {
+			event := new(MessagePollVoteRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessagePollVoteRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessagePollVoteRemove {
+				go handler(event)
+			}
+		}
+	}
 }
 
 // heartbeat represents the heartbeat mechanism for a Session.
@@ -18957,17 +21484,6 @@ func (c *GatewayPresenceUpdate) SendEvents(bot *Client, sm ShardManager) error {
 	return nil
 }
 
-// SendEvents sends an Opcode 4 UpdateVoiceState event to the Discord Gateway.
-func (c *VoiceStateUpdate) SendEvents(bot *Client, sm ShardManager) error {
-	for _, session := range sm.GetSessions() {
-		if err := writeEvent(bot, session, FlagGatewayOpcodeVoiceStateUpdate, FlagGatewaySendEventNameUpdateVoiceState, c); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
 // SendEvents sends an Opcode 6 Resume event to the Discord Gateway.
 func (c *Resume) SendEvents(bot *Client, sm ShardManager) error {
 	for _, session := range sm.GetSessions() {
@@ -18988,4 +21504,1209 @@ func (c *RequestGuildMembers) SendEvents(bot *Client, sm ShardManager) error {
 	}
 
 	return nil
+}
+
+// SendEvents sends an Opcode 31 RequestSoundboardSounds event to the Discord Gateway.
+func (c *RequestSoundboardSounds) SendEvents(bot *Client, sm ShardManager) error {
+	for _, session := range sm.GetSessions() {
+		if err := writeEvent(bot, session, FlagGatewayOpcodeRequestSoundboardSounds, FlagGatewaySendEventNameRequestSoundboardSounds, c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// VoiceChannelConnection represents a Discord Voice Channel Connection.
+//
+// A Discord Voice Channel Connection is composed of three connections:
+//
+//  1. Gateway WebSocket Session (TCP): Used to connect to the Voice Websocket Session and
+//     receive information about who is in the voice channel.
+//
+//  2. Voice WebSocket Session (TCP): Used to connect to the Voice UDP Connection and
+//     receive information about who is speaking in the voice channel.
+//
+//  3. Voice Connection (UDP): Used to send and receive audio from Discord.
+type VoiceChannelConnection struct {
+	GatewaySession *Session
+	VoiceSession   *VoiceSession
+	Connection     *net.UDPConn
+	Handlers       *VoiceHandlers
+	State          GatewayVoiceStateUpdate
+}
+
+// addDefaultVoiceStateUpdate adds a default event handler for the VoiceStateUpdate event to the bot.
+func addDefaultVoiceStateUpdate(bot *Client) error {
+	return bot.Handle(FlagGatewayEventNameVoiceStateUpdate, func(v *VoiceStateUpdate) {
+		// check whether this Voice State Update describes the bot.
+		if v.UserID != bot.ApplicationID {
+			return
+		}
+
+		// update the Voice State for the Voice State Update Voice Channel's Connection.
+		vc := bot.Sessions.GetVoiceChannelConnection(v.SessionID, *v.GuildID)
+		if vc == nil {
+			return
+		}
+
+		vc.VoiceSession.Lock()
+		vc.VoiceSession.ID = v.SessionID
+		vc.State.ChannelID = v.ChannelID
+		vc.State.SelfMute = v.SelfMute
+		vc.State.SelfDeaf = v.SelfDeaf
+		vc.VoiceSession.Unlock()
+	})
+}
+
+// addDefaultHandlerVoiceServerUpdate adds a default event handler for the VoiceServerUpdate event to the bot.
+func addDefaultHandlerVoiceServerUpdate(bot *Client) error {
+	return bot.Handle(FlagGatewayEventNameVoiceServerUpdate, func(v *VoiceServerUpdate) {
+		vc := bot.Sessions.GetVoiceChannelConnection(SessionManagerVoiceKeyUnknownSession, v.GuildID)
+		if vc == nil {
+			return
+		}
+
+		vc.VoiceSession.Lock()
+
+		// check that the provided GuildID matches the incoming Voice Server Update GuildID.
+		if vc.State.GuildID == v.GuildID {
+			vc.VoiceSession.VoiceServerInfo = v
+			vc.VoiceSession.VoiceServerInfo.Endpoint = v.Endpoint
+		}
+
+		vc.VoiceSession.Unlock()
+	})
+}
+
+// addDefaultHandlerSessionDescription adds a default event handler for the SessionDescription event to the Voice Session.
+func addDefaultHandlerSessionDescription(vc *VoiceChannelConnection) error {
+	return vc.Handle(FlagVoiceOpcodeNameSessionDescription, func(sd *SessionDescription) {
+		// TODO: Encryption and Decryption in connectUDP()
+		// https://discord.com/developers/docs/topics/voice-connections#transport-encryption-and-sending-voice
+	})
+}
+
+// VoiceConnection connects the bot to a Discord Voice Channel using the Discord Gateway.
+func (vc *VoiceChannelConnection) Connect(bot *Client) error {
+	if bot.ApplicationID == "" {
+		return fmt.Errorf("ConnectVoice: Client must have an ApplicationID to connect to voice channel." +
+			"Set `bot.ApplicationID` before connecting to a voice channel.") //lint:ignore ST1005 format help message.
+	}
+
+	// check that the user (developer) has provided a ChannelID.
+	if vc.State.ChannelID == nil || *vc.State.ChannelID == "" {
+		return fmt.Errorf("ConnectVoice: Voice ChannelID must be non-nil and non-empty to connect to voice channel")
+	}
+
+	if vc.GatewaySession == nil || !vc.GatewaySession.isConnected() {
+		return fmt.Errorf("ConnectVoice: Session must be connected to the Discord Gateway to connect to voice channel")
+	}
+
+	if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] {
+		return fmt.Errorf("ConnectVoice: Session must be connected to the Discord Gateway with the GUILD_VOICE_STATES intent. " +
+			"Use `bot.Config.Gateway.EnableIntent(FlagIntentGUILD_VOICE_STATES)` before connecting the Gateway Session to the Discord Gateway.") //lint:ignore ST1005 format help message.
+	}
+
+	vc.VoiceSession = newVoiceSession()
+
+	if vc.Handlers == nil {
+		vc.Handlers = new(VoiceHandlers)
+	}
+
+	if len(bot.Handlers.VoiceStateUpdate) == 0 {
+		if err := addDefaultVoiceStateUpdate(bot); err != nil {
+			return fmt.Errorf("ConnectVoice: %w", err)
+		}
+	}
+
+	if len(bot.Handlers.VoiceServerUpdate) == 0 {
+		if err := addDefaultHandlerVoiceServerUpdate(bot); err != nil {
+			return fmt.Errorf("ConnectVoice: %w", err)
+		}
+	}
+
+	if len(vc.Handlers.SessionDescription) == 0 {
+		if err := addDefaultHandlerSessionDescription(vc); err != nil {
+			return fmt.Errorf("ConnectVoice: %w", err)
+		}
+	}
+
+	// Store the Voice Connection into the bot's Voice Session Manager.
+	bot.Sessions.StoreVoiceChannelConnection(vc.GatewaySession.ID, vc.State.GuildID, vc)
+
+	// Send an Opcode 4 Gateway Voice State Update to the Discord Gateway.
+	//
+	// According to Discord, the response events of this send event should never be cached.
+	//
+	// Disclaimer. The bot will not receive response events when the voice channel is full,
+	// unless the bot has the MANAGE_CHANNELS permission.
+	if err := vc.State.SendEvent(bot, vc.GatewaySession); err != nil {
+		return fmt.Errorf("voice: %w", err)
+	}
+
+VOICESERVERUPDATE:
+	// Wait for the Voice State Update and Voice Server Update events.
+	for {
+		vc.VoiceSession.RLock()
+
+		if vc.VoiceSession.VoiceServerInfo != nil && vc.VoiceSession.VoiceServerInfo.Endpoint != nil {
+			vc.VoiceSession.RUnlock()
+
+			break
+		}
+
+		select {
+		case <-vc.GatewaySession.Context.Done():
+			vc.VoiceSession.RUnlock()
+
+			return <-vc.GatewaySession.manager.err
+		default:
+			vc.VoiceSession.RUnlock()
+			//lint:ignore SA4011 break into for loop.
+			break
+		}
+	}
+
+	// A null endpoint means that the voice server is reallocating.
+	if vc.VoiceSession.VoiceServerInfo.Endpoint == nil {
+		goto VOICESERVERUPDATE
+	}
+
+	// Establish a Voice WebSocket Connection (TCP).
+	// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-websocket-connection
+	if err := vc.VoiceSession.connect(bot, vc); err != nil {
+		return fmt.Errorf("voice: %w", err)
+	}
+
+	return nil
+}
+
+// connectUDP connects to the Discord UDP Voice Server using the given Ready payload.
+//
+// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection
+func (vc *VoiceChannelConnection) connectUDP(r *VoiceReady) error {
+	var err error
+
+	// Open a UDP Connection to the provided IP and port.
+	address := r.IP + ":" + strconv.Itoa(r.Port)
+	udpAddr, err := net.ResolveUDPAddr("udp", address)
+	if err != nil {
+		return fmt.Errorf("udp: %w", err)
+	}
+
+	if vc.Connection, err = net.DialUDP("udp", nil, udpAddr); err != nil {
+		return fmt.Errorf("udp: %w", err)
+	}
+
+	// Perform an IP Discovery.
+	// https://discord.com/developers/docs/topics/voice-connections#ip-discovery
+	ipDiscoveryPacket := make([]byte, 74)
+	binary.BigEndian.PutUint16(ipDiscoveryPacket, 1)                   // Type: 0x1 = request, 0x2 = response
+	binary.BigEndian.PutUint16(ipDiscoveryPacket[2:4], 70)             // Message Length: 70
+	binary.BigEndian.PutUint32(ipDiscoveryPacket[4:8], uint32(r.SSRC)) // SSRC
+	vc.Connection.Write(ipDiscoveryPacket)
+
+	ipDiscoveryPacket = make([]byte, 74)
+	_, externalAddr, err := vc.Connection.ReadFromUDP(ipDiscoveryPacket)
+	if err != nil {
+		return fmt.Errorf("udp: %w", err)
+	}
+
+	// Send the client's external IP and UDP Port to the Discord Voice WebSocket.
+	//
+	// select a supported encryption mode (in order of priority).
+	// https://discord.com/developers/docs/topics/voice-connections#transport-encryption-and-sending-voice
+	var mode string
+	if slices.Contains(r.Modes, FlagVoiceEncryptionModeAES256) {
+		mode = FlagVoiceEncryptionModeAES256
+	} else if slices.Contains(r.Modes, FlagVoiceEncryptionModeXChaCha20) {
+		mode = FlagVoiceEncryptionModeXChaCha20
+	} else {
+		return fmt.Errorf("udp: supported mode is not available")
+	}
+
+	// send an Opcode 1 Select Protocol Payload.
+	selectProtocol := &SelectProtocol{
+		Protocol: "udp",
+		Data: SelectProtocolData{
+			Address: externalAddr.IP.String(),
+			Port:    externalAddr.Port,
+			Mode:    mode,
+		},
+	}
+
+	if err := selectProtocol.SendEvent(vc.VoiceSession); err != nil {
+		return fmt.Errorf("udp: %w", err)
+	}
+
+	// TODO: DAVE
+	// https://discord.com/developers/docs/topics/voice-connections#endtoend-encryption-dave-protocol
+
+	// TODO: Connection is established, create routine for external library to process Voice Connection Data
+	// https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice
+	// go func()
+	// VoicePacket...
+
+	return nil
+}
+
+const (
+	voiceWebSocketConnectionURLProtocol = "wss://"
+	voiceEndpointParams                 = "?v=" + VersionDiscordVoiceGateway + "&encoding=json"
+)
+
+// VoiceSession represents a Discord Voice WebSocket Session.
+type VoiceSession struct {
+	Context         context.Context
+	VoiceServerInfo *VoiceServerUpdate
+	Conn            *websocket.Conn
+	heartbeat       *voice_heartbeat
+	manager         *voice_manager
+	ID              string
+	Nonce           int64
+	sync.RWMutex
+}
+
+// isConnected returns whether the session is connected.
+func (s *VoiceSession) isConnected() bool {
+	if s.Context == nil {
+		return false
+	}
+
+	select {
+	case <-s.Context.Done():
+		return false
+	default:
+		return true
+	}
+}
+
+// canReconnect determines whether the session is in a valid state to reconnect.
+func (s *VoiceSession) canReconnect() bool {
+	return s.ID != "" && *s.VoiceServerInfo.Endpoint != "" && atomic.LoadInt64(&s.Nonce) != 0
+}
+
+// connect connects a session to a WebSocket Connection.
+func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
+	LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msg("connecting voice session")
+
+	if s.isConnected() {
+		return fmt.Errorf("voice session %q is already connected", s.ID)
+	}
+
+	var err error
+
+	// connect to the Discord Voice Server Websocket.
+	s.manager = new(voice_manager)
+	s.Context, s.manager.cancel = context.WithCancel(context.Background())
+	if s.Conn, _, err = websocket.Dial(
+		s.Context,
+		voiceWebSocketConnectionURLProtocol+*s.VoiceServerInfo.Endpoint+voiceEndpointParams,
+		nil,
+	); err != nil {
+		return fmt.Errorf("error connecting to the Discord Voice Server: %w", err)
+	}
+
+	// handle the incoming Hello event upon connecting to the Voice Server.
+	hello := new(VoiceHello)
+	if err := readEventVoice(s, hello); err != nil {
+		err = fmt.Errorf("error reading initial VoiceHello event: %w", err)
+		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
+		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
+			sessionErr.Err = ErrorDisconnect{
+				Action:     err,
+				Err:        disconnectErr,
+				Connection: ErrConnectionSessionVoice,
+			}
+		}
+
+		return sessionErr
+	}
+
+	for _, handler := range vc.Handlers.VoiceHello {
+		go handler(hello)
+	}
+
+	// begin sending heartbeat payloads every heartbeat_interval ms.
+	ms := time.Millisecond * time.Duration(hello.HeartbeatInterval)
+	s.heartbeat = &voice_heartbeat{
+		interval: ms,
+		ticker:   time.NewTicker(ms),
+		send:     make(chan VoiceHeartbeat),
+
+		// add a HeartbeatACK to the HeartbeatACK channel to prevent
+		// the length of the HeartbeatACK channel from being 0 immediately,
+		// which results in an attempt to reconnect.
+		acks: 1,
+	}
+
+	// create a goroutine group for the Session.
+	s.manager.Group, s.manager.signal = errgroup.WithContext(s.Context)
+	s.manager.err = make(chan error, 1)
+
+	// spawn the heartbeat pulse goroutine.
+	s.manager.routines.Add(1)
+	atomic.AddInt32(&s.manager.pulses, 1)
+	s.manager.Go(func() error {
+		s.pulse()
+		return nil
+	})
+
+	// spawn the heartbeat beat goroutine.
+	s.manager.routines.Add(1)
+	s.manager.Go(func() error {
+		if err := s.beat(); err != nil {
+			return ErrorSession{
+				SessionID: s.ID,
+				Err:       fmt.Errorf("heartbeat: %w", err),
+			}
+		}
+
+		return nil
+	})
+
+	// send the initial Identify or Resumed packet.
+	if err := s.initial(bot, vc); err != nil {
+		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
+		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
+			sessionErr.Err = ErrorDisconnect{
+				Action:     err,
+				Err:        disconnectErr,
+				Connection: ErrConnectionSessionVoice,
+			}
+		}
+
+		return sessionErr
+	}
+
+	// spawn the event listener listen goroutine.
+	s.manager.routines.Add(1)
+	s.manager.Go(func() error {
+		if err := s.listen(vc); err != nil {
+			return ErrorSession{
+				SessionID: s.ID,
+				Err:       fmt.Errorf("listen: %w", err),
+			}
+		}
+
+		return nil
+	})
+
+	// spawn the manager goroutine.
+	s.manager.routines.Add(1)
+	go s.manage()
+
+	// ensure that the Session's goroutines are spawned.
+	s.manager.routines.Wait()
+
+	return nil
+}
+
+// initial sends the initial Identify or Resume packet required to connect to the Voice Server,
+// then handles the incoming Ready or Resumed packet that indicates a successful connection.
+func (s *VoiceSession) initial(bot *Client, vc *VoiceChannelConnection) error {
+	if !s.canReconnect() {
+		// send an Opcode 0 Identify to the Discord Voice Server.
+		identify := VoiceIdentify{
+			ServerID:  s.VoiceServerInfo.GuildID,
+			UserID:    bot.ApplicationID,
+			SessionID: s.ID,
+			Token:     s.VoiceServerInfo.Token,
+		}
+
+		if err := identify.SendEvent(s); err != nil {
+			return err
+		}
+
+	} else {
+		// send an Opcode 7 Resume to the Discord Voice Server to reconnect the session.
+		resume := VoiceResume{
+			ServerID:  s.VoiceServerInfo.GuildID,
+			SessionID: s.ID,
+			Token:     bot.Authentication.Token,
+		}
+
+		if err := resume.SendEvent(s); err != nil {
+			return err
+		}
+	}
+
+	// handle the incoming Ready or Resumed event.
+	payload := getVoicePayload()
+	defer putVoicePayload(payload)
+	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
+		return fmt.Errorf("error reading initial voice payload: %w", err)
+	}
+
+	LogPayload(LogSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received initial voice payload")
+
+	switch payload.Op {
+	// When a connection is successful, the Discord Voice Server will respond with a Ready payload.
+	case FlagVoiceOpcodeReadyServer:
+		ready := new(VoiceReady)
+		if err := json.Unmarshal(payload.Data, ready); err != nil {
+			return fmt.Errorf("error reading ready event: %w", err)
+		}
+
+		LogSession(Logger.Info(), s.ID).Msg("received VoiceReady event")
+
+		for _, handler := range vc.Handlers.VoiceReady {
+			go handler(ready)
+		}
+
+		// Establish a Voice Connection (UDP).
+		// https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection
+		if err := vc.connectUDP(ready); err != nil {
+			return fmt.Errorf("error connecting to UDP Voice Server: %w", err)
+		}
+
+	// When a reconnection is successful, the Discord Voice Server will respond
+	// with a Resumed payload.
+	case FlagVoiceOpcodeResumed:
+		LogSession(Logger.Info(), s.ID).Msg("received VoiceResumed event")
+
+		for _, handler := range vc.Handlers.VoiceResumed {
+			go handler(&VoiceResumed{})
+		}
+
+	// TODO: RESUME: ConnectUDP (?)
+
+	// When a reconnection is unsuccessful, the Discord Voice Server will close
+	// with an appropriate close event code.
+	default:
+		return fmt.Errorf("voice session %q received payload %d during connection which is unexpected", s.ID, payload.Op)
+	}
+
+	return nil
+}
+
+// disconnect disconnects a session from a WebSocket Connection using the given status code.
+func (s *VoiceSession) disconnect(code int) error {
+	id := s.ID
+	LogSession(Logger.Info(), id).Msgf("disconnecting voice session with code %d", FlagClientCloseEventCodeNormal)
+
+	s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalDisconnect)
+
+	// cancel the context to kill the goroutines of the Voice Session.
+	defer s.manager.cancel()
+
+	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
+		return fmt.Errorf("%w", err)
+	}
+
+	putVoiceSession(s)
+
+	LogSession(Logger.Info(), id).Msgf("disconnected voice session with code %d", FlagClientCloseEventCodeNormal)
+
+	return nil
+}
+
+// readEventVoice is a helper function for reading events from the Voice WebSocket Session.
+func readEventVoice(s *VoiceSession, dst any) error {
+	payload := new(VoicePayload)
+	if err := socket.Read(s.Context, s.Conn, payload); err != nil {
+		return fmt.Errorf("readEvent: %w", err)
+	}
+
+	if err := json.Unmarshal(payload.Data, dst); err != nil {
+		return fmt.Errorf("readEvent: %w", err)
+	}
+
+	return nil
+}
+
+// writeEventVoice is a helper function for writing voice events to the WebSocket Session.
+func writeEventVoice(s *VoiceSession, op int, name string, dst any) error {
+	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
+
+	// write the event to the WebSocket Connection.
+	event, err := json.Marshal(dst)
+	if err != nil {
+		return fmt.Errorf("writeEvent: %w", err)
+	}
+
+	if err = socket.Write(s.Context, s.Conn, websocket.MessageText,
+		VoicePayload{
+			Op:   op,
+			Data: event,
+		}); err != nil {
+		return fmt.Errorf("writeEvent: %w", err)
+	}
+
+	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
+
+	return nil
+}
+
+// SendEvent sends an Opcode 0 Identify event to the Discord Voice Server.
+func (c *VoiceIdentify) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeIdentify, FlagVoiceSendEventNameIdentify, c); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendEvent sends an Opcode 1 SelectProtocol event to the Discord Voice Server.
+func (c *SelectProtocol) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeSelectProtocol, FlagVoiceSendEventNameSelectProtocol, c); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendEvent sends an Opcode 3 Heartbeat event to the Discord Voice Server.
+func (c *VoiceHeartbeat) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeHeartbeat, FlagVoiceSendEventNameHeartbeat, c); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendEvent sends an Opcode 5 Speaking event to the Discord Voice Server.
+func (c *Speaking) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeSpeaking, FlagVoiceSendEventNameSpeaking, c); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendEvent sends an Opcode 7 Resume event to the Discord Voice Server.
+func (c *VoiceResume) SendEvent(session *VoiceSession) error {
+	if err := writeEventVoice(session, FlagVoiceOpcodeResume, FlagVoiceSendEventNameResume, c); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// VoiceHandlers represents a voice channel connection's event handlers.
+type VoiceHandlers struct {
+	VoiceReady         []func(*VoiceReady)
+	SessionDescription []func(*SessionDescription)
+	Speaking           []func(*Speaking)
+	VoiceHello         []func(*VoiceHello)
+	VoiceResumed       []func(*VoiceResumed)
+	ClientDisconnect   []func(*ClientDisconnect)
+	mu                 sync.RWMutex
+}
+
+// Handle adds an event handler for the given event to the Voice Connection.
+func (vc *VoiceChannelConnection) Handle(eventname string, function interface{}) error {
+	vc.Handlers.mu.Lock()
+	defer vc.Handlers.mu.Unlock()
+
+	switch eventname {
+	case FlagVoiceOpcodeNameReady:
+		if f, ok := function.(func(*VoiceReady)); ok {
+			vc.Handlers.VoiceReady = append(vc.Handlers.VoiceReady, f)
+			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+
+	case FlagVoiceOpcodeNameSessionDescription:
+		if f, ok := function.(func(*SessionDescription)); ok {
+			vc.Handlers.SessionDescription = append(vc.Handlers.SessionDescription, f)
+			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+
+	case FlagVoiceOpcodeNameSpeaking:
+		if f, ok := function.(func(*Speaking)); ok {
+			vc.Handlers.Speaking = append(vc.Handlers.Speaking, f)
+			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+
+	case FlagVoiceOpcodeNameHello:
+		if f, ok := function.(func(*VoiceHello)); ok {
+			vc.Handlers.VoiceHello = append(vc.Handlers.VoiceHello, f)
+			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+
+	case FlagVoiceOpcodeNameResumed:
+		if f, ok := function.(func(*VoiceResumed)); ok {
+			vc.Handlers.VoiceResumed = append(vc.Handlers.VoiceResumed, f)
+			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+
+	case FlagVoiceOpcodeNameClientDisconnect:
+		if f, ok := function.(func(*ClientDisconnect)); ok {
+			vc.Handlers.ClientDisconnect = append(vc.Handlers.ClientDisconnect, f)
+			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			return nil
+		}
+	}
+
+	err := ErrorEventHandler{
+		ClientID: vc.VoiceSession.ID,
+		Event:    eventname,
+		Err:      fmt.Errorf("%s", errHandleNotRemoved),
+	}
+	LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+
+	return err
+}
+
+// Remove removes the event handler at the given index from the Voice Connection.
+func (vc *VoiceChannelConnection) Remove(eventname string, index int) error {
+	vc.Handlers.mu.Lock()
+	defer vc.Handlers.mu.Unlock()
+
+	switch eventname {
+	case FlagVoiceOpcodeNameReady:
+		if len(vc.Handlers.VoiceReady) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.VoiceSession.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.VoiceReady = append(vc.Handlers.VoiceReady[:index], vc.Handlers.VoiceReady[index+1:]...)
+
+	case FlagVoiceOpcodeNameSessionDescription:
+		if len(vc.Handlers.SessionDescription) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.VoiceSession.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.SessionDescription = append(vc.Handlers.SessionDescription[:index], vc.Handlers.SessionDescription[index+1:]...)
+
+	case FlagVoiceOpcodeNameSpeaking:
+		if len(vc.Handlers.Speaking) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.VoiceSession.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.Speaking = append(vc.Handlers.Speaking[:index], vc.Handlers.Speaking[index+1:]...)
+
+	case FlagVoiceOpcodeNameHello:
+		if len(vc.Handlers.VoiceHello) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.VoiceSession.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.VoiceHello = append(vc.Handlers.VoiceHello[:index], vc.Handlers.VoiceHello[index+1:]...)
+
+	case FlagVoiceOpcodeNameResumed:
+		if len(vc.Handlers.VoiceResumed) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.VoiceSession.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.VoiceResumed = append(vc.Handlers.VoiceResumed[:index], vc.Handlers.VoiceResumed[index+1:]...)
+
+	case FlagVoiceOpcodeNameClientDisconnect:
+		if len(vc.Handlers.ClientDisconnect) <= index {
+			err := ErrorEventHandler{
+				ClientID: vc.VoiceSession.ID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		vc.Handlers.ClientDisconnect = append(vc.Handlers.ClientDisconnect[:index], vc.Handlers.ClientDisconnect[index+1:]...)
+	}
+
+	LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("removed voice event handler")
+
+	return nil
+}
+
+// handle handles an event using its name and data.
+func (vc *VoiceChannelConnection) handle(eventname string, data json.RawMessage) {
+	vc.Handlers.mu.RLock()
+	defer vc.Handlers.mu.RUnlock()
+
+	switch eventname {
+	case FlagVoiceOpcodeNameReady:
+		if len(vc.Handlers.VoiceReady) != 0 {
+			event := new(VoiceReady)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.VoiceReady {
+				go handler(event)
+			}
+		}
+
+	case FlagVoiceOpcodeNameSessionDescription:
+		if len(vc.Handlers.SessionDescription) != 0 {
+			event := new(SessionDescription)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameSessionDescription, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.SessionDescription {
+				go handler(event)
+			}
+		}
+
+	case FlagVoiceOpcodeNameSpeaking:
+		if len(vc.Handlers.Speaking) != 0 {
+			event := new(Speaking)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameSpeaking, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.Speaking {
+				go handler(event)
+			}
+		}
+
+	case FlagVoiceOpcodeNameHello:
+		if len(vc.Handlers.VoiceHello) != 0 {
+			event := new(VoiceHello)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.VoiceHello {
+				go handler(event)
+			}
+		}
+
+	case FlagVoiceOpcodeNameResumed:
+		if len(vc.Handlers.VoiceResumed) != 0 {
+			event := new(VoiceResumed)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.VoiceResumed {
+				go handler(event)
+			}
+		}
+
+	case FlagVoiceOpcodeNameClientDisconnect:
+		if len(vc.Handlers.ClientDisconnect) != 0 {
+			event := new(ClientDisconnect)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameClientDisconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range vc.Handlers.ClientDisconnect {
+				go handler(event)
+			}
+		}
+	}
+}
+
+// voice_heartbeat represents the heartbeat mechanism for a Voice Session.
+type voice_heartbeat struct {
+	ticker   *time.Ticker
+	send     chan VoiceHeartbeat
+	interval time.Duration
+	acks     uint32
+}
+
+// Monitor returns the current amount of HeartbeatACKs for a Voice Session's heartbeat.
+func (s *VoiceSession) Monitor() uint32 {
+	s.Lock()
+	acks := atomic.LoadUint32(&s.heartbeat.acks)
+	s.Unlock()
+
+	return acks
+}
+
+// beat listens for pulses to send Opcode 1 Heartbeats to the Discord Voice Server (to verify the connection is alive).
+func (s *VoiceSession) beat() error {
+	s.manager.routines.Done()
+
+	// ensure that all pulse routines are closed prior to closing.
+	defer func() {
+		for {
+			if s.heartbeat == nil {
+				s.logClose("heartbeat")
+
+				return
+			}
+
+			select {
+			case <-s.heartbeat.send:
+			case <-s.Context.Done():
+				if atomic.LoadInt32(&s.manager.pulses) != 0 {
+					break
+				}
+
+				s.logClose("heartbeat")
+
+				return
+			}
+		}
+	}()
+
+	for {
+		select {
+		case hb := <-s.heartbeat.send:
+			s.Lock()
+
+			// close the connection if the last sent Heartbeat never received a HeartbeatACK.
+			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
+				s.Unlock()
+
+				s.reconnect("attempting to reconnect voice session due to no HeartbeatACK")
+
+				return nil
+			}
+
+			// prevent two Heartbeat Payloads being sent to the Discord Voice Server consecutively within nanoseconds,
+			// when the ticker queues a Heartbeat while the listen thread (onPayload) queues a Heartbeat
+			// (in response to the Discord Voice Server).
+			//
+			// clear queued (outdated) heartbeats.
+			for len(s.heartbeat.send) > 0 {
+				// ensure the latest sequence is sent.
+				if h := <-s.heartbeat.send; h.Data > hb.Data {
+					hb.Data = h.Data
+				}
+			}
+
+			// send a Heartbeat to the Discord Voice Server (WebSocket Connection).
+			if err := hb.SendEvent(s); err != nil {
+				s.Unlock()
+
+				return err
+			}
+
+			// reset the ticker (and empty existing ticks).
+			s.heartbeat.ticker.Reset(s.heartbeat.interval)
+			for len(s.heartbeat.ticker.C) > 0 {
+				<-s.heartbeat.ticker.C
+			}
+
+			// reset the amount of HeartbeatACKs since the last heartbeat.
+			atomic.StoreUint32(&s.heartbeat.acks, 0)
+
+			LogSession(Logger.Info(), s.ID).Msg("sent heartbeat")
+
+			s.Unlock()
+
+		case <-s.Context.Done():
+			return nil
+		}
+	}
+}
+
+// pulse generates Opcode 3 Heartbeats for a Voice Session's heartbeat channel.
+func (s *VoiceSession) pulse() {
+	s.manager.routines.Done()
+
+	// send an Opcode 3 Heartbeat payload after heartbeat_interval * jitter milliseconds
+	// (where jitter is a random value between 0 and 1).
+	s.Lock()
+	s.heartbeat.send <- VoiceHeartbeat{Data: atomic.LoadInt64(&s.Nonce)}
+	LogSession(Logger.Info(), s.ID).Msg("queued jitter voice heartbeat")
+	s.Unlock()
+
+	for {
+		select {
+		// every Heartbeat Interval...
+		case <-s.heartbeat.ticker.C:
+			s.Lock()
+
+			// queue a heartbeat.
+			s.heartbeat.send <- VoiceHeartbeat{Data: atomic.LoadInt64(&s.Nonce)}
+
+			LogSession(Logger.Info(), s.ID).Msg("queued heartbeat")
+
+			s.Unlock()
+
+		case <-s.Context.Done():
+			s.Lock()
+			s.logClose("pulse")
+			s.Unlock()
+
+			return
+		}
+	}
+}
+
+// listen listens to the connection for payloads from the Discord Voice Server.
+func (s *VoiceSession) listen(vc *VoiceChannelConnection) error {
+	s.manager.routines.Done()
+
+	var err error
+
+	for {
+		payload := getVoicePayload()
+		if err = socket.Read(s.Context, s.Conn, payload); err != nil {
+			break
+		}
+
+		LogPayload(LogSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received voice payload")
+
+		if err = s.onPayload(vc, *payload); err != nil {
+			break
+		}
+	}
+
+	s.Lock()
+	defer s.Unlock()
+	defer s.logClose("listen")
+
+	select {
+	case <-s.Context.Done():
+		return nil
+
+	default:
+		return err
+	}
+}
+
+// onPayload handles an Discord Voice Server Payload.
+func (s *VoiceSession) onPayload(vc *VoiceChannelConnection, payload VoicePayload) error {
+	defer putVoicePayload(&payload)
+
+	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
+	switch payload.Op {
+	case FlagVoiceOpcodeSpeaking:
+		go vc.handle(FlagVoiceOpcodeNameSpeaking, payload.Data)
+
+	// handle the successful acknowledgement of the client's last heartbeat.
+	case FlagVoiceOpcodeHeartbeatACK:
+		s.Lock()
+		atomic.AddUint32(&s.heartbeat.acks, 1)
+		s.Unlock()
+
+	case FlagVoiceOpcodeClientDisconnect:
+		go vc.handle(FlagVoiceOpcodeNameClientDisconnect, payload.Data)
+	}
+
+	return nil
+}
+
+// voice_manager represents a manager of a Voice Session's goroutines.
+type voice_manager struct {
+	signal context.Context
+	cancel context.CancelFunc
+	err    chan error
+	*errgroup.Group
+	routines sync.WaitGroup
+	pulses   int32
+}
+
+// logClose safely logs the close of a Voice Session's goroutine.
+func (s *VoiceSession) logClose(routine string) {
+	LogSession(Logger.Info(), s.ID).Msgf("closed %s routine", routine)
+}
+
+// reconnect spawns a goroutine for reconnection which prompts the manager
+// to reconnect upon a disconnection.
+func (s *VoiceSession) reconnect(reason string) {
+	s.manager.Go(func() error {
+		s.Lock()
+		defer s.logClose("reconnect")
+		defer s.Unlock()
+
+		LogSession(Logger.Info(), s.ID).Msg(reason)
+
+		s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalReconnect)
+		if err := s.disconnect(FlagClientCloseEventCodeReconnect); err != nil {
+			return fmt.Errorf("reconnect: %w", err)
+		}
+
+		return nil
+	})
+}
+
+// manage manages a Voice Session's goroutines.
+func (s *VoiceSession) manage() {
+	s.manager.routines.Done()
+	defer func() {
+		s.Lock()
+		s.logClose("manager")
+		s.Unlock()
+	}()
+
+	// wait until all of a Voice Session's goroutines are closed.
+	err := s.manager.Wait()
+	s.Lock()
+	defer s.Unlock()
+
+	// log the reason for disconnection (if applicable).
+	if reason := s.manager.signal.Value(keyReason); reason != nil {
+		LogSession(Logger.Info(), s.ID).Msgf("%v", reason)
+	}
+
+	// when a signal is provided, it indicates that the disconnection was purposeful.
+	signal := s.manager.signal.Value(keySignal)
+	switch signal {
+	case signalDisconnect:
+		LogSession(Logger.Info(), s.ID).Msg("successfully disconnected")
+
+		s.manager.err <- nil
+
+		return
+
+	case signalReconnect:
+		LogSession(Logger.Info(), s.ID).Msg("successfully disconnected (while reconnecting)")
+
+		// allow Discord to close the session.
+		<-time.After(time.Second)
+
+		s.manager.err <- nil
+
+		return
+	}
+
+	// when an error caused goroutines to close, manage the state of disconnection.
+	if err != nil {
+		disconnectErr := new(ErrorDisconnect)
+		closeErr := new(websocket.CloseError)
+		switch {
+		// when an error occurs from a purposeful disconnection.
+		case errors.As(err, disconnectErr):
+			s.manager.err <- err
+
+		// when an error occurs from a WebSocket Close Error.
+		case errors.As(err, closeErr):
+			s.manager.err <- s.handleGatewayCloseError(closeErr)
+
+		default:
+			if cErr := s.Conn.Close(websocket.StatusCode(FlagClientCloseEventCodeAway), ""); cErr != nil {
+				s.manager.err <- ErrorDisconnect{
+					Action:     err,
+					Err:        cErr,
+					Connection: ErrConnectionSessionVoice,
+				}
+
+				return
+			}
+
+			s.manager.err <- err
+		}
+
+		return
+	}
+
+	s.manager.err <- nil
+}
+
+// handleGatewayCloseError handles a WebSocket CloseError.
+func (s *VoiceSession) handleGatewayCloseError(closeErr *websocket.CloseError) error {
+	code, ok := VoiceCloseEventCodes[int(closeErr.Code)]
+	switch ok {
+	// Voice Close Event Code is known.
+	case true:
+		LogSession(Logger.Info(), s.ID).
+			Msgf("received Voice Close Event Code %d %s: %s",
+				code.Code, code.Description, code.Explanation,
+			)
+
+		return closeErr
+
+	// Voice Close Event Code is unknown.
+	default:
+
+		// when another goroutine calls disconnect(),
+		// s.Conn.Close is called before s.cancel which will result in
+		// a CloseError with the close code that Disgo uses to reconnect.
+		if closeErr.Code == websocket.StatusCode(FlagClientCloseEventCodeReconnect) {
+			return nil
+		}
+
+		LogSession(Logger.Info(), s.ID).
+			Msgf("received unknown Voice Close Event Code %d with reason %q",
+				closeErr.Code, closeErr.Reason,
+			)
+
+		return closeErr
+	}
+}
+
+// Wait blocks until the calling Voice Session has disconnected, then returns the reason
+// (disgo.SignalReason) for disconnecting and the disconnection error (if it exists).
+//
+// If Wait() is called on a Voice Session that isn't connected, it will return immediately
+// with code SignalNone.
+//
+// It's NOT recommended to modify a Voice Session after it has disconnected,
+// since it will be cleared and placed into a memory pool shortly after.
+func (s *VoiceSession) Wait() (int, error) {
+	if !s.isConnected() {
+		return SignalNone, nil
+	}
+
+	// NOTE: Wait() is equivalent to the s.manage() s.manager.Wait() handling logic,
+	// but without the management of the disconnection state,
+	// and without the usage of a channel that tells another goroutine to unblock.
+	//
+	// wait until all of a Session's goroutines are closed.
+	err := s.manager.Wait()
+	s.Lock()
+	defer s.Unlock()
+
+	// when a signal is provided, it indicates that the disconnection was purposeful.
+	signal := s.manager.signal.Value(keySignal)
+	switch signal {
+	case signalDisconnect:
+		return SignalDisconnect, nil
+
+	case signalReconnect:
+		return SignalReconnect, nil
+	}
+
+	// when an error caused goroutines to close.
+	if err != nil {
+		disconnectErr := new(ErrorDisconnect)
+		closeErr := new(websocket.CloseError)
+		switch {
+		// when an error occurs from a purposeful disconnection.
+		case errors.As(err, disconnectErr):
+			if signal != nil {
+				if signalValue, ok := signal.(int); ok {
+					return signalValue, err //nolint:wrapcheck
+				}
+			}
+
+			return SignalDisconnectError, err //nolint:wrapcheck
+
+		// when an error occurs from a WebSocket Close Error.
+		case errors.As(err, closeErr):
+			return SignalError, s.handleGatewayCloseError(closeErr)
+		}
+
+		return SignalError, err //nolint:wrapcheck
+	}
+
+	return SignalUndefined, nil
 }
