@@ -14,13 +14,9 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// TODO
-type UDPConnection = string
-
-// TODO: errors scoped
-
 const (
 	voiceWebSocketConnectionURLProtocol = "wss://"
+	voiceEndpointParams                 = "?v=" + VersionDiscordVoiceGateway + "&encoding=json"
 )
 
 // VoiceSession represents a Discord Voice WebSocket Session.
@@ -78,7 +74,7 @@ func (s *VoiceSession) canReconnect() bool {
 }
 
 // connect connects a session to a WebSocket Connection.
-func (s *VoiceSession) connect(bot *Client, vc *VoiceConnection) error {
+func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msg("connecting voice session")
 
 	if s.isConnected() {
@@ -92,7 +88,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceConnection) error {
 	s.Context, s.manager.cancel = context.WithCancel(context.Background())
 	if s.Conn, _, err = websocket.Dial(
 		s.Context,
-		voiceWebSocketConnectionURLProtocol+*s.VoiceServerInfo.Endpoint+gatewayEndpointParams,
+		voiceWebSocketConnectionURLProtocol+*s.VoiceServerInfo.Endpoint+voiceEndpointParams,
 		nil,
 	); err != nil {
 		return fmt.Errorf("error connecting to the Discord Voice Server: %w", err)
@@ -102,12 +98,12 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceConnection) error {
 	hello := new(VoiceHello)
 	if err := readEventVoice(s, hello); err != nil {
 		err = fmt.Errorf("error reading initial VoiceHello event: %w", err)
-		sessionErr := ErrorSession{SessionID: s.ID, Err: err} // TODO: Indicate VOICE SERVER
+		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorDisconnect{
 				Action:     err,
 				Err:        disconnectErr,
-				Connection: ErrConnectionSession,
+				Connection: ErrConnectionSessionVoice,
 			}
 		}
 
@@ -146,7 +142,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceConnection) error {
 	// spawn the heartbeat beat goroutine.
 	s.manager.routines.Add(1)
 	s.manager.Go(func() error {
-		if err := s.beat(bot); err != nil {
+		if err := s.beat(); err != nil {
 			return ErrorSession{
 				SessionID: s.ID,
 				Err:       fmt.Errorf("heartbeat: %w", err),
@@ -157,13 +153,13 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceConnection) error {
 	})
 
 	// send the initial Identify or Resumed packet.
-	if err := s.initial(bot, vc, 0); err != nil {
+	if err := s.initial(bot, vc); err != nil {
 		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorDisconnect{
 				Action:     err,
 				Err:        disconnectErr,
-				Connection: ErrConnectionSession,
+				Connection: ErrConnectionSessionVoice,
 			}
 		}
 
@@ -195,23 +191,24 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceConnection) error {
 
 // initial sends the initial Identify or Resume packet required to connect to the Voice Server,
 // then handles the incoming Ready or Resumed packet that indicates a successful connection.
-func (s *VoiceSession) initial(bot *Client, vc *VoiceConnection, attempt int) error {
+func (s *VoiceSession) initial(bot *Client, vc *VoiceChannelConnection) error {
 	if !s.canReconnect() {
 		// send an Opcode 0 Identify to the Discord Voice Server.
 		identify := VoiceIdentify{
-			ServerID:  vc.State.GuildID,
+			ServerID:  s.VoiceServerInfo.GuildID,
 			UserID:    bot.ApplicationID,
 			SessionID: s.ID,
-			Token:     bot.Authentication.Token,
+			Token:     s.VoiceServerInfo.Token,
 		}
 
 		if err := identify.SendEvent(s); err != nil {
 			return err
 		}
+
 	} else {
 		// send an Opcode 7 Resume to the Discord Voice Server to reconnect the session.
 		resume := VoiceResume{
-			ServerID:  vc.State.GuildID,
+			ServerID:  s.VoiceServerInfo.GuildID,
 			SessionID: s.ID,
 			Token:     bot.Authentication.Token,
 		}
@@ -259,7 +256,7 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceConnection, attempt int) er
 			go handler(&VoiceResumed{})
 		}
 
-		// TODO: connectudp?
+		// TODO: RESUME: ConnectUDP (?)
 
 		// When a reconnection is unsuccessful, the Discord Voice Server will close
 		// with an appropriate close event code.
@@ -283,8 +280,6 @@ func (s *VoiceSession) disconnect(code int) error {
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
 		return fmt.Errorf("%w", err)
 	}
-
-	// TODO: disconnect respective UDP Connection.
 
 	putVoiceSession(s)
 
@@ -317,7 +312,7 @@ func writeEventVoice(s *VoiceSession, op int, name string, dst any) error {
 		return fmt.Errorf("writeEvent: %w", err)
 	}
 
-	if err = socket.Write(s.Context, s.Conn, websocket.MessageBinary,
+	if err = socket.Write(s.Context, s.Conn, websocket.MessageText,
 		VoicePayload{
 			Op:   op,
 			Data: event,

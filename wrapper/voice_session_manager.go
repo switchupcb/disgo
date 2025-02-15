@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/switchupcb/websocket"
@@ -72,14 +71,6 @@ type voice_manager struct {
 	// VoiceConnection.Disconnect() is modified in this way to allow the end-user (developer) to only return from Disconnect()
 	// when disconnection is fully completed (with goroutines closed).
 	*errgroup.Group
-}
-
-// decrementPulses safely decrements the pulses counter of a Voice Session manager.
-func (s *VoiceSession) decrementPulses() {
-	s.Lock()
-	defer s.Unlock()
-
-	atomic.AddInt32(&s.manager.pulses, -1)
 }
 
 // logClose safely logs the close of a Voice Session's goroutine.
@@ -164,7 +155,7 @@ func (s *VoiceSession) manage() {
 				s.manager.err <- ErrorDisconnect{
 					Action:     err,
 					Err:        cErr,
-					Connection: ErrConnectionSession,
+					Connection: ErrConnectionSessionVoice,
 				}
 
 				return
@@ -181,24 +172,18 @@ func (s *VoiceSession) manage() {
 
 // handleGatewayCloseError handles a WebSocket CloseError.
 func (s *VoiceSession) handleGatewayCloseError(closeErr *websocket.CloseError) error {
-	code, ok := GatewayCloseEventCodes[int(closeErr.Code)]
+	code, ok := VoiceCloseEventCodes[int(closeErr.Code)]
 	switch ok {
-	// Gateway Close Event Code is known.
+	// Voice Close Event Code is known.
 	case true:
 		LogSession(Logger.Info(), s.ID).
-			Msgf("received Gateway Close Event Code %d %s: %s",
+			Msgf("received Voice Close Event Code %d %s: %s",
 				code.Code, code.Description, code.Explanation,
 			)
 
-		if code.Reconnect {
-			s.reconnect(fmt.Sprintf("reconnecting due to Gateway Close Event Code %d", code.Code))
-
-			return nil
-		}
-
 		return closeErr
 
-	// Gateway Close Event Code is unknown.
+	// Voice Close Event Code is unknown.
 	default:
 
 		// when another goroutine calls disconnect(),
@@ -209,7 +194,7 @@ func (s *VoiceSession) handleGatewayCloseError(closeErr *websocket.CloseError) e
 		}
 
 		LogSession(Logger.Info(), s.ID).
-			Msgf("received unknown Gateway Close Event Code %d with reason %q",
+			Msgf("received unknown Voice Close Event Code %d with reason %q",
 				closeErr.Code, closeErr.Reason,
 			)
 

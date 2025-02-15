@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"net"
+	"strconv"
 
 	"golang.org/x/exp/slices"
 )
@@ -11,19 +12,17 @@ import (
 // connectUDP connects to the Discord UDP Voice Server using the given Ready payload.
 //
 // https://discord.com/developers/docs/topics/voice-connections#establishing-a-voice-udp-connection
-func (vc *VoiceConnection) connectUDP(r *VoiceReady) error {
+func (vc *VoiceChannelConnection) connectUDP(r *VoiceReady) error {
 	var err error
 
 	// Open a UDP Connection to the provided IP and port.
-	if vc.Connection, err = net.DialUDP(
-		"udp",
-		nil,
-		&net.UDPAddr{
-			IP:   net.IP(r.IP),
-			Port: r.Port,
-			Zone: "",
-		},
-	); err != nil {
+	address := r.IP + ":" + strconv.Itoa(r.Port)
+	udpAddr, err := net.ResolveUDPAddr("udp", address)
+	if err != nil {
+		return fmt.Errorf("udp: %w", err)
+	}
+
+	if vc.Connection, err = net.DialUDP("udp", nil, udpAddr); err != nil {
 		return fmt.Errorf("udp: %w", err)
 	}
 
@@ -36,7 +35,7 @@ func (vc *VoiceConnection) connectUDP(r *VoiceReady) error {
 	vc.Connection.Write(ipDiscoveryPacket)
 
 	ipDiscoveryPacket = make([]byte, 74)
-	_, eaddr, err := vc.Connection.ReadFromUDP(ipDiscoveryPacket)
+	_, externalAddr, err := vc.Connection.ReadFromUDP(ipDiscoveryPacket)
 	if err != nil {
 		return fmt.Errorf("udp: %w", err)
 	}
@@ -57,31 +56,27 @@ func (vc *VoiceConnection) connectUDP(r *VoiceReady) error {
 		return fmt.Errorf("udp: supported mode is not available")
 	}
 
-	// TODO: also support modes on encryption and decryption
-
 	// send an Opcode 1 Select Protocol Payload.
 	selectProtocol := &SelectProtocol{
 		Protocol: "udp",
 		Data: SelectProtocolData{
-			Address: eaddr.IP.String(),
-			Port:    eaddr.Port,
+			Address: externalAddr.IP.String(),
+			Port:    externalAddr.Port,
 			Mode:    mode,
 		},
-	}
-
-	// Set up the event handler for the Opcode 4 Session Description event.
-	if err := vc.Handle(FlagVoiceOpcodeNameSessionDescription, func(sd *SessionDescription) {
-		// sd.SecretKey
-	}); err != nil {
-		return fmt.Errorf("udp: %w", err)
 	}
 
 	if err := selectProtocol.SendEvent(vc.VoiceSession); err != nil {
 		return fmt.Errorf("udp: %w", err)
 	}
 
+	// TODO: DAVE
+	// https://discord.com/developers/docs/topics/voice-connections#endtoend-encryption-dave-protocol
+
+	// TODO: Connection is established, create routine for external library to process Voice Connection Data
+	// https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice
+	// go func()
+	// VoicePacket...
+
 	return nil
 }
-
-// Connection is established, create channel for external library to process voice
-// https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice

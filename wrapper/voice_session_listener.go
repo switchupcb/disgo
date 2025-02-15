@@ -7,7 +7,7 @@ import (
 )
 
 // listen listens to the connection for payloads from the Discord Voice Server.
-func (s *VoiceSession) listen(vc *VoiceConnection) error {
+func (s *VoiceSession) listen(vc *VoiceChannelConnection) error {
 	s.manager.routines.Done()
 
 	var err error
@@ -39,7 +39,7 @@ func (s *VoiceSession) listen(vc *VoiceConnection) error {
 }
 
 // onPayload handles an Discord Voice Server Payload.
-func (s *VoiceSession) onPayload(vc *VoiceConnection, payload VoicePayload) error {
+func (s *VoiceSession) onPayload(vc *VoiceChannelConnection, payload VoicePayload) error {
 	defer putVoicePayload(&payload)
 
 	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes

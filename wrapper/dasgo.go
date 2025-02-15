@@ -1595,7 +1595,7 @@ var (
 // https://discord.com/developers/docs/reference#api-versioning
 const (
 	VersionDiscordAPI          = "10"
-	VersionDiscordVoiceGateway = "?v=4"
+	VersionDiscordVoiceGateway = "7"
 )
 
 // time.Time Format

@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// voice_heartbeat represents the heartbeat mechanism for a Session.
+// voice_heartbeat represents the heartbeat mechanism for a Voice Session.
 type voice_heartbeat struct {
 	// interval represents the interval of time between each Heartbeat Payload.
 	interval time.Duration
@@ -30,12 +30,18 @@ func (s *VoiceSession) Monitor() uint32 {
 }
 
 // beat listens for pulses to send Opcode 1 Heartbeats to the Discord Voice Server (to verify the connection is alive).
-func (s *VoiceSession) beat(bot *Client) error {
+func (s *VoiceSession) beat() error {
 	s.manager.routines.Done()
 
 	// ensure that all pulse routines are closed prior to closing.
 	defer func() {
 		for {
+			if s.heartbeat == nil {
+				s.logClose("heartbeat")
+
+				return
+			}
+
 			select {
 			case <-s.heartbeat.send:
 			case <-s.Context.Done():
@@ -59,7 +65,7 @@ func (s *VoiceSession) beat(bot *Client) error {
 			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
 				s.Unlock()
 
-				s.reconnect("attempting to reconnect session due to no HeartbeatACK")
+				s.reconnect("attempting to reconnect voice session due to no HeartbeatACK")
 
 				return nil
 			}
@@ -105,7 +111,6 @@ func (s *VoiceSession) beat(bot *Client) error {
 // pulse generates Opcode 3 Heartbeats for a Voice Session's heartbeat channel.
 func (s *VoiceSession) pulse() {
 	s.manager.routines.Done()
-	defer s.decrementPulses()
 
 	// send an Opcode 3 Heartbeat payload after heartbeat_interval * jitter milliseconds
 	// (where jitter is a random value between 0 and 1).

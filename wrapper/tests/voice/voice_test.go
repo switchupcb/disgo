@@ -18,6 +18,7 @@ func TestConnectVoice(t *testing.T) {
 		Config:         DefaultConfig(),
 		Handlers:       new(Handlers),
 		Sessions:       NewSessionManager(),
+		ApplicationID:  os.Getenv("APPID"),
 	}
 
 	bot.Config.Gateway.EnableIntent(FlagIntentGUILD_VOICE_STATES)
@@ -29,33 +30,34 @@ func TestConnectVoice(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	vc := &VoiceConnection{
+	vc := &VoiceChannelConnection{
 		State: GatewayVoiceStateUpdate{
 			GuildID:   os.Getenv("COVERAGE_TEST_GUILD"),
 			ChannelID: Pointer(os.Getenv("COVERAGE_TEST_VOICE_CHANNEL")),
 			SelfMute:  false,
 			SelfDeaf:  false,
 		},
-		Session:      s,
-		VoiceSession: nil,
-		Connection:   nil,
-		Handlers:     nil,
+		GatewaySession: s,
+		VoiceSession:   nil,
+		Connection:     nil,
+		Handlers:       nil,
 	}
 
 	// connect to a Discord Voice Channel.
 	if err := vc.Connect(bot); err != nil {
-		if sErr := s.Disconnect(); err != nil {
+		if sErr := s.Disconnect(); sErr != nil {
 			t.Fatalf("%v", fmt.Errorf("session: %q\nvoice session: %q", sErr, err))
 		}
 
 		t.Fatalf("%v", err)
 	}
 
-	time.Sleep(time.Second * 20)
+	time.Sleep(time.Second * 15)
 
+	// disconnect from a Discord Voice Channel.
 	if err := s.Disconnect(); err != nil {
 		t.Fatalf("%v", err)
 	}
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 5)
 }

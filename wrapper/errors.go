@@ -142,34 +142,6 @@ const (
 	bot.Sessions = disgo.NewSessionManager()
 
 	`
-
-	errNoHandlers = `The client must contain a non-nil Handlers struct to connect to the Discord Gateway.
-
-	Set the *Client.Handlers using one of the following methods.
-
-	--- 1
-
-	bot := &disgo.Client{
-		...
-		Handlers: 	new(Handlers),
-	}
-
-	--- 2
-
-	bot := &disgo.Client{
-		...
-		Handlers: 	&Handlers{},
-	}
-
-	--- 3
-
-	bot.Handlers = new(Handlers)
-
-	--- 4
-
-	bot.Handlers = &Handlers{}
-
-	`
 )
 
 // ErrorSession represents a WebSocket Session error that occurs during an active session.
@@ -186,7 +158,8 @@ func (e ErrorSession) Error() string {
 }
 
 const (
-	ErrConnectionSession = "Discord Gateway"
+	ErrConnectionSession      = "Discord Gateway"
+	ErrConnectionSessionVoice = "Discord Voice"
 )
 
 // ErrorDisconnect represents a disconnection error that occurs when

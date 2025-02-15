@@ -95,7 +95,7 @@ func (s *Session) Connect(bot *Client) error {
 // connect connects a session to a WebSocket Connection.
 func (s *Session) connect(bot *Client) error {
 	if bot.Sessions == nil {
-		return fmt.Errorf(errNoSessionManager) //lint:ignore ST1005 format help message.
+		return fmt.Errorf("%q", errNoSessionManager)
 	}
 
 	s.client_manager = bot.Sessions
@@ -405,7 +405,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	return nil
 }
 
-// Disconnect disconnects a session from the Discord Gateway using the given status code.
+// Disconnect disconnects a session from the Discord Gateway.
 func (s *Session) Disconnect() error {
 	s.Lock()
 
@@ -449,7 +449,7 @@ func (s *Session) disconnect(code int) error {
 	defer s.manager.cancel()
 
 	// Remove the session from the session manager.
-	s.client_manager.Gateway.Store(s.ID, nil)
+	s.client_manager.RemoveGatewaySession(s.ID)
 
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
 		return fmt.Errorf("%w", err)
