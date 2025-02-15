@@ -4,15 +4,15 @@ A [cache (computing)](https://en.wikipedia.org/wiki/Cache_(computing)) is a comp
 
 ## Why Cache?
 
-A cache is an alternative to sending redundant requests — that take time to complete — to Discord: A cache stores data so that future requests for that data can be served immediately.
+A cache stores data so that future requests for that data can be served immediately. A cache is an alternative to sending redundant requests — which take time to complete — to Discord.
 
 For example, retrieving _the amount of users in a guild_ requires a network request to be sent to Discord, and another network request to be returned from Discord. Without a cache, retrieving _the exact same information_ again requires two more network requests, even when the guild's condition remains unchanged. 
 
 ## When to Use a Cache?
 
-Caches are useful for storing costly requests or calculations relevant to the application's lifetime. In other words, a cache is **NOT** meant to be used for long-term storage. 
+Use a cache to stop wasting time executing costly requests and calculations relevant to the application's lifetime. An application cache should **NOT** used for long-term storage because the cache resets when the application restarts.
 
-**If you need data to persist when your bot restarts, use a database.**
+**Use a database when you need data to persist when your bot restarts.**
 
 ## How Does a Cache Work?
 
@@ -29,4 +29,6 @@ _For more information, read [Cache Invalidation](https://en.wikipedia.org/wiki/C
 
 ## How Do I Cache?
 
-Disgo provides an **optional** cache along with a **cache interface** for your Discord Bot. Read [The Disgo Cache](/cache/README.md) for information about its implementation.
+Disgo provides an **optional** cache along with a **cache interface** for your Discord Bot.
+
+Read [The Disgo Cache](/cache/README.md) for information about its implementation.
