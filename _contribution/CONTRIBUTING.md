@@ -83,6 +83,13 @@ Unit tests are used to test logic.
 
 Integration tests are used to prove functionality between the API Wrapper and Discord.
 
+| Test                | What feature is tested?                                  |
+| :------------------ | :------------------------------------------------------- |
+| `coverage_test.go`  | [Discord API Feature Coverage](/_gen/coverage/README.md) |
+| `ratelimit_test.go` | Global, Per-Route, Gateway Rate Limits                   |
+| `session_test.go`   | Disgo Gateway Session                                    |
+| `voice_test.go`     | Disgo Voice Connection                                   |
+
 #### Running Tests
 
 Use `go test` to run the tests in the current directory. Use `go test ./<dir>` to run tests in a given directory (from the current directory). Use [Github Action Workflow Files](/.github/workflows/) to find the correct test command and environment variables for a module.
