@@ -17,6 +17,7 @@ func TestConnectVoice(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 		Handlers:       new(Handlers),
+		VoiceHandlers:  new(VoiceHandlers),
 		Sessions:       NewSessionManager(),
 		ApplicationID:  os.Getenv("APPID"),
 	}
@@ -40,7 +41,6 @@ func TestConnectVoice(t *testing.T) {
 		GatewaySession: s,
 		VoiceSession:   nil,
 		Connection:     nil,
-		Handlers:       nil,
 	}
 
 	// connect to a Discord Voice Channel.

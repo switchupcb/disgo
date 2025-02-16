@@ -116,6 +116,7 @@ bot := &disgo.Client{
     Authorization:  &disgo.Authorization{ ... },
     Config:         disgo.DefaultConfig(),
     Handlers:       new(disgo.Handlers),
+    VoiceHandlers:  new(disgo.VoiceHandlers),
     Sessions:       disgo.NewSessionManager()
 }
 ```
@@ -203,6 +204,7 @@ disgo.<Event>.SendEvent()
 disgo.Client.Handle(<event>, <handler>)
 disgo.Client.Remove(<event>, <index>)
 disgo.Client.Handlers.<Handler>
+disgo.Client.VoiceHandlers.<Handler>
 
 // Use the client to manage the bot's settings.
 disgo.Client.ApplicationID

@@ -92,7 +92,7 @@ Use `go test` to run the tests in the current directory. Use `go test ./<dir>` t
 Disgo is **STABLE**. 
 
 The following additional features are being implemented:
-1. [Voice Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice))
+1. [Voice Audio Processing](https://github.com/switchupcb/disgo/issues/72))
 2. [Cache](https://github.com/switchupcb/disgo/issues/39)
 
 [_Get assigned a feature or example now._](https://github.com/switchupcb/disgo/issues/45)

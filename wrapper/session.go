@@ -100,6 +100,10 @@ func (s *Session) connect(bot *Client) error {
 
 	s.client_manager = bot.Sessions
 
+	if bot.Handlers == nil {
+		bot.Handlers = new(Handlers)
+	}
+
 	if s.isConnected() {
 		return fmt.Errorf("session %q is already connected", s.ID)
 	}

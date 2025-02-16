@@ -110,7 +110,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 		return sessionErr
 	}
 
-	for _, handler := range vc.Handlers.VoiceHello {
+	for _, handler := range bot.VoiceHandlers.VoiceHello {
 		go handler(hello)
 	}
 
@@ -169,7 +169,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	// spawn the event listener listen goroutine.
 	s.manager.routines.Add(1)
 	s.manager.Go(func() error {
-		if err := s.listen(vc); err != nil {
+		if err := s.listen(bot); err != nil {
 			return ErrorSession{
 				SessionID: s.ID,
 				Err:       fmt.Errorf("listen: %w", err),
@@ -236,7 +236,7 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceChannelConnection) error {
 
 		LogSession(Logger.Info(), s.ID).Msg("received VoiceReady event")
 
-		for _, handler := range vc.Handlers.VoiceReady {
+		for _, handler := range bot.VoiceHandlers.VoiceReady {
 			go handler(ready)
 		}
 
@@ -251,7 +251,7 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceChannelConnection) error {
 	case FlagVoiceOpcodeResumed:
 		LogSession(Logger.Info(), s.ID).Msg("received VoiceResumed event")
 
-		for _, handler := range vc.Handlers.VoiceResumed {
+		for _, handler := range bot.VoiceHandlers.VoiceResumed {
 			go handler(&VoiceResumed{})
 		}
 

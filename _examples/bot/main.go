@@ -70,6 +70,11 @@ func main() {
 		// described in ./_contribution/REQUESTS.md
 		Handlers: new(disgo.Handlers),
 
+		// VoiceHandlers controls the bot's voice event handlers.
+		//
+		// VoiceHandlers functions similarly to Handlers.
+		VoiceHandlers: new(disgo.VoiceHandlers),
+
 		// Sessions controls the bot's WebSocket Sessions (Gateway, Voice)
 		// when a shard manager is used.
 		Sessions: disgo.NewSessionManager(),

@@ -7,6 +7,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/binary"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,7 @@ import (
 	"net/url"
 	"os"
 	"runtime"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -30,7 +32,6 @@ import (
 	"github.com/switchupcb/disgo/wrapper/socket"
 	"github.com/switchupcb/websocket"
 	"github.com/valyala/fasthttp"
-	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -53,6 +54,9 @@ type Client struct {
 
 	// Handlers represents a bot's event handlers.
 	Handlers *Handlers
+
+	// VoiceHandlers represents a bot's voice event handlers.
+	VoiceHandlers *VoiceHandlers
 
 	// Sessions contains sessions a bot uses to interact with the Discord Gateway.
 	Sessions *SessionManager
@@ -360,17 +364,17 @@ func (sm *SessionManager) RemoveGatewaySession(id string) {
 	//
 	// v = map[GuildID]*VoiceChannelConnection
 	if v, ok := sm.Voice.Load(id); ok {
-		knownSessionIDMap := v.(*sync.Map)
+		knownSessionIDMap := v.(*sync.Map) //nolint:forcetypeassert
 
 		// remove the mapped Voice Channel Connections with an unknown Session ID.
 		//
 		// u = map[GuildID]*VoiceChannelConnection
 		if u, ok := sm.Voice.Load(SessionManagerVoiceKeyUnknownSession); ok {
-			unknownSessionIDMap := u.(*sync.Map)
+			unknownSessionIDMap := u.(*sync.Map) //nolint:forcetypeassert
 
 			knownSessionIDMap.Range(func(key, value any) bool {
 				// key = Guild ID
-				guildID := key.(string)
+				guildID := key.(string) //nolint:forcetypeassert
 				unknownSessionIDMap.Delete(guildID)
 
 				return true
@@ -388,7 +392,7 @@ func (sm *SessionManager) StoreVoiceChannelConnection(sessionid string, guildid 
 LOADMAP:
 	// v = map[GuildID]*VoiceChannelConnection
 	if v, ok := sm.Voice.Load(sessionid); ok {
-		guildIDvoiceChannelConnectionMap := v.(*sync.Map)
+		guildIDvoiceChannelConnectionMap := v.(*sync.Map) //nolint:forcetypeassert
 		guildIDvoiceChannelConnectionMap.Store(vc.State.GuildID, vc)
 	} else {
 		// Store the Gateway Session ID into the bot's Session Manager.
@@ -406,11 +410,11 @@ LOADMAP:
 func (sm *SessionManager) GetVoiceChannelConnection(sessionid string, guildid string) *VoiceChannelConnection {
 	// v = map[GuildID]*VoiceChannelConnection
 	if v, ok := sm.Voice.Load(sessionid); ok {
-		guildIDvoiceChannelConnectionMap := v.(*sync.Map)
+		guildIDvoiceChannelConnectionMap := v.(*sync.Map) //nolint:forcetypeassert
 
 		// v2 = *VoiceChannelConnection
 		if v2, ok := guildIDvoiceChannelConnectionMap.Load(guildid); ok {
-			return v2.(*VoiceChannelConnection)
+			return v2.(*VoiceChannelConnection) //nolint:forcetypeassert
 		}
 	}
 
@@ -10362,8 +10366,8 @@ func (b *Bucket) ConfirmHeader(amount int16, header RateLimitHeader) {
 	//
 	// set the current Bucket to the current Discord Bucket.
 	if b.Expiry.IsZero() {
-		b.Limit = int16(header.Limit)
-		b.Remaining = int16(header.Remaining) - b.Pending
+		b.Limit = int16(header.Limit)                     //nolint:gosec // disable G115
+		b.Remaining = int16(header.Remaining) - b.Pending //nolint:gosec // disable G115
 		b.Expiry = reset
 
 		return
@@ -10377,7 +10381,7 @@ func (b *Bucket) ConfirmHeader(amount int16, header RateLimitHeader) {
 	//
 	// update the current Bucket to the next Bucket.
 	case b.Expiry.Before(reset):
-		b.Limit = int16(header.Limit)
+		b.Limit = int16(header.Limit) //nolint:gosec // disable G115
 		b.Expiry = reset
 
 	// Expiry occurs AFTER a Discord Bucket's Reset when the request applied to a previous Bucket.
@@ -10799,7 +10803,7 @@ func randomBoundary() string {
 		panic(err)
 	}
 
-	return fmt.Sprintf("%x", buf[:])
+	return hex.EncodeToString(buf[:])
 }
 
 // quoteEscaper escapes quotes and backslashes in a multipart form.
@@ -17229,6 +17233,10 @@ func (s *Session) connect(bot *Client) error {
 
 	s.client_manager = bot.Sessions
 
+	if bot.Handlers == nil {
+		bot.Handlers = new(Handlers)
+	}
+
 	if s.isConnected() {
 		return fmt.Errorf("session %q is already connected", s.ID)
 	}
@@ -17267,7 +17275,7 @@ func (s *Session) connect(bot *Client) error {
 			bot.Config.Gateway.RateLimiter.SetBucketFromID(FlagGatewaySendEventNameIdentify, identifyBucket)
 		}
 
-		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency)
+		identifyBucket.Limit = int16(response.SessionStartLimit.MaxConcurrency) //nolint:gosec // disable G115
 
 		if identifyBucket.Expiry.IsZero() {
 			identifyBucket.Remaining = identifyBucket.Limit
@@ -21532,7 +21540,6 @@ type VoiceChannelConnection struct {
 	GatewaySession *Session
 	VoiceSession   *VoiceSession
 	Connection     *net.UDPConn
-	Handlers       *VoiceHandlers
 	State          GatewayVoiceStateUpdate
 }
 
@@ -21580,8 +21587,8 @@ func addDefaultHandlerVoiceServerUpdate(bot *Client) error {
 }
 
 // addDefaultHandlerSessionDescription adds a default event handler for the SessionDescription event to the Voice Session.
-func addDefaultHandlerSessionDescription(vc *VoiceChannelConnection) error {
-	return vc.Handle(FlagVoiceOpcodeNameSessionDescription, func(sd *SessionDescription) {
+func addDefaultHandlerSessionDescription(bot *Client) error {
+	return bot.HandleVoice(FlagVoiceOpcodeNameSessionDescription, func(sd *SessionDescription) {
 		// TODO: Encryption and Decryption in connectUDP()
 		// https://discord.com/developers/docs/topics/voice-connections#transport-encryption-and-sending-voice
 	})
@@ -21590,28 +21597,26 @@ func addDefaultHandlerSessionDescription(vc *VoiceChannelConnection) error {
 // VoiceConnection connects the bot to a Discord Voice Channel using the Discord Gateway.
 func (vc *VoiceChannelConnection) Connect(bot *Client) error {
 	if bot.ApplicationID == "" {
-		return fmt.Errorf("ConnectVoice: Client must have an ApplicationID to connect to voice channel." +
+		return errors.New("ConnectVoice: Client must have an ApplicationID to connect to voice channel." +
 			"Set `bot.ApplicationID` before connecting to a voice channel.") //lint:ignore ST1005 format help message.
 	}
 
 	// check that the user (developer) has provided a ChannelID.
 	if vc.State.ChannelID == nil || *vc.State.ChannelID == "" {
-		return fmt.Errorf("ConnectVoice: Voice ChannelID must be non-nil and non-empty to connect to voice channel")
+		return errors.New("ConnectVoice: Voice ChannelID must be non-nil and non-empty to connect to voice channel")
 	}
 
 	if vc.GatewaySession == nil || !vc.GatewaySession.isConnected() {
-		return fmt.Errorf("ConnectVoice: Session must be connected to the Discord Gateway to connect to voice channel")
+		return errors.New("ConnectVoice: Session must be connected to the Discord Gateway to connect to voice channel")
 	}
 
 	if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] {
-		return fmt.Errorf("ConnectVoice: Session must be connected to the Discord Gateway with the GUILD_VOICE_STATES intent. " +
+		return errors.New("ConnectVoice: Session must be connected to the Discord Gateway with the GUILD_VOICE_STATES intent. " +
 			"Use `bot.Config.Gateway.EnableIntent(FlagIntentGUILD_VOICE_STATES)` before connecting the Gateway Session to the Discord Gateway.") //lint:ignore ST1005 format help message.
 	}
 
-	vc.VoiceSession = newVoiceSession()
-
-	if vc.Handlers == nil {
-		vc.Handlers = new(VoiceHandlers)
+	if bot.VoiceHandlers == nil {
+		bot.VoiceHandlers = new(VoiceHandlers)
 	}
 
 	if len(bot.Handlers.VoiceStateUpdate) == 0 {
@@ -21626,11 +21631,13 @@ func (vc *VoiceChannelConnection) Connect(bot *Client) error {
 		}
 	}
 
-	if len(vc.Handlers.SessionDescription) == 0 {
-		if err := addDefaultHandlerSessionDescription(vc); err != nil {
+	if len(bot.VoiceHandlers.SessionDescription) == 0 {
+		if err := addDefaultHandlerSessionDescription(bot); err != nil {
 			return fmt.Errorf("ConnectVoice: %w", err)
 		}
 	}
+
+	vc.VoiceSession = newVoiceSession()
 
 	// Store the Voice Connection into the bot's Voice Session Manager.
 	bot.Sessions.StoreVoiceChannelConnection(vc.GatewaySession.ID, vc.State.GuildID, vc)
@@ -21701,13 +21708,15 @@ func (vc *VoiceChannelConnection) connectUDP(r *VoiceReady) error {
 
 	// Perform an IP Discovery.
 	// https://discord.com/developers/docs/topics/voice-connections#ip-discovery
-	ipDiscoveryPacket := make([]byte, 74)
-	binary.BigEndian.PutUint16(ipDiscoveryPacket, 1)                   // Type: 0x1 = request, 0x2 = response
-	binary.BigEndian.PutUint16(ipDiscoveryPacket[2:4], 70)             // Message Length: 70
-	binary.BigEndian.PutUint32(ipDiscoveryPacket[4:8], uint32(r.SSRC)) // SSRC
-	vc.Connection.Write(ipDiscoveryPacket)
+	ipDiscoveryPacket := make([]byte, 74)                              //nolint:mnd // TODO add numbers as dasgo flags
+	binary.BigEndian.PutUint16(ipDiscoveryPacket, 1)                   //nolint:nolintlint //nolint:mnd // Type: 0x1 = request, 0x2 = response
+	binary.BigEndian.PutUint16(ipDiscoveryPacket[2:4], 70)             //nolint:mnd // Message Length: 70
+	binary.BigEndian.PutUint32(ipDiscoveryPacket[4:8], uint32(r.SSRC)) //nolint:gosec // disable G115 // SSRC
+	if _, err := vc.Connection.Write(ipDiscoveryPacket); err != nil {
+		return fmt.Errorf("udp: %w", err)
+	}
 
-	ipDiscoveryPacket = make([]byte, 74)
+	ipDiscoveryPacket = make([]byte, 74) //nolint:mnd
 	_, externalAddr, err := vc.Connection.ReadFromUDP(ipDiscoveryPacket)
 	if err != nil {
 		return fmt.Errorf("udp: %w", err)
@@ -21718,12 +21727,13 @@ func (vc *VoiceChannelConnection) connectUDP(r *VoiceReady) error {
 	// select a supported encryption mode (in order of priority).
 	// https://discord.com/developers/docs/topics/voice-connections#transport-encryption-and-sending-voice
 	var mode string
-	if slices.Contains(r.Modes, FlagVoiceEncryptionModeAES256) {
+	switch {
+	case slices.Contains(r.Modes, FlagVoiceEncryptionModeAES256):
 		mode = FlagVoiceEncryptionModeAES256
-	} else if slices.Contains(r.Modes, FlagVoiceEncryptionModeXChaCha20) {
+	case slices.Contains(r.Modes, FlagVoiceEncryptionModeXChaCha20):
 		mode = FlagVoiceEncryptionModeXChaCha20
-	} else {
-		return fmt.Errorf("udp: supported mode is not available")
+	default:
+		return errors.New("udp: supported mode is not available")
 	}
 
 	// send an Opcode 1 Select Protocol Payload.
@@ -21824,7 +21834,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 		return sessionErr
 	}
 
-	for _, handler := range vc.Handlers.VoiceHello {
+	for _, handler := range bot.VoiceHandlers.VoiceHello {
 		go handler(hello)
 	}
 
@@ -21883,7 +21893,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	// spawn the event listener listen goroutine.
 	s.manager.routines.Add(1)
 	s.manager.Go(func() error {
-		if err := s.listen(vc); err != nil {
+		if err := s.listen(bot); err != nil {
 			return ErrorSession{
 				SessionID: s.ID,
 				Err:       fmt.Errorf("listen: %w", err),
@@ -21918,7 +21928,6 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceChannelConnection) error {
 		if err := identify.SendEvent(s); err != nil {
 			return err
 		}
-
 	} else {
 		// send an Opcode 7 Resume to the Discord Voice Server to reconnect the session.
 		resume := VoiceResume{
@@ -21951,7 +21960,7 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceChannelConnection) error {
 
 		LogSession(Logger.Info(), s.ID).Msg("received VoiceReady event")
 
-		for _, handler := range vc.Handlers.VoiceReady {
+		for _, handler := range bot.VoiceHandlers.VoiceReady {
 			go handler(ready)
 		}
 
@@ -21966,7 +21975,7 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceChannelConnection) error {
 	case FlagVoiceOpcodeResumed:
 		LogSession(Logger.Info(), s.ID).Msg("received VoiceResumed event")
 
-		for _, handler := range vc.Handlers.VoiceResumed {
+		for _, handler := range bot.VoiceHandlers.VoiceResumed {
 			go handler(&VoiceResumed{})
 		}
 
@@ -22096,234 +22105,234 @@ type VoiceHandlers struct {
 }
 
 // Handle adds an event handler for the given event to the Voice Connection.
-func (vc *VoiceChannelConnection) Handle(eventname string, function interface{}) error {
-	vc.Handlers.mu.Lock()
-	defer vc.Handlers.mu.Unlock()
+func (bot *Client) HandleVoice(eventname string, function interface{}) error {
+	bot.VoiceHandlers.mu.Lock()
+	defer bot.VoiceHandlers.mu.Unlock()
 
 	switch eventname {
 	case FlagVoiceOpcodeNameReady:
 		if f, ok := function.(func(*VoiceReady)); ok {
-			vc.Handlers.VoiceReady = append(vc.Handlers.VoiceReady, f)
-			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			bot.VoiceHandlers.VoiceReady = append(bot.VoiceHandlers.VoiceReady, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added voice event handler")
 			return nil
 		}
 
 	case FlagVoiceOpcodeNameSessionDescription:
 		if f, ok := function.(func(*SessionDescription)); ok {
-			vc.Handlers.SessionDescription = append(vc.Handlers.SessionDescription, f)
-			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			bot.VoiceHandlers.SessionDescription = append(bot.VoiceHandlers.SessionDescription, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added voice event handler")
 			return nil
 		}
 
 	case FlagVoiceOpcodeNameSpeaking:
 		if f, ok := function.(func(*Speaking)); ok {
-			vc.Handlers.Speaking = append(vc.Handlers.Speaking, f)
-			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			bot.VoiceHandlers.Speaking = append(bot.VoiceHandlers.Speaking, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added voice event handler")
 			return nil
 		}
 
 	case FlagVoiceOpcodeNameHello:
 		if f, ok := function.(func(*VoiceHello)); ok {
-			vc.Handlers.VoiceHello = append(vc.Handlers.VoiceHello, f)
-			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			bot.VoiceHandlers.VoiceHello = append(bot.VoiceHandlers.VoiceHello, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added voice event handler")
 			return nil
 		}
 
 	case FlagVoiceOpcodeNameResumed:
 		if f, ok := function.(func(*VoiceResumed)); ok {
-			vc.Handlers.VoiceResumed = append(vc.Handlers.VoiceResumed, f)
-			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			bot.VoiceHandlers.VoiceResumed = append(bot.VoiceHandlers.VoiceResumed, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added voice event handler")
 			return nil
 		}
 
 	case FlagVoiceOpcodeNameClientDisconnect:
 		if f, ok := function.(func(*ClientDisconnect)); ok {
-			vc.Handlers.ClientDisconnect = append(vc.Handlers.ClientDisconnect, f)
-			LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("added voice event handler")
+			bot.VoiceHandlers.ClientDisconnect = append(bot.VoiceHandlers.ClientDisconnect, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added voice event handler")
 			return nil
 		}
 	}
 
 	err := ErrorEventHandler{
-		ClientID: vc.VoiceSession.ID,
+		ClientID: bot.ApplicationID,
 		Event:    eventname,
 		Err:      fmt.Errorf("%s", errHandleNotRemoved),
 	}
-	LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+	LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 
 	return err
 }
 
 // Remove removes the event handler at the given index from the Voice Connection.
-func (vc *VoiceChannelConnection) Remove(eventname string, index int) error {
-	vc.Handlers.mu.Lock()
-	defer vc.Handlers.mu.Unlock()
+func (bot *Client) RemoveVoice(eventname string, index int) error {
+	bot.VoiceHandlers.mu.Lock()
+	defer bot.VoiceHandlers.mu.Unlock()
 
 	switch eventname {
 	case FlagVoiceOpcodeNameReady:
-		if len(vc.Handlers.VoiceReady) <= index {
+		if len(bot.VoiceHandlers.VoiceReady) <= index {
 			err := ErrorEventHandler{
-				ClientID: vc.VoiceSession.ID,
+				ClientID: bot.ApplicationID,
 				Event:    eventname,
 				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
 			}
-			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
-		vc.Handlers.VoiceReady = append(vc.Handlers.VoiceReady[:index], vc.Handlers.VoiceReady[index+1:]...)
+		bot.VoiceHandlers.VoiceReady = append(bot.VoiceHandlers.VoiceReady[:index], bot.VoiceHandlers.VoiceReady[index+1:]...)
 
 	case FlagVoiceOpcodeNameSessionDescription:
-		if len(vc.Handlers.SessionDescription) <= index {
+		if len(bot.VoiceHandlers.SessionDescription) <= index {
 			err := ErrorEventHandler{
-				ClientID: vc.VoiceSession.ID,
+				ClientID: bot.ApplicationID,
 				Event:    eventname,
 				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
 			}
-			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
-		vc.Handlers.SessionDescription = append(vc.Handlers.SessionDescription[:index], vc.Handlers.SessionDescription[index+1:]...)
+		bot.VoiceHandlers.SessionDescription = append(bot.VoiceHandlers.SessionDescription[:index], bot.VoiceHandlers.SessionDescription[index+1:]...)
 
 	case FlagVoiceOpcodeNameSpeaking:
-		if len(vc.Handlers.Speaking) <= index {
+		if len(bot.VoiceHandlers.Speaking) <= index {
 			err := ErrorEventHandler{
-				ClientID: vc.VoiceSession.ID,
+				ClientID: bot.ApplicationID,
 				Event:    eventname,
 				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
 			}
-			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
-		vc.Handlers.Speaking = append(vc.Handlers.Speaking[:index], vc.Handlers.Speaking[index+1:]...)
+		bot.VoiceHandlers.Speaking = append(bot.VoiceHandlers.Speaking[:index], bot.VoiceHandlers.Speaking[index+1:]...)
 
 	case FlagVoiceOpcodeNameHello:
-		if len(vc.Handlers.VoiceHello) <= index {
+		if len(bot.VoiceHandlers.VoiceHello) <= index {
 			err := ErrorEventHandler{
-				ClientID: vc.VoiceSession.ID,
+				ClientID: bot.ApplicationID,
 				Event:    eventname,
 				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
 			}
-			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
-		vc.Handlers.VoiceHello = append(vc.Handlers.VoiceHello[:index], vc.Handlers.VoiceHello[index+1:]...)
+		bot.VoiceHandlers.VoiceHello = append(bot.VoiceHandlers.VoiceHello[:index], bot.VoiceHandlers.VoiceHello[index+1:]...)
 
 	case FlagVoiceOpcodeNameResumed:
-		if len(vc.Handlers.VoiceResumed) <= index {
+		if len(bot.VoiceHandlers.VoiceResumed) <= index {
 			err := ErrorEventHandler{
-				ClientID: vc.VoiceSession.ID,
+				ClientID: bot.ApplicationID,
 				Event:    eventname,
 				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
 			}
-			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
-		vc.Handlers.VoiceResumed = append(vc.Handlers.VoiceResumed[:index], vc.Handlers.VoiceResumed[index+1:]...)
+		bot.VoiceHandlers.VoiceResumed = append(bot.VoiceHandlers.VoiceResumed[:index], bot.VoiceHandlers.VoiceResumed[index+1:]...)
 
 	case FlagVoiceOpcodeNameClientDisconnect:
-		if len(vc.Handlers.ClientDisconnect) <= index {
+		if len(bot.VoiceHandlers.ClientDisconnect) <= index {
 			err := ErrorEventHandler{
-				ClientID: vc.VoiceSession.ID,
+				ClientID: bot.ApplicationID,
 				Event:    eventname,
 				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
 			}
-			LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(err).Msg("")
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
 			return err
 		}
 
-		vc.Handlers.ClientDisconnect = append(vc.Handlers.ClientDisconnect[:index], vc.Handlers.ClientDisconnect[index+1:]...)
+		bot.VoiceHandlers.ClientDisconnect = append(bot.VoiceHandlers.ClientDisconnect[:index], bot.VoiceHandlers.ClientDisconnect[index+1:]...)
 	}
 
-	LogEventHandler(Logger.Info(), vc.VoiceSession.ID, eventname).Msg("removed voice event handler")
+	LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("removed voice event handler")
 
 	return nil
 }
 
 // handle handles an event using its name and data.
-func (vc *VoiceChannelConnection) handle(eventname string, data json.RawMessage) {
-	vc.Handlers.mu.RLock()
-	defer vc.Handlers.mu.RUnlock()
+func (bot *Client) handleVoice(eventname string, data json.RawMessage) {
+	bot.VoiceHandlers.mu.RLock()
+	defer bot.VoiceHandlers.mu.RUnlock()
 
 	switch eventname {
 	case FlagVoiceOpcodeNameReady:
-		if len(vc.Handlers.VoiceReady) != 0 {
+		if len(bot.VoiceHandlers.VoiceReady) != 0 {
 			event := new(VoiceReady)
 			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagVoiceOpcodeNameReady, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 				return
 			}
 
-			for _, handler := range vc.Handlers.VoiceReady {
+			for _, handler := range bot.VoiceHandlers.VoiceReady {
 				go handler(event)
 			}
 		}
 
 	case FlagVoiceOpcodeNameSessionDescription:
-		if len(vc.Handlers.SessionDescription) != 0 {
+		if len(bot.VoiceHandlers.SessionDescription) != 0 {
 			event := new(SessionDescription)
 			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameSessionDescription, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagVoiceOpcodeNameSessionDescription, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 				return
 			}
 
-			for _, handler := range vc.Handlers.SessionDescription {
+			for _, handler := range bot.VoiceHandlers.SessionDescription {
 				go handler(event)
 			}
 		}
 
 	case FlagVoiceOpcodeNameSpeaking:
-		if len(vc.Handlers.Speaking) != 0 {
+		if len(bot.VoiceHandlers.Speaking) != 0 {
 			event := new(Speaking)
 			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameSpeaking, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagVoiceOpcodeNameSpeaking, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 				return
 			}
 
-			for _, handler := range vc.Handlers.Speaking {
+			for _, handler := range bot.VoiceHandlers.Speaking {
 				go handler(event)
 			}
 		}
 
 	case FlagVoiceOpcodeNameHello:
-		if len(vc.Handlers.VoiceHello) != 0 {
+		if len(bot.VoiceHandlers.VoiceHello) != 0 {
 			event := new(VoiceHello)
 			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagVoiceOpcodeNameHello, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 				return
 			}
 
-			for _, handler := range vc.Handlers.VoiceHello {
+			for _, handler := range bot.VoiceHandlers.VoiceHello {
 				go handler(event)
 			}
 		}
 
 	case FlagVoiceOpcodeNameResumed:
-		if len(vc.Handlers.VoiceResumed) != 0 {
+		if len(bot.VoiceHandlers.VoiceResumed) != 0 {
 			event := new(VoiceResumed)
 			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagVoiceOpcodeNameResumed, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 				return
 			}
 
-			for _, handler := range vc.Handlers.VoiceResumed {
+			for _, handler := range bot.VoiceHandlers.VoiceResumed {
 				go handler(event)
 			}
 		}
 
 	case FlagVoiceOpcodeNameClientDisconnect:
-		if len(vc.Handlers.ClientDisconnect) != 0 {
+		if len(bot.VoiceHandlers.ClientDisconnect) != 0 {
 			event := new(ClientDisconnect)
 			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), vc.VoiceSession.ID, eventname).Err(ErrorEvent{ClientID: vc.VoiceSession.ID, Event: FlagVoiceOpcodeNameClientDisconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagVoiceOpcodeNameClientDisconnect, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
 				return
 			}
 
-			for _, handler := range vc.Handlers.ClientDisconnect {
+			for _, handler := range bot.VoiceHandlers.ClientDisconnect {
 				go handler(event)
 			}
 		}
@@ -22461,7 +22470,7 @@ func (s *VoiceSession) pulse() {
 }
 
 // listen listens to the connection for payloads from the Discord Voice Server.
-func (s *VoiceSession) listen(vc *VoiceChannelConnection) error {
+func (s *VoiceSession) listen(bot *Client) error {
 	s.manager.routines.Done()
 
 	var err error
@@ -22474,7 +22483,7 @@ func (s *VoiceSession) listen(vc *VoiceChannelConnection) error {
 
 		LogPayload(LogSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received voice payload")
 
-		if err = s.onPayload(vc, *payload); err != nil {
+		if err = s.onPayload(bot, *payload); err != nil {
 			break
 		}
 	}
@@ -22493,13 +22502,13 @@ func (s *VoiceSession) listen(vc *VoiceChannelConnection) error {
 }
 
 // onPayload handles an Discord Voice Server Payload.
-func (s *VoiceSession) onPayload(vc *VoiceChannelConnection, payload VoicePayload) error {
+func (s *VoiceSession) onPayload(bot *Client, payload VoicePayload) error {
 	defer putVoicePayload(&payload)
 
 	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
 	switch payload.Op {
 	case FlagVoiceOpcodeSpeaking:
-		go vc.handle(FlagVoiceOpcodeNameSpeaking, payload.Data)
+		go bot.handleVoice(FlagVoiceOpcodeNameSpeaking, payload.Data)
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagVoiceOpcodeHeartbeatACK:
@@ -22508,7 +22517,7 @@ func (s *VoiceSession) onPayload(vc *VoiceChannelConnection, payload VoicePayloa
 		s.Unlock()
 
 	case FlagVoiceOpcodeClientDisconnect:
-		go vc.handle(FlagVoiceOpcodeNameClientDisconnect, payload.Data)
+		go bot.handleVoice(FlagVoiceOpcodeNameClientDisconnect, payload.Data)
 	}
 
 	return nil

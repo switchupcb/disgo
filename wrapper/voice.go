@@ -29,9 +29,6 @@ type VoiceChannelConnection struct {
 
 	// Connection represents the Voice UDP connection of the VoiceChannelConnection.
 	Connection *net.UDPConn
-
-	// Handlers represents a VoiceChannelConnection's Voice Session event handlers.
-	Handlers *VoiceHandlers
 }
 
 // addDefaultVoiceStateUpdate adds a default event handler for the VoiceStateUpdate event to the bot.
@@ -78,8 +75,8 @@ func addDefaultHandlerVoiceServerUpdate(bot *Client) error {
 }
 
 // addDefaultHandlerSessionDescription adds a default event handler for the SessionDescription event to the Voice Session.
-func addDefaultHandlerSessionDescription(vc *VoiceChannelConnection) error {
-	return vc.Handle(FlagVoiceOpcodeNameSessionDescription, func(sd *SessionDescription) {
+func addDefaultHandlerSessionDescription(bot *Client) error {
+	return bot.HandleVoice(FlagVoiceOpcodeNameSessionDescription, func(sd *SessionDescription) {
 		// TODO: Encryption and Decryption in connectUDP()
 		// https://discord.com/developers/docs/topics/voice-connections#transport-encryption-and-sending-voice
 	})
@@ -106,10 +103,8 @@ func (vc *VoiceChannelConnection) Connect(bot *Client) error {
 			"Use `bot.Config.Gateway.EnableIntent(FlagIntentGUILD_VOICE_STATES)` before connecting the Gateway Session to the Discord Gateway.") //lint:ignore ST1005 format help message.
 	}
 
-	vc.VoiceSession = newVoiceSession()
-
-	if vc.Handlers == nil {
-		vc.Handlers = new(VoiceHandlers)
+	if bot.VoiceHandlers == nil {
+		bot.VoiceHandlers = new(VoiceHandlers)
 	}
 
 	if len(bot.Handlers.VoiceStateUpdate) == 0 {
@@ -124,11 +119,13 @@ func (vc *VoiceChannelConnection) Connect(bot *Client) error {
 		}
 	}
 
-	if len(vc.Handlers.SessionDescription) == 0 {
-		if err := addDefaultHandlerSessionDescription(vc); err != nil {
+	if len(bot.VoiceHandlers.SessionDescription) == 0 {
+		if err := addDefaultHandlerSessionDescription(bot); err != nil {
 			return fmt.Errorf("ConnectVoice: %w", err)
 		}
 	}
+
+	vc.VoiceSession = newVoiceSession()
 
 	// Store the Voice Connection into the bot's Voice Session Manager.
 	bot.Sessions.StoreVoiceChannelConnection(vc.GatewaySession.ID, vc.State.GuildID, vc)

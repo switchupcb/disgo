@@ -7,7 +7,7 @@ import (
 )
 
 // listen listens to the connection for payloads from the Discord Voice Server.
-func (s *VoiceSession) listen(vc *VoiceChannelConnection) error {
+func (s *VoiceSession) listen(bot *Client) error {
 	s.manager.routines.Done()
 
 	var err error
@@ -20,7 +20,7 @@ func (s *VoiceSession) listen(vc *VoiceChannelConnection) error {
 
 		LogPayload(LogSession(Logger.Info(), s.ID), payload.Op, payload.Data).Msg("received voice payload")
 
-		if err = s.onPayload(vc, *payload); err != nil {
+		if err = s.onPayload(bot, *payload); err != nil {
 			break
 		}
 	}
@@ -39,13 +39,13 @@ func (s *VoiceSession) listen(vc *VoiceChannelConnection) error {
 }
 
 // onPayload handles an Discord Voice Server Payload.
-func (s *VoiceSession) onPayload(vc *VoiceChannelConnection, payload VoicePayload) error {
+func (s *VoiceSession) onPayload(bot *Client, payload VoicePayload) error {
 	defer putVoicePayload(&payload)
 
 	// https://discord.com/developers/docs/topics/opcodes-and-status-codes#gateway-gateway-opcodes
 	switch payload.Op {
 	case FlagVoiceOpcodeSpeaking:
-		go vc.handle(FlagVoiceOpcodeNameSpeaking, payload.Data)
+		go bot.handleVoice(FlagVoiceOpcodeNameSpeaking, payload.Data)
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagVoiceOpcodeHeartbeatACK:
@@ -54,7 +54,7 @@ func (s *VoiceSession) onPayload(vc *VoiceChannelConnection, payload VoicePayloa
 		s.Unlock()
 
 	case FlagVoiceOpcodeClientDisconnect:
-		go vc.handle(FlagVoiceOpcodeNameClientDisconnect, payload.Data)
+		go bot.handleVoice(FlagVoiceOpcodeNameClientDisconnect, payload.Data)
 	}
 
 	return nil
