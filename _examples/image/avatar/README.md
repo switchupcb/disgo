@@ -1,6 +1,6 @@
 # Example: Avatar
 
-This example adds and remove an avatar _(image)_ to your bot.
+This example adds and removes an avatar _(image)_ to your bot.
 
 ## Setup
 

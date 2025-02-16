@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -83,7 +84,7 @@ func check() error {
 	}
 
 	if filepath.Base(cwd) != exeDir && filepath.Base(filepath.Dir(cwd)) != "disgo" {
-		return fmt.Errorf("This executable must be run from disgo/" + exeDir)
+		return errors.New("This executable must be run from disgo/" + exeDir)
 	}
 
 	return nil
@@ -165,10 +166,24 @@ func generate() error {
 	}
 
 	// send
-	sendgen := exec.Command("copygen", "-yml", copygenFolder+"requests/setup.yml", "-xm")
+	sendgen := exec.Command("copygen", "-yml", copygenFolder+"requests/request_send.yml", "-xm")
 	std, err := sendgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (send): %v", string(std))
+	}
+
+	// send: ratelimit algorithm map
+	sendramgen := exec.Command("copygen", "-yml", copygenFolder+"requests/coverage_endpoint_map.yml", "-xm")
+	std, err = sendramgen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copygen error (send: ratelimit algorithm map): %v", string(std))
+	}
+
+	// send: coverage test map
+	sendctmgen := exec.Command("copygen", "-yml", copygenFolder+"requests/ratelimit_algorithm_map.yml", "-xm")
+	std, err = sendctmgen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copygen error (send: coverage test map): %v", string(std))
 	}
 
 	// event handling
@@ -190,6 +205,13 @@ func generate() error {
 	std, err = shardeventgen.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("copygen error (shardevents): %v", string(std))
+	}
+
+	// sendevents (voice server)
+	voiceeventgen := exec.Command("copygen", "-yml", copygenFolder+"voice/setup.yml", "-xm")
+	std, err = voiceeventgen.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("copygen error (voice): %v", string(std))
 	}
 
 	// reset

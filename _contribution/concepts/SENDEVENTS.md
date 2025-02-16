@@ -4,11 +4,11 @@ A [send event](https://discord.com/developers/docs/topics/gateway-events#send-ev
 
 # Disgo Send Events
 
-Disgo provides a simple way to send events from a Discord Bot.
+You use Disgo to send events from a Discord Bot.
 
 ## How does it work?
 
-Suppose that your Discord Bot sends a request to Discord:
+Suppose that your Discord Bot sends a request to Discord.
 1. Disgo sends an event to Discord's Gateway. 
 2. Discord's Gateway Server processes the sent **event** based on several factors _(e.g., opcode, payload data)_.
 3. Discord's Gateway Server returns a **payload** with an opcode and payload data to the Discord Bot.

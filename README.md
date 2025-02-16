@@ -1,27 +1,33 @@
-# Create a Discord Bot in Go
+# Create a Discord Bot using Go
 
 [![Go Doc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge&logo=appveyor&logo=appveyor)](https://pkg.go.dev/github.com/switchupcb/disgo)
 [![License](https://img.shields.io/github/license/switchupcb/disgo.svg?style=for-the-badge)](https://github.com/switchupcb/disgo/blob/main/LICENSE)
 
-**Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper designed to be flexible, performant, secure, and thread-safe. Disgo aims to provide every feature in the Discord API along with optional rate limiting, structured logging, shard management, and caching. Use the only Go module to provide a **100% one-to-one implementation** of the Discord API.
+**Disgo** helps you create a Discord Bot using the Go programming language.
+
+## What is Disgo?
+
+**Disgo** is a [Discord API](https://discord.com/developers/docs/reference) Wrapper designed to be flexible, performant, secure, and thread-safe. Disgo provides every feature in the Discord API along with optional rate limiting, structured logging, shard management, and caching. 
 
 _This repository is STABLE. For more information, read the [roadmap](/_contribution/CONTRIBUTING.md#roadmap)._
 
-## A Next Generation Discord API Wrapper
+### A Next Generation Discord API Wrapper
 
-High-quality code merits easy development.
+Use the only Go module to provide a **100% one-to-one horizontally scalable implementation** of the Discord API.
 
-Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. 
-- Code generation provides a clean implementation for every request and event.
-- Data race detection is run on an integration test _that covers the entire Discord API_ to ensure that Disgo is safe for concurrent usage. 
-
-In addition, **Disgo provides the following exclusive features**.
+Your development is also simplified with these exclusive features.
 
 - [EVERY Rate Limit (Global, Per Route, Per Resource, Custom, Gateway)](_contribution/concepts/REQUESTS.md#what-is-a-rate-limit) 
 - [Automatic Gateway Intent Calculation](_contribution/concepts/EVENTS.md#what-is-a-gateway-intent)
 - [Selective Event Processing](_contribution/concepts/EVENTS.md#selective-event-processing)
 
 _Disgo uses [NO reflection or type assertion](_contribution/concepts/EVENTS.md#how-it-works)._
+
+### A Next Generation Development Process
+
+Disgo uses developer operations to stay up-to-date with the ever-changing Discord API. 
+- Code generation provides an optimal implementation for every request and event.
+- Data race detection is run on _an integration test covering the entire Discord API_ to make Disgo safe for concurrent usage.
 
 ## Table of Contents
 
@@ -34,7 +40,7 @@ _Disgo uses [NO reflection or type assertion](_contribution/concepts/EVENTS.md#h
 
 ## Using the API
 
-This breakdown provides you with a **full understanding** on how to use the API.
+Use this breakdown to learn how the Discord API works.
 
 | Abstraction  | Usecase                                                                                                                                           | Example                                                                             |
 | :----------- | :------------------------------------------------------------------------------------------------------------------------------------------------ | :---------------------------------------------------------------------------------- |
@@ -44,13 +50,17 @@ This breakdown provides you with a **full understanding** on how to use the API.
 | **Request**  | Uses the Discord HTTP REST API to make one-time _requests_ for information.                                                                       | Create an application command. <br> Request guild information.                      |
 | **Session**  | Uses a Discord WebSocket Connection [(Gateway)](https://discord.com/developers/docs/topics/gateway) to receive _events_ that contain information. | Send a message when an application command is used or a user joins a voice channel. |
 
-You create a **Client** that calls for **Resources** using **Requests** and handles **Events** from **Sessions** using event handlers. 
+Here is an example.
+
+You create a **Client** that **Requests** **Resources** and handles **Events** from **Sessions** using Event Handlers. 
 
 _For more information, please read [What is a Request?](/_contribution/concepts/REQUESTS.md) and [What is an Event?](/_contribution/concepts/EVENTS.md)._
 
 ### Flags
 
-A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides. All flags are denoted by `disgo.Flag` _(e.g., `disgo.FlagUserSTAFF`, `disgo.FlagVerificationLevelHIGH`, `disgo.FlagPremiumTierNONE`)_.
+ All flags are denoted by `disgo.Flag` _(e.g., `disgo.FlagUserSTAFF`, `disgo.FlagVerificationLevelHIGH`, `disgo.FlagPremiumTierNONE`)_.
+
+A flag is a [flag](https://discord.com/developers/docs/resources/application#application-object-application-flags), [type](https://discord.com/developers/docs/resources/channel#embed-object-embed-types), [key](https://discord.com/developers/docs/resources/audit-log#audit-log-change-object-audit-log-change-key), [level](https://discord.com/developers/docs/resources/guild#guild-object-verification-level) or any other option that Discord provides.
 
 ### Logging
 
@@ -68,7 +78,7 @@ _Read [What is a Discord Shard](/_contribution/concepts/SHARD.md) for a simple y
 
 The [Disgo Cache](/_contribution/concepts/CACHE.md#the-disgo-cache) is **optional** and **customizable**.
 
-The **cache interface** allows you to replace the built-in cache with another store _(such as Redis or Memcached)_ or provide your own caching implementation.
+The **cache interface** lets you replace the built-in cache with another store _(such as Redis or Memcached)_ or provide your own caching implementation.
 
 _Read [What is a Cache](/_contribution/concepts/CACHE.md) for a simple yet full understanding of the Disgo Cache._
 
@@ -106,6 +116,7 @@ bot := &disgo.Client{
     Authorization:  &disgo.Authorization{ ... },
     Config:         disgo.DefaultConfig(),
     Handlers:       new(disgo.Handlers),
+    VoiceHandlers:  new(disgo.VoiceHandlers),
     Sessions:       disgo.NewSessionManager()
 }
 ```
@@ -157,7 +168,7 @@ s := disgo.NewSession()
 if err := s.Connect(bot); err != nil {
     log.Printf("can't open websocket session to Discord Gateway: %v", err)
 
-	return
+    return
 }
 ```
 
@@ -193,6 +204,7 @@ disgo.<Event>.SendEvent()
 disgo.Client.Handle(<event>, <handler>)
 disgo.Client.Remove(<event>, <index>)
 disgo.Client.Handlers.<Handler>
+disgo.Client.VoiceHandlers.<Handler>
 
 // Use the client to manage the bot's settings.
 disgo.Client.ApplicationID
@@ -206,17 +218,16 @@ disgo.Client.Config.Gateway.<Settings>
 
 ### Why Go?
 
-Go is a statically typed, compiled programming language _(with a garbage collector)_. So it performs computationally better compared to _most_ languages that provide [Discord API Wrappers](https://discord.com/developers/docs/topics/community-resources#libraries).
+**A Discord Bot is server-side software.**
 
-Go maintains superior asynchronous handling due to the use of [Goroutines](https://gobyexample.com/goroutines) and [Channels](https://gobyexample.com/channels): This is helpful since **a Discord Bot is server-side software**.
+A server-side software uses asynchronous logic to operate.
+Go maintains superior asynchronous handling with [Goroutines](https://gobyexample.com/goroutines) and [Channels](https://gobyexample.com/channels).
 
-### Comparison
+Go is a statically typed, compiled programming language _(with a garbage collector)_. So, it also performs better computationally compared to _most_ languages that provide [Discord API Wrappers](https://discord.com/developers/docs/topics/community-resources#libraries).
 
-Disgo supports every feature in the Discord API and is **the most customizable Discord API Wrapper** due to its optional caching, shard management, rate limiting, and logging. 
-- **DiscordGo** is not feature-complete.
-- **Disgord** is limiting.
+### How does Disgo compare to other Go Discord API Wrappers?
 
-Look no further than the name. The word `disgo` contains 5 letters — while the others have 7+ — saving you precious keyboard strokes. 
+Disgo supports every feature in the Discord API and is **the most customizable Discord API Wrapper** due to its optional caching, shard management, rate limiting, and logging.
 
 Most important is Disgo's performance, which saves you money by reducing server costs. 
 
@@ -256,7 +267,7 @@ The [Apache License 2.0](#license) is permissive for commercial use. For more in
 
 | Name                                      | Contributions                                                            |
 | :---------------------------------------- | :----------------------------------------------------------------------- |
-| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Generators, Dasgo, Requests, Events, Shard Manager |
+| [SwitchUpCB](https://switchupcb.com)      | Project Architecture, Generators, Dasgo, Requests, Events, Voice Connection, Shard Manager |
 | [Thomas Rogers](https://github.com/t-rog) | Dasgo                                                                    |
 | [Josh Dawe](https://github.com/joshdawe)  | Dasgo                                                                    |
 

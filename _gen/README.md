@@ -4,7 +4,7 @@ Disgo uses generators to easily update and maintain over 10,000 lines of code.
 
 ## Build
 
-Use `go build -o gen` from the [`./_gen`](/_gen) directory to build the executable file for the generator. This may require you to set the `GOWORK` environment variable to `off`.
+Use `go build -o gen` from the [`./_gen`](/_gen) directory to build the executable file for the generator. You may be required to set the `GOWORK` environment variable to `off`.
 
 ### Dependencies
 
@@ -39,6 +39,7 @@ Disgo generates code for features using [copygen](https://github.com/switchupcb/
 | `handle.go`            | Uses copygen to generate request **event handling** functionality. |
 | `sendevent.go`         | Uses copygen to generate gateway `SendEvent()` functions.          |
 | `sendevent.go` (shard) | Uses copygen to generate gateway `SendEvents()` functions.         |
+| `sendevent.go` (voice) | Uses copygen to generate voice `SendEvent()` functions.            |
 | Clean                  | Cleans the generated code.                                         |
 
 # Bundle

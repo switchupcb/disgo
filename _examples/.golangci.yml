@@ -9,31 +9,23 @@ linters:
   disable:
     - cyclop
     - depguard
+    - err113
     - exhaustive
+    - exhaustruct
     - funlen
     - forbidigo
     - gocognit
     - gochecknoglobals
-    - goerr113
     - gofumpt
-    - gomnd
     - gosmopolitan
     - lll
+    - mnd
     - noctx
+    - perfsprint
     - stylecheck
     - wsl
 
-    - deadcode # Deprecated
-    - golint # Deprecated
-    - exhaustivestruct # Deprecated
-    - ifshort # Deprecated
-    - interfacer # Deprecated
-    - scopelint # Deprecated
-    - structcheck # Deprecated
-    - nosnakecase # Deprecated
-    - maligned # Deprecated
-    - varcheck # Deprecated
-
+    - tenv # Deprecated
     - gci # Error
 
 linters-settings:

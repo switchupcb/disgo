@@ -23,6 +23,7 @@ func TestRequestGlobalRateLimit(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 	}
+	bot.Config.Request.Timeout = time.Second * 5
 	bot.Config.Request.Retries = 0
 	bot.Config.Request.RateLimiter.SetDefaultBucket(nil)
 
@@ -62,7 +63,7 @@ func TestRequestGlobalRateLimit(t *testing.T) {
 	}
 
 	// ensure that the next test starts with a full bucket.
-	time.After(time.Second * 1)
+	time.After(time.Second * 2)
 }
 
 // TestRequestRouteRateLimit tests the per-route rate limit mechanism (with the Default Bucket mechanism enabled)
@@ -75,6 +76,7 @@ func TestRequestRouteRateLimit(t *testing.T) {
 		Authentication: BotToken(os.Getenv("TOKEN")),
 		Config:         DefaultConfig(),
 	}
+	bot.Config.Request.Timeout = time.Second * 5
 	bot.Config.Request.Retries = 0
 	bot.Config.Request.RateLimiter.SetDefaultBucket(
 		&Bucket{Limit: 1}, //nolint:exhaustruct
@@ -116,7 +118,7 @@ func TestRequestRouteRateLimit(t *testing.T) {
 	}
 
 	// ensure that the next test starts with a full bucket.
-	time.After(time.Second * 1)
+	time.After(time.Second * 2)
 }
 
 // TestGatewayIdentifyRateLimit tests the Identify rate limit mechanism for the Discord Gateway.

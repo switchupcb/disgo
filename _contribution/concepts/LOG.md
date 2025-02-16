@@ -1,6 +1,8 @@
 # What is a Log?
 
-A **log** is a record that contains information about an application's runtime. Logs are useful for the development and debugging of a program. 
+A **log** is a record that contains information about an application's runtime. 
+
+You use logs to develop and debug a program. 
 
 _For more information, read [Logging (Software)](https://en.wikipedia.org/wiki/Logging_(software))._
 
@@ -18,7 +20,7 @@ log.Println("This creates an unstructured log.")
 
 ## What is a Structured Log?
 
-A **structured log** — in Software Development — is a log _(record)_ with a specified structure _(i.e CBOR, JSON)_. This allows developers to programmatically analyze and process logs.
+A **structured log** — in Software Development — is a log _(record)_ with a specified structure _(e.g., CBOR, JSON)_. This lets you programmatically analyze and process logs.
 
 ```json
 {"time":1516134303,"level":"info","message":"This is a structured log in the JSON format."}

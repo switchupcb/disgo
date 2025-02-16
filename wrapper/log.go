@@ -147,3 +147,12 @@ func LogCommand(log *zerolog.Event, clientid string, op int, command string) *ze
 			Str(LogCtxCommandName, command),
 		)
 }
+
+// LogCommandVoice logs a Voice Command.
+func LogCommandVoice(log *zerolog.Event, op int, command string) *zerolog.Event {
+	return log.Timestamp().
+		Dict(LogCtxCommand, zerolog.Dict().
+			Int(LogCtxCommandOpcode, op).
+			Str(LogCtxCommandName, command),
+		)
+}

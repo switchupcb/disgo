@@ -26,6 +26,9 @@ type Client struct {
 	// Handlers represents a bot's event handlers.
 	Handlers *Handlers
 
+	// VoiceHandlers represents a bot's voice event handlers.
+	VoiceHandlers *VoiceHandlers
+
 	// Sessions contains sessions a bot uses to interact with the Discord Gateway.
 	Sessions *SessionManager
 

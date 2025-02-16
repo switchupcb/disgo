@@ -1,6 +1,8 @@
 # What is a Request?
 
-A request is an act of communication. Suppose that we have a conversation:
+A request is an act of communication. 
+
+Suppose we have a conversation.
 - I send you a message.
 - You receive the message.
 - You process the message.
@@ -10,7 +12,7 @@ This conversation occurs similarly between our computers. Whenever you [enter a 
 
 ## What is a REST HTTP Request?
 
-To communicate better, humans create protocols that others adhere to during conversation:
+Humans create protocols that others adhere to during conversation to communicate better:
 - The **HTTP** protocol is used to send and receive resources _(data)_. 
 - A **REST API** is a style used to communicate resources.
 
@@ -18,9 +20,11 @@ Discord uses an **HTTP REST API** to transfer information between its servers an
 
 ### Client vs. Server
 
-In the context of a network, a **client** is a computer that receives information, while a **server** is a computer that serves information. This distinction can be confusing because a computer with a specialized use case is colloquially referred to as a server.
+In the context of a network, a **client** is a computer that receives information, while a **server** is a computer that serves information. 
 
-In the context of a Discord Bot, the **client** refers to the server (computer) that your bot application runs on, while the **server** refers to Discord's server(computer).
+_Do not get confused by the colloquial usage of server, which refers to a computer with a specialized use case._
+
+In the context of a Discord Bot, the **client** refers to the computer that your bot application runs on, while the **server** refers to Discord's computer.
 
 # Disgo Requests
 
@@ -40,7 +44,9 @@ _Disgo automatically handles request rate limits so your bot isn't blacklisted f
 
 A request is sent using the `Send(bot)` function. 
 
-Disgo is a 1:1 API, meaning the objects defined in the [Discord API Documentation](https://discord.com/developers/docs/intro) are **directly** represented in Disgo. For example, a [`CreateGlobalApplicationCommand`](https://discord.com/developers/docs/interactions/application-commands#create-global-application-command) request can be prepared and sent using the following code:
+Disgo is a 1:1 API, meaning the objects defined in the [Discord API Documentation](https://discord.com/developers/docs/intro) are **directly** represented in Disgo.
+
+For example, a [`CreateGlobalApplicationCommand`](https://discord.com/developers/docs/interactions/application-commands#create-global-application-command) request is prepared and sent using the following code:
 
 ```go
 // Create a Create Global Application Command request.
@@ -58,7 +64,9 @@ if err != nil {
 
 ### What is a Request Retry?
 
-A request retry occurs when your request fails to receive a response (from Discord) due to an error. You can set the amount of retries per request by setting the `Client.Config.Request.Retries` field _(default: 1)_.
+You can set the amount of retries per request by setting the `Client.Config.Request.Retries` field _(default: 1)_.
+
+A request retry occurs when your request fails to receive a response (from Discord) due to an error. 
 
 ```go
 bot.Config.Request.Retries = 1
@@ -66,20 +74,23 @@ bot.Config.Request.Retries = 1
 
 ### What is a Request Timeout?
 
-A request timeout represents the amount of time a request will wait for a response (from Discord). You can set a bot's request timeout from the `Client.Config.Request.Timeout` field _(default: 1s)_. 
+You can set a bot's request timeout from the `Client.Config.Request.Timeout` field _(default: 1s)_. 
+
+A request timeout represents the amount of time a request will wait for a response (from Discord). 
 
 ```go
 bot.Config.Request.Timeout = time.Second * 15
 ```
 
-_`fasthttp.ErrTimeout`  is returned from timed out requests._
+_`fasthttp.ErrTimeout` is returned from timed out requests._
 
 ## What is a Rate Limit?
 
-Servers use rate limits to prevent spam, abuse, and service overload. A rate limit defines the speed at which a server can handle requests _(in requests per second)_. 
+Servers use rate limits to prevent spam, abuse, and service overload. 
 
+A rate limit defines the speed at which a server can handle requests _(in requests per second)_. There are many rate limit strategies a server may employ: [Google Architecture Rate Limiting Strategies](https://cloud.google.com/architecture/rate-limiting-strategies-techniques#techniques-enforcing-rate-limits) explains the most common cases. 
 
-While there are many rate limit strategies a server may employ, [Google Architecture Rate Limiting Strategies](https://cloud.google.com/architecture/rate-limiting-strategies-techniques#techniques-enforcing-rate-limits) explains the most common cases. Discord enforces multiple rate limit strategies depending on the data sent to the server. 
+Discord enforces multiple rate limit strategies depending on the data sent to the server.  
 
 The Discord rate limit strategies for requests include:
 - [Global (Requests)](https://discord.com/developers/docs/topics/rate-limits#global-rate-limit)
@@ -106,19 +117,22 @@ _BOTH rate limits can be applied to the same route._
 
 ### Disclaimer
 
-Discord expects the bot (user) to send a request until it succeeds _(as many times as necessary)_. So the per-route (user) rate limit is used to limit the number of requests _a user_ sends per second, while the per-resource (shared) rate limit is used to limit the usage of a resource _(to control the overall load on Discord's servers)_. 
+Discord expects the bot (user) to send a request until it succeeds _(as many times as necessary)_. So, the per-route (user) rate limit is used to limit the number of requests _a user_ sends per second, while the per-resource (shared) rate limit is used to limit the usage of a resource _(to control the overall load on Discord's servers)_. 
 
-Per-resource routes depend on factors your bot can **NOT** keep track of. So the bot is only required to adhere to per-route rate limits. In addition, experiencing `429 Status Codes` with the `shared` Rate Limit Scope Header does **NOT** count against you.
+Per-resource routes depend on factors your bot can **NOT** keep track of. So, the bot is only required to adhere to per-route rate limits. In addition, experiencing `429 Status Codes` with the `shared` Rate Limit Scope Header does **NOT** count against you.
 
-Disgo helps the developer implement the above behavior through the `Request.RetryShared` field. When the `Client.Request.RetryShared` field of a bot is set to `true` _(default)_, the bot will send a request — within the per-route rate limit — until one is successful or until one experiences a non-shared 429 status code.
+Disgo helps the developer implement the above behavior through the `Request.RetryShared` field. 
+- When the `Client.Request.RetryShared` field of a bot is set to `true` _(default)_,
+- the bot will send a request — within the per-route rate limit — until a request is successful OR until a request experiences a non-shared 429 status code.
 
 In any other case, the `Request.Retries` field can be set to control the number of times a request may be retried upon any failure. Implementing per-user per-resource route rate limits is possible using the `RateLimitHashFuncs` map _(see example)_, but not recommended.
 
 ## What is a Default Bucket?
 
-Discord utilizes a Token Bucket Rate Limit Algorithm for their rate limits. Unfortunately, Discord's specific implementation of this rate limit strategy does **NOT** allow the application to determine the rate limit of a **route** (HTTP Method + Endpoint) until a request with that **route** is sent. This results in a dilemma where you must determine whether to sacrifice performance or safety to send specific requests _(before those requests have ever been sent)_.
+You can use a  **Default Bucket** when a rate limit is unknown by the application. So, you can use a Default Bucket when a request for a route has **NEVER** been sent.
 
-A **Default Bucket** is used when a rate limit is **NOT** yet known by the application: In other words, when a request for a route has **NEVER** been sent. 
+Discord utilizes a Token Bucket Rate Limit Algorithm for their rate limits. Unfortunately, Discord's specific implementation of this rate limit strategy does **NOT** let the application determine the rate limit of a **route** (HTTP Method + Endpoint) until a request for that **route** is sent. So, you must determine whether to sacrifice performance or safety to send specific requests _(before those requests have ever been sent)_.
+
 
 In Disgo, the `RateLimit.DefaultBucket` field represents the Default Rate Limit Bucket used for requests which operate at the per-route level. However, configuring Default Buckets for per-resource (n) routes is also possible _(see example)_. 
 
@@ -142,21 +156,21 @@ Instead of sending <=25 requests upon startup, the bot sends 40. While this adhe
 
 In either case, the bot will eventually successfully send all the required requests. However, the first case will take 3 batches (1 + 25 + 14), while the second case will only take 2 batches (25 + 15); at the cost of 15 `429 Status Codes`.
 
-Employing the second strategy is more efficient but could be costly. In an actual application, there are other implications to failed requests that we haven't even considered.
+Employing the second strategy is more efficient but could be costly. In an actual application, there are other implications to failed requests we haven't considered in this example.
 
 _Receiving 10,000 `(user) 429 Status Codes` in 10 minutes results in a [Cloudflare Ban](https://discord.com/developers/docs/topics/rate-limits) for approximately one hour._ 
 
 ### Solution
 
-Disgo solves the problem described in the above example using **configurable Rate Limits and Default Buckets**:
-- When a request's rate limit is unknown, Disgo will only send as many requests as the configured Default Bucket allows _(1 by default)_. 
+You can use Disgo's **configurable Rate Limits and Default Buckets** to solve the problem described in the previous example:
+- When a request's rate limit is unknown, Disgo only sends as many requests as the configured Default Bucket allows _(1 by default)_. 
 - Once the request receives a response, the Default Bucket will be discarded and replaced by the request's actual Rate Limit Bucket _(or nil)_.
   
-This implementation gives you multiple ways to address the issue described above.
+This implementation gives you multiple ways to address  the problem described in the previous example
 
 #### Configuring the Route Default Bucket
 
-If you want to ensure that every request at the **route** level initially sends 25 requests per second, you can set the `DefaultBucket` of the `Client.RateLimiter`.
+You can set the `DefaultBucket` of the `Client.RateLimiter` to initially send 25 requests per second for the **route**.
 
 ```go
 bot.Config.Request.RateLimiter.SetDefaultBucket(&disgo.Bucket{
@@ -167,7 +181,7 @@ bot.Config.Request.RateLimiter.SetDefaultBucket(&disgo.Bucket{
 
 #### Configuring the "Route A" Default Bucket
 
-If you want to ensure that **ONLY** Route `A` initially sends 25 requests per second, you can initialize a `RateLimiter` with that Route ID `Bucket`. 
+You can initialize a `RateLimiter` with that Route ID `Bucket` to initially send 25 requests per second for **ONLY** Route `A`. 
 
 ```go
 // create a Client using a Default Configuration.
@@ -191,9 +205,17 @@ _NOTE: `"A"` is used as the ID for Route A in this example. Use the Route ID sho
 
 #### Configuring the Parent Default Bucket
 
-When Route `A` refers to a per-resource route, a Default Bucket can be configured by using the `Route ID` of the parent route. As an example, Route `A/Guild2/Channel3` _(Route ID `A/Guild2`, ResourceID `Channel3`)_ uses the Default Bucket at `A/Guild2` _(if it exists)_. This is possible with two steps.
+A Default Bucket can be configured by using the `Route ID` of the parent route when Route `A` refers to a per-resource route. 
 
-**1.** Configure the hashing function for Route `A/Guild2/Channel3` to use `A/Guild2` as a Route ID. **This step can also be used to change the rate limit algorithm of any route.**
+Here is an example.
+
+Route `A/Guild2/Channel3` _(Route ID `A/Guild2`, ResourceID `Channel3`)_ uses the Default Bucket at `A/Guild2` _(when it exists)_. 
+
+You configure this example with two steps.
+
+**1. This step can also be used to change the rate limit algorithm of any route.**
+
+Configure the hashing function for Route `A/Guild2/Channel3` to use `A/Guild2` as a Route ID. 
 
 ```go
 disgo.RateLimitHashFuncs[disgo.RouteIDs["A"]] = func(routeid string, parameters ...string) (string, string) {
@@ -211,8 +233,8 @@ bot.Config.Request.RateLimiter.SetBucketFromID("AGuild2BucketID", &disgo.Bucket{
 })
 ```
 
-This results in the first requests of Route `A/Guild2/Channel3`, Route `A/Guild2/Channel4`, Route  `A/Guild2/Channel...` to initially use a Rate Limit Bucket that allows 25 requests per second.
+This configuration results in the first requests of Route `A/Guild2/Channel3`, Route `A/Guild2/Channel4`, Route  `A/Guild2/Channel...` to initially send requests with a Rate Limit Bucket at 25 requests per second.
 
 #### Configuring Both Buckets
 
-When you configure both buckets _(Route, Parent Route, and Route ID)_, Route `A` is **ONLY** assigned to the `Route ID` Default Bucket, since Route `A` already has a "known" bucket. This known bucket will be updated upon receiving a response — that results from a Route `A` request — from Discord.
+Route `A` is **ONLY** assigned to the `Route ID` Default Bucket when you configure both buckets _(Route, Parent Route, and Route ID)_, since Route `A` already has a "known" bucket. This known bucket will be updated upon receiving a response — that results from a Route `A` request — from Discord.

@@ -20,11 +20,6 @@ type Copygen interface {
 	AutoModerationRuleDelete(*disgo.AutoModerationRuleDelete)
 	// intents FlagIntentAUTO_MODERATION_EXECUTION
 	AutoModerationActionExecution(*disgo.AutoModerationActionExecution)
-	InteractionCreate(*disgo.InteractionCreate)
-	VoiceServerUpdate(*disgo.VoiceServerUpdate)
-	// intents FlagIntentGUILD_PRESENCES FlagIntentGUILD_MEMBERS
-	GuildMembersChunk(*disgo.GuildMembersChunk)
-	UserUpdate(*disgo.UserUpdate)
 	// intents FlagIntentGUILDS
 	ChannelCreate(*disgo.ChannelCreate)
 	// intents FlagIntentGUILDS
@@ -45,6 +40,9 @@ type Copygen interface {
 	ThreadMemberUpdate(*disgo.ThreadMemberUpdate)
 	// intents FlagIntentGUILDS FlagIntentGUILD_MEMBERS
 	ThreadMembersUpdate(*disgo.ThreadMembersUpdate)
+	EntitlementCreate(*disgo.EntitlementCreate)
+	EntitlementUpdate(*disgo.EntitlementUpdate)
+	EntitlementDelete(*disgo.EntitlementDelete)
 	// intents FlagIntentGUILDS
 	GuildCreate(*disgo.GuildCreate)
 	// intents FlagIntentGUILDS
@@ -57,9 +55,9 @@ type Copygen interface {
 	GuildBanAdd(*disgo.GuildBanAdd)
 	// intents FlagIntentGUILD_MODERATION
 	GuildBanRemove(*disgo.GuildBanRemove)
-	// intents FlagIntentGUILD_EMOJIS_AND_STICKERS
+	// intents FlagIntentGUILD_EXPRESSIONS
 	GuildEmojisUpdate(*disgo.GuildEmojisUpdate)
-	// intents FlagIntentGUILD_EMOJIS_AND_STICKERS
+	// intents FlagIntentGUILD_EXPRESSIONS
 	GuildStickersUpdate(*disgo.GuildStickersUpdate)
 	// intents FlagIntentGUILD_INTEGRATIONS
 	GuildIntegrationsUpdate(*disgo.GuildIntegrationsUpdate)
@@ -69,6 +67,8 @@ type Copygen interface {
 	GuildMemberRemove(*disgo.GuildMemberRemove)
 	// intents FlagIntentGUILD_MEMBERS
 	GuildMemberUpdate(*disgo.GuildMemberUpdate)
+	// intents FlagIntentGUILD_PRESENCES FlagIntentGUILD_MEMBERS
+	GuildMembersChunk(*disgo.GuildMembersChunk)
 	// intents FlagIntentGUILDS
 	GuildRoleCreate(*disgo.GuildRoleCreate)
 	// intents FlagIntentGUILDS
@@ -85,12 +85,22 @@ type Copygen interface {
 	GuildScheduledEventUserAdd(*disgo.GuildScheduledEventUserAdd)
 	// intents FlagIntentGUILD_SCHEDULED_EVENTS
 	GuildScheduledEventUserRemove(*disgo.GuildScheduledEventUserRemove)
+	// intents FlagIntentGUILD_EXPRESSIONS
+	GuildSoundboardSoundCreate(*disgo.GuildSoundboardSoundCreate)
+	// intents FlagIntentGUILD_EXPRESSIONS
+	GuildSoundboardSoundUpdate(*disgo.GuildSoundboardSoundUpdate)
+	// intents FlagIntentGUILD_EXPRESSIONS
+	GuildSoundboardSoundDelete(*disgo.GuildSoundboardSoundDelete)
+	// intents FlagIntentGUILD_EXPRESSIONS
+	GuildSoundboardSoundsUpdate(*disgo.GuildSoundboardSoundsUpdate)
+	SoundboardSounds(*disgo.SoundboardSounds)
 	// intents FlagIntentGUILD_INTEGRATIONS
 	IntegrationCreate(*disgo.IntegrationCreate)
 	// intents FlagIntentGUILD_INTEGRATIONS
 	IntegrationUpdate(*disgo.IntegrationUpdate)
 	// intents FlagIntentGUILD_INTEGRATIONS
 	IntegrationDelete(*disgo.IntegrationDelete)
+	InteractionCreate(*disgo.InteractionCreate)
 	// intents FlagIntentGUILD_INVITES
 	InviteCreate(*disgo.InviteCreate)
 	// intents FlagIntentGUILD_INVITES
@@ -119,10 +129,21 @@ type Copygen interface {
 	StageInstanceDelete(*disgo.StageInstanceDelete)
 	// intents FlagIntentGUILDS
 	StageInstanceUpdate(*disgo.StageInstanceUpdate)
-	// intents FlagIntentGUILD_MESSAGE_REACTIONS FlagIntentDIRECT_MESSAGE_TYPING
+	SubscriptionCreate(*disgo.SubscriptionCreate)
+	SubscriptionUpdate(*disgo.SubscriptionUpdate)
+	SubscriptionDelete(*disgo.SubscriptionDelete)
+	// intents FlagIntentGUILD_MESSAGE_TYPING FlagIntentDIRECT_MESSAGE_TYPING
 	TypingStart(*disgo.TypingStart)
+	UserUpdate(*disgo.UserUpdate)
+	// intents FlagIntentGUILD_VOICE_STATES
+	VoiceChannelEffectSend(*disgo.VoiceChannelEffectSend)
 	// intents FlagIntentGUILD_VOICE_STATES
 	VoiceStateUpdate(*disgo.VoiceStateUpdate)
+	VoiceServerUpdate(*disgo.VoiceServerUpdate)
 	// intents FlagIntentGUILD_WEBHOOKS
 	WebhooksUpdate(*disgo.WebhooksUpdate)
+	// intents FlagIntentGUILD_MESSAGE_POLLS FlagIntentDIRECT_MESSAGE_POLLS
+	MessagePollVoteAdd(*disgo.MessagePollVoteAdd)
+	// intents FlagIntentGUILD_MESSAGE_POLLS FlagIntentDIRECT_MESSAGE_POLLS
+	MessagePollVoteRemove(*disgo.MessagePollVoteDelete)
 }

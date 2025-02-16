@@ -7,23 +7,15 @@ import (
 	json "github.com/goccy/go-json"
 )
 
-/**unmarshal.go contains custom UnmarshalJSON() functions.
+/**unmarshal_interface.go contains custom UnmarshalJSON() functions.
 
 This lets json.Unmarshal() unmarshal JSON data into types that contain interface fields.
 
-In addition, structs that contain an embedded field - that implements UnmarshalJSON() - will
-use the embedded field's implementation of UnmarshalJSON(). As a result, these structs must
-also implement UnmarshalJSON() to prevent null pointer dereferences.
+--------------------------------------------------------------------------------------*/
 
-*/
+/** Unused: Command, Event **/
 
-/** Unused: Command, Event */
-
-/** Nonce
-
-Includes: CreateMessage, Message
-
-**/
+/** Nonce: CreateMessage, Message **/
 
 func (v *Nonce) UnmarshalJSON(b []byte) error {
 	var x interface{}
@@ -46,11 +38,7 @@ func (v *Nonce) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-/** Value
-
-Includes: ApplicationCommandOptionChoice, ApplicationCommandInteractionDataOption
-
-**/
+/** Value: ApplicationCommandOptionChoice, ApplicationCommandInteractionDataOption **/
 
 func (v *Value) UnmarshalJSON(b []byte) error {
 	var x interface{}
@@ -246,8 +234,8 @@ func (r *EditMessage) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-func (r *ForumThreadMessageParams) UnmarshalJSON(b []byte) error {
-	type alias ForumThreadMessageParams
+func (r *ForumAndMediaThreadMessageParams) UnmarshalJSON(b []byte) error {
+	type alias ForumAndMediaThreadMessageParams
 
 	var unmarshalled struct {
 		alias
@@ -264,10 +252,10 @@ func (r *ForumThreadMessageParams) UnmarshalJSON(b []byte) error {
 	}
 
 	if r == nil {
-		r = new(ForumThreadMessageParams)
+		r = new(ForumAndMediaThreadMessageParams)
 	}
 
-	*r = ForumThreadMessageParams(unmarshalled.alias)
+	*r = ForumAndMediaThreadMessageParams(unmarshalled.alias)
 
 	return nil
 }
@@ -595,40 +583,6 @@ func (r *InteractionResponse) UnmarshalJSON(b []byte) error {
 	}
 
 	*r = InteractionResponse(unmarshalledInteractionResponse.alias)
-
-	return nil
-}
-
-/** Structs that contain embedded fields that implement UnmarshalJSON() **/
-
-func (e *MessageCreate) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &e.Message); err != nil {
-		return fmt.Errorf(errUnmarshal, e, err)
-	}
-
-	return nil
-}
-
-func (e *MessageUpdate) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &e.Message); err != nil {
-		return fmt.Errorf(errUnmarshal, e, err)
-	}
-
-	return nil
-}
-
-func (e *InteractionCreate) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &e.Interaction); err != nil {
-		return fmt.Errorf(errUnmarshal, e, err)
-	}
-
-	return nil
-}
-
-func (e *CreateInteractionResponse) UnmarshalJSON(b []byte) error {
-	if err := json.Unmarshal(b, &e.InteractionResponse); err != nil {
-		return fmt.Errorf(errUnmarshal, e, err)
-	}
 
 	return nil
 }

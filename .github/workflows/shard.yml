@@ -27,7 +27,7 @@ jobs:
       - name: Run golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.53.3
+          version: v1.64.5
           args: ./shard/...
 
   test-integration:
@@ -48,5 +48,4 @@ jobs:
           APPID: ${{ secrets.APPID }}
           COVERAGE_TEST_TOKEN: ${{ secrets.COVERAGE_TEST_TOKEN }}
           COVERAGE_TEST_GUILD: ${{ secrets.COVERAGE_TEST_GUILD }}
-          COVERAGE_TEST_CATEGORY: ${{ secrets.COVERAGE_TEST_CATEGORY }}
         run: go test ./shard/tests/integration -race

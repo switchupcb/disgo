@@ -22,10 +22,6 @@ type Handlers struct {
 	AutoModerationRuleUpdate            []func(*AutoModerationRuleUpdate)
 	AutoModerationRuleDelete            []func(*AutoModerationRuleDelete)
 	AutoModerationActionExecution       []func(*AutoModerationActionExecution)
-	InteractionCreate                   []func(*InteractionCreate)
-	VoiceServerUpdate                   []func(*VoiceServerUpdate)
-	GuildMembersChunk                   []func(*GuildMembersChunk)
-	UserUpdate                          []func(*UserUpdate)
 	ChannelCreate                       []func(*ChannelCreate)
 	ChannelUpdate                       []func(*ChannelUpdate)
 	ChannelDelete                       []func(*ChannelDelete)
@@ -36,6 +32,9 @@ type Handlers struct {
 	ThreadListSync                      []func(*ThreadListSync)
 	ThreadMemberUpdate                  []func(*ThreadMemberUpdate)
 	ThreadMembersUpdate                 []func(*ThreadMembersUpdate)
+	EntitlementCreate                   []func(*EntitlementCreate)
+	EntitlementUpdate                   []func(*EntitlementUpdate)
+	EntitlementDelete                   []func(*EntitlementDelete)
 	GuildCreate                         []func(*GuildCreate)
 	GuildUpdate                         []func(*GuildUpdate)
 	GuildDelete                         []func(*GuildDelete)
@@ -48,6 +47,7 @@ type Handlers struct {
 	GuildMemberAdd                      []func(*GuildMemberAdd)
 	GuildMemberRemove                   []func(*GuildMemberRemove)
 	GuildMemberUpdate                   []func(*GuildMemberUpdate)
+	GuildMembersChunk                   []func(*GuildMembersChunk)
 	GuildRoleCreate                     []func(*GuildRoleCreate)
 	GuildRoleUpdate                     []func(*GuildRoleUpdate)
 	GuildRoleDelete                     []func(*GuildRoleDelete)
@@ -56,9 +56,15 @@ type Handlers struct {
 	GuildScheduledEventDelete           []func(*GuildScheduledEventDelete)
 	GuildScheduledEventUserAdd          []func(*GuildScheduledEventUserAdd)
 	GuildScheduledEventUserRemove       []func(*GuildScheduledEventUserRemove)
+	GuildSoundboardSoundCreate          []func(*GuildSoundboardSoundCreate)
+	GuildSoundboardSoundUpdate          []func(*GuildSoundboardSoundUpdate)
+	GuildSoundboardSoundDelete          []func(*GuildSoundboardSoundDelete)
+	GuildSoundboardSoundsUpdate         []func(*GuildSoundboardSoundsUpdate)
+	SoundboardSounds                    []func(*SoundboardSounds)
 	IntegrationCreate                   []func(*IntegrationCreate)
 	IntegrationUpdate                   []func(*IntegrationUpdate)
 	IntegrationDelete                   []func(*IntegrationDelete)
+	InteractionCreate                   []func(*InteractionCreate)
 	InviteCreate                        []func(*InviteCreate)
 	InviteDelete                        []func(*InviteDelete)
 	MessageCreate                       []func(*MessageCreate)
@@ -73,9 +79,17 @@ type Handlers struct {
 	StageInstanceCreate                 []func(*StageInstanceCreate)
 	StageInstanceDelete                 []func(*StageInstanceDelete)
 	StageInstanceUpdate                 []func(*StageInstanceUpdate)
+	SubscriptionCreate                  []func(*SubscriptionCreate)
+	SubscriptionUpdate                  []func(*SubscriptionUpdate)
+	SubscriptionDelete                  []func(*SubscriptionDelete)
 	TypingStart                         []func(*TypingStart)
+	UserUpdate                          []func(*UserUpdate)
+	VoiceChannelEffectSend              []func(*VoiceChannelEffectSend)
 	VoiceStateUpdate                    []func(*VoiceStateUpdate)
+	VoiceServerUpdate                   []func(*VoiceServerUpdate)
 	WebhooksUpdate                      []func(*WebhooksUpdate)
+	MessagePollVoteAdd                  []func(*MessagePollVoteAdd)
+	MessagePollVoteRemove               []func(*MessagePollVoteRemove)
 	mu                                  sync.RWMutex
 }
 
@@ -171,44 +185,6 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*AutoModerationActionExecution)); ok {
 			bot.Handlers.AutoModerationActionExecution = append(bot.Handlers.AutoModerationActionExecution, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameInteractionCreate:
-		if f, ok := function.(func(*InteractionCreate)); ok {
-			bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameVoiceServerUpdate:
-		if f, ok := function.(func(*VoiceServerUpdate)); ok {
-			bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameGuildMembersChunk:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
-		}
-
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_PRESENCES
-		}
-
-		if f, ok := function.(func(*GuildMembersChunk)); ok {
-			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
-			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
-			return nil
-		}
-
-	case FlagGatewayEventNameUserUpdate:
-		if f, ok := function.(func(*UserUpdate)); ok {
-			bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate, f)
 			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
@@ -343,6 +319,27 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 			return nil
 		}
 
+	case FlagGatewayEventNameEntitlementCreate:
+		if f, ok := function.(func(*EntitlementCreate)); ok {
+			bot.Handlers.EntitlementCreate = append(bot.Handlers.EntitlementCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameEntitlementUpdate:
+		if f, ok := function.(func(*EntitlementUpdate)); ok {
+			bot.Handlers.EntitlementUpdate = append(bot.Handlers.EntitlementUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameEntitlementDelete:
+		if f, ok := function.(func(*EntitlementDelete)); ok {
+			bot.Handlers.EntitlementDelete = append(bot.Handlers.EntitlementDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
 	case FlagGatewayEventNameGuildCreate:
 		if !bot.Config.Gateway.IntentSet[FlagIntentGUILDS] {
 			bot.Config.Gateway.IntentSet[FlagIntentGUILDS] = true
@@ -416,9 +413,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildEmojisUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
 		}
 
 		if f, ok := function.(func(*GuildEmojisUpdate)); ok {
@@ -428,9 +425,9 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 		}
 
 	case FlagGatewayEventNameGuildStickersUpdate:
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EMOJIS_AND_STICKERS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_EMOJIS_AND_STICKERS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
 		}
 
 		if f, ok := function.(func(*GuildStickersUpdate)); ok {
@@ -483,6 +480,23 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*GuildMemberUpdate)); ok {
 			bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildMembersChunk:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MEMBERS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MEMBERS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_PRESENCES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_PRESENCES
+		}
+
+		if f, ok := function.(func(*GuildMembersChunk)); ok {
+			bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk, f)
 			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
@@ -583,6 +597,61 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 			return nil
 		}
 
+	case FlagGatewayEventNameGuildSoundboardSoundCreate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildSoundboardSoundCreate)); ok {
+			bot.Handlers.GuildSoundboardSoundCreate = append(bot.Handlers.GuildSoundboardSoundCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildSoundboardSoundUpdate)); ok {
+			bot.Handlers.GuildSoundboardSoundUpdate = append(bot.Handlers.GuildSoundboardSoundUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundDelete:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildSoundboardSoundDelete)); ok {
+			bot.Handlers.GuildSoundboardSoundDelete = append(bot.Handlers.GuildSoundboardSoundDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundsUpdate:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_EXPRESSIONS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_EXPRESSIONS
+		}
+
+		if f, ok := function.(func(*GuildSoundboardSoundsUpdate)); ok {
+			bot.Handlers.GuildSoundboardSoundsUpdate = append(bot.Handlers.GuildSoundboardSoundsUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameSoundboardSounds:
+		if f, ok := function.(func(*SoundboardSounds)); ok {
+			bot.Handlers.SoundboardSounds = append(bot.Handlers.SoundboardSounds, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
 	case FlagGatewayEventNameIntegrationCreate:
 		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] {
 			bot.Config.Gateway.IntentSet[FlagIntentGUILD_INTEGRATIONS] = true
@@ -615,6 +684,13 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*IntegrationDelete)); ok {
 			bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameInteractionCreate:
+		if f, ok := function.(func(*InteractionCreate)); ok {
+			bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate, f)
 			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
@@ -822,19 +898,59 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 			return nil
 		}
 
+	case FlagGatewayEventNameSubscriptionCreate:
+		if f, ok := function.(func(*SubscriptionCreate)); ok {
+			bot.Handlers.SubscriptionCreate = append(bot.Handlers.SubscriptionCreate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameSubscriptionUpdate:
+		if f, ok := function.(func(*SubscriptionUpdate)); ok {
+			bot.Handlers.SubscriptionUpdate = append(bot.Handlers.SubscriptionUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameSubscriptionDelete:
+		if f, ok := function.(func(*SubscriptionDelete)); ok {
+			bot.Handlers.SubscriptionDelete = append(bot.Handlers.SubscriptionDelete, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
 	case FlagGatewayEventNameTypingStart:
 		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_TYPING] {
 			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_TYPING] = true
 			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_TYPING
 		}
 
-		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] {
-			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_REACTIONS] = true
-			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_REACTIONS
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_TYPING] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_TYPING] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_TYPING
 		}
 
 		if f, ok := function.(func(*TypingStart)); ok {
 			bot.Handlers.TypingStart = append(bot.Handlers.TypingStart, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameUserUpdate:
+		if f, ok := function.(func(*UserUpdate)); ok {
+			bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameVoiceChannelEffectSend:
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_VOICE_STATES] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_VOICE_STATES
+		}
+
+		if f, ok := function.(func(*VoiceChannelEffectSend)); ok {
+			bot.Handlers.VoiceChannelEffectSend = append(bot.Handlers.VoiceChannelEffectSend, f)
 			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
@@ -851,6 +967,13 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 			return nil
 		}
 
+	case FlagGatewayEventNameVoiceServerUpdate:
+		if f, ok := function.(func(*VoiceServerUpdate)); ok {
+			bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
 	case FlagGatewayEventNameWebhooksUpdate:
 		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_WEBHOOKS] {
 			bot.Config.Gateway.IntentSet[FlagIntentGUILD_WEBHOOKS] = true
@@ -859,6 +982,40 @@ func (bot *Client) Handle(eventname string, function interface{}) error {
 
 		if f, ok := function.(func(*WebhooksUpdate)); ok {
 			bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessagePollVoteAdd:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_POLLS] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_POLLS] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_POLLS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_POLLS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_POLLS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_POLLS
+		}
+
+		if f, ok := function.(func(*MessagePollVoteAdd)); ok {
+			bot.Handlers.MessagePollVoteAdd = append(bot.Handlers.MessagePollVoteAdd, f)
+			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
+			return nil
+		}
+
+	case FlagGatewayEventNameMessagePollVoteRemove:
+		if !bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_POLLS] {
+			bot.Config.Gateway.IntentSet[FlagIntentDIRECT_MESSAGE_POLLS] = true
+			bot.Config.Gateway.Intents |= FlagIntentDIRECT_MESSAGE_POLLS
+		}
+
+		if !bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_POLLS] {
+			bot.Config.Gateway.IntentSet[FlagIntentGUILD_MESSAGE_POLLS] = true
+			bot.Config.Gateway.Intents |= FlagIntentGUILD_MESSAGE_POLLS
+		}
+
+		if f, ok := function.(func(*MessagePollVoteRemove)); ok {
+			bot.Handlers.MessagePollVoteRemove = append(bot.Handlers.MessagePollVoteRemove, f)
 			LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("added event handler")
 			return nil
 		}
@@ -1011,58 +1168,6 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 		bot.Handlers.AutoModerationActionExecution = append(bot.Handlers.AutoModerationActionExecution[:index], bot.Handlers.AutoModerationActionExecution[index+1:]...)
 
-	case FlagGatewayEventNameInteractionCreate:
-		if len(bot.Handlers.InteractionCreate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate[:index], bot.Handlers.InteractionCreate[index+1:]...)
-
-	case FlagGatewayEventNameVoiceServerUpdate:
-		if len(bot.Handlers.VoiceServerUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate[:index], bot.Handlers.VoiceServerUpdate[index+1:]...)
-
-	case FlagGatewayEventNameGuildMembersChunk:
-		if len(bot.Handlers.GuildMembersChunk) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk[:index], bot.Handlers.GuildMembersChunk[index+1:]...)
-
-	case FlagGatewayEventNameUserUpdate:
-		if len(bot.Handlers.UserUpdate) <= index {
-			err := ErrorEventHandler{
-				ClientID: bot.ApplicationID,
-				Event:    eventname,
-				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
-			}
-			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
-			return err
-		}
-
-		bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate[:index], bot.Handlers.UserUpdate[index+1:]...)
-
 	case FlagGatewayEventNameChannelCreate:
 		if len(bot.Handlers.ChannelCreate) <= index {
 			err := ErrorEventHandler{
@@ -1192,6 +1297,45 @@ func (bot *Client) Remove(eventname string, index int) error {
 		}
 
 		bot.Handlers.ThreadMembersUpdate = append(bot.Handlers.ThreadMembersUpdate[:index], bot.Handlers.ThreadMembersUpdate[index+1:]...)
+
+	case FlagGatewayEventNameEntitlementCreate:
+		if len(bot.Handlers.EntitlementCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.EntitlementCreate = append(bot.Handlers.EntitlementCreate[:index], bot.Handlers.EntitlementCreate[index+1:]...)
+
+	case FlagGatewayEventNameEntitlementUpdate:
+		if len(bot.Handlers.EntitlementUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.EntitlementUpdate = append(bot.Handlers.EntitlementUpdate[:index], bot.Handlers.EntitlementUpdate[index+1:]...)
+
+	case FlagGatewayEventNameEntitlementDelete:
+		if len(bot.Handlers.EntitlementDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.EntitlementDelete = append(bot.Handlers.EntitlementDelete[:index], bot.Handlers.EntitlementDelete[index+1:]...)
 
 	case FlagGatewayEventNameGuildCreate:
 		if len(bot.Handlers.GuildCreate) <= index {
@@ -1349,6 +1493,19 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 		bot.Handlers.GuildMemberUpdate = append(bot.Handlers.GuildMemberUpdate[:index], bot.Handlers.GuildMemberUpdate[index+1:]...)
 
+	case FlagGatewayEventNameGuildMembersChunk:
+		if len(bot.Handlers.GuildMembersChunk) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildMembersChunk = append(bot.Handlers.GuildMembersChunk[:index], bot.Handlers.GuildMembersChunk[index+1:]...)
+
 	case FlagGatewayEventNameGuildRoleCreate:
 		if len(bot.Handlers.GuildRoleCreate) <= index {
 			err := ErrorEventHandler{
@@ -1453,6 +1610,71 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 		bot.Handlers.GuildScheduledEventUserRemove = append(bot.Handlers.GuildScheduledEventUserRemove[:index], bot.Handlers.GuildScheduledEventUserRemove[index+1:]...)
 
+	case FlagGatewayEventNameGuildSoundboardSoundCreate:
+		if len(bot.Handlers.GuildSoundboardSoundCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildSoundboardSoundCreate = append(bot.Handlers.GuildSoundboardSoundCreate[:index], bot.Handlers.GuildSoundboardSoundCreate[index+1:]...)
+
+	case FlagGatewayEventNameGuildSoundboardSoundUpdate:
+		if len(bot.Handlers.GuildSoundboardSoundUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildSoundboardSoundUpdate = append(bot.Handlers.GuildSoundboardSoundUpdate[:index], bot.Handlers.GuildSoundboardSoundUpdate[index+1:]...)
+
+	case FlagGatewayEventNameGuildSoundboardSoundDelete:
+		if len(bot.Handlers.GuildSoundboardSoundDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildSoundboardSoundDelete = append(bot.Handlers.GuildSoundboardSoundDelete[:index], bot.Handlers.GuildSoundboardSoundDelete[index+1:]...)
+
+	case FlagGatewayEventNameGuildSoundboardSoundsUpdate:
+		if len(bot.Handlers.GuildSoundboardSoundsUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.GuildSoundboardSoundsUpdate = append(bot.Handlers.GuildSoundboardSoundsUpdate[:index], bot.Handlers.GuildSoundboardSoundsUpdate[index+1:]...)
+
+	case FlagGatewayEventNameSoundboardSounds:
+		if len(bot.Handlers.SoundboardSounds) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.SoundboardSounds = append(bot.Handlers.SoundboardSounds[:index], bot.Handlers.SoundboardSounds[index+1:]...)
+
 	case FlagGatewayEventNameIntegrationCreate:
 		if len(bot.Handlers.IntegrationCreate) <= index {
 			err := ErrorEventHandler{
@@ -1491,6 +1713,19 @@ func (bot *Client) Remove(eventname string, index int) error {
 		}
 
 		bot.Handlers.IntegrationDelete = append(bot.Handlers.IntegrationDelete[:index], bot.Handlers.IntegrationDelete[index+1:]...)
+
+	case FlagGatewayEventNameInteractionCreate:
+		if len(bot.Handlers.InteractionCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.InteractionCreate = append(bot.Handlers.InteractionCreate[:index], bot.Handlers.InteractionCreate[index+1:]...)
 
 	case FlagGatewayEventNameInviteCreate:
 		if len(bot.Handlers.InviteCreate) <= index {
@@ -1674,6 +1909,45 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 		bot.Handlers.StageInstanceUpdate = append(bot.Handlers.StageInstanceUpdate[:index], bot.Handlers.StageInstanceUpdate[index+1:]...)
 
+	case FlagGatewayEventNameSubscriptionCreate:
+		if len(bot.Handlers.SubscriptionCreate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.SubscriptionCreate = append(bot.Handlers.SubscriptionCreate[:index], bot.Handlers.SubscriptionCreate[index+1:]...)
+
+	case FlagGatewayEventNameSubscriptionUpdate:
+		if len(bot.Handlers.SubscriptionUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.SubscriptionUpdate = append(bot.Handlers.SubscriptionUpdate[:index], bot.Handlers.SubscriptionUpdate[index+1:]...)
+
+	case FlagGatewayEventNameSubscriptionDelete:
+		if len(bot.Handlers.SubscriptionDelete) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.SubscriptionDelete = append(bot.Handlers.SubscriptionDelete[:index], bot.Handlers.SubscriptionDelete[index+1:]...)
+
 	case FlagGatewayEventNameTypingStart:
 		if len(bot.Handlers.TypingStart) <= index {
 			err := ErrorEventHandler{
@@ -1686,6 +1960,32 @@ func (bot *Client) Remove(eventname string, index int) error {
 		}
 
 		bot.Handlers.TypingStart = append(bot.Handlers.TypingStart[:index], bot.Handlers.TypingStart[index+1:]...)
+
+	case FlagGatewayEventNameUserUpdate:
+		if len(bot.Handlers.UserUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.UserUpdate = append(bot.Handlers.UserUpdate[:index], bot.Handlers.UserUpdate[index+1:]...)
+
+	case FlagGatewayEventNameVoiceChannelEffectSend:
+		if len(bot.Handlers.VoiceChannelEffectSend) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.VoiceChannelEffectSend = append(bot.Handlers.VoiceChannelEffectSend[:index], bot.Handlers.VoiceChannelEffectSend[index+1:]...)
 
 	case FlagGatewayEventNameVoiceStateUpdate:
 		if len(bot.Handlers.VoiceStateUpdate) <= index {
@@ -1700,6 +2000,19 @@ func (bot *Client) Remove(eventname string, index int) error {
 
 		bot.Handlers.VoiceStateUpdate = append(bot.Handlers.VoiceStateUpdate[:index], bot.Handlers.VoiceStateUpdate[index+1:]...)
 
+	case FlagGatewayEventNameVoiceServerUpdate:
+		if len(bot.Handlers.VoiceServerUpdate) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.VoiceServerUpdate = append(bot.Handlers.VoiceServerUpdate[:index], bot.Handlers.VoiceServerUpdate[index+1:]...)
+
 	case FlagGatewayEventNameWebhooksUpdate:
 		if len(bot.Handlers.WebhooksUpdate) <= index {
 			err := ErrorEventHandler{
@@ -1712,6 +2025,32 @@ func (bot *Client) Remove(eventname string, index int) error {
 		}
 
 		bot.Handlers.WebhooksUpdate = append(bot.Handlers.WebhooksUpdate[:index], bot.Handlers.WebhooksUpdate[index+1:]...)
+
+	case FlagGatewayEventNameMessagePollVoteAdd:
+		if len(bot.Handlers.MessagePollVoteAdd) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessagePollVoteAdd = append(bot.Handlers.MessagePollVoteAdd[:index], bot.Handlers.MessagePollVoteAdd[index+1:]...)
+
+	case FlagGatewayEventNameMessagePollVoteRemove:
+		if len(bot.Handlers.MessagePollVoteRemove) <= index {
+			err := ErrorEventHandler{
+				ClientID: bot.ApplicationID,
+				Event:    eventname,
+				Err:      fmt.Errorf(errRemoveInvalidIndex, index),
+			}
+			LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(err).Msg("")
+			return err
+		}
+
+		bot.Handlers.MessagePollVoteRemove = append(bot.Handlers.MessagePollVoteRemove[:index], bot.Handlers.MessagePollVoteRemove[index+1:]...)
 	}
 
 	LogEventHandler(Logger.Info(), bot.ApplicationID, eventname).Msg("removed event handler")
@@ -1855,58 +2194,6 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 		}
 
-	case FlagGatewayEventNameInteractionCreate:
-		if len(bot.Handlers.InteractionCreate) != 0 {
-			event := new(InteractionCreate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.InteractionCreate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameVoiceServerUpdate:
-		if len(bot.Handlers.VoiceServerUpdate) != 0 {
-			event := new(VoiceServerUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.VoiceServerUpdate {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameGuildMembersChunk:
-		if len(bot.Handlers.GuildMembersChunk) != 0 {
-			event := new(GuildMembersChunk)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.GuildMembersChunk {
-				go handler(event)
-			}
-		}
-
-	case FlagGatewayEventNameUserUpdate:
-		if len(bot.Handlers.UserUpdate) != 0 {
-			event := new(UserUpdate)
-			if err := json.Unmarshal(data, event); err != nil {
-				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
-				return
-			}
-
-			for _, handler := range bot.Handlers.UserUpdate {
-				go handler(event)
-			}
-		}
-
 	case FlagGatewayEventNameChannelCreate:
 		if len(bot.Handlers.ChannelCreate) != 0 {
 			event := new(ChannelCreate)
@@ -2033,6 +2320,45 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 
 			for _, handler := range bot.Handlers.ThreadMembersUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameEntitlementCreate:
+		if len(bot.Handlers.EntitlementCreate) != 0 {
+			event := new(EntitlementCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameEntitlementCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.EntitlementCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameEntitlementUpdate:
+		if len(bot.Handlers.EntitlementUpdate) != 0 {
+			event := new(EntitlementUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameEntitlementUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.EntitlementUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameEntitlementDelete:
+		if len(bot.Handlers.EntitlementDelete) != 0 {
+			event := new(EntitlementDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameEntitlementDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.EntitlementDelete {
 				go handler(event)
 			}
 		}
@@ -2193,6 +2519,19 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 		}
 
+	case FlagGatewayEventNameGuildMembersChunk:
+		if len(bot.Handlers.GuildMembersChunk) != 0 {
+			event := new(GuildMembersChunk)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildMembersChunk, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildMembersChunk {
+				go handler(event)
+			}
+		}
+
 	case FlagGatewayEventNameGuildRoleCreate:
 		if len(bot.Handlers.GuildRoleCreate) != 0 {
 			event := new(GuildRoleCreate)
@@ -2297,6 +2636,71 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 		}
 
+	case FlagGatewayEventNameGuildSoundboardSoundCreate:
+		if len(bot.Handlers.GuildSoundboardSoundCreate) != 0 {
+			event := new(GuildSoundboardSoundCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildSoundboardSoundCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildSoundboardSoundCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundUpdate:
+		if len(bot.Handlers.GuildSoundboardSoundUpdate) != 0 {
+			event := new(GuildSoundboardSoundUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildSoundboardSoundUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildSoundboardSoundUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundDelete:
+		if len(bot.Handlers.GuildSoundboardSoundDelete) != 0 {
+			event := new(GuildSoundboardSoundDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildSoundboardSoundDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildSoundboardSoundDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameGuildSoundboardSoundsUpdate:
+		if len(bot.Handlers.GuildSoundboardSoundsUpdate) != 0 {
+			event := new(GuildSoundboardSoundsUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameGuildSoundboardSoundsUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.GuildSoundboardSoundsUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameSoundboardSounds:
+		if len(bot.Handlers.SoundboardSounds) != 0 {
+			event := new(SoundboardSounds)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameSoundboardSounds, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.SoundboardSounds {
+				go handler(event)
+			}
+		}
+
 	case FlagGatewayEventNameIntegrationCreate:
 		if len(bot.Handlers.IntegrationCreate) != 0 {
 			event := new(IntegrationCreate)
@@ -2332,6 +2736,19 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 
 			for _, handler := range bot.Handlers.IntegrationDelete {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameInteractionCreate:
+		if len(bot.Handlers.InteractionCreate) != 0 {
+			event := new(InteractionCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameInteractionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.InteractionCreate {
 				go handler(event)
 			}
 		}
@@ -2518,6 +2935,45 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 		}
 
+	case FlagGatewayEventNameSubscriptionCreate:
+		if len(bot.Handlers.SubscriptionCreate) != 0 {
+			event := new(SubscriptionCreate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameSubscriptionCreate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.SubscriptionCreate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameSubscriptionUpdate:
+		if len(bot.Handlers.SubscriptionUpdate) != 0 {
+			event := new(SubscriptionUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameSubscriptionUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.SubscriptionUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameSubscriptionDelete:
+		if len(bot.Handlers.SubscriptionDelete) != 0 {
+			event := new(SubscriptionDelete)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameSubscriptionDelete, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.SubscriptionDelete {
+				go handler(event)
+			}
+		}
+
 	case FlagGatewayEventNameTypingStart:
 		if len(bot.Handlers.TypingStart) != 0 {
 			event := new(TypingStart)
@@ -2527,6 +2983,32 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 
 			for _, handler := range bot.Handlers.TypingStart {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameUserUpdate:
+		if len(bot.Handlers.UserUpdate) != 0 {
+			event := new(UserUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameUserUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.UserUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameVoiceChannelEffectSend:
+		if len(bot.Handlers.VoiceChannelEffectSend) != 0 {
+			event := new(VoiceChannelEffectSend)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceChannelEffectSend, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.VoiceChannelEffectSend {
 				go handler(event)
 			}
 		}
@@ -2544,6 +3026,19 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 		}
 
+	case FlagGatewayEventNameVoiceServerUpdate:
+		if len(bot.Handlers.VoiceServerUpdate) != 0 {
+			event := new(VoiceServerUpdate)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameVoiceServerUpdate, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.VoiceServerUpdate {
+				go handler(event)
+			}
+		}
+
 	case FlagGatewayEventNameWebhooksUpdate:
 		if len(bot.Handlers.WebhooksUpdate) != 0 {
 			event := new(WebhooksUpdate)
@@ -2553,6 +3048,32 @@ func (bot *Client) handle(eventname string, data json.RawMessage) {
 			}
 
 			for _, handler := range bot.Handlers.WebhooksUpdate {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessagePollVoteAdd:
+		if len(bot.Handlers.MessagePollVoteAdd) != 0 {
+			event := new(MessagePollVoteAdd)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessagePollVoteAdd, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessagePollVoteAdd {
+				go handler(event)
+			}
+		}
+
+	case FlagGatewayEventNameMessagePollVoteRemove:
+		if len(bot.Handlers.MessagePollVoteRemove) != 0 {
+			event := new(MessagePollVoteRemove)
+			if err := json.Unmarshal(data, event); err != nil {
+				LogEventHandler(Logger.Error(), bot.ApplicationID, eventname).Err(ErrorEvent{ClientID: bot.ApplicationID, Event: FlagGatewayEventNameMessagePollVoteRemove, Err: err, Action: ErrorEventActionUnmarshal}).Msg("")
+				return
+			}
+
+			for _, handler := range bot.Handlers.MessagePollVoteRemove {
 				go handler(event)
 			}
 		}

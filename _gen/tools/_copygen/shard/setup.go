@@ -12,10 +12,10 @@ type Copygen interface {
 	Identify(*disgo.Identify) error
 	// opcode 3
 	UpdatePresence(*disgo.GatewayPresenceUpdate) error
-	// opcode 4
-	UpdateVoiceState(*disgo.VoiceStateUpdate) error
 	// opcode 6
 	Resume(*disgo.Resume) error
 	// opcode 8
 	RequestGuildMembers(*disgo.RequestGuildMembers) error
+	// opcode 31
+	RequestSoundboardSounds(*disgo.RequestSoundboardSounds) error
 }

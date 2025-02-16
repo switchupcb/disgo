@@ -166,8 +166,8 @@ func (b *Bucket) ConfirmHeader(amount int16, header RateLimitHeader) {
 	//
 	// set the current Bucket to the current Discord Bucket.
 	if b.Expiry.IsZero() {
-		b.Limit = int16(header.Limit)
-		b.Remaining = int16(header.Remaining) - b.Pending
+		b.Limit = int16(header.Limit)                     //nolint:gosec // disable G115
+		b.Remaining = int16(header.Remaining) - b.Pending //nolint:gosec // disable G115
 		b.Expiry = reset
 
 		return
@@ -181,7 +181,7 @@ func (b *Bucket) ConfirmHeader(amount int16, header RateLimitHeader) {
 	//
 	// update the current Bucket to the next Bucket.
 	case b.Expiry.Before(reset):
-		b.Limit = int16(header.Limit)
+		b.Limit = int16(header.Limit) //nolint:gosec // disable G115
 		b.Expiry = reset
 
 	// Expiry occurs AFTER a Discord Bucket's Reset when the request applied to a previous Bucket.

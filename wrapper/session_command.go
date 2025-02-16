@@ -31,7 +31,7 @@ func (c *GatewayPresenceUpdate) SendEvent(bot *Client, session *Session) error {
 }
 
 // SendEvent sends an Opcode 4 UpdateVoiceState event to the Discord Gateway.
-func (c *VoiceStateUpdate) SendEvent(bot *Client, session *Session) error {
+func (c *GatewayVoiceStateUpdate) SendEvent(bot *Client, session *Session) error {
 	if err := writeEvent(bot, session, FlagGatewayOpcodeVoiceStateUpdate, FlagGatewaySendEventNameUpdateVoiceState, c); err != nil {
 		return err
 	}
@@ -51,6 +51,15 @@ func (c *Resume) SendEvent(bot *Client, session *Session) error {
 // SendEvent sends an Opcode 8 RequestGuildMembers event to the Discord Gateway.
 func (c *RequestGuildMembers) SendEvent(bot *Client, session *Session) error {
 	if err := writeEvent(bot, session, FlagGatewayOpcodeRequestGuildMembers, FlagGatewaySendEventNameRequestGuildMembers, c); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SendEvent sends an Opcode 31 RequestSoundboardSounds event to the Discord Gateway.
+func (c *RequestSoundboardSounds) SendEvent(bot *Client, session *Session) error {
+	if err := writeEvent(bot, session, FlagGatewayOpcodeRequestSoundboardSounds, FlagGatewaySendEventNameRequestSoundboardSounds, c); err != nil {
 		return err
 	}
 

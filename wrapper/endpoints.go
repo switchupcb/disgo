@@ -2,91 +2,105 @@ package wrapper
 
 // Discord API Endpoints
 const (
-	EndpointBaseURL    = "https://discord.com/api/v" + VersionDiscordAPI + "/"
-	CDNEndpointBaseURL = "https://cdn.discordapp.com/"
-	achievements       = "achievements"
-	active             = "active"
-	appassets          = "app-assets"
-	appicons           = "app-icons"
-	applicationid      = "application_id"
-	applications       = "applications"
-	archived           = "archived"
-	assetid            = "asset_id"
-	auditlogs          = "audit-logs"
-	authorize          = "authorize"
-	automoderation     = "auto-moderation"
-	avatardecorations  = "avatar-decorations"
-	avatars            = "avatars"
-	banners            = "banners"
-	bans               = "bans"
-	bot                = "bot"
-	bulkdelete         = "bulk-delete"
-	callback           = "callback"
-	channels           = "channels"
-	commands           = "commands"
-	connections        = "connections"
-	crosspost          = "crosspost"
-	discoverysplashes  = "discovery-splashes"
-	embed              = "embed"
-	emojis             = "emojis"
-	followers          = "followers"
-	gateway            = "gateway"
-	github             = "github"
-	guildevents        = "guild-events"
-	guilds             = "guilds"
-	icons              = "icons"
-	integrations       = "integrations"
-	interactions       = "interactions"
-	invites            = "invites"
-	me                 = "@me"
-	member             = "member"
-	members            = "members"
-	messages           = "messages"
-	metadata           = "metadata"
-	mfa                = "mfa"
-	nick               = "nick"
-	oauth              = "oauth2"
-	onboarding         = "onboarding"
-	original           = "@original"
-	permissions        = "permissions"
-	pins               = "pins"
-	preview            = "preview"
-	private            = "private"
-	prune              = "prune"
-	public             = "public"
-	reactions          = "reactions"
-	recipients         = "recipients"
-	regions            = "regions"
-	revoke             = "revoke"
-	roleconnection     = "role-connection"
-	roleconnections    = "role-connections"
-	roleicons          = "role-icons"
-	roles              = "roles"
-	rules              = "rules"
-	scheduledevents    = "scheduled-events"
-	search             = "search"
-	slack              = "slack"
-	slash              = "/"
-	splashes           = "splashes"
-	stageinstances     = "stage-instances"
-	stickerpacks       = "sticker-packs"
-	stickers           = "stickers"
-	store              = "store"
-	teamicons          = "team-icons"
-	templates          = "templates"
-	threadmembers      = "thread-members"
-	threads            = "threads"
-	token              = "token"
-	typing             = "typing"
-	users              = "users"
-	vanityurl          = "vanity-url"
-	voice              = "voice"
-	voicestates        = "voice-states"
-	webhooks           = "webhooks"
-	welcomescreen      = "welcome-screen"
-	widget             = "widget"
-	widgetjson         = "widget.json"
-	widgetpng          = "widget.png"
+	EndpointBaseURL         = "https://discord.com/api/v" + VersionDiscordAPI + "/"
+	CDNEndpointBaseURL      = "https://cdn.discordapp.com/"
+	achievements            = "achievements"
+	active                  = "active"
+	activityinstances       = "activity-instances"
+	answers                 = "answers"
+	appassets               = "app-assets"
+	appicons                = "app-icons"
+	applicationid           = "application.id"
+	applications            = "applications"
+	archived                = "archived"
+	assetid                 = "asset.id"
+	auditlogs               = "audit-logs"
+	authorize               = "authorize"
+	automoderation          = "auto-moderation"
+	avatardecorations       = "avatar-decorations"
+	avatars                 = "avatars"
+	banners                 = "banners"
+	bans                    = "bans"
+	bot                     = "bot"
+	bulkdelete              = "bulk-delete"
+	callback                = "callback"
+	channels                = "channels"
+	commands                = "commands"
+	connections             = "connections"
+	consume                 = "consume"
+	crosspost               = "crosspost"
+	discoverysplashes       = "discovery-splashes"
+	embed                   = "embed"
+	emojis                  = "emojis"
+	entitlements            = "entitlements"
+	ex                      = "ex"
+	expire                  = "expire"
+	followers               = "followers"
+	gateway                 = "gateway"
+	github                  = "github"
+	guildevents             = "guild-events"
+	guilds                  = "guilds"
+	hm                      = "hm"
+	icons                   = "icons"
+	integrations            = "integrations"
+	interactions            = "interactions"
+	invites                 = "invites"
+	is                      = "is"
+	me                      = "@me"
+	member                  = "member"
+	members                 = "members"
+	messages                = "messages"
+	metadata                = "metadata"
+	mfa                     = "mfa"
+	nick                    = "nick"
+	oauth                   = "oauth2"
+	onboarding              = "onboarding"
+	original                = "@original"
+	permissions             = "permissions"
+	pins                    = "pins"
+	polls                   = "polls"
+	preview                 = "preview"
+	private                 = "private"
+	prune                   = "prune"
+	public                  = "public"
+	reactions               = "reactions"
+	recipients              = "recipients"
+	regions                 = "regions"
+	revoke                  = "revoke"
+	roleconnection          = "role-connection"
+	roleconnections         = "role-connections"
+	roleicons               = "role-icons"
+	roles                   = "roles"
+	rules                   = "rules"
+	scheduledevents         = "scheduled-events"
+	search                  = "search"
+	sendsoundboardsound     = "send-soundboard-sound"
+	skus                    = "skus"
+	slack                   = "slack"
+	slash                   = "/"
+	soundboarddefaultsounds = "soundboard-default-sounds"
+	soundboardsounds        = "soundboard-sounds"
+	splashes                = "splashes"
+	stageinstances          = "stage-instances"
+	stickerpacks            = "sticker-packs"
+	stickers                = "stickers"
+	store                   = "store"
+	subscriptions           = "subscriptions"
+	teamicons               = "team-icons"
+	templates               = "templates"
+	threadmembers           = "thread-members"
+	threads                 = "threads"
+	token                   = "token"
+	typing                  = "typing"
+	users                   = "users"
+	vanityurl               = "vanity-url"
+	voice                   = "voice"
+	voicestates             = "voice-states"
+	webhooks                = "webhooks"
+	welcomescreen           = "welcome-screen"
+	widget                  = "widget"
+	widgetjson              = "widget.json"
+	widgetpng               = "widget.png"
 )
 
 // EndpointGetGlobalApplicationCommands builds a query for an HTTP request.
@@ -214,6 +228,16 @@ func EndpointGetCurrentApplication() string {
 	return EndpointBaseURL + applications + slash + me
 }
 
+// EndpointEditCurrentApplication builds a query for an HTTP request.
+func EndpointEditCurrentApplication() string {
+	return EndpointBaseURL + applications + slash + me
+}
+
+// EndpointGetApplicationActivityInstance builds a query for an HTTP request.
+func EndpointGetApplicationActivityInstance(applicationid, instanceid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + activityinstances + slash + instanceid
+}
+
 // EndpointGetApplicationRoleConnectionMetadataRecords builds a query for an HTTP request.
 func EndpointGetApplicationRoleConnectionMetadataRecords(applicationid string) string {
 	return EndpointBaseURL + applications + slash + applicationid + slash + roleconnections + slash + metadata
@@ -267,71 +291,6 @@ func EndpointModifyChannel(channelid string) string {
 // EndpointDeleteCloseChannel builds a query for an HTTP request.
 func EndpointDeleteCloseChannel(channelid string) string {
 	return EndpointBaseURL + channels + slash + channelid
-}
-
-// EndpointGetChannelMessages builds a query for an HTTP request.
-func EndpointGetChannelMessages(channelid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages
-}
-
-// EndpointGetChannelMessage builds a query for an HTTP request.
-func EndpointGetChannelMessage(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
-}
-
-// EndpointCreateMessage builds a query for an HTTP request.
-func EndpointCreateMessage(channelid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages
-}
-
-// EndpointCrosspostMessage builds a query for an HTTP request.
-func EndpointCrosspostMessage(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + crosspost
-}
-
-// EndpointCreateReaction builds a query for an HTTP request.
-func EndpointCreateReaction(channelid, messageid, emoji string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
-}
-
-// EndpointDeleteOwnReaction builds a query for an HTTP request.
-func EndpointDeleteOwnReaction(channelid, messageid, emoji string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
-}
-
-// EndpointDeleteUserReaction builds a query for an HTTP request.
-func EndpointDeleteUserReaction(channelid, messageid, emoji, userid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + userid
-}
-
-// EndpointGetReactions builds a query for an HTTP request.
-func EndpointGetReactions(channelid, messageid, emoji string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
-}
-
-// EndpointDeleteAllReactions builds a query for an HTTP request.
-func EndpointDeleteAllReactions(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions
-}
-
-// EndpointDeleteAllReactionsforEmoji builds a query for an HTTP request.
-func EndpointDeleteAllReactionsforEmoji(channelid, messageid, emoji string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
-}
-
-// EndpointEditMessage builds a query for an HTTP request.
-func EndpointEditMessage(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
-}
-
-// EndpointDeleteMessage builds a query for an HTTP request.
-func EndpointDeleteMessage(channelid, messageid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
-}
-
-// EndpointBulkDeleteMessages builds a query for an HTTP request.
-func EndpointBulkDeleteMessages(channelid string) string {
-	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + bulkdelete
 }
 
 // EndpointEditChannelPermissions builds a query for an HTTP request.
@@ -474,6 +433,56 @@ func EndpointDeleteGuildEmoji(guildid, emojiid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + emojis + slash + emojiid
 }
 
+// EndpointListApplicationEmojis builds a query for an HTTP request.
+func EndpointListApplicationEmojis(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis
+}
+
+// EndpointGetApplicationEmoji builds a query for an HTTP request.
+func EndpointGetApplicationEmoji(applicationid, emojiid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis + slash + emojiid
+}
+
+// EndpointCreateApplicationEmoji builds a query for an HTTP request.
+func EndpointCreateApplicationEmoji(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis
+}
+
+// EndpointModifyApplicationEmoji builds a query for an HTTP request.
+func EndpointModifyApplicationEmoji(applicationid, emojiid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis + slash + emojiid
+}
+
+// EndpointDeleteApplicationEmoji builds a query for an HTTP request.
+func EndpointDeleteApplicationEmoji(applicationid, emojiid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + emojis + slash + emojiid
+}
+
+// EndpointListEntitlements builds a query for an HTTP request.
+func EndpointListEntitlements(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements
+}
+
+// EndpointGetEntitlement builds a query for an HTTP request.
+func EndpointGetEntitlement(applicationid, entitlementid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements + slash + entitlementid
+}
+
+// EndpointConsumeEntitlement builds a query for an HTTP request.
+func EndpointConsumeEntitlement(applicationid, entitlementid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements + slash + entitlementid + slash + consume
+}
+
+// EndpointCreateTestEntitlement builds a query for an HTTP request.
+func EndpointCreateTestEntitlement(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements
+}
+
+// EndpointDeleteTestEntitlement builds a query for an HTTP request.
+func EndpointDeleteTestEntitlement(applicationid, entitlementid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + entitlements + slash + entitlementid
+}
+
 // EndpointCreateGuild builds a query for an HTTP request.
 func EndpointCreateGuild() string {
 	return EndpointBaseURL + guilds
@@ -594,6 +603,11 @@ func EndpointGetGuildRoles(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + roles
 }
 
+// EndpointGetGuildRole builds a query for an HTTP request.
+func EndpointGetGuildRole(guildid, roleid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + roles + slash + roleid
+}
+
 // EndpointCreateGuildRole builds a query for an HTTP request.
 func EndpointCreateGuildRole(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + roles
@@ -694,16 +708,6 @@ func EndpointModifyGuildOnboarding(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + onboarding
 }
 
-// EndpointModifyCurrentUserVoiceState builds a query for an HTTP request.
-func EndpointModifyCurrentUserVoiceState(guildid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + me
-}
-
-// EndpointModifyUserVoiceState builds a query for an HTTP request.
-func EndpointModifyUserVoiceState(guildid, userid string) string {
-	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + userid
-}
-
 // EndpointListScheduledEventsforGuild builds a query for an HTTP request.
 func EndpointListScheduledEventsforGuild(guildid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + scheduledevents
@@ -779,6 +783,121 @@ func EndpointDeleteInvite(invitecode string) string {
 	return EndpointBaseURL + invites + slash + invitecode
 }
 
+// EndpointGetChannelMessages builds a query for an HTTP request.
+func EndpointGetChannelMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages
+}
+
+// EndpointGetChannelMessage builds a query for an HTTP request.
+func EndpointGetChannelMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
+}
+
+// EndpointCreateMessage builds a query for an HTTP request.
+func EndpointCreateMessage(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages
+}
+
+// EndpointCrosspostMessage builds a query for an HTTP request.
+func EndpointCrosspostMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + crosspost
+}
+
+// EndpointCreateReaction builds a query for an HTTP request.
+func EndpointCreateReaction(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
+}
+
+// EndpointDeleteOwnReaction builds a query for an HTTP request.
+func EndpointDeleteOwnReaction(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + me
+}
+
+// EndpointDeleteUserReaction builds a query for an HTTP request.
+func EndpointDeleteUserReaction(channelid, messageid, emoji, userid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji + slash + userid
+}
+
+// EndpointGetReactions builds a query for an HTTP request.
+func EndpointGetReactions(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
+}
+
+// EndpointDeleteAllReactions builds a query for an HTTP request.
+func EndpointDeleteAllReactions(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions
+}
+
+// EndpointDeleteAllReactionsforEmoji builds a query for an HTTP request.
+func EndpointDeleteAllReactionsforEmoji(channelid, messageid, emoji string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid + slash + reactions + slash + emoji
+}
+
+// EndpointEditMessage builds a query for an HTTP request.
+func EndpointEditMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
+}
+
+// EndpointDeleteMessage builds a query for an HTTP request.
+func EndpointDeleteMessage(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + messageid
+}
+
+// EndpointBulkDeleteMessages builds a query for an HTTP request.
+func EndpointBulkDeleteMessages(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + messages + slash + bulkdelete
+}
+
+// EndpointGetAnswerVoters builds a query for an HTTP request.
+func EndpointGetAnswerVoters(channelid, messageid, answerid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + polls + slash + messageid + slash + answers + slash + answerid
+}
+
+// EndpointEndPoll builds a query for an HTTP request.
+func EndpointEndPoll(channelid, messageid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + polls + slash + messageid + slash + expire
+}
+
+// EndpointListSKUs builds a query for an HTTP request.
+func EndpointListSKUs(applicationid string) string {
+	return EndpointBaseURL + applications + slash + applicationid + slash + skus
+}
+
+// EndpointSendSoundboardSound builds a query for an HTTP request.
+func EndpointSendSoundboardSound(channelid string) string {
+	return EndpointBaseURL + channels + slash + channelid + slash + sendsoundboardsound
+}
+
+// EndpointListDefaultSoundboardSounds builds a query for an HTTP request.
+func EndpointListDefaultSoundboardSounds() string {
+	return EndpointBaseURL + soundboarddefaultsounds
+}
+
+// EndpointListGuildSoundboardSounds builds a query for an HTTP request.
+func EndpointListGuildSoundboardSounds(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds
+}
+
+// EndpointGetGuildSoundboardSound builds a query for an HTTP request.
+func EndpointGetGuildSoundboardSound(guildid, soundid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds + slash + soundid
+}
+
+// EndpointCreateGuildSoundboardSound builds a query for an HTTP request.
+func EndpointCreateGuildSoundboardSound(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds
+}
+
+// EndpointModifyGuildSoundboardSound builds a query for an HTTP request.
+func EndpointModifyGuildSoundboardSound(guildid, soundid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds + slash + soundid
+}
+
+// EndpointDeleteGuildSoundboardSound builds a query for an HTTP request.
+func EndpointDeleteGuildSoundboardSound(guildid, soundid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + soundboardsounds + slash + soundid
+}
+
 // EndpointCreateStageInstance builds a query for an HTTP request.
 func EndpointCreateStageInstance() string {
 	return EndpointBaseURL + stageinstances
@@ -804,9 +923,14 @@ func EndpointGetSticker(stickerid string) string {
 	return EndpointBaseURL + stickers + slash + stickerid
 }
 
-// EndpointListNitroStickerPacks builds a query for an HTTP request.
-func EndpointListNitroStickerPacks() string {
+// EndpointListStickerPacks builds a query for an HTTP request.
+func EndpointListStickerPacks() string {
 	return EndpointBaseURL + stickerpacks
+}
+
+// EndpointGetStickerPack builds a query for an HTTP request.
+func EndpointGetStickerPack(packid string) string {
+	return EndpointBaseURL + stickerpacks + slash + packid
 }
 
 // EndpointListGuildStickers builds a query for an HTTP request.
@@ -832,6 +956,26 @@ func EndpointModifyGuildSticker(guildid, stickerid string) string {
 // EndpointDeleteGuildSticker builds a query for an HTTP request.
 func EndpointDeleteGuildSticker(guildid, stickerid string) string {
 	return EndpointBaseURL + guilds + slash + guildid + slash + stickers + slash + stickerid
+}
+
+// EndpointListSKUSubscriptions builds a query for an HTTP request.
+func EndpointListSKUSubscriptions(skuid string) string {
+	return EndpointBaseURL + skus + slash + skuid + slash + subscriptions
+}
+
+// EndpointGetSKUSubscription builds a query for an HTTP request.
+func EndpointGetSKUSubscription(skuid, subscriptionid string) string {
+	return EndpointBaseURL + skus + slash + skuid + slash + subscriptions + slash + subscriptionid
+}
+
+// EndpointModifyCurrentUserVoiceState builds a query for an HTTP request.
+func EndpointModifyCurrentUserVoiceState(guildid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + me
+}
+
+// EndpointModifyUserVoiceState builds a query for an HTTP request.
+func EndpointModifyUserVoiceState(guildid, userid string) string {
+	return EndpointBaseURL + guilds + slash + guildid + slash + voicestates + slash + userid
 }
 
 // EndpointGetCurrentUser builds a query for an HTTP request.
@@ -874,18 +1018,18 @@ func EndpointCreateGroupDM() string {
 	return EndpointBaseURL + users + slash + me + slash + channels
 }
 
-// EndpointGetUserConnections builds a query for an HTTP request.
-func EndpointGetUserConnections() string {
+// EndpointGetCurrentUserConnections builds a query for an HTTP request.
+func EndpointGetCurrentUserConnections() string {
 	return EndpointBaseURL + users + slash + me + slash + connections
 }
 
-// EndpointGetUserApplicationRoleConnection builds a query for an HTTP request.
-func EndpointGetUserApplicationRoleConnection(applicationid string) string {
+// EndpointGetCurrentUserApplicationRoleConnection builds a query for an HTTP request.
+func EndpointGetCurrentUserApplicationRoleConnection(applicationid string) string {
 	return EndpointBaseURL + users + slash + me + slash + applications + slash + applicationid + slash + roleconnection
 }
 
-// EndpointUpdateUserApplicationRoleConnection builds a query for an HTTP request.
-func EndpointUpdateUserApplicationRoleConnection(applicationid string) string {
+// EndpointUpdateCurrentUserApplicationRoleConnection builds a query for an HTTP request.
+func EndpointUpdateCurrentUserApplicationRoleConnection(applicationid string) string {
 	return EndpointBaseURL + users + slash + me + slash + applications + slash + applicationid + slash + roleconnection
 }
 
@@ -1107,6 +1251,21 @@ func CDNEndpointGuildScheduledEventCover(scheduledeventid, scheduledeventcoverim
 // CDNEndpointGuildMemberBanner builds a query for an HTTP request.
 func CDNEndpointGuildMemberBanner(guildid, userid, memberbanner string) string {
 	return CDNEndpointBaseURL + guilds + slash + guildid + slash + users + slash + userid + slash + banners + slash + memberbanner
+}
+
+// CDNURLParameterExpire builds a query for an HTTP request.
+func CDNURLParameterExpire() string {
+	return CDNEndpointBaseURL + ex
+}
+
+// CDNURLParameterIssued builds a query for an HTTP request.
+func CDNURLParameterIssued() string {
+	return CDNEndpointBaseURL + is
+}
+
+// CDNURLParameterSignature builds a query for an HTTP request.
+func CDNURLParameterSignature() string {
+	return CDNEndpointBaseURL + hm
 }
 
 var (

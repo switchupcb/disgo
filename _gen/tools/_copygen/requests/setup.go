@@ -56,6 +56,10 @@ type Copygen interface {
 	DeleteFollowupMessage(*disgo.DeleteFollowupMessage) error
 	// http GET
 	GetCurrentApplication(*disgo.GetCurrentApplication) (*disgo.Application, error)
+	// http PATCH
+	EditCurrentApplication(*disgo.EditCurrentApplication) (*disgo.Application, error)
+	// http GET
+	GetApplicationActivityInstance(*disgo.GetApplicationActivityInstance) (*disgo.ActivityInstance, error)
 	// http GET
 	GetApplicationRoleConnectionMetadataRecords(*disgo.GetApplicationRoleConnectionMetadataRecords) ([]*disgo.ApplicationRoleConnectionMetadata, error)
 	// http PUT
@@ -84,32 +88,6 @@ type Copygen interface {
 	ModifyChannelThread(*disgo.ModifyChannelThread) (*disgo.Channel, error)
 	// http DELETE
 	DeleteCloseChannel(*disgo.DeleteCloseChannel) (*disgo.Channel, error)
-	// http GET
-	GetChannelMessages(*disgo.GetChannelMessages) ([]*disgo.Message, error)
-	// http GET
-	GetChannelMessage(*disgo.GetChannelMessage) (*disgo.Message, error)
-	// http POST
-	CreateMessage(*disgo.CreateMessage) (*disgo.Message, error)
-	// http POST
-	CrosspostMessage(*disgo.CrosspostMessage) (*disgo.Message, error)
-	// http PUT
-	CreateReaction(*disgo.CreateReaction) error
-	// http DELETE
-	DeleteOwnReaction(*disgo.DeleteOwnReaction) error
-	// http DELETE
-	DeleteUserReaction(*disgo.DeleteUserReaction) error
-	// http GET
-	GetReactions(*disgo.GetReactions) ([]*disgo.User, error)
-	// http DELETE
-	DeleteAllReactions(*disgo.DeleteAllReactions) error
-	// http DELETE
-	DeleteAllReactionsforEmoji(*disgo.DeleteAllReactionsforEmoji) error
-	// http PATCH
-	EditMessage(*disgo.EditMessage) (*disgo.Message, error)
-	// http DELETE
-	DeleteMessage(*disgo.DeleteMessage) error
-	// http POST
-	BulkDeleteMessages(*disgo.BulkDeleteMessages) error
 	// http PUT
 	EditChannelPermissions(*disgo.EditChannelPermissions) error
 	// http GET
@@ -166,6 +144,26 @@ type Copygen interface {
 	ModifyGuildEmoji(*disgo.ModifyGuildEmoji) (*disgo.Emoji, error)
 	// http DELETE
 	DeleteGuildEmoji(*disgo.DeleteGuildEmoji) error
+	// http GET
+	ListApplicationEmojis(*disgo.ListApplicationEmojis) (*disgo.ListApplicationEmojisResponse, error)
+	// http GET
+	GetApplicationEmoji(*disgo.GetApplicationEmoji) (*disgo.Emoji, error)
+	// http POST
+	CreateApplicationEmoji(*disgo.CreateApplicationEmoji) (*disgo.Emoji, error)
+	// http PATCH
+	ModifyApplicationEmoji(*disgo.ModifyApplicationEmoji) (*disgo.Emoji, error)
+	// http DELETE
+	DeleteApplicationEmoji(*disgo.DeleteApplicationEmoji) error
+	// http GET
+	ListEntitlements(*disgo.ListEntitlements) ([]*disgo.Entitlement, error)
+	// http GET
+	GetEntitlement(*disgo.GetEntitlement) (*disgo.Entitlement, error)
+	// http POST
+	ConsumeEntitlement(*disgo.ConsumeEntitlement) error
+	// http POST
+	CreateTestEntitlement(*disgo.CreateTestEntitlement) (*disgo.Entitlement, error)
+	// http DELETE
+	DeleteTestEntitlement(*disgo.DeleteTestEntitlement) error
 	// http POST
 	CreateGuild(*disgo.CreateGuild) (*disgo.Guild, error)
 	// http GET
@@ -252,10 +250,6 @@ type Copygen interface {
 	GetGuildOnboarding(*disgo.GetGuildOnboarding) (*disgo.GuildOnboarding, error)
 	// http PUT
 	ModifyGuildOnboarding(*disgo.ModifyGuildOnboarding) (*disgo.GuildOnboarding, error)
-	// http PATCH
-	ModifyCurrentUserVoiceState(*disgo.ModifyCurrentUserVoiceState) error
-	// http PATCH
-	ModifyUserVoiceState(*disgo.ModifyUserVoiceState) error
 	// http GET
 	ListScheduledEventsforGuild(*disgo.ListScheduledEventsforGuild) ([]*disgo.GuildScheduledEvent, error)
 	// http POST
@@ -270,6 +264,10 @@ type Copygen interface {
 	GetGuildScheduledEventUsers(*disgo.GetGuildScheduledEventUsers) ([]*disgo.GuildScheduledEventUser, error)
 	// http GET
 	GetGuildTemplate(*disgo.GetGuildTemplate) (*disgo.GuildTemplate, error)
+	// http GET
+	GetInvite(*disgo.GetInvite) (*disgo.Invite, error)
+	// http DELETE
+	DeleteInvite(*disgo.DeleteInvite) (*disgo.Invite, error)
 	// http POST
 	CreateGuildfromGuildTemplate(*disgo.CreateGuildfromGuildTemplate) ([]*disgo.GuildTemplate, error)
 	// http GET
@@ -283,9 +281,51 @@ type Copygen interface {
 	// http DELETE
 	DeleteGuildTemplate(*disgo.DeleteGuildTemplate) (*disgo.GuildTemplate, error)
 	// http GET
-	GetInvite(*disgo.GetInvite) (*disgo.Invite, error)
+	GetChannelMessages(*disgo.GetChannelMessages) ([]*disgo.Message, error)
+	// http GET
+	GetChannelMessage(*disgo.GetChannelMessage) (*disgo.Message, error)
+	// http POST
+	CreateMessage(*disgo.CreateMessage) (*disgo.Message, error)
+	// http POST
+	CrosspostMessage(*disgo.CrosspostMessage) (*disgo.Message, error)
+	// http PUT
+	CreateReaction(*disgo.CreateReaction) error
 	// http DELETE
-	DeleteInvite(*disgo.DeleteInvite) (*disgo.Invite, error)
+	DeleteOwnReaction(*disgo.DeleteOwnReaction) error
+	// http DELETE
+	DeleteUserReaction(*disgo.DeleteUserReaction) error
+	// http GET
+	GetReactions(*disgo.GetReactions) ([]*disgo.User, error)
+	// http DELETE
+	DeleteAllReactions(*disgo.DeleteAllReactions) error
+	// http DELETE
+	DeleteAllReactionsforEmoji(*disgo.DeleteAllReactionsforEmoji) error
+	// http PATCH
+	EditMessage(*disgo.EditMessage) (*disgo.Message, error)
+	// http DELETE
+	DeleteMessage(*disgo.DeleteMessage) error
+	// http POST
+	BulkDeleteMessages(*disgo.BulkDeleteMessages) error
+	// http GET
+	GetAnswerVoters(*disgo.GetAnswerVoters) (*disgo.GetAnswerVotersResponse, error)
+	// http POST
+	EndPoll(*disgo.EndPoll) (*disgo.Message, error)
+	// http GET
+	ListSKUs(*disgo.ListSKUs) ([]*disgo.SKU, error)
+	// http POST
+	SendSoundboardSound(*disgo.SendSoundboardSound) error
+	// http GET
+	ListDefaultSoundboardSounds(*disgo.ListDefaultSoundboardSounds) ([]*disgo.SoundboardSound, error)
+	// http GET
+	ListGuildSoundboardSounds(*disgo.ListGuildSoundboardSounds) (*disgo.SoundboardSound, error)
+	// http GET
+	GetGuildSoundboardSound(*disgo.GetGuildSoundboardSound) (*disgo.SoundboardSound, error)
+	// http POST
+	CreateGuildSoundboardSound(*disgo.CreateGuildSoundboardSound) (*disgo.SoundboardSound, error)
+	// http PATCH
+	ModifyGuildSoundboardSound(*disgo.ModifyGuildSoundboardSound) (*disgo.SoundboardSound, error)
+	// http DELETE
+	DeleteGuildSoundboardSound(*disgo.DeleteGuildSoundboardSound) error
 	// http POST
 	CreateStageInstance(*disgo.CreateStageInstance) (*disgo.StageInstance, error)
 	// http GET
@@ -297,7 +337,7 @@ type Copygen interface {
 	// http GET
 	GetSticker(*disgo.GetSticker) (*disgo.Sticker, error)
 	// http GET
-	ListNitroStickerPacks(*disgo.ListNitroStickerPacks) (*disgo.ListNitroStickerPacksResponse, error)
+	ListStickerPacks(*disgo.ListStickerPacks) (*disgo.ListStickerPacksResponse, error)
 	// http GET
 	ListGuildStickers(*disgo.ListGuildStickers) ([]*disgo.Sticker, error)
 	// http GET
@@ -308,6 +348,14 @@ type Copygen interface {
 	ModifyGuildSticker(*disgo.ModifyGuildSticker) (*disgo.Sticker, error)
 	// http DELETE
 	DeleteGuildSticker(*disgo.DeleteGuildSticker) error
+	// http GET
+	ListSKUSubscriptions(*disgo.ListSKUSubscriptions) ([]*disgo.Subscription, error)
+	// http GET
+	GetSKUSubscription(*disgo.GetSKUSubscription) (*disgo.Subscription, error)
+	// http PATCH
+	ModifyCurrentUserVoiceState(*disgo.ModifyCurrentUserVoiceState) error
+	// http PATCH
+	ModifyUserVoiceState(*disgo.ModifyUserVoiceState) error
 	// http GET
 	GetCurrentUser(*disgo.GetCurrentUser) (*disgo.User, error)
 	// http GET
@@ -325,11 +373,11 @@ type Copygen interface {
 	// http POST
 	CreateGroupDM(*disgo.CreateGroupDM) (*disgo.Channel, error)
 	// http GET
-	GetUserConnections(*disgo.GetUserConnections) ([]*disgo.Connection, error)
+	GetCurrentUserConnections(*disgo.GetCurrentUserConnections) ([]*disgo.Connection, error)
 	// http GET
-	GetUserApplicationRoleConnection(*disgo.GetUserApplicationRoleConnection) (*disgo.ApplicationRoleConnection, error)
+	GetCurrentUserApplicationRoleConnection(*disgo.GetCurrentUserApplicationRoleConnection) (*disgo.ApplicationRoleConnection, error)
 	// http PUT
-	UpdateUserApplicationRoleConnection(*disgo.UpdateUserApplicationRoleConnection) (*disgo.ApplicationRoleConnection, error)
+	UpdateCurrentUserApplicationRoleConnection(*disgo.UpdateCurrentUserApplicationRoleConnection) (*disgo.ApplicationRoleConnection, error)
 	// http GET
 	ListVoiceRegions(*disgo.ListVoiceRegions) ([]*disgo.VoiceRegion, error)
 	// http POST

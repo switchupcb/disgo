@@ -52,7 +52,7 @@ Comments follow [Effective Go](https://golang.org/doc/effective_go#commentary) a
 
 #### Static Code Analysis
 
-Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.53.3`.
+Disgo uses [golangci-lint](https://github.com/golangci/golangci-lint) in order to statically analyze code. You can install golangci-lint with `go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.5`.
 
  | Directory     | Command                           | Description                                        | GOWORK  |
  | :------------ | :-------------------------------- | :------------------------------------------------- | :------ |
@@ -81,7 +81,14 @@ Unit tests are used to test logic.
 
 #### Integration Tests
 
-Integration tests are used to ensure functionality between the API Wrapper and Discord.
+Integration tests are used to prove functionality between the API Wrapper and Discord.
+
+| Test                | What feature is tested?                                  |
+| :------------------ | :------------------------------------------------------- |
+| `coverage_test.go`  | [Discord API Feature Coverage](/_gen/coverage/README.md) |
+| `ratelimit_test.go` | Global, Per-Route, Gateway Rate Limits                   |
+| `session_test.go`   | Disgo Gateway Session                                    |
+| `voice_test.go`     | Disgo Voice Connection                                   |
 
 #### Running Tests
 
@@ -92,7 +99,7 @@ Use `go test` to run the tests in the current directory. Use `go test ./<dir>` t
 Disgo is **STABLE**. 
 
 The following additional features are being implemented:
-1. Voice Connections ([UDP Decision](/_contribution/libraries/), [Audio Processing using Opus](https://discord.com/developers/docs/topics/voice-connections#encrypting-and-sending-voice))
+1. [Voice Audio Processing](https://github.com/switchupcb/disgo/issues/72))
 2. [Cache](https://github.com/switchupcb/disgo/issues/39)
 
 [_Get assigned a feature or example now._](https://github.com/switchupcb/disgo/issues/45)

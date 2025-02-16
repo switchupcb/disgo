@@ -83,3 +83,52 @@ func putPayload(g *GatewayPayload) {
 
 	gpool.Put(g)
 }
+
+// vspool represents a synchronized Voice Session pool.
+var vspool sync.Pool
+
+// newVoiceSession gets a Voice Session from a pool.
+func newVoiceSession() *VoiceSession {
+	if vs := vspool.Get(); vs != nil {
+		return vs.(*VoiceSession) //nolint:forcetypeassert
+	}
+
+	return new(VoiceSession)
+}
+
+// putVoiceSession puts a Voice Session into the pool.
+func putVoiceSession(vs *VoiceSession) {
+	vs.Lock()
+	defer vs.Unlock()
+
+	// reset the Session.
+	vs.ID = ""
+	vs.Nonce = 0
+	vs.Context = nil
+	vs.Conn = nil
+	vs.heartbeat = nil
+	vs.manager = nil
+
+	vspool.Put(vs)
+}
+
+// vpool represents a synchronized Voice Payload pool.
+var vpool sync.Pool
+
+// getVoicePayload gets a Voice Payload from the pool.
+func getVoicePayload() *VoicePayload {
+	if v := vpool.Get(); v != nil {
+		return v.(*VoicePayload) //nolint:forcetypeassert
+	}
+
+	return new(VoicePayload)
+}
+
+// putVoicePayload puts a Voice Payload into the pool.
+func putVoicePayload(v *VoicePayload) {
+	// reset the Voice Payload.
+	v.Op = 0
+	v.Data = nil
+
+	vpool.Put(v)
+}

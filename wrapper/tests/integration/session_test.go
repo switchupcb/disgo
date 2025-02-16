@@ -220,4 +220,7 @@ RECONNECT:
 	if err := s.Disconnect(); err != nil {
 		t.Fatalf("%v", err)
 	}
+
+	// allow Discord to close the session.
+	<-time.After(time.Second * 5)
 }
