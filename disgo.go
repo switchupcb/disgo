@@ -17248,7 +17248,7 @@ func (s *Session) connect(bot *Client) error {
 	var response *GetGatewayBotResponse
 
 	if bot.Config.Gateway.ShardManager != nil {
-		if gatewayEndpoint, response, err = bot.Config.Gateway.ShardManager.SetLimit(bot); err != nil {
+		if response, err = bot.Config.Gateway.ShardManager.SetLimit(bot); err != nil {
 			return fmt.Errorf("shardmanager: %w", err)
 		}
 	} else {
@@ -21403,8 +21403,8 @@ type ShardManager interface {
 	// This limit is determined using the GetGatewayBot request (which provides the Gateway Endpoint).
 	// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
 	//
-	// Called from the session.go connect() function (at L#123 in /wrapper/session.go).
-	SetLimit(bot *Client) (gatewayEndpoint string, response *GetGatewayBotResponse, err error)
+	// Called from the session.go connect() function (at L#118 in /wrapper/session.go).
+	SetLimit(bot *Client) (response *GetGatewayBotResponse, err error)
 
 	// GetSessions gets the connected sessions of the bot (in order of connection).
 	GetSessions() []*Session

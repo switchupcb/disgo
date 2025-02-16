@@ -115,7 +115,7 @@ func (s *Session) connect(bot *Client) error {
 	var response *GetGatewayBotResponse
 
 	if bot.Config.Gateway.ShardManager != nil {
-		if gatewayEndpoint, response, err = bot.Config.Gateway.ShardManager.SetLimit(bot); err != nil {
+		if response, err = bot.Config.Gateway.ShardManager.SetLimit(bot); err != nil {
 			return fmt.Errorf("shardmanager: %w", err)
 		}
 	} else {

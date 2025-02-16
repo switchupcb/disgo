@@ -12,9 +12,9 @@ import (
 //
 // This shard manager routes every shard to every session (1).
 type InstanceShardManager struct {
-	// Shards represents the number of shards this shard manager will use.
+	// Shards represents the number of shards this shard manager uses.
 	//
-	// When the Shards = 0, the automatic shard manager is used.
+	// When Shards = 0, the automatic shard manager is used.
 	Shards int
 
 	// Limit contains information about a client's sharding limits.
@@ -22,10 +22,6 @@ type InstanceShardManager struct {
 
 	// Sessions represents a list of sessions sorted by shard_id (in order of connection).
 	Sessions []*disgo.Session
-
-	// gatewayEndpoint represents a valid Gateway URL endpoint from the Discord API.
-	// https://discord.com/developers/docs/topics/gateway#get-gateway-bot
-	gatewayEndpoint string
 }
 
 const (
@@ -38,18 +34,16 @@ const (
 )
 
 func (sm *InstanceShardManager) SetNumShards(shards int) {
-	sm.Shards = 2
+	sm.Shards = shards
 }
 
-func (sm *InstanceShardManager) SetLimit(bot *disgo.Client) (string, *disgo.GetGatewayBotResponse, error) {
-	if sm.gatewayEndpoint == "" {
+func (sm *InstanceShardManager) SetLimit(bot *disgo.Client) (*disgo.GetGatewayBotResponse, error) {
+	if sm.Limit == nil {
 		gateway := disgo.GetGatewayBot{}
 		response, err := gateway.Send(bot)
 		if err != nil {
-			return "", nil, fmt.Errorf("shardmanager: Gateway API Endpoint: %w", err)
+			return nil, fmt.Errorf("shardmanager: Gateway API Endpoint: %w", err)
 		}
-
-		sm.gatewayEndpoint = response.URL
 
 		sm.Limit = &disgo.ShardLimit{
 			Reset:             time.Now().Add(time.Millisecond*time.Duration(response.SessionStartLimit.ResetAfter) + 1),
@@ -59,10 +53,10 @@ func (sm *InstanceShardManager) SetLimit(bot *disgo.Client) (string, *disgo.GetG
 			RecommendedShards: response.Shards,
 		}
 
-		return sm.gatewayEndpoint, response, nil
+		return response, nil
 	}
 
-	return sm.gatewayEndpoint, nil, nil
+	return nil, nil
 }
 
 func (sm *InstanceShardManager) GetSessions() []*disgo.Session {
@@ -83,6 +77,10 @@ func (sm *InstanceShardManager) Connect(bot *disgo.Client) error {
 	// totalShards represents the total number of shards to use.
 	totalShards := sm.Shards
 	if totalShards <= 0 {
+		if _, err := sm.SetLimit(bot); err != nil {
+			return fmt.Errorf(errShardManager, err)
+		}
+
 		totalShards = sm.Limit.RecommendedShards
 	}
 
@@ -115,9 +113,6 @@ func (sm *InstanceShardManager) Disconnect() error {
 	// totalShards represents the total number of shards that are connected.
 	totalShards := len(sm.Sessions)
 
-	// set the Gateway Endpoint to a value that requires it to be fetched again upon reconnection.
-	sm.gatewayEndpoint = ""
-
 	for sessionCount := totalShards - 1; sessionCount > -1; sessionCount-- {
 		if err := sm.Sessions[sessionCount].Disconnect(); err != nil {
 			return fmt.Errorf(errShardManager, err)
@@ -133,9 +128,6 @@ func (sm *InstanceShardManager) Disconnect() error {
 func (sm *InstanceShardManager) Reconnect(bot *disgo.Client) error {
 	// totalShards represents the total number of shards that are connected.
 	totalShards := len(sm.Sessions)
-
-	// set the Gateway Endpoint to a value that requires it to be fetched again upon reconnection.
-	sm.gatewayEndpoint = ""
 
 	for sessionCount := 0; sessionCount < totalShards; sessionCount++ {
 		if err := sm.Sessions[sessionCount].Reconnect(bot); err != nil {
