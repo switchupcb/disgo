@@ -2101,7 +2101,7 @@ type GetChannelMessages struct {
 	Around    *string `url:"around,omitempty"`
 	Before    *string `url:"before,omitempty"`
 	After     *string `url:"after,omitempty"`
-	Limit     *Flag   `url:"limit,omitempty"`
+	Limit     *int    `url:"limit,omitempty"`
 }
 
 // Get Channel Message
@@ -2124,7 +2124,7 @@ type CreateMessage struct {
 	AllowedMentions  *AllowedMentions  `json:"allowed_mentions,omitempty"`
 	MessageReference *MessageReference `json:"message_reference,omitempty"`
 	Components       []Component       `json:"components,omitempty"`
-	StickerIDS       []*string         `json:"sticker_ids,omitempty"`
+	StickerIDS       []string          `json:"sticker_ids,omitempty"`
 	Files            []*File           `json:"-" dasgo:"files,omitempty"`
 	Attachments      []*Attachment     `json:"attachments,omitempty"`
 	Flags            *BitFlag          `json:"flags,omitempty"`
@@ -2223,8 +2223,8 @@ type DeleteMessage struct {
 // POST /channels/{channel.id}/messages/bulk-delete
 // https://discord.com/developers/docs/resources/channel#bulk-delete-messages
 type BulkDeleteMessages struct {
-	ChannelID string    `json:"-"`
-	Messages  []*string `json:"messages"`
+	ChannelID string   `json:"-"`
+	Messages  []string `json:"messages"`
 }
 
 // Get Answer Voters
@@ -2452,7 +2452,7 @@ type ForumAndMediaThreadMessageParams struct {
 	Embeds          []*Embed         `json:"embeds,omitempty"`
 	AllowedMentions *AllowedMentions `json:"allowed_mentions,omitempty"`
 	Components      []Component      `json:"components,omitempty"`
-	StickerIDS      []*string        `json:"sticker_ids,omitempty"`
+	StickerIDS      []string         `json:"sticker_ids,omitempty"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
 	Flags           *BitFlag         `json:"flags,omitempty"`
 }
@@ -2552,20 +2552,20 @@ type GetGuildEmoji struct {
 // POST /guilds/{guild.id}/emojis
 // https://discord.com/developers/docs/resources/emoji#create-guild-emoji
 type CreateGuildEmoji struct {
-	GuildID string    `json:"-"`
-	Name    string    `json:"name"`
-	Image   string    `json:"image"`
-	Roles   []*string `json:"roles"`
+	GuildID string   `json:"-"`
+	Name    string   `json:"name"`
+	Image   string   `json:"image"`
+	Roles   []string `json:"roles"`
 }
 
 // Modify Guild Emoji
 // PATCH /guilds/{guild.id}/emojis/{emoji.id}
 // https://discord.com/developers/docs/resources/emoji#modify-guild-emoji
 type ModifyGuildEmoji struct {
-	GuildID string     `json:"-"`
-	EmojiID string     `json:"-"`
-	Name    *string    `json:"name,omitempty"`
-	Roles   *[]*string `json:"roles,omitempty"`
+	GuildID string    `json:"-"`
+	EmojiID string    `json:"-"`
+	Name    *string   `json:"name,omitempty"`
+	Roles   *[]string `json:"roles"`
 }
 
 // Delete Guild Emoji
@@ -4507,7 +4507,7 @@ type Message struct {
 	TTS                  bool                                `json:"tts"`
 	MentionEveryone      bool                                `json:"mention_everyone"`
 	Mentions             []*User                             `json:"mentions"`
-	MentionRoles         []*string                           `json:"mention_roles"`
+	MentionRoles         []string                            `json:"mention_roles"`
 	MentionChannels      []*ChannelMention                   `json:"mention_channels,omitempty"`
 	Attachments          []*Attachment                       `json:"attachments"`
 	Embeds               []*Embed                            `json:"embeds"`
@@ -4878,8 +4878,8 @@ type ChannelMention struct {
 // https://discord.com/developers/docs/resources/channel#allowed-mentions-object-allowed-mentions-structure
 type AllowedMentions struct {
 	Parse       []*string `json:"parse"`
-	Roles       []*string `json:"roles"`
-	Users       []*string `json:"users"`
+	Roles       []string  `json:"roles"`
+	Users       []string  `json:"users"`
 	RepliedUser bool      `json:"replied_user"`
 }
 
@@ -5241,7 +5241,7 @@ type GuildMember struct {
 	Nick                       **string               `json:"nick,omitempty"`
 	Avatar                     **string               `json:"avatar,omitempty"`
 	Banner                     **string               `json:"banner,omitempty"`
-	Roles                      []*string              `json:"roles"`
+	Roles                      []string               `json:"roles"`
 	JoinedAt                   time.Time              `json:"joined_at"`
 	PremiumSince               **time.Time            `json:"premium_since,omitempty"`
 	Deaf                       bool                   `json:"deaf"`
