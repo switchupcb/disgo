@@ -295,21 +295,23 @@ func DefaultGateway() Gateway {
 // Use the Gateway.IntentSet to check whether the intent is already enabled.
 //
 //	DISCLAIMER. Bots that use `DefaultGateway()` or `DefaultConfig()` to
-//	initialize the Client have privileged intents = `true` in the IntentSet by default.
+//	initialize the Client have privileged intents = `true` in the IntentSet by default,
+//	which disables the privileged intent.
 func (g *Gateway) EnableIntent(intent BitFlag) {
 	g.IntentSet[intent] = true
 	g.Intents |= intent
 }
 
-// EnableIntentPrivileged enables all privileged intents.
+// EnableIntentsPrivileged enables all privileged intents.
 // https://discord.com/developers/docs/topics/gateway#privileged-intents
 //
 // This function does NOT check whether the intent is already enabled.
 // Use the Gateway.IntentSet to check whether the intent is already enabled.
 //
 //	DISCLAIMER. Bots that use `DefaultGateway()` or `DefaultConfig()` to
-//	initialize the Client have privileged intents = `true` in the IntentSet by default.
-func (g *Gateway) EnableIntentPrivileged(intent BitFlag) {
+//	initialize the Client have privileged intents = `true` in the IntentSet by default,
+//	which disables the privileged intent.
+func (g *Gateway) EnableIntentsPrivileged() {
 	for privilegedIntent := range PrivilegedIntents {
 		g.EnableIntent(privilegedIntent)
 	}
@@ -2515,7 +2517,7 @@ type GetChannelMessages struct {
 	Around    *string `url:"around,omitempty"`
 	Before    *string `url:"before,omitempty"`
 	After     *string `url:"after,omitempty"`
-	Limit     *Flag   `url:"limit,omitempty"`
+	Limit     *int    `url:"limit,omitempty"`
 	ChannelID string  `url:"-"`
 }
 
@@ -2541,7 +2543,7 @@ type CreateMessage struct {
 	ChannelID        string            `json:"-"`
 	Embeds           []*Embed          `json:"embeds,omitempty"`
 	Components       []Component       `json:"components,omitempty"`
-	StickerIDS       []*string         `json:"sticker_ids,omitempty"`
+	StickerIDS       []string          `json:"sticker_ids,omitempty"`
 	Files            []*File           `json:"-" dasgo:"files,omitempty"`
 	Attachments      []*Attachment     `json:"attachments,omitempty"`
 }
@@ -2638,8 +2640,8 @@ type DeleteMessage struct {
 // POST /channels/{channel.id}/messages/bulk-delete
 // https://discord.com/developers/docs/resources/channel#bulk-delete-messages
 type BulkDeleteMessages struct {
-	ChannelID string    `json:"-"`
-	Messages  []*string `json:"messages"`
+	ChannelID string   `json:"-"`
+	Messages  []string `json:"messages"`
 }
 
 // Get Answer Voters
@@ -2868,7 +2870,7 @@ type ForumAndMediaThreadMessageParams struct {
 	Flags           *BitFlag         `json:"flags,omitempty"`
 	Embeds          []*Embed         `json:"embeds,omitempty"`
 	Components      []Component      `json:"components,omitempty"`
-	StickerIDS      []*string        `json:"sticker_ids,omitempty"`
+	StickerIDS      []string         `json:"sticker_ids,omitempty"`
 	Attachments     []*Attachment    `json:"attachments,omitempty"`
 }
 
@@ -2967,20 +2969,20 @@ type GetGuildEmoji struct {
 // POST /guilds/{guild.id}/emojis
 // https://discord.com/developers/docs/resources/emoji#create-guild-emoji
 type CreateGuildEmoji struct {
-	GuildID string    `json:"-"`
-	Name    string    `json:"name"`
-	Image   string    `json:"image"`
-	Roles   []*string `json:"roles"`
+	GuildID string   `json:"-"`
+	Name    string   `json:"name"`
+	Image   string   `json:"image"`
+	Roles   []string `json:"roles"`
 }
 
 // Modify Guild Emoji
 // PATCH /guilds/{guild.id}/emojis/{emoji.id}
 // https://discord.com/developers/docs/resources/emoji#modify-guild-emoji
 type ModifyGuildEmoji struct {
-	Name    *string    `json:"name,omitempty"`
-	Roles   *[]*string `json:"roles,omitempty"`
-	GuildID string     `json:"-"`
-	EmojiID string     `json:"-"`
+	Name    *string   `json:"name,omitempty"`
+	Roles   *[]string `json:"roles"`
+	GuildID string    `json:"-"`
+	EmojiID string    `json:"-"`
 }
 
 // Delete Guild Emoji
@@ -4944,7 +4946,7 @@ type Message struct {
 	StickerItems         []*StickerItem                      `json:"sticker_items"`
 	Attachments          []*Attachment                       `json:"attachments"`
 	MentionChannels      []*ChannelMention                   `json:"mention_channels,omitempty"`
-	MentionRoles         []*string                           `json:"mention_roles"`
+	MentionRoles         []string                            `json:"mention_roles"`
 	Mentions             []*User                             `json:"mentions"`
 	Pinned               bool                                `json:"pinned"`
 	MentionEveryone      bool                                `json:"mention_everyone"`
@@ -5290,8 +5292,8 @@ type ChannelMention struct {
 // https://discord.com/developers/docs/resources/channel#allowed-mentions-object-allowed-mentions-structure
 type AllowedMentions struct {
 	Parse       []*string `json:"parse"`
-	Roles       []*string `json:"roles"`
-	Users       []*string `json:"users"`
+	Roles       []string  `json:"roles"`
+	Users       []string  `json:"users"`
 	RepliedUser bool      `json:"replied_user"`
 }
 
@@ -5656,7 +5658,7 @@ type GuildMember struct {
 	Permissions                *string                `json:"permissions,omitempty"`
 	CommunicationDisabledUntil **time.Time            `json:"communication_disabled_until,omitempty"`
 	AvatarDecorationData       **AvatarDecorationData `json:"avatar_decoration_data,omitempty"`
-	Roles                      []*string              `json:"roles"`
+	Roles                      []string               `json:"roles"`
 	Flags                      BitFlag                `json:"flags"`
 	Deaf                       bool                   `json:"deaf"`
 	Mute                       bool                   `json:"mute"`
@@ -17394,7 +17396,7 @@ func (s *Session) connect(bot *Client) error {
 
 	// spawn the manager goroutine.
 	s.manager.routines.Add(1)
-	go s.manage()
+	go s.manage(bot)
 
 	// ensure that the Session's goroutines are spawned.
 	s.manager.routines.Wait()
@@ -17519,7 +17521,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	// the session does NOT reconnect in time, the Discord Gateway send an Opcode 9 Invalid Session.
 	case FlagGatewayOpcodeInvalidSession:
 		// Remove the session from the session manager.
-		s.client_manager.Gateway.Store(s.ID, nil)
+		s.client_manager.RemoveGatewaySession(s.ID)
 
 		if attempt < 1 {
 			// wait for Discord to close the session, then complete a fresh connect.
@@ -17598,7 +17600,7 @@ func (s *Session) disconnect(code int) error {
 // Reconnect reconnects an already connected session to the Discord Gateway
 // by disconnecting the session, then connecting again.
 func (s *Session) Reconnect(bot *Client) error {
-	s.reconnect("reconnecting")
+	s.reconnect(bot, "reconnecting")
 
 	if err := <-s.manager.err; err != nil {
 		return err
@@ -20932,7 +20934,7 @@ func (s *Session) beat(bot *Client) error {
 			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
 				s.Unlock()
 
-				s.reconnect("attempting to reconnect session due to no HeartbeatACK")
+				s.reconnect(bot, "attempting to reconnect session due to no HeartbeatACK")
 
 				return nil
 			}
@@ -21113,14 +21115,14 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// occurs when the Discord Gateway is shutting down the connection, while signalling the client to reconnect.
 	case FlagGatewayOpcodeReconnect:
-		s.reconnect("reconnecting session due to Opcode 7 Reconnect")
+		s.reconnect(bot, "reconnecting session due to Opcode 7 Reconnect")
 
 		return nil
 
 	// in the context of onPayload, an Invalid Session occurs when an active session is invalidated.
 	case FlagGatewayOpcodeInvalidSession:
 		// Remove the session from the session manager.
-		s.client_manager.Gateway.Store(s.ID, nil)
+		s.client_manager.RemoveGatewaySession(s.ID)
 
 		// wait for Discord to close the session, then complete a fresh connect.
 		<-time.NewTimer(invalidSessionWaitTime).C
@@ -21179,7 +21181,7 @@ func (s *Session) logClose(routine string) {
 
 // reconnect spawns a goroutine for reconnection which prompts the manager
 // to reconnect upon a disconnection.
-func (s *Session) reconnect(reason string) {
+func (s *Session) reconnect(bot *Client, reason string) {
 	s.manager.Go(func() error {
 		s.Lock()
 		defer s.logClose("reconnect")
@@ -21192,12 +21194,18 @@ func (s *Session) reconnect(reason string) {
 			return fmt.Errorf("reconnect: %w", err)
 		}
 
+		// connect to the Discord Gateway again.
+		s.Context = nil
+		if err := s.connect(bot); err != nil {
+			return fmt.Errorf("reconnect: %w", err)
+		}
+
 		return nil
 	})
 }
 
 // manage manages a Session's goroutines.
-func (s *Session) manage() {
+func (s *Session) manage(bot *Client) {
 	s.manager.routines.Done()
 	defer func() {
 		s.Lock()
@@ -21247,7 +21255,11 @@ func (s *Session) manage() {
 
 		// when an error occurs from a WebSocket Close Error.
 		case errors.As(err, closeErr):
-			s.manager.err <- s.handleGatewayCloseError(closeErr)
+			if bot == nil {
+				s.manager.err <- fmt.Errorf("gateway websocket close error, but unable to reconnect: %w", err)
+			}
+
+			s.manager.err <- s.handleGatewayCloseError(bot, closeErr)
 
 		default:
 			if cErr := s.Conn.Close(websocket.StatusCode(FlagClientCloseEventCodeAway), ""); cErr != nil {
@@ -21270,7 +21282,7 @@ func (s *Session) manage() {
 }
 
 // handleGatewayCloseError handles a WebSocket CloseError.
-func (s *Session) handleGatewayCloseError(closeErr *websocket.CloseError) error {
+func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.CloseError) error {
 	code, ok := GatewayCloseEventCodes[int(closeErr.Code)]
 	switch ok {
 	// Gateway Close Event Code is known.
@@ -21281,7 +21293,7 @@ func (s *Session) handleGatewayCloseError(closeErr *websocket.CloseError) error 
 			)
 
 		if code.Reconnect {
-			s.reconnect(fmt.Sprintf("reconnecting due to Gateway Close Event Code %d", code.Code))
+			s.reconnect(bot, fmt.Sprintf("reconnecting due to Gateway Close Event Code %d", code.Code))
 
 			return nil
 		}
@@ -21379,7 +21391,7 @@ func (s *Session) Wait() (int, error) {
 
 		// when an error occurs from a WebSocket Close Error.
 		case errors.As(err, closeErr):
-			return SignalError, s.handleGatewayCloseError(closeErr)
+			return SignalError, s.handleGatewayCloseError(nil, closeErr)
 		}
 
 		return SignalError, err //nolint:wrapcheck

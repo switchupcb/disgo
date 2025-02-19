@@ -261,7 +261,7 @@ func (s *Session) connect(bot *Client) error {
 
 	// spawn the manager goroutine.
 	s.manager.routines.Add(1)
-	go s.manage()
+	go s.manage(bot)
 
 	// ensure that the Session's goroutines are spawned.
 	s.manager.routines.Wait()
@@ -386,7 +386,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 	// the session does NOT reconnect in time, the Discord Gateway send an Opcode 9 Invalid Session.
 	case FlagGatewayOpcodeInvalidSession:
 		// Remove the session from the session manager.
-		s.client_manager.Gateway.Store(s.ID, nil)
+		s.client_manager.RemoveGatewaySession(s.ID)
 
 		if attempt < 1 {
 			// wait for Discord to close the session, then complete a fresh connect.
@@ -465,7 +465,7 @@ func (s *Session) disconnect(code int) error {
 // Reconnect reconnects an already connected session to the Discord Gateway
 // by disconnecting the session, then connecting again.
 func (s *Session) Reconnect(bot *Client) error {
-	s.reconnect("reconnecting")
+	s.reconnect(bot, "reconnecting")
 
 	if err := <-s.manager.err; err != nil {
 		return err

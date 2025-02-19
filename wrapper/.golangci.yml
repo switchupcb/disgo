@@ -31,7 +31,7 @@ linters:
     - dupl
     - forbidigo
     - funlen
-    - goerr113
+    - err113
     - gofumpt
     - interfacebloat
     - nilnil

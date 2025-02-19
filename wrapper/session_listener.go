@@ -73,14 +73,14 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// occurs when the Discord Gateway is shutting down the connection, while signalling the client to reconnect.
 	case FlagGatewayOpcodeReconnect:
-		s.reconnect("reconnecting session due to Opcode 7 Reconnect")
+		s.reconnect(bot, "reconnecting session due to Opcode 7 Reconnect")
 
 		return nil
 
 	// in the context of onPayload, an Invalid Session occurs when an active session is invalidated.
 	case FlagGatewayOpcodeInvalidSession:
 		// Remove the session from the session manager.
-		s.client_manager.Gateway.Store(s.ID, nil)
+		s.client_manager.RemoveGatewaySession(s.ID)
 
 		// wait for Discord to close the session, then complete a fresh connect.
 		<-time.NewTimer(invalidSessionWaitTime).C

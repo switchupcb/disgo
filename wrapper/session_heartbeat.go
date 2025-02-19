@@ -62,7 +62,7 @@ func (s *Session) beat(bot *Client) error {
 			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
 				s.Unlock()
 
-				s.reconnect("attempting to reconnect session due to no HeartbeatACK")
+				s.reconnect(bot, "attempting to reconnect session due to no HeartbeatACK")
 
 				return nil
 			}

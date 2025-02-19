@@ -107,7 +107,7 @@ func (s *Session) logClose(routine string) {
 
 // reconnect spawns a goroutine for reconnection which prompts the manager
 // to reconnect upon a disconnection.
-func (s *Session) reconnect(reason string) {
+func (s *Session) reconnect(bot *Client, reason string) {
 	s.manager.Go(func() error {
 		s.Lock()
 		defer s.logClose("reconnect")
@@ -120,12 +120,18 @@ func (s *Session) reconnect(reason string) {
 			return fmt.Errorf("reconnect: %w", err)
 		}
 
+		// connect to the Discord Gateway again.
+		s.Context = nil
+		if err := s.connect(bot); err != nil {
+			return fmt.Errorf("reconnect: %w", err)
+		}
+
 		return nil
 	})
 }
 
 // manage manages a Session's goroutines.
-func (s *Session) manage() {
+func (s *Session) manage(bot *Client) {
 	s.manager.routines.Done()
 	defer func() {
 		s.Lock()
@@ -175,7 +181,11 @@ func (s *Session) manage() {
 
 		// when an error occurs from a WebSocket Close Error.
 		case errors.As(err, closeErr):
-			s.manager.err <- s.handleGatewayCloseError(closeErr)
+			if bot == nil {
+				s.manager.err <- fmt.Errorf("gateway websocket close error, but unable to reconnect: %w", err)
+			}
+
+			s.manager.err <- s.handleGatewayCloseError(bot, closeErr)
 
 		default:
 			if cErr := s.Conn.Close(websocket.StatusCode(FlagClientCloseEventCodeAway), ""); cErr != nil {
@@ -198,7 +208,7 @@ func (s *Session) manage() {
 }
 
 // handleGatewayCloseError handles a WebSocket CloseError.
-func (s *Session) handleGatewayCloseError(closeErr *websocket.CloseError) error {
+func (s *Session) handleGatewayCloseError(bot *Client, closeErr *websocket.CloseError) error {
 	code, ok := GatewayCloseEventCodes[int(closeErr.Code)]
 	switch ok {
 	// Gateway Close Event Code is known.
@@ -209,7 +219,7 @@ func (s *Session) handleGatewayCloseError(closeErr *websocket.CloseError) error 
 			)
 
 		if code.Reconnect {
-			s.reconnect(fmt.Sprintf("reconnecting due to Gateway Close Event Code %d", code.Code))
+			s.reconnect(bot, fmt.Sprintf("reconnecting due to Gateway Close Event Code %d", code.Code))
 
 			return nil
 		}
@@ -307,7 +317,7 @@ func (s *Session) Wait() (int, error) {
 
 		// when an error occurs from a WebSocket Close Error.
 		case errors.As(err, closeErr):
-			return SignalError, s.handleGatewayCloseError(closeErr)
+			return SignalError, s.handleGatewayCloseError(nil, closeErr)
 		}
 
 		return SignalError, err //nolint:wrapcheck
