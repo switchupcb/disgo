@@ -10,7 +10,7 @@ import (
 )
 
 // TestConnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
-// in order to ensure that WebSocket functionality works.
+// in order to confirm WebSocket functionality works.
 func TestConnect(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
@@ -116,7 +116,7 @@ DISCONNECT:
 }
 
 // TestReconnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
-// in order to ensure that WebSocket reconnection functionality works.
+// in order to confirm WebSocket reconnection functionality works.
 func TestReconnect(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 

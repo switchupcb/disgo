@@ -28,7 +28,7 @@ func main() {
 	// parse the command line flags.
 	flag.Parse()
 
-	// ensure that the program has the necessary data to succeed.
+	// confirm the program has the necessary data to succeed.
 	if token == "" {
 		fmt.Println("The bot's token must be set, but is currently empty.")
 

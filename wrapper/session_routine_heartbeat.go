@@ -36,7 +36,7 @@ func (s *Session) Monitor() uint32 {
 func (s *Session) beat(bot *Client) error {
 	s.manager.routines.Done()
 
-	// ensure that all pulse routines are closed prior to closing.
+	// confirm all pulse routines are closed prior to closing.
 	defer func() {
 		for {
 			select {
@@ -56,7 +56,6 @@ func (s *Session) beat(bot *Client) error {
 	for {
 		select {
 		case hb := <-s.heartbeat.send:
-			Logger.Printf("STUCK13")
 			s.Lock()
 
 			// close the connection if the last sent Heartbeat never received a HeartbeatACK.
@@ -74,7 +73,6 @@ func (s *Session) beat(bot *Client) error {
 			//
 			// clear queued (outdated) heartbeats.
 			for len(s.heartbeat.send) > 0 {
-				Logger.Printf("STUCK21")
 				// ensure the latest sequence is sent.
 				if h := <-s.heartbeat.send; h.Data > hb.Data {
 					hb.Data = h.Data
@@ -91,7 +89,6 @@ func (s *Session) beat(bot *Client) error {
 			// reset the ticker (and empty existing ticks).
 			s.heartbeat.ticker.Reset(s.heartbeat.interval)
 			for len(s.heartbeat.ticker.C) > 0 {
-				Logger.Printf("STUCK22")
 				<-s.heartbeat.ticker.C
 			}
 
@@ -115,7 +112,6 @@ func (s *Session) pulse() {
 
 	// send an Opcode 1 Heartbeat payload after heartbeat_interval * jitter milliseconds
 	// (where jitter is a random value between 0 and 1).
-	Logger.Printf("STUCK14")
 	s.Lock()
 	s.heartbeat.send <- Heartbeat{Data: atomic.LoadInt64(&s.Seq)}
 	LogSession(Logger.Info(), s.ID).Msg("queued jitter heartbeat")
@@ -125,7 +121,6 @@ func (s *Session) pulse() {
 		select {
 		// every Heartbeat Interval...
 		case <-s.heartbeat.ticker.C:
-			Logger.Printf("STUCK17")
 			s.Lock()
 
 			// queue a heartbeat.
@@ -136,7 +131,6 @@ func (s *Session) pulse() {
 			s.Unlock()
 
 		case <-s.Context.Done():
-			Logger.Printf("STUCK19")
 			s.Lock()
 			s.logClose("pulse")
 			s.Unlock()
@@ -159,7 +153,7 @@ func (s *Session) respond(data json.RawMessage) error {
 
 	s.Lock()
 
-	// ensure that the heartbeat routine has not been closed.
+	// confirm the heartbeat routine has not been closed.
 	if atomic.LoadInt32(&s.manager.pulses) <= 1 {
 		s.Unlock()
 
@@ -186,10 +180,8 @@ func (s *Session) respond(data json.RawMessage) error {
 
 // decrementPulses safely decrements the pulses counter.
 func (s *Session) decrementPulses() {
-	Logger.Printf("STUCK9")
 	s.Lock()
 	defer s.Unlock()
 
 	atomic.AddInt32(&s.manager.pulses, -1)
-	Logger.Printf("STUCK9a")
 }

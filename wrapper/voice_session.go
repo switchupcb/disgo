@@ -181,7 +181,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	s.manager.routines.Add(1)
 	go s.manage()
 
-	// ensure that the Session's goroutines are spawned.
+	// confirm the Session's goroutines are spawned.
 	s.manager.routines.Wait()
 
 	return nil

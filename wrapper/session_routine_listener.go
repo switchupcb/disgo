@@ -57,7 +57,6 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
-		Logger.Printf("STUCK10")
 		s.Lock()
 		atomic.AddInt32(&s.manager.pulses, 1)
 		s.Unlock()
@@ -72,7 +71,6 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
-		Logger.Printf("STUCK11")
 		s.Lock()
 		atomic.AddUint32(&s.heartbeat.acks, 1)
 		s.Unlock()
@@ -91,7 +89,6 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 		// wait for Discord to close the session, then complete a fresh connect.
 		<-time.NewTimer(invalidSessionWaitTime).C
 
-		Logger.Printf("STUCK12")
 		s.Lock()
 		defer s.Unlock()
 

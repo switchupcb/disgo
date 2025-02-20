@@ -144,7 +144,7 @@ func (s *Session) connect(bot *Client) error {
 		return nil
 	})
 
-	// ensure that the Session's goroutines are spawned.
+	// confirm the Session's goroutines are spawned.
 	s.manager.routines.Wait()
 
 	return nil

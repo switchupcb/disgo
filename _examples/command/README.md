@@ -78,8 +78,15 @@ Program executed successfully.
 
 **I am receiving `Invalid interaction application command` from Discord when I send an interaction.**
 
-Discord propagates registered Global Application Commands. As a result, it can take time to add or update a Global Application Command. In addition, the user's client must reload the commands that are available to them, so that the user's client selects the new propagated Global Application Command _(with a new ID and Token)_. In contrast, Guild Application Commands _(registered via `CreateGuildApplicationCommand`)_ are updated instantly. Due to this behavior, use Guild Application Commands to test your application without waiting for propagation. For more information, read the [Discord API Documentation](https://discord.com/developers/docs/interactions/application-commands#registering-a-command).
+Discord propagates registered Global Application Commands. So, it can take time to add or update a Global Application Command. In addition, the user's client must reload the commands that are available to them, so that the user's client selects the new propagated Global Application Command _(with a new ID and Token)_. In contrast, Guild Application Commands _(registered via `CreateGuildApplicationCommand`)_ are updated instantly. Due to this behavior, use Guild Application Commands to test your application without waiting for propagation. For more information, read the [Discord API Documentation](https://discord.com/developers/docs/interactions/application-commands#registering-a-command).
 
 **I am receiving a nil pointer dereference when the Bot's Application Command is used in a DM or Guild.**
 
-When an Application Command is used in a direct message, the `Interaction.User` field is provided, while the `Interaction.Member` is **NOT**. When an Application Command is used in a guild, the `Interaction.Member` field is provided, while the `Interaction.User` is **NOT**. For the sake of simplicity, these examples assume that you will use your command in a Direct Message Channel. To protect against this behavior in production-level code, ensure that the `Interaction.User` or `Interaction.Member` is `!= nil` before referencing their fields.
+These examples create commands for usage in a Direct Message Channel. Confirm the `Interaction.User` or `Interaction.Member` is `!= nil` before referencing their fields to protect against this behavior in production-level code.
+
+_Here is more information about this behavior._
+
+When an Application Command is used in a direct message, the `Interaction.User` field is provided, while the `Interaction.Member` is **NOT**. 
+
+When an Application Command is used in a guild, the `Interaction.Member` field is provided, while the `Interaction.User` is **NOT**. 
+

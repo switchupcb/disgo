@@ -26,7 +26,7 @@ func main() {
 	// parse the command line flags.
 	flag.Parse()
 
-	// ensure that the program has the necessary data to succeed.
+	// confirm the program has the necessary data to succeed.
 	if token == "" {
 		log.Println("The bot's token must be set, but is currently empty.")
 
@@ -46,7 +46,7 @@ func main() {
 		Config:         disgo.DefaultConfig(),
 	}
 
-	// ensure that the bot has access to the channel.
+	// confirm the bot has access to the channel.
 	//
 	// This is useful for the validation of this program, but unnecessary.
 	getChannelRequest := disgo.GetChannel{ChannelID: *channelID}
