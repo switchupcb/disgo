@@ -8193,19 +8193,29 @@ func (e ErrorRequest) Error() string {
 		e.ClientID, e.CorrelationID, e.RouteID, e.ResourceID, e.Endpoint, e.Err).Error()
 }
 
+// ErrorStatusCode represents an HTTP Request error that occurs when an unexpected response is returned.
+type ErrorStatusCode struct {
+	// StatusCode represents the HTTP Status Code received from a response.
+	StatusCode int
+}
+
 // Status Code Error Messages.
 const (
 	errStatusCodeKnown   = "status code %d: %v"
 	errStatusCodeUnknown = "status code %d: unknown status code error from Discord"
 )
 
-// StatusCodeError handles a Discord API HTTP Status Code and returns the relevant error message.
-func StatusCodeError(status int) error {
+func (e ErrorStatusCode) Error() string {
+	return fmt.Sprintf("STATUS CODE ERROR: status code: %q: msg: %v", e.StatusCode, StatusCodeError(e.StatusCode))
+}
+
+// StatusCodeError returns the relevant message for a Discord API HTTP Status Code.
+func StatusCodeError(status int) string {
 	if msg, ok := HTTPResponseCodes[status]; ok {
-		return fmt.Errorf(errStatusCodeKnown, status, msg)
+		return fmt.Sprintf(errStatusCodeKnown, status, msg)
 	}
 
-	return fmt.Errorf(errStatusCodeUnknown, status)
+	return fmt.Sprintf(errStatusCodeUnknown, status)
 }
 
 // JSON Error Code Messages.
@@ -10676,7 +10686,9 @@ SEND:
 				goto RATELIMIT
 			}
 
-			return StatusCodeError(response.StatusCode())
+			return ErrorStatusCode{
+				StatusCode: response.StatusCode(),
+			}
 		}
 
 		// parse the rate limit response data for `retry_after`.
@@ -10742,7 +10754,9 @@ SEND:
 			goto RATELIMIT
 		}
 
-		return StatusCodeError(fasthttp.StatusTooManyRequests)
+		return ErrorStatusCode{
+			StatusCode: fasthttp.StatusTooManyRequests,
+		}
 
 	// retry the request on a bad gateway server error.
 	case fasthttp.StatusBadGateway:
@@ -10752,10 +10766,14 @@ SEND:
 			goto RATELIMIT
 		}
 
-		return StatusCodeError(fasthttp.StatusBadGateway)
+		return ErrorStatusCode{
+			StatusCode: fasthttp.StatusBadGateway,
+		}
 
 	default:
-		return StatusCodeError(response.StatusCode())
+		return ErrorStatusCode{
+			StatusCode: response.StatusCode(),
+		}
 	}
 }
 
@@ -20568,7 +20586,7 @@ func (s *Session) Monitor() uint32 {
 func (s *Session) beat(bot *Client) error {
 	s.manager.routines.Done()
 
-	// ensure that all pulse routines are closed prior to closing.
+	// confirm all pulse routines are closed prior to closing.
 	defer func() {
 		for {
 			select {
@@ -20588,7 +20606,6 @@ func (s *Session) beat(bot *Client) error {
 	for {
 		select {
 		case hb := <-s.heartbeat.send:
-			Logger.Printf("STUCK13")
 			s.Lock()
 
 			// close the connection if the last sent Heartbeat never received a HeartbeatACK.
@@ -20606,7 +20623,6 @@ func (s *Session) beat(bot *Client) error {
 			//
 			// clear queued (outdated) heartbeats.
 			for len(s.heartbeat.send) > 0 {
-				Logger.Printf("STUCK21")
 				// ensure the latest sequence is sent.
 				if h := <-s.heartbeat.send; h.Data > hb.Data {
 					hb.Data = h.Data
@@ -20623,7 +20639,6 @@ func (s *Session) beat(bot *Client) error {
 			// reset the ticker (and empty existing ticks).
 			s.heartbeat.ticker.Reset(s.heartbeat.interval)
 			for len(s.heartbeat.ticker.C) > 0 {
-				Logger.Printf("STUCK22")
 				<-s.heartbeat.ticker.C
 			}
 
@@ -20647,7 +20662,6 @@ func (s *Session) pulse() {
 
 	// send an Opcode 1 Heartbeat payload after heartbeat_interval * jitter milliseconds
 	// (where jitter is a random value between 0 and 1).
-	Logger.Printf("STUCK14")
 	s.Lock()
 	s.heartbeat.send <- Heartbeat{Data: atomic.LoadInt64(&s.Seq)}
 	LogSession(Logger.Info(), s.ID).Msg("queued jitter heartbeat")
@@ -20657,7 +20671,6 @@ func (s *Session) pulse() {
 		select {
 		// every Heartbeat Interval...
 		case <-s.heartbeat.ticker.C:
-			Logger.Printf("STUCK17")
 			s.Lock()
 
 			// queue a heartbeat.
@@ -20668,7 +20681,6 @@ func (s *Session) pulse() {
 			s.Unlock()
 
 		case <-s.Context.Done():
-			Logger.Printf("STUCK19")
 			s.Lock()
 			s.logClose("pulse")
 			s.Unlock()
@@ -20691,7 +20703,7 @@ func (s *Session) respond(data json.RawMessage) error {
 
 	s.Lock()
 
-	// ensure that the heartbeat routine has not been closed.
+	// confirm the heartbeat routine has not been closed.
 	if atomic.LoadInt32(&s.manager.pulses) <= 1 {
 		s.Unlock()
 
@@ -20718,12 +20730,10 @@ func (s *Session) respond(data json.RawMessage) error {
 
 // decrementPulses safely decrements the pulses counter.
 func (s *Session) decrementPulses() {
-	Logger.Printf("STUCK9")
 	s.Lock()
 	defer s.Unlock()
 
 	atomic.AddInt32(&s.manager.pulses, -1)
-	Logger.Printf("STUCK9a")
 }
 
 // listen listens to the connection for payloads from the Discord Gateway.
@@ -20775,7 +20785,6 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
-		Logger.Printf("STUCK10")
 		s.Lock()
 		atomic.AddInt32(&s.manager.pulses, 1)
 		s.Unlock()
@@ -20790,7 +20799,6 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
-		Logger.Printf("STUCK11")
 		s.Lock()
 		atomic.AddUint32(&s.heartbeat.acks, 1)
 		s.Unlock()
@@ -20809,7 +20817,6 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 		// wait for Discord to close the session, then complete a fresh connect.
 		<-time.NewTimer(invalidSessionWaitTime).C
 
-		Logger.Printf("STUCK12")
 		s.Lock()
 		defer s.Unlock()
 
@@ -20924,8 +20931,6 @@ func (s *Session) manage(bot *Client) error {
 				break
 			}
 
-			Logger.Printf("STUCK5")
-
 			// wait until the previous connection's manager goroutines are closed.
 			err := s.manager.Wait()
 			if err != nil {
@@ -20954,22 +20959,23 @@ func (s *Session) manage(bot *Client) error {
 						break // to reconnect from the connect case logic.
 					} // vErr == nil
 				} // errors.As
-			} // err != nil
 
-			Logger.Printf("STUCK54")
+				// TODO: Use errors.As: https://github.com/coder/websocket/issues/519
+				if strings.Contains(err.Error(), "failed to close WebSocket: received header with unexpected rsv bits set") {
+					err = nil
+				}
+			} // err != nil
 
 			s.Lock()
 
-			return err //nolint:wrapcheck
+			return err
 
 		case signal := <-s.manager.signals:
 			switch signal {
 			case sessionSignalConnect:
 				if s.State() != SessionStateDisconnectedReconnect {
-					Logger.Printf("STUCK6")
 					s.Lock()
 				} else {
-					Logger.Printf("PROBLEM IS HERE")
 					s.Unlock()
 
 					// wait until the previous connection's manager goroutines are closed.
@@ -21004,7 +21010,6 @@ func (s *Session) manage(bot *Client) error {
 
 			case sessionSignalDisconnect:
 				if managedErr == nil && s.State() != SessionStateReconnecting {
-					Logger.Printf("STUCK7")
 					s.Lock()
 				}
 
@@ -21013,8 +21018,6 @@ func (s *Session) manage(bot *Client) error {
 
 				switch {
 				case managedErr != nil:
-					Logger.Printf("managedErr IS NOT NIL")
-					Logger.Err(managedErr)
 					s.setState(SessionStateDisconnectingError)
 				case s.State() == SessionStateReconnecting:
 					s.setState(SessionStateDisconnectingReconnect)
@@ -21053,7 +21056,6 @@ func (s *Session) manage(bot *Client) error {
 							return managedErr
 						}
 					}
-
 				} // disconnect
 
 				// update the session's state.
@@ -21090,7 +21092,6 @@ func (s *Session) manage(bot *Client) error {
 				return nil
 
 			case sessionSignalReconnect:
-				Logger.Printf("STUCK8")
 				s.Lock()
 				s.setState(SessionStateReconnecting)
 
@@ -21270,7 +21271,7 @@ func (s *Session) connect(bot *Client) error {
 		return nil
 	})
 
-	// ensure that the Session's goroutines are spawned.
+	// confirm the Session's goroutines are spawned.
 	s.manager.routines.Wait()
 
 	return nil
@@ -21884,7 +21885,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	hello := new(VoiceHello)
 	if err := readEventVoice(s, hello); err != nil {
 		err = fmt.Errorf("error reading initial VoiceHello event: %w", err)
-		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
+		sessionErr := ErrorSession{SessionID: s.ID, Err: err} //nolint:exhaustruct // voice needs refactor
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorSessionDisconnect{
 				Action: err,
@@ -21928,7 +21929,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	s.manager.routines.Add(1)
 	s.manager.Go(func() error {
 		if err := s.beat(); err != nil {
-			return ErrorSession{
+			return ErrorSession{ //nolint:exhaustruct // voice needs refactor
 				SessionID: s.ID,
 				Err:       fmt.Errorf("heartbeat: %w", err),
 			}
@@ -21939,7 +21940,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 
 	// send the initial Identify or Resumed packet.
 	if err := s.initial(bot, vc); err != nil {
-		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
+		sessionErr := ErrorSession{SessionID: s.ID, Err: err} //nolint:exhaustruct // voice needs refactor
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorSessionDisconnect{
 				Action: err,
@@ -21954,7 +21955,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	s.manager.routines.Add(1)
 	s.manager.Go(func() error {
 		if err := s.listen(bot); err != nil {
-			return ErrorSession{
+			return ErrorSession{ //nolint:exhaustruct // voice needs refactor
 				SessionID: s.ID,
 				Err:       fmt.Errorf("listen: %w", err),
 			}
@@ -21967,7 +21968,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	s.manager.routines.Add(1)
 	go s.manage()
 
-	// ensure that the Session's goroutines are spawned.
+	// confirm the Session's goroutines are spawned.
 	s.manager.routines.Wait()
 
 	return nil
@@ -22083,29 +22084,6 @@ func readEventVoice(s *VoiceSession, dst any) error {
 	return nil
 }
 
-// writeEventVoice is a helper function for writing voice events to the WebSocket Session.
-func writeEventVoice(s *VoiceSession, op int, name string, dst any) error {
-	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
-
-	// write the event to the WebSocket Connection.
-	event, err := json.Marshal(dst)
-	if err != nil {
-		return fmt.Errorf("writeEvent: %w", err)
-	}
-
-	if err = socket.Write(s.Context, s.Conn, websocket.MessageText,
-		VoicePayload{
-			Op:   op,
-			Data: event,
-		}); err != nil {
-		return fmt.Errorf("writeEvent: %w", err)
-	}
-
-	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
-
-	return nil
-}
-
 // SendEvent sends an Opcode 0 Identify event to the Discord Voice Server.
 func (c *VoiceIdentify) SendEvent(session *VoiceSession) error {
 	if err := writeEventVoice(session, FlagVoiceOpcodeIdentify, FlagVoiceSendEventNameIdentify, c); err != nil {
@@ -22147,6 +22125,29 @@ func (c *VoiceResume) SendEvent(session *VoiceSession) error {
 	if err := writeEventVoice(session, FlagVoiceOpcodeResume, FlagVoiceSendEventNameResume, c); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// writeEventVoice is a helper function for writing voice events to the WebSocket Session.
+func writeEventVoice(s *VoiceSession, op int, name string, dst any) error {
+	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
+
+	// write the event to the WebSocket Connection.
+	event, err := json.Marshal(dst)
+	if err != nil {
+		return fmt.Errorf("writeEvent: %w", err)
+	}
+
+	if err = socket.Write(s.Context, s.Conn, websocket.MessageText,
+		VoicePayload{
+			Op:   op,
+			Data: event,
+		}); err != nil {
+		return fmt.Errorf("writeEvent: %w", err)
+	}
+
+	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
 
 	return nil
 }
@@ -22418,7 +22419,7 @@ func (s *VoiceSession) Monitor() uint32 {
 func (s *VoiceSession) beat() error {
 	s.manager.routines.Done()
 
-	// ensure that all pulse routines are closed prior to closing.
+	// confirm all pulse routines are closed prior to closing.
 	defer func() {
 		for {
 			if s.heartbeat == nil {
