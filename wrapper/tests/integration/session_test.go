@@ -9,35 +9,8 @@ import (
 	. "github.com/switchupcb/disgo"
 )
 
-// TestSessionManager tests the Session Manager check at the start of a Session Connect() call.
-func TestSessionManager(t *testing.T) {
-	zerolog.SetGlobalLevel(zerolog.DebugLevel)
-
-	bot := &Client{
-		Authentication: BotToken(os.Getenv("TOKEN")),
-		Config:         DefaultConfig(),
-		Handlers:       new(Handlers),
-	}
-
-	s := NewSession()
-
-	// connecting to a connected session should result in an error.
-	err := s.Connect(bot)
-	if err == nil {
-		// disconnect from the Discord Gateway (WebSocket Connection).
-		if err := s.Disconnect(); err != nil {
-			t.Fatalf("%v", err)
-		}
-
-		// allow Discord to close the session.
-		<-time.After(time.Second * 5)
-
-		t.Fatalf("expected error while connecting to with a bot without a SessionManager")
-	}
-}
-
 // TestConnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
-// in order to ensure that WebSocket functionality works.
+// in order to confirm WebSocket functionality works.
 func TestConnect(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 
@@ -143,7 +116,7 @@ DISCONNECT:
 }
 
 // TestReconnect tests Connect(), Disconnect(), heartbeat(), listen(), and onPayload()
-// in order to ensure that WebSocket reconnection functionality works.
+// in order to confirm WebSocket reconnection functionality works.
 func TestReconnect(t *testing.T) {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 

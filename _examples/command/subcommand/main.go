@@ -174,7 +174,7 @@ func main() {
 
 	// Add an event handler to the bot.
 	//
-	// ensure that the event handler is added to the bot.
+	// confirm the event handler is added to the bot.
 	if err := bot.Handle(disgo.FlagGatewayEventNameInteractionCreate, func(i *disgo.InteractionCreate) {
 		log.Printf("calculate called by %s.", i.Interaction.User.Username)
 

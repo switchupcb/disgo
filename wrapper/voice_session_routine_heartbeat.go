@@ -33,7 +33,7 @@ func (s *VoiceSession) Monitor() uint32 {
 func (s *VoiceSession) beat() error {
 	s.manager.routines.Done()
 
-	// ensure that all pulse routines are closed prior to closing.
+	// confirm all pulse routines are closed prior to closing.
 	defer func() {
 		for {
 			if s.heartbeat == nil {

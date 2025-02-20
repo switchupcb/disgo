@@ -28,16 +28,20 @@ func (s *Session) listen(bot *Client) error {
 	}
 
 	s.Lock()
-	defer s.Unlock()
 	defer s.logClose("listen")
+	defer s.Unlock()
 
-	select {
-	case <-s.Context.Done():
-		return nil
+	if s.Context != nil {
+		select {
+		case <-s.Context.Done():
+			return nil
 
-	default:
-		return err
+		default:
+			return err
+		}
 	}
+
+	return nil
 }
 
 // onPayload handles an Discord Gateway Payload.
@@ -73,7 +77,7 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// occurs when the Discord Gateway is shutting down the connection, while signalling the client to reconnect.
 	case FlagGatewayOpcodeReconnect:
-		s.reconnect(bot, "reconnecting session due to Opcode 7 Reconnect")
+		s.reconnect("reconnecting session due to Opcode 7 Reconnect")
 
 		return nil
 

@@ -37,19 +37,29 @@ func (e ErrorRequest) Error() string {
 		e.ClientID, e.CorrelationID, e.RouteID, e.ResourceID, e.Endpoint, e.Err).Error()
 }
 
+// ErrorStatusCode represents an HTTP Request error that occurs when an unexpected response is returned.
+type ErrorStatusCode struct {
+	// StatusCode represents the HTTP Status Code received from a response.
+	StatusCode int
+}
+
 // Status Code Error Messages.
 const (
 	errStatusCodeKnown   = "status code %d: %v"
 	errStatusCodeUnknown = "status code %d: unknown status code error from Discord"
 )
 
-// StatusCodeError handles a Discord API HTTP Status Code and returns the relevant error message.
-func StatusCodeError(status int) error {
+func (e ErrorStatusCode) Error() string {
+	return fmt.Sprintf("STATUS CODE ERROR: status code: %q: msg: %v", e.StatusCode, StatusCodeError(e.StatusCode))
+}
+
+// StatusCodeError returns the relevant message for a Discord API HTTP Status Code.
+func StatusCodeError(status int) string {
 	if msg, ok := HTTPResponseCodes[status]; ok {
-		return fmt.Errorf(errStatusCodeKnown, status, msg)
+		return fmt.Sprintf(errStatusCodeKnown, status, msg)
 	}
 
-	return fmt.Errorf(errStatusCodeUnknown, status)
+	return fmt.Sprintf(errStatusCodeUnknown, status)
 }
 
 // JSON Error Code Messages.
@@ -124,26 +134,6 @@ func (e ErrorEvent) Error() string {
 		e.ClientID, e.Event, e.Action, e.Err).Error()
 }
 
-// Discord Gateway Error Messages
-const (
-	errNoSessionManager = `The client must contain a non-nil SessionManager struct to connect to the Discord Gateway.
-
-	Set the *Client.SessionManager using one of the following methods.
-
-	--- 1
-
-	bot := &disgo.Client{
-		...
-		Sessions: 	disgo.NewSessionManager(),
-	}
-
-	--- 2
-
-	bot.Sessions = disgo.NewSessionManager()
-
-	`
-)
-
 // ErrorSession represents a WebSocket Session error that occurs during an active session.
 type ErrorSession struct {
 	// Err represents the error that occurred.
@@ -151,34 +141,37 @@ type ErrorSession struct {
 
 	// SessionID represents the ID of the Session.
 	SessionID string
-}
 
-func (e ErrorSession) Error() string {
-	return fmt.Errorf("SESSION ERROR: session %q: error: %w", e.SessionID, e.Err).Error()
+	// State represents the state of the session.
+	State string
+
+	// Type represents the type of connection (e.g., Discord Gateway, Discord Voice).
+	Type string
 }
 
 const (
-	ErrConnectionSession      = "Discord Gateway"
-	ErrConnectionSessionVoice = "Discord Voice"
+	ErrorSessionTypeGateway = "Discord Gateway"
+	ErrorSessionTypeVoice   = "Discord Voice"
 )
 
-// ErrorDisconnect represents a disconnection error that occurs when
-// an attempt to gracefully disconnect from a connection fails.
-type ErrorDisconnect struct {
+func (e ErrorSession) Error() string {
+	return fmt.Errorf("SESSION ERROR: %q session %q: state: %q error: %w", e.Type, e.SessionID, e.State, e.Err).Error()
+}
+
+// ErrorSessionDisconnect represents a disconnection error that occurs when
+// an attempt to gracefully disconnect from a session fails.
+type ErrorSessionDisconnect struct {
 	// Action represents the error that prompted the disconnection (if applicable).
 	Action error
 
 	// Err represents the error that occurred while disconnecting.
 	Err error
-
-	// Connection represents the name of the connection.
-	Connection string
 }
 
-func (e ErrorDisconnect) Error() string {
-	return fmt.Errorf("error disconnecting from %q\n"+
+func (e ErrorSessionDisconnect) Error() string {
+	return fmt.Errorf(
 		"\tDisconnect(): %v\n"+
-		"\treason: %w\n",
-		e.Connection, e.Err, e.Action,
+			"\treason: %w\n",
+		e.Err, e.Action,
 	).Error() //lint:ignore ST1005 readability
 }

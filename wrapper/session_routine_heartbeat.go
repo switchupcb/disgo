@@ -36,7 +36,7 @@ func (s *Session) Monitor() uint32 {
 func (s *Session) beat(bot *Client) error {
 	s.manager.routines.Done()
 
-	// ensure that all pulse routines are closed prior to closing.
+	// confirm all pulse routines are closed prior to closing.
 	defer func() {
 		for {
 			select {
@@ -62,7 +62,7 @@ func (s *Session) beat(bot *Client) error {
 			if atomic.LoadUint32(&s.heartbeat.acks) == 0 {
 				s.Unlock()
 
-				s.reconnect(bot, "attempting to reconnect session due to no HeartbeatACK")
+				s.reconnect("attempting to reconnect session due to no HeartbeatACK")
 
 				return nil
 			}
@@ -153,7 +153,7 @@ func (s *Session) respond(data json.RawMessage) error {
 
 	s.Lock()
 
-	// ensure that the heartbeat routine has not been closed.
+	// confirm the heartbeat routine has not been closed.
 	if atomic.LoadInt32(&s.manager.pulses) <= 1 {
 		s.Unlock()
 
@@ -176,4 +176,12 @@ func (s *Session) respond(data json.RawMessage) error {
 	s.Unlock()
 
 	return nil
+}
+
+// decrementPulses safely decrements the pulses counter.
+func (s *Session) decrementPulses() {
+	s.Lock()
+	defer s.Unlock()
+
+	atomic.AddInt32(&s.manager.pulses, -1)
 }

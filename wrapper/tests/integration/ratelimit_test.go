@@ -62,7 +62,7 @@ func TestRequestGlobalRateLimit(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	// ensure that the next test starts with a full bucket.
+	// confirm the next test starts with a full bucket.
 	time.After(time.Second * 2)
 }
 
@@ -117,7 +117,7 @@ func TestRequestRouteRateLimit(t *testing.T) {
 		t.Fatalf("%v", err)
 	}
 
-	// ensure that the next test starts with a full bucket.
+	// confirm the next test starts with a full bucket.
 	time.After(time.Second * 2)
 }
 

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/switchupcb/websocket"
 	"golang.org/x/sync/errgroup"
@@ -88,7 +87,6 @@ func (s *VoiceSession) reconnect(reason string) {
 
 		LogSession(Logger.Info(), s.ID).Msg(reason)
 
-		s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalReconnect)
 		if err := s.disconnect(FlagClientCloseEventCodeReconnect); err != nil {
 			return fmt.Errorf("reconnect: %w", err)
 		}
@@ -111,35 +109,9 @@ func (s *VoiceSession) manage() {
 	s.Lock()
 	defer s.Unlock()
 
-	// log the reason for disconnection (if applicable).
-	if reason := s.manager.signal.Value(keyReason); reason != nil {
-		LogSession(Logger.Info(), s.ID).Msgf("%v", reason)
-	}
-
-	// when a signal is provided, it indicates that the disconnection was purposeful.
-	signal := s.manager.signal.Value(keySignal)
-	switch signal {
-	case signalDisconnect:
-		LogSession(Logger.Info(), s.ID).Msg("successfully disconnected")
-
-		s.manager.err <- nil
-
-		return
-
-	case signalReconnect:
-		LogSession(Logger.Info(), s.ID).Msg("successfully disconnected (while reconnecting)")
-
-		// allow Discord to close the session.
-		<-time.After(time.Second)
-
-		s.manager.err <- nil
-
-		return
-	}
-
 	// when an error caused goroutines to close, manage the state of disconnection.
 	if err != nil {
-		disconnectErr := new(ErrorDisconnect)
+		disconnectErr := new(ErrorSessionDisconnect)
 		closeErr := new(websocket.CloseError)
 		switch {
 		// when an error occurs from a purposeful disconnection.
@@ -152,10 +124,9 @@ func (s *VoiceSession) manage() {
 
 		default:
 			if cErr := s.Conn.Close(websocket.StatusCode(FlagClientCloseEventCodeAway), ""); cErr != nil {
-				s.manager.err <- ErrorDisconnect{
-					Action:     err,
-					Err:        cErr,
-					Connection: ErrConnectionSessionVoice,
+				s.manager.err <- ErrorSessionDisconnect{
+					Action: err,
+					Err:    cErr,
 				}
 
 				return
@@ -200,62 +171,4 @@ func (s *VoiceSession) handleGatewayCloseError(closeErr *websocket.CloseError) e
 
 		return closeErr
 	}
-}
-
-// Wait blocks until the calling Voice Session has disconnected, then returns the reason
-// (disgo.SignalReason) for disconnecting and the disconnection error (if it exists).
-//
-// If Wait() is called on a Voice Session that isn't connected, it will return immediately
-// with code SignalNone.
-//
-// It's NOT recommended to modify a Voice Session after it has disconnected,
-// since it will be cleared and placed into a memory pool shortly after.
-func (s *VoiceSession) Wait() (int, error) {
-	if !s.isConnected() {
-		return SignalNone, nil
-	}
-
-	// NOTE: Wait() is equivalent to the s.manage() s.manager.Wait() handling logic,
-	// but without the management of the disconnection state,
-	// and without the usage of a channel that tells another goroutine to unblock.
-	//
-	// wait until all of a Session's goroutines are closed.
-	err := s.manager.Wait()
-	s.Lock()
-	defer s.Unlock()
-
-	// when a signal is provided, it indicates that the disconnection was purposeful.
-	signal := s.manager.signal.Value(keySignal)
-	switch signal {
-	case signalDisconnect:
-		return SignalDisconnect, nil
-
-	case signalReconnect:
-		return SignalReconnect, nil
-	}
-
-	// when an error caused goroutines to close.
-	if err != nil {
-		disconnectErr := new(ErrorDisconnect)
-		closeErr := new(websocket.CloseError)
-		switch {
-		// when an error occurs from a purposeful disconnection.
-		case errors.As(err, disconnectErr):
-			if signal != nil {
-				if signalValue, ok := signal.(int); ok {
-					return signalValue, err //nolint:wrapcheck
-				}
-			}
-
-			return SignalDisconnectError, err //nolint:wrapcheck
-
-		// when an error occurs from a WebSocket Close Error.
-		case errors.As(err, closeErr):
-			return SignalError, s.handleGatewayCloseError(closeErr)
-		}
-
-		return SignalError, err //nolint:wrapcheck
-	}
-
-	return SignalUndefined, nil
 }

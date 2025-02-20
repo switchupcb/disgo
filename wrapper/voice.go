@@ -94,7 +94,7 @@ func (vc *VoiceChannelConnection) Connect(bot *Client) error {
 		return errors.New("ConnectVoice: Voice ChannelID must be non-nil and non-empty to connect to voice channel")
 	}
 
-	if vc.GatewaySession == nil || !vc.GatewaySession.isConnected() {
+	if vc.GatewaySession == nil || vc.GatewaySession.State() != SessionStateConnected {
 		return errors.New("ConnectVoice: Session must be connected to the Discord Gateway to connect to voice channel")
 	}
 
@@ -155,7 +155,7 @@ VOICESERVERUPDATE:
 		case <-vc.GatewaySession.Context.Done():
 			vc.VoiceSession.RUnlock()
 
-			return <-vc.GatewaySession.manager.err
+			return <-vc.GatewaySession.manager.actionError
 		default:
 			vc.VoiceSession.RUnlock()
 			//lint:ignore SA4011 break into for loop.
