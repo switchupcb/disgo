@@ -28,16 +28,20 @@ func (s *Session) listen(bot *Client) error {
 	}
 
 	s.Lock()
-	defer s.Unlock()
 	defer s.logClose("listen")
+	defer s.Unlock()
 
-	select {
-	case <-s.Context.Done():
-		return nil
+	if s.Context != nil {
+		select {
+		case <-s.Context.Done():
+			return nil
 
-	default:
-		return err
+		default:
+			return err
+		}
 	}
+
+	return nil
 }
 
 // onPayload handles an Discord Gateway Payload.
@@ -53,6 +57,7 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// send an Opcode 1 Heartbeat to the Discord Gateway.
 	case FlagGatewayOpcodeHeartbeat:
+		Logger.Printf("STUCK10")
 		s.Lock()
 		atomic.AddInt32(&s.manager.pulses, 1)
 		s.Unlock()
@@ -67,13 +72,14 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// handle the successful acknowledgement of the client's last heartbeat.
 	case FlagGatewayOpcodeHeartbeatACK:
+		Logger.Printf("STUCK11")
 		s.Lock()
 		atomic.AddUint32(&s.heartbeat.acks, 1)
 		s.Unlock()
 
 	// occurs when the Discord Gateway is shutting down the connection, while signalling the client to reconnect.
 	case FlagGatewayOpcodeReconnect:
-		s.reconnect(bot, "reconnecting session due to Opcode 7 Reconnect")
+		s.reconnect("reconnecting session due to Opcode 7 Reconnect")
 
 		return nil
 
@@ -85,6 +91,7 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 		// wait for Discord to close the session, then complete a fresh connect.
 		<-time.NewTimer(invalidSessionWaitTime).C
 
+		Logger.Printf("STUCK12")
 		s.Lock()
 		defer s.Unlock()
 

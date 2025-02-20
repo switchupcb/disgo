@@ -100,10 +100,9 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 		err = fmt.Errorf("error reading initial VoiceHello event: %w", err)
 		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
-			sessionErr.Err = ErrorDisconnect{
-				Action:     err,
-				Err:        disconnectErr,
-				Connection: ErrConnectionSessionVoice,
+			sessionErr.Err = ErrorSessionDisconnect{
+				Action: err,
+				Err:    disconnectErr,
 			}
 		}
 
@@ -156,10 +155,9 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	if err := s.initial(bot, vc); err != nil {
 		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
-			sessionErr.Err = ErrorDisconnect{
-				Action:     err,
-				Err:        disconnectErr,
-				Connection: ErrConnectionSessionVoice,
+			sessionErr.Err = ErrorSessionDisconnect{
+				Action: err,
+				Err:    disconnectErr,
 			}
 		}
 
@@ -270,8 +268,6 @@ func (s *VoiceSession) initial(bot *Client, vc *VoiceChannelConnection) error {
 func (s *VoiceSession) disconnect(code int) error {
 	id := s.ID
 	LogSession(Logger.Info(), id).Msgf("disconnecting voice session with code %d", FlagClientCloseEventCodeNormal)
-
-	s.manager.signal = context.WithValue(s.manager.signal, keySignal, signalDisconnect)
 
 	// cancel the context to kill the goroutines of the Voice Session.
 	defer s.manager.cancel()
