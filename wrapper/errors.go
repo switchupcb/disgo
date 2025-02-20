@@ -37,19 +37,29 @@ func (e ErrorRequest) Error() string {
 		e.ClientID, e.CorrelationID, e.RouteID, e.ResourceID, e.Endpoint, e.Err).Error()
 }
 
+// ErrorStatusCode represents an HTTP Request error that occurs when an unexpected response is returned.
+type ErrorStatusCode struct {
+	// StatusCode represents the HTTP Status Code received from a response.
+	StatusCode int
+}
+
 // Status Code Error Messages.
 const (
 	errStatusCodeKnown   = "status code %d: %v"
 	errStatusCodeUnknown = "status code %d: unknown status code error from Discord"
 )
 
-// StatusCodeError handles a Discord API HTTP Status Code and returns the relevant error message.
-func StatusCodeError(status int) error {
+func (e ErrorStatusCode) Error() string {
+	return fmt.Sprintf("STATUS CODE ERROR: status code: %q: msg: %v", e.StatusCode, StatusCodeError(e.StatusCode))
+}
+
+// StatusCodeError returns the relevant message for a Discord API HTTP Status Code.
+func StatusCodeError(status int) string {
 	if msg, ok := HTTPResponseCodes[status]; ok {
-		return fmt.Errorf(errStatusCodeKnown, status, msg)
+		return fmt.Sprintf(errStatusCodeKnown, status, msg)
 	}
 
-	return fmt.Errorf(errStatusCodeUnknown, status)
+	return fmt.Sprintf(errStatusCodeUnknown, status)
 }
 
 // JSON Error Code Messages.

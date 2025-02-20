@@ -311,7 +311,9 @@ SEND:
 				goto RATELIMIT
 			}
 
-			return StatusCodeError(response.StatusCode())
+			return ErrorStatusCode{
+				StatusCode: response.StatusCode(),
+			}
 		}
 
 		// parse the rate limit response data for `retry_after`.
@@ -377,7 +379,9 @@ SEND:
 			goto RATELIMIT
 		}
 
-		return StatusCodeError(fasthttp.StatusTooManyRequests)
+		return ErrorStatusCode{
+			StatusCode: fasthttp.StatusTooManyRequests,
+		}
 
 	// retry the request on a bad gateway server error.
 	case fasthttp.StatusBadGateway:
@@ -387,10 +391,14 @@ SEND:
 			goto RATELIMIT
 		}
 
-		return StatusCodeError(fasthttp.StatusBadGateway)
+		return ErrorStatusCode{
+			StatusCode: fasthttp.StatusBadGateway,
+		}
 
 	default:
-		return StatusCodeError(response.StatusCode())
+		return ErrorStatusCode{
+			StatusCode: response.StatusCode(),
+		}
 	}
 }
 
