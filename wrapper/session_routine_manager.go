@@ -203,7 +203,7 @@ func (s *Session) manage(bot *Client) error {
 
 			s.Lock()
 
-			return err //nolint:wrapcheck
+			return err
 
 		case signal := <-s.manager.signals:
 			switch signal {

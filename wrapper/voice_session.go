@@ -8,7 +8,6 @@ import (
 	"time"
 
 	json "github.com/goccy/go-json"
-	"github.com/rs/zerolog/log"
 	"github.com/switchupcb/disgo/wrapper/socket"
 	"github.com/switchupcb/websocket"
 	"golang.org/x/sync/errgroup"
@@ -98,7 +97,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	hello := new(VoiceHello)
 	if err := readEventVoice(s, hello); err != nil {
 		err = fmt.Errorf("error reading initial VoiceHello event: %w", err)
-		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
+		sessionErr := ErrorSession{SessionID: s.ID, Err: err} //nolint:exhaustruct // voice needs refactor
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorSessionDisconnect{
 				Action: err,
@@ -142,7 +141,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	s.manager.routines.Add(1)
 	s.manager.Go(func() error {
 		if err := s.beat(); err != nil {
-			return ErrorSession{
+			return ErrorSession{ //nolint:exhaustruct // voice needs refactor
 				SessionID: s.ID,
 				Err:       fmt.Errorf("heartbeat: %w", err),
 			}
@@ -153,7 +152,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 
 	// send the initial Identify or Resumed packet.
 	if err := s.initial(bot, vc); err != nil {
-		sessionErr := ErrorSession{SessionID: s.ID, Err: err}
+		sessionErr := ErrorSession{SessionID: s.ID, Err: err} //nolint:exhaustruct // voice needs refactor
 		if disconnectErr := s.disconnect(FlagClientCloseEventCodeNormal); disconnectErr != nil {
 			sessionErr.Err = ErrorSessionDisconnect{
 				Action: err,
@@ -168,7 +167,7 @@ func (s *VoiceSession) connect(bot *Client, vc *VoiceChannelConnection) error {
 	s.manager.routines.Add(1)
 	s.manager.Go(func() error {
 		if err := s.listen(bot); err != nil {
-			return ErrorSession{
+			return ErrorSession{ //nolint:exhaustruct // voice needs refactor
 				SessionID: s.ID,
 				Err:       fmt.Errorf("listen: %w", err),
 			}
@@ -293,29 +292,6 @@ func readEventVoice(s *VoiceSession, dst any) error {
 	if err := json.Unmarshal(payload.Data, dst); err != nil {
 		return fmt.Errorf("readEvent: %w", err)
 	}
-
-	return nil
-}
-
-// writeEventVoice is a helper function for writing voice events to the WebSocket Session.
-func writeEventVoice(s *VoiceSession, op int, name string, dst any) error {
-	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
-
-	// write the event to the WebSocket Connection.
-	event, err := json.Marshal(dst)
-	if err != nil {
-		return fmt.Errorf("writeEvent: %w", err)
-	}
-
-	if err = socket.Write(s.Context, s.Conn, websocket.MessageText,
-		VoicePayload{
-			Op:   op,
-			Data: event,
-		}); err != nil {
-		return fmt.Errorf("writeEvent: %w", err)
-	}
-
-	LogCommandVoice(log.Trace(), op, name).Msg("sending voice server command")
 
 	return nil
 }
