@@ -52,7 +52,9 @@ func putSession(s *Session) {
 	s.Endpoint = ""
 	s.Shard = nil
 	s.Context = nil
+	s.cancel = nil
 	s.Conn = nil
+	s.setState(SessionStateNew)
 	s.heartbeat = nil
 	s.manager = nil
 	s.client_manager = nil

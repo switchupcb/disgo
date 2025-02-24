@@ -83,16 +83,11 @@ func (s *Session) onPayload(bot *Client, payload GatewayPayload) error {
 
 	// in the context of onPayload, an Invalid Session occurs when an active session is invalidated.
 	case FlagGatewayOpcodeInvalidSession:
-		// Remove the session from the session manager.
-		s.client_manager.RemoveGatewaySession(s.ID)
-
 		// wait for Discord to close the session, then complete a fresh connect.
 		<-time.NewTimer(invalidSessionWaitTime).C
 
-		s.Lock()
-		defer s.Unlock()
-
-		if err := s.initial(bot, 0); err != nil {
+		_ = s.Disconnect()
+		if err := s.Connect(bot); err != nil {
 			return err
 		}
 	}

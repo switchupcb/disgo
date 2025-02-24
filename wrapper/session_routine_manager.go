@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/switchupcb/websocket"
@@ -15,28 +14,18 @@ import (
 
 // manager represents a manager of a Session's goroutines.
 type manager struct {
-	// state represents the state of the Session's connection to Discord.
-	state string
-
-	// stateMutex is used to protect the Session's manager state from data races
-	// by providing transactional functionality.
-	stateMutex sync.RWMutex
-
 	// signals represents a channel of signals.
 	signals chan uint8
 
 	// coroner represents a goroutine group to track the manager routine.
-	coroner errgroup.Group
+	coroner *errgroup.Group
+
+	// context is used as a context for the manager routine.
+	context context.Context
 
 	// routines represents a goroutine counter that ensures all of the Session's goroutines
 	// are spawned prior to returning from connect().
 	routines sync.WaitGroup
-
-	// cancel represents the cancellation signal for a Session's Context.
-	cancel context.CancelFunc
-
-	// actionError represents the error this manager detects upon a connection action (e.g., connecting, disconnecting).
-	actionError chan error
 
 	// pulses represents the amount of goroutines that can generate heartbeat pulses.
 	//
@@ -79,11 +68,8 @@ type manager struct {
 // spawnManager spawns a tracked manager.
 func (s *Session) spawnManager(bot *Client) {
 	s.manager = new(manager)
-
-	s.Context, s.manager.cancel = context.WithCancel(context.Background())
-	s.manager.Group, s.Context = errgroup.WithContext(s.Context)
+	s.manager.coroner, s.manager.context = errgroup.WithContext(context.Background())
 	s.manager.signals = make(chan uint8)
-	s.manager.actionError = make(chan error, 1)
 
 	// spawn the manager goroutine.
 	s.manager.coroner.Go(func() error {
@@ -95,45 +81,6 @@ func (s *Session) spawnManager(bot *Client) {
 	})
 }
 
-// Session States represent the state of the Session's connection to Discord.
-const (
-	SessionStateNew = ""
-
-	SessionStateConnecting          = "connecting (before websocket connection)"
-	SessionStateConnectingWebsocket = "connecting (with websocket connection)"
-	SessionStateConnected           = "connected"
-
-	SessionStateDisconnecting          = "disconnecting (purposefully)"
-	SessionStateDisconnectingError     = "disconnecting (due to an error)"
-	SessionStateDisconnectingReconnect = "disconnecting (while reconnecting)"
-
-	SessionStateDisconnectedFinal     = "disconnected (after connection)"
-	SessionStateDisconnectedError     = "disconnected (due to an error)"
-	SessionStateDisconnectedReconnect = "disconnected (while reconnecting)"
-
-	SessionStateReconnecting = "reconnecting"
-)
-
-// State returns the state of the Session's connection to Discord.
-func (s *Session) State() string {
-	s.manager.stateMutex.RLock()
-	defer s.manager.stateMutex.RUnlock()
-
-	return s.manager.state
-}
-
-// setState sets the state of a Session.
-func (s *Session) setState(state string) {
-	s.manager.stateMutex.Lock()
-	s.manager.state = state
-	s.manager.stateMutex.Unlock()
-}
-
-// canReconnect returns whether the Session's fields are in a valid state to reconnect.
-func (s *Session) canReconnect() bool {
-	return s.ID != "" && s.Endpoint != "" && atomic.LoadInt64(&s.Seq) != 0
-}
-
 // Session Signals represent manager signals to perform actions to the Session.
 const (
 	sessionSignalConnect    = 1
@@ -142,51 +89,58 @@ const (
 )
 
 // manage manages a Session's goroutines.
-func (s *Session) manage(bot *Client) error {
+func (s *Session) manage(bot *Client) error { //nolint:maintidx
 	// spawn the coroner once the manager routine is alive.
 	go s.coroner()
 
-	defer func() {
-		if s.State() != SessionStateDisconnectedReconnect {
-			s.Unlock()
-		}
+	// create a temporary context for a new session (which is reset upon connection).
+	s.Context = context.Background()
 
-		// wait until the previous connection's manager goroutines are closed.
-		_ = s.manager.Wait()
+	var managerErr error
+
+	defer func() {
+		// remove the session from the client.
+		s.client_manager.RemoveGatewaySession(s.ID)
 
 		s.logClose("manager")
 	}()
 
-	var managedErr error
-
 	for {
 		select {
+		// <-s.Context.Done() when all managed routines are closing
+		// due to reconnection (while awaiting a connection signal) or
+		// due to an unexpected error in a managed routine.
 		case <-s.Context.Done():
+			LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msgf("received signal: <-s.Context.Done with state %q", s.State())
+
+			// wait until the session's manager goroutines are closed (with s.Unlocked).
+			//
+			// proof: s.manager.Wait() returns instantly when SessionStateDisconnectedReconnect (with s.Locked).
+			err := s.manager.Wait()
+
+			// All session routines are closed when
+			//
+			// reconnecting (while waiting for another signal)
 			if s.State() == SessionStateDisconnectedReconnect {
 				break
 			}
 
-			// wait until the previous connection's manager goroutines are closed.
-			err := s.manager.Wait()
+			// disconnecting (unexpectedly)
 			if err != nil {
-				closeErr := new(websocket.CloseError)
+				// TODO: Use errors.As: https://github.com/coder/websocket/issues/519
+				if strings.Contains(err.Error(), "failed to close WebSocket: received header with unexpected rsv bits set") {
+					return nil
+				}
 
+				closeErr := new(websocket.CloseError)
 				if errors.As(err, closeErr) {
 					if vErr := s.validateGatewayCloseError(closeErr); vErr == nil {
 						// reconnect from a state where
 						s.setState(SessionStateDisconnectedReconnect)
 
-						// manager routines must be reset
-						s.Context, s.manager.cancel = context.WithCancel(context.Background()) //nolint:fatcontext
-						s.manager.Group, s.Context = errgroup.WithContext(s.Context)
-
+						// send a connection signal.
 						go func() {
-							// send a connection signal.
 							s.manager.signals <- sessionSignalConnect
-
-							// read the s.manager.actionError send from a successful connection.
-							e := <-s.manager.actionError
-							LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msgf("captured result from close event reconnect: %q", e)
 						}()
 
 						s.Lock()
@@ -194,147 +148,198 @@ func (s *Session) manage(bot *Client) error {
 						break // to reconnect from the connect case logic.
 					} // vErr == nil
 				} // errors.As
-
-				// TODO: Use errors.As: https://github.com/coder/websocket/issues/519
-				if strings.Contains(err.Error(), "failed to close WebSocket: received header with unexpected rsv bits set") {
-					err = nil
-				}
 			} // err != nil
 
-			s.Lock()
-
-			return err
+			return nil
 
 		case signal := <-s.manager.signals:
 			switch signal {
 			case sessionSignalConnect:
-				if s.State() != SessionStateDisconnectedReconnect {
+				LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msgf("received signal: connect with state %q", s.State())
+
+				switch s.State() {
+				// SessionStateNew when Connect() on new session.
+				case SessionStateNew:
 					s.Lock()
-				} else {
-					s.Unlock()
 
-					// wait until the previous connection's manager goroutines are closed.
-					_ = s.manager.Wait()
+					LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msg("connecting session")
 
-					s.Lock()
-				}
+					if err := s.connect(bot); err != nil {
+						managerErr = ErrorSession{SessionID: s.ID, State: s.State(), Type: ErrorSessionTypeGateway, Err: err}
 
-				LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msg("connecting session")
-
-				if err := s.connect(bot); err != nil {
-					managedErr = ErrorSession{SessionID: s.ID, State: s.State(), Type: ErrorSessionTypeGateway, Err: err}
-
-					switch s.State() {
-					case SessionStateConnectingWebsocket:
-						go func() {
+						// disconnect when error occurred after websocket connection
+						if s.State() == SessionStateConnectingWebsocket {
 							// send a disconnection signal.
-							s.manager.signals <- sessionSignalDisconnect
-						}()
+							go func() {
+								s.manager.signals <- sessionSignalDisconnect
+							}()
 
-					// case SessionStateNew, SessionStateConnecting...
-					default:
-						return managedErr
+							break // to handle error after disconnection
+						}
+
+						s.Unlock()
+
+						return managerErr
 					}
 
-					break // to handle the error in the disconnect case logic.
-				}
+					s.setState(SessionStateConnected)
+					s.Unlock()
 
-				s.setState(SessionStateConnected)
-				s.manager.actionError <- nil
-				s.Unlock()
+				// SessionStateDisconnectedReconnect when reconnecting from disconnected session.
+				case SessionStateDisconnectedReconnect:
+					// s.Lock() called during reconnection signal.
+
+					LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msg("reconnecting session")
+
+					if err := s.connect(bot); err != nil {
+						managerErr = ErrorSession{SessionID: s.ID, State: s.State(), Type: ErrorSessionTypeGateway, Err: err}
+
+						// disconnect when error occurred after websocket connection
+						if s.State() == SessionStateConnectingWebsocket {
+							// send a disconnection signal.
+							go func() {
+								s.manager.signals <- sessionSignalDisconnect
+							}()
+
+							break // to handle error after disconnection
+						}
+
+						s.Unlock()
+
+						return managerErr
+					}
+
+					LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msg("connected session")
+					s.setState(SessionStateConnected)
+					s.Unlock()
+
+				default:
+					return fmt.Errorf("unexpected state during session connection: %v", s.State())
+				}
 
 			case sessionSignalDisconnect:
-				if managedErr == nil && s.State() != SessionStateReconnecting {
-					s.Lock()
-				}
+				LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msgf("received signal: disconnect with state %q", s.State())
 
 				// update the session's state and client close event code.
-				code := FlagClientCloseEventCodeNormal
+				var code int
 
 				switch {
-				case managedErr != nil:
+				case managerErr != nil:
+					// s.Lock() called before error.
+
 					s.setState(SessionStateDisconnectingError)
+					code = FlagClientCloseEventCodeNormal
+
+					LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msgf("%q session with code %d", s.State(), code)
+
 				case s.State() == SessionStateReconnecting:
+					// s.Lock() called during reconnection signal.
+
 					s.setState(SessionStateDisconnectingReconnect)
 					code = FlagClientCloseEventCodeReconnect
-				default:
-					s.setState(SessionStateDisconnecting)
-				}
 
-				LogSession(Logger.Info(), s.ID).Msgf("%q session with code %d", s.State(), code)
+					LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msgf("%q session with code %d", s.State(), code)
+
+				default:
+					s.Lock()
+
+					s.setState(SessionStateDisconnecting)
+					code = FlagClientCloseEventCodeNormal
+
+					LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msgf("%q session with code %d", s.State(), code)
+				}
 
 				// disconnect the session.
 				if err := s.disconnect(code); err != nil {
-					managedErr = ErrorSession{
-						SessionID: s.ID,
-						State:     s.State(),
-						Type:      ErrorSessionTypeGateway,
-						Err: ErrorSessionDisconnect{
-							Action: managedErr,
-							Err:    err,
-						},
-					}
+					// validate the disconnection error.
+					closeErr := new(websocket.CloseError)
 
 					// TODO: Use errors.As: https://github.com/coder/websocket/issues/519
 					if strings.Contains(err.Error(), "failed to close WebSocket: received header with unexpected rsv bits set") {
-						managedErr = nil
+						err = nil
+					} else if errors.As(err, closeErr) {
+						err = s.validateGatewayCloseError(closeErr)
 					}
 
-					if s.State() != SessionStateDisconnectingReconnect {
-						return managedErr
+					if managerErr != nil {
+						s.Unlock()
+
+						// wait until the session's manager goroutines are closed (with s.Unlocked).
+						_ = s.manager.Wait()
+
+						return ErrorSession{
+							SessionID: s.ID,
+							State:     s.State(),
+							Type:      ErrorSessionTypeGateway,
+							Err: ErrorSessionDisconnect{
+								Action: managerErr,
+								Err:    err,
+							},
+						}
 					}
 
-					// validate error when reconnecting
-					closeErr := new(websocket.CloseError)
-					if errors.As(managedErr, closeErr) {
-						if managedErr = s.validateGatewayCloseError(closeErr); managedErr != nil {
-							return managedErr
+					if err != nil {
+						s.Unlock()
+
+						// wait until the session's manager goroutines are closed (with s.Unlocked).
+						_ = s.manager.Wait()
+
+						return ErrorSession{
+							SessionID: s.ID,
+							State:     s.State(),
+							Type:      ErrorSessionTypeGateway,
+							Err: ErrorSessionDisconnect{
+								Action: nil,
+								Err:    err,
+							},
 						}
 					}
 				} // disconnect
 
 				// update the session's state.
 				switch {
-				case s.State() == SessionStateDisconnectingError:
+				case managerErr != nil:
 					s.setState(SessionStateDisconnectedError)
-
 				case s.State() == SessionStateDisconnectingReconnect:
 					s.setState(SessionStateDisconnectedReconnect)
-
 				default:
 					s.setState(SessionStateDisconnectedFinal)
 				}
 
-				LogSession(Logger.Info(), s.ID).Msgf("%q session with code %d", s.State(), code)
+				// wait until the session's manager goroutines are closed (with s.Unlocked).
+				s.Unlock()
+				_ = s.manager.Wait()
+
+				s.Lock()
+				LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msgf("%q session with code %d", s.State(), code)
 
 				if s.State() == SessionStateDisconnectedReconnect {
 					// allow Discord to close the session.
 					<-time.After(time.Second)
 
+					// send a connection signal.
 					go func() {
-						// send a connection signal.
 						s.manager.signals <- sessionSignalConnect
 					}()
 
 					break
 				}
 
-				// Destroy the manager when the bot isn't reconnecting.
-				if managedErr != nil {
-					return managedErr
-				}
+				s.Unlock()
 
 				return nil
 
 			case sessionSignalReconnect:
+				LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Msgf("received signal: reconnect with state %q", s.State())
+
 				s.Lock()
 				s.setState(SessionStateReconnecting)
 
+				// send a disconnection signal.
 				go func() {
-					// send a disconnection signal.
 					s.manager.signals <- sessionSignalDisconnect
 				}()
-			}
+			} // switch signal
 		} // select
 	} // for
 }
@@ -365,6 +370,14 @@ func (s *Session) validateGatewayCloseError(closeErr *websocket.CloseError) erro
 
 	// Gateway Close Event Code is unknown.
 	default:
+		// when another goroutine returns an error,
+		// s.Conn.Close is called before s.cancel which will result in
+		// a CloseError with the close code that Disgo uses to reconnect.
+		if closeErr.Code == websocket.StatusCode(FlagClientCloseEventCodeNormal) ||
+			closeErr.Code == websocket.StatusCode(FlagClientCloseEventCodeReconnect) {
+			return nil
+		}
+
 		LogSession(Logger.Info(), s.ID).
 			Msgf("received unknown Gateway Close Event Code %d with reason %q",
 				closeErr.Code, closeErr.Reason,

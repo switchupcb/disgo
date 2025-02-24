@@ -10,6 +10,7 @@ import (
 	json "github.com/goccy/go-json"
 	"github.com/switchupcb/disgo/wrapper/socket"
 	"github.com/switchupcb/websocket"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -80,7 +81,8 @@ func (s *Session) connect(bot *Client) error {
 	)
 
 	// connect to the Discord Gateway Websocket.
-	s.Context, s.manager.cancel = context.WithCancel(context.Background())
+	s.Context, s.cancel = context.WithCancel(context.Background())
+	s.manager.Group, s.Context = errgroup.WithContext(s.Context)
 	if s.Conn, _, err = websocket.Dial(s.Context, gatewayEndpoint+gatewayEndpointParams, nil); err != nil {
 		return fmt.Errorf("error connecting to the Discord Gateway: %w", err)
 	}
@@ -293,7 +295,7 @@ func (s *Session) initial(bot *Client, attempt int) error {
 // disconnect disconnects a session from a WebSocket Connection using the given status code.
 func (s *Session) disconnect(code int) error {
 	// cancel the context to kill the goroutines of the Session.
-	defer s.manager.cancel()
+	defer s.cancel()
 
 	if err := s.Conn.Close(websocket.StatusCode(code), ""); err != nil {
 		return fmt.Errorf("%w", err)
