@@ -152,10 +152,10 @@ VOICESERVERUPDATE:
 		}
 
 		select {
-		case <-vc.GatewaySession.Context.Done():
+		case <-vc.GatewaySession.manager.context.Done():
 			vc.VoiceSession.RUnlock()
 
-			return <-vc.GatewaySession.manager.actionError
+			return vc.GatewaySession.manager.Wait() //nolint:wrapcheck
 		default:
 			vc.VoiceSession.RUnlock()
 			//lint:ignore SA4011 break into for loop.

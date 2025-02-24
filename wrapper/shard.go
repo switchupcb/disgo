@@ -35,7 +35,7 @@ type ShardManager interface {
 	Disconnect() error
 
 	// Reconnect reconnects to the Discord Gateway using the Shard Manager.
-	Reconnect(bot *Client) error
+	Reconnect() error
 }
 
 // ShardLimit contains information about sharding limits.

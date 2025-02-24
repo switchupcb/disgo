@@ -170,7 +170,7 @@ func TestReconnect(t *testing.T) {
 
 RECONNECT:
 	// reconnect.
-	if err := s.Reconnect(bot); err != nil {
+	if err := s.Reconnect(); err != nil {
 		t.Fatalf("%v", err)
 	}
 

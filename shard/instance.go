@@ -125,12 +125,12 @@ func (sm *InstanceShardManager) Disconnect() error {
 }
 
 // Reconnect connects to the Discord Gateway using the Shard Manager.
-func (sm *InstanceShardManager) Reconnect(bot *disgo.Client) error {
+func (sm *InstanceShardManager) Reconnect() error {
 	// totalShards represents the total number of shards that are connected.
 	totalShards := len(sm.Sessions)
 
 	for sessionCount := 0; sessionCount < totalShards; sessionCount++ {
-		if err := sm.Sessions[sessionCount].Reconnect(bot); err != nil {
+		if err := sm.Sessions[sessionCount].Reconnect(); err != nil {
 			return fmt.Errorf(errShardManager, err)
 		}
 	}

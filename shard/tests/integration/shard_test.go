@@ -38,7 +38,7 @@ func TestReconnect(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// reconnect to the Discord Gateway (WebSocket Session).
-	if err := s.Reconnect(bot); err != nil {
+	if err := s.Reconnect(); err != nil {
 		t.Fatalf("%v", err)
 	}
 
