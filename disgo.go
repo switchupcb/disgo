@@ -20961,6 +20961,9 @@ func (s *Session) manage(bot *Client) error { //nolint:maintidx
 			//
 			// proof: s.manager.Wait() returns instantly when SessionStateDisconnectedReconnect (with s.Locked).
 			err := s.manager.Wait()
+			if err != nil {
+				LogSession(Logger.Info(), s.ID).Str(LogCtxClient, bot.ApplicationID).Err(err).Msgf("<-s.Context.Done manager wait error result")
+			}
 
 			// All session routines are closed when
 			//
@@ -20992,6 +20995,8 @@ func (s *Session) manage(bot *Client) error { //nolint:maintidx
 						break // to reconnect from the connect case logic.
 					} // vErr == nil
 				} // errors.As
+
+				return err
 			} // err != nil
 
 			return nil
