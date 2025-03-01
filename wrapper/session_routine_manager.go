@@ -152,7 +152,7 @@ func (s *Session) manage(bot *Client) error { //nolint:maintidx
 					} // vErr == nil
 				} // errors.As
 
-				return err
+				return err //nolint:wrapcheck
 			} // err != nil
 
 			return nil

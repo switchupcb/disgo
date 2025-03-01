@@ -77,11 +77,11 @@ Disgo [fieldaligns](https://pkg.go.dev/golang.org/x/tools/go/analysis/passes/fie
 
 #### Unit Tests
 
-Unit tests are used to test logic.
+Unit tests test logic.
 
 #### Integration Tests
 
-Integration tests are used to prove functionality between the API Wrapper and Discord.
+Integration tests prove functionality between the API Wrapper and Discord.
 
 | Test                | What feature is tested?                                  |
 | :------------------ | :------------------------------------------------------- |
@@ -92,14 +92,18 @@ Integration tests are used to prove functionality between the API Wrapper and Di
 
 #### Running Tests
 
-Use `go test` to run the tests in the current directory. Use `go test ./<dir>` to run tests in a given directory (from the current directory). Use [Github Action Workflow Files](/.github/workflows/) to find the correct test command and environment variables for a module.
+Use `go test` to run the tests in the current directory. 
+
+Use `go test ./<dir>` to run tests in a given directory (from the current directory).
+
+Use [Github Action Workflow Files](/.github/workflows/) to find the correct test command and environment variables for a module.
 
 # Roadmap
 
 Disgo is **STABLE**. 
 
 The following additional features are being implemented:
-1. [Voice Audio Processing](https://github.com/switchupcb/disgo/issues/72))
+1. [Voice Audio Processing](https://github.com/switchupcb/disgo/issues/72)
 2. [Cache](https://github.com/switchupcb/disgo/issues/39)
 
 [_Get assigned a feature or example now._](https://github.com/switchupcb/disgo/issues/45)
