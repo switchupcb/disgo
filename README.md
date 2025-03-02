@@ -1,9 +1,9 @@
-# Create a Discord Bot using Go
+# Create a Discord Bot with Go
 
 [![Go Doc](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=for-the-badge&logo=appveyor&logo=appveyor)](https://pkg.go.dev/github.com/switchupcb/disgo)
 [![License](https://img.shields.io/github/license/switchupcb/disgo.svg?style=for-the-badge)](https://github.com/switchupcb/disgo/blob/main/LICENSE)
 
-**Disgo** helps you create a Discord Bot using the Go programming language.
+**Disgo** helps you create a Discord Bot with the Go programming language.
 
 ## What is Disgo?
 
