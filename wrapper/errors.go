@@ -50,7 +50,7 @@ const (
 )
 
 func (e ErrorStatusCode) Error() string {
-	return fmt.Sprintf("STATUS CODE ERROR: status code: %q: msg: %v", e.StatusCode, StatusCodeError(e.StatusCode))
+	return fmt.Sprintf("STATUS CODE ERROR: status code: %d: msg: %v", e.StatusCode, StatusCodeError(e.StatusCode))
 }
 
 // StatusCodeError returns the relevant message for a Discord API HTTP Status Code.
